@@ -52,7 +52,7 @@ typedef struct audio_device{
     uint32_t rec_buf_len_samples;
     int32_t write_bufpos_samples;
     bool open;
-    bool playing; /* i.e., "unpaused," has callback running */
+    _Atomic bool playing; /* i.e., "unpaused," has callback running */
     /* bool request_close; */
     /* sem_t *request_close; */
 

@@ -126,7 +126,7 @@ static void FIR_filter_alloc_buffers(FIRFilter *filter)
 {
     /* pthread_mutex_lock(&filter->lock); */
 
-    int max_irlen = filter->track->tl->proj->fourier_len_sframes;
+    int max_irlen = filter->chunk_len;
     if (!filter->impulse_response)
 	filter->impulse_response = calloc(1, sizeof(double) * max_irlen);
 
@@ -166,19 +166,20 @@ static void FIR_filter_alloc_buffers(FIRFilter *filter)
     /* pthread_mutex_unlock(&filter->lock); */
 
 }
-void filter_init(FIRFilter *filter, Track *track, FilterType type, uint16_t impulse_response_len, uint16_t frequency_response_len) 
+void filter_init(FIRFilter *filter, FilterType type, uint16_t impulse_response_len, uint16_t frequency_response_len, uint16_t chunk_len) 
 {
     /* pthread_mutex_init(&filter->lock, NULL); */
     filter->type = type;
-    filter->track = track;
     filter->impulse_response_len_internal = impulse_response_len;
     filter->impulse_response_len = impulse_response_len;
     filter->frequency_response_len = frequency_response_len;
+    filter->chunk_len = chunk_len;
     FIR_filter_alloc_buffers(filter);
 
     filter->cutoff_freq = 0.02;
     filter->bandwidth = 0.1;
     filter_set_impulse_response_len(filter, impulse_response_len);
+
     /* filter_set_params(filter, LOWPASS, 0.02, 0.1); */
     
     endpoint_init(
@@ -230,7 +231,7 @@ void filter_init(FIRFilter *filter, Track *track, FilterType type, uint16_t impu
     endpoint_set_allowed_range(
 	&filter->impulse_response_len_ep,
 	(Value){.uint16_v = 4},
-	(Value){.uint16_v = filter->track->tl->proj->fourier_len_sframes});
+	(Value){.uint16_v = filter->chunk_len});
     /* endpoint_set_default_value(&filter->impulse_response_len_ep, (Value){.double_v = 0.1}); */
     /* endpoint_set_label_fn(&filter->impulse_response_len_ep, label_msec); */
     /* api_endpoint_register(&filter->impulse_response_len_ep, &filter->effect->api_node); */
@@ -334,8 +335,8 @@ void filter_set_arbitrary_IR(FIRFilter *filter, float *ir_in, int ir_len)
 
 void filter_set_params_hz(FIRFilter *filter, FilterType type, double cutoff_hz, double bandwidth_hz)
 {
-    double cutoff = cutoff_hz / (double)filter->track->tl->proj->sample_rate;
-    double bandwidth = bandwidth_hz / (double)filter->track->tl->proj->sample_rate;;
+    double cutoff = cutoff_hz / (double)filter->effect->effect_chain->proj->sample_rate;
+    double bandwidth = bandwidth_hz / (double)filter->effect->effect_chain->proj->sample_rate;;
     filter_set_params(filter, type, cutoff, bandwidth);
 }
 
@@ -350,7 +351,7 @@ void filter_set_cutoff_hz(FIRFilter *f, double cutoff_hz)
 {
     FilterType t = f->type;
     double bandwidth = f->bandwidth;
-    double cutoff = cutoff_hz / (double)f->track->tl->proj->sample_rate;
+    double cutoff = cutoff_hz / (double)f->effect->effect_chain->proj->sample_rate;
     filter_set_params(f, t, cutoff, bandwidth);
 }
 void filter_set_bandwidth(FIRFilter *f, double bandwidth)
@@ -362,7 +363,7 @@ void filter_set_bandwidth(FIRFilter *f, double bandwidth)
 void filter_set_bandwidth_hz(FIRFilter *f, double bandwidth_h)
 {
     FilterType t = f->type;
-    double bandwidth = bandwidth_h / f->track->tl->proj->sample_rate;
+    double bandwidth = bandwidth_h / f->effect->effect_chain->proj->sample_rate;
     double cutoff = f->cutoff_freq;
     filter_set_params(f, t, cutoff, bandwidth);
 }
@@ -423,7 +424,7 @@ void filter_deinit(FIRFilter *filter)
 
 
 /* Destructive; replaces values in sample_array. Legacy fn called by new standard prototype filter_buf_apply */
-static void apply_filter(FIRFilter *filter, Track *track, uint8_t channel, uint16_t chunk_size, float *sample_array)
+static void apply_filter(FIRFilter *filter, uint8_t channel, uint16_t chunk_size, float *sample_array)
 {
     /* pthread_mutex_lock(&filter->lock); */
     /* SDL_LockMutex(filter->lock); */
@@ -471,7 +472,7 @@ float filter_buf_apply(void *f_v, float *buf, int len, int channel, float input_
 {
     FIRFilter *f = f_v;
     /* if (!f->active) return input_amp; */
-    apply_filter(f, f->track, channel, len, buf);
+    apply_filter(f, channel, len, buf);
     float output_amp = 0.0;
     for (int i=0; i<len; i++) {
 	output_amp += fabs(buf[i]);

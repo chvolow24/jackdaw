@@ -29,6 +29,7 @@
 #include <stdint.h>
 #include "adsr.h"
 #include "api.h"
+#include "effect.h"
 #include "endpoint.h"
 #include "iir.h"
 #include "midi_io.h"
@@ -234,6 +235,8 @@ typedef struct synth {
     int portamento_len_unscaled;
     int portamento_len_msec;
     Endpoint portamento_len_msec_ep;
+
+    EffectChain effect_chain;
     
     
     Page *osc_page; /* For GUI callback targeting */

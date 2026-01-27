@@ -157,6 +157,7 @@ void mqwert_deactivate()
     session->midi_qwerty = false;
     midi_device_close_all_notes(&state.v_device);
     memset(state.key_note_table, '\0', sizeof(state.key_note_table));
+    timeline_check_set_midi_monitoring();
 }
 
 void mqwert_octave(int incr)

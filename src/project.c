@@ -22,7 +22,6 @@
 #include "components.h"
 /* #include "dsp.h" */
 #include "endpoint_callbacks.h"
-#include "eq.h"
 #include "endpoint.h"
 #include "endpoint_callbacks.h"
 #include "input.h"
@@ -94,7 +93,6 @@ SDL_Color track_colors[7] = {
     {60, 200, 150, 255}
 };
 
-#include "dsp_utils.h"
 uint8_t project_add_timeline(Project *proj, char *name)
 {
 
@@ -699,10 +697,11 @@ Track *timeline_add_track_with_name(Timeline *tl, const char *track_name, int at
 	track_color_index = 0;
     }
 
-    int err = pthread_mutex_init(&track->effect_chain_lock, NULL);
-    if (err != 0) {
-	fprintf(stderr, "Error initializing effect chain lock: %s\n", strerror(err));
-    }
+    effect_chain_init(&track->effect_chain, tl->proj, &track->api_node, track->name, tl->proj->fourier_len_sframes);
+    /* int err = pthread_mutex_init(&track->effect_chain_lock, NULL); */
+    /* if (err != 0) { */
+    /* 	fprintf(stderr, "Error initializing effect chain lock: %s\n", strerror(err)); */
+    /* } */
 
     midi_event_ring_buf_init(&track->note_offs);
    
@@ -1929,9 +1928,11 @@ void track_destroy(Track *track, bool displace)
     for (int i=0; i<track->num_automations; i++) {
 	automation_destroy(track->automations[i]);
     }
-    for (int i=0; i<track->num_effects; i++) {
-	effect_destroy(track->effects[i]);
-    }
+
+    effect_chain_deinit(&track->effect_chain);
+    /* for (int i=0; i<track->num_effects; i++) { */
+    /* 	effect_destroy(track->effects[i]); */
+    /* } */
 
     midi_event_ring_buf_deinit(&track->note_offs);
 
@@ -1972,8 +1973,8 @@ void track_destroy(Track *track, bool displace)
     /* pthread_mutex_destroy(&track->delay_line.lock); */
 
     free(track->clips);
-    if (track->buf_L_freq_mag) free(track->buf_L_freq_mag);
-    if (track->buf_R_freq_mag) free(track->buf_R_freq_mag);
+    /* if (track->buf_L_freq_mag) free(track->buf_L_freq_mag); */
+    /* if (track->buf_R_freq_mag) free(track->buf_R_freq_mag); */
     if (track->automation_dropdown) symbol_button_destroy(track->automation_dropdown);
 
     if (track->synth) synth_destroy(track->synth);

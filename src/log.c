@@ -83,9 +83,9 @@ const char *timestamp()
   gettimeofday(&tv, NULL);
   timeinfo = localtime(&tv.tv_sec);
   /* enum jdaw_thread thread = current_thread(); */
-  JDAW_THREAD_LOCAL static char buf[64] = {0};
+  static JDAW_THREAD_LOCAL char buf[64] = {0};
   char *ms_loc = buf + strftime(buf, 64, "%Y-%m-%d %H:%M:%S", timeinfo);
-  snprintf(ms_loc, sizeof(buf) - (ms_loc - buf), ".%05d", tv.tv_usec);
+  snprintf(ms_loc, sizeof(buf) - (ms_loc - buf), ".%06d", tv.tv_usec);
   return buf;
 }
 
@@ -96,11 +96,15 @@ void log_tmp(enum log_level level, char *fmt, ...)
     #endif
     enum jdaw_thread thread = current_thread();
     if (logfile[thread]) {
-	fprintf(logfile[thread], "(%s) %s [%s]: ", log_level_str(level), timestamp(), get_thread_name(thread));
+	const char *timestamp_loc = timestamp();
+	/* fprintf(stderr, "(%s) %s [%s]:f ", log_level_str(level), timestamp_loc, get_thread_name(thread)); */
+	fprintf(logfile[thread], "(%s) %s [%s]: ", log_level_str(level), timestamp_loc, get_thread_name(thread));
 	va_list ap;
 	va_start(ap, fmt);
 	vfprintf(logfile[thread], fmt, ap);
-	/* fflush(logfile); */
+	/* va_start(ap, fmt); */
+	/* vfprintf(stderr, fmt, ap); */
+	fflush(logfile[thread]);
 	va_end(ap);
     } else {
 	fprintf(stderr, "Thread \"%s\" logfile not yet created or unset\n", get_thread_name(thread));

@@ -31,31 +31,31 @@ static SDL_Color page_colors[] = {
     {94, 58, 61, 255},
 };
 
-Page *add_eq_page(EQ *eq, Track *t, TabView *tv);
-Page *add_fir_filter_page(FIRFilter *f, Track *t, TabView *tv);
-Page *add_delay_page(DelayLine *dl, Track *t, TabView *tv);
-Page *add_saturation_page(Saturation *s, Track *t, TabView *tv);
-Page *add_compressor_page(Compressor *c, Track *t, TabView *tv);
+static Page *add_eq_page(EQ *eq, EffectChain *ec, TabView *tv);
+static Page *add_fir_filter_page(FIRFilter *f, EffectChain *ec, TabView *tv);
+static Page *add_delay_page(DelayLine *dl, EffectChain *ec, TabView *tv);
+static Page *add_saturation_page(Saturation *s, EffectChain *ec, TabView *tv);
+static Page *add_compressor_page(Compressor *c, EffectChain *ec, TabView *tv);
 
-Page *effect_add_page(Effect *e, TabView *tv)
+static Page *effect_add_page(Effect *e, TabView *tv)
 {
-    Track *t = e->track;
+    /* Track *t = e->track; */
     Page *p = NULL;
     switch(e->type) {
     case EFFECT_EQ:
-	p = add_eq_page(e->obj, t, tv);
+	p = add_eq_page(e->obj, e->effect_chain, tv);
 	break;
     case EFFECT_FIR_FILTER:
-	p = add_fir_filter_page(e->obj, t, tv);
+	p = add_fir_filter_page(e->obj, e->effect_chain, tv);
 	break;
     case EFFECT_DELAY:
-	p = add_delay_page(e->obj, t, tv);
+	p = add_delay_page(e->obj, e->effect_chain, tv);
 	break;
     case EFFECT_SATURATION:
-	p = add_saturation_page(e->obj, t, tv);
+	p = add_saturation_page(e->obj, e->effect_chain, tv);
 	break;
     case EFFECT_COMPRESSOR:
-	p = add_compressor_page(e->obj, t, tv);
+	p = add_compressor_page(e->obj, e->effect_chain, tv);
 	break;
     default:
 	break;
@@ -66,58 +66,67 @@ Page *effect_add_page(Effect *e, TabView *tv)
     return p;
 }
 
-static void track_effects_swap_pair(Track *track, int swap_i, int swap_j, bool from_undo);
-
+static void effect_chain_swap_pair(EffectChain *ec, int swap_i, int swap_j, bool from_undo);
 NEW_EVENT_FN(undo_redo_swap_effect_order, "undo/redo change effect order")
-    Track *track = obj1;
+    EffectChain *ec = obj1;
     int swap_i = val1.double_pair_v[0];
     int swap_j = val1.double_pair_v[1];
-    track_effects_swap_pair(track, swap_i, swap_j, true);
+    effect_chain_swap_pair(ec, swap_i, swap_j, true);
 }
 
-static void track_effects_swap_pair(Track *track, int swap_i, int swap_j, bool from_undo)
+static void effect_chain_swap_pair(EffectChain *ec, int swap_i, int swap_j, bool from_undo)
 {
-    Effect *displaced = track->effects[swap_i];
-    track->effects[swap_i] = track->effects[swap_j];
-    track->effects[swap_j] = displaced;
+    Effect *displaced = ec->effects[swap_i];
+    ec->effects[swap_i] = ec->effects[swap_j];
+    ec->effects[swap_j] = displaced;
     if (!from_undo) {
 	user_event_push(
 	    
 	    undo_redo_swap_effect_order,undo_redo_swap_effect_order, NULL, NULL,
-	    track, NULL,
+	    ec, NULL,
 	    (Value){.double_pair_v = {swap_j, swap_i}}, (Value){0},
 	    (Value){.double_pair_v = {swap_i, swap_j}}, (Value){0},
 	    0, 0,
 	    false, false);
     } else {
-	TabView *tv = main_win->active_tabview;
-	if (tv && strcmp(tv->title, "Track Effects") == 0) {
-	    tabview_swap_adjacent_tabs(tv, swap_i, swap_j, false);
-	}
+	/* TODO: replace tabview check */
+	/* TabView *tv = main_win->active_tabview; */
+	/* if (tv && strcmp(tv->title, "Track Effects") == 0) { */
+	/*     tabview_swap_adjacent_tabs(tv, swap_i, swap_j, false); */
+	/* } */
     }
 
 }
 
 static void swapfn(void *target, int swap_i, int swap_j)
 {
-    Track *track = target;
-    track_effects_swap_pair(track, swap_i, swap_j, false);
+    effect_chain_swap_pair(target, swap_i, swap_j, false);
 	
 }
 
-/* Top-level function called in userfn.c */
-TabView *track_effects_tabview_create(Track *track)
+TabView *effect_chain_tabview_create(EffectChain *ec)
 {
     Session *session = session_get();
     TabView *tv = tabview_create("Track Effects", session->gui.layout, main_win);
-    for (int i=0; i<track->num_effects; i++) {
-	effect_add_page(track->effects[i], tv);
+    for (int i=0; i<ec->num_effects; i++) {
+	effect_add_page(ec->effects[i], tv);
     }
     tv->swap_fn = swapfn;
-    tv->swap_fn_target = track;
+    tv->swap_fn_target = ec;
     return tv;
 
 }
+
+void effect_chain_open_tabview(EffectChain *ec)
+{
+    if (main_win->active_tabview) {
+	tabview_close(main_win->active_tabview);
+    }
+    TabView *tv = effect_chain_tabview_create(ec);
+    /* TabView *tv = track_effects_tabview_create(track); */
+    tabview_activate(tv, ec);   
+}
+
 
 void filter_tabs_canvas_draw(void *draw_arg1, void *draw_arg2);
 static void compressor_canvas_draw(void *draw_arg1, void *draw_arg2);
@@ -129,17 +138,8 @@ static void create_track_selection_area(Page *page, Track *track);
 static int next_track(void *self_v, void *target);
 static int previous_track(void *self_v, void *target);
 static double unscale_freq(double scaled);
-/* static int toggle_delay_line_target_action(void *self_v, void *target); */
-/* static int toggle_saturation_gain_comp(void *self_v, void *target); */
 
-/* static int toggle_eq_active(void *self_v, void *target); */
-/* static int toggle_fir_filter_active(void *self_v, void *target); */
-/* static int toggle_delay_line_active(void *self_v, void *target); */
-/* static int toggle_saturation_active(void *self_v, void *target); */
-/* static int toggle_compressor_active(void *self_v, void *target); */
-
-
-Page *add_eq_page(EQ *eq, Track *track, TabView *tv)
+static Page *add_eq_page(EQ *eq, EffectChain *ec, TabView *tv)
 {
     Page *page = tabview_add_page(
 	tv,
@@ -319,11 +319,11 @@ Page *add_eq_page(EQ *eq, Track *track, TabView *tv)
     ((SymbolButton *)el->component)->stashed_val.int_v = IIR_HIGHSHELF;
 
 
-    create_track_selection_area(page, eq->track);
+    /* create_track_selection_area(page, eq->track); */
     return page;
 }
 
-Page *add_fir_filter_page(FIRFilter *f, Track *track, TabView *tv)
+static Page *add_fir_filter_page(FIRFilter *f, EffectChain *ec, TabView *tv)
 {
     Session *session = session_get();
     Page *page = tabview_add_page(
@@ -413,8 +413,8 @@ Page *add_fir_filter_page(FIRFilter *f, Track *track, TabView *tv)
     RadioButton *radio = el->component;
     radio->selected_item = (uint8_t)f->type;
 
-    if (!track->buf_L_freq_mag) track->buf_L_freq_mag = calloc(f->frequency_response_len, sizeof(double));
-    if (!track->buf_R_freq_mag) track->buf_R_freq_mag = calloc(f->frequency_response_len, sizeof(double));
+    /* if (!track->buf_L_freq_mag) track->buf_L_freq_mag = calloc(f->frequency_response_len, sizeof(double)); */
+    /* if (!track->buf_R_freq_mag) track->buf_R_freq_mag = calloc(f->frequency_response_len, sizeof(double)); */
     
     double *arrays[3] = {
 	/* track->buf_L_freq_mag, */
@@ -435,7 +435,7 @@ Page *add_fir_filter_page(FIRFilter *f, Track *track, TabView *tv)
     /* struct freq_plot *plot = el->component; */
     /* plot->related_obj_lock = &f->lock; */
 
-    create_track_selection_area(page, track);
+    /* create_track_selection_area(page, track); */
     return page;
 }
 
@@ -444,7 +444,7 @@ static int16_t sframes_to_msec(int32_t sframes)
     return (double)sframes / (double)session_get_sample_rate() * 1000.0;
 }
 
-Page *add_delay_page(DelayLine *d, Track *track, TabView *tv)
+static Page *add_delay_page(DelayLine *d, EffectChain *ec, TabView *tv)
 {
     Page *page = tabview_add_page(
 	tv,
@@ -502,7 +502,8 @@ Page *add_delay_page(DelayLine *d, Track *track, TabView *tv)
     Slider *sl = el->component;
     sl->disallow_unsafe_mode = true;
 
-    ClickSegment *s = click_segment_active_at_cursor(track->tl);
+    Session *session = session_get();
+    ClickSegment *s = click_segment_active_at_cursor(ACTIVE_TL);
     if (s) {
 	/* fprintf(stderr, "ADDING POINTS OF INTEREST\n"); */
 	int32_t measure_dur_sframes = s->cfg.dur_sframes;
@@ -539,12 +540,12 @@ Page *add_delay_page(DelayLine *d, Track *track, TabView *tv)
     slider_reset(sl);
     sl->disallow_unsafe_mode = true;
     
-    create_track_selection_area(page, track);
+    /* create_track_selection_area(page, track); */
 
     return page;
 }
 
-Page *add_saturation_page(Saturation *s, Track *track, TabView *tv)
+static Page *add_saturation_page(Saturation *s, EffectChain *ec, TabView *tv)
 {
     Page *page = tabview_add_page(
 	tv,
@@ -634,11 +635,11 @@ Page *add_saturation_page(Saturation *s, Track *track, TabView *tv)
     /* radio->selected_item = (uint8_t)0; */
 
 
-    create_track_selection_area(page, track);
+    /* create_track_selection_area(page, track); */
     return page;
 }
 
-Page *add_compressor_page(Compressor *c, Track *track, TabView *tv)
+static Page *add_compressor_page(Compressor *c, EffectChain *ec, TabView *tv)
 {
     Page *page = tabview_add_page(
 	tv,
@@ -752,7 +753,7 @@ Page *add_compressor_page(Compressor *c, Track *track, TabView *tv)
 
     /* sl->disallow_unsafe_mode = true; */
     
-    create_track_selection_area(page, track);
+    /* create_track_selection_area(page, track); */
     return page;
 
 }

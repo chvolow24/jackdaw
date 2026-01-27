@@ -51,7 +51,7 @@ const static char hdr_click_segm[] = {'C', 'T', 'S', 'G'};
 const static char hdr_trck_efct[] = {'E', 'F', 'C', 'T'};
 const static char hdr_trck_synth[] = {'S','Y','N','T','H'};
 
-const static char current_file_spec_version[] = {'0','0','.','2','2'};
+const static char current_file_spec_version[] = {'0','0','.','2','3'};
 
 static char read_file_spec_version[6];
 bool read_file_version_older_than(const char *cmp_version)
@@ -235,7 +235,7 @@ static void jdaw_write_timeline(FILE *f, Timeline *tl)
 
 static void jdaw_write_clipref(FILE *f, ClipRef *cr);
 static void jdaw_write_automation(FILE *f, Automation *a);
-static void jdaw_write_effect(FILE *f, Effect *e);
+static void jdaw_write_effect_chain(FILE *f, EffectChain *ec);
 
 static void jdaw_write_track(FILE *f, Track *track)
 {
@@ -259,12 +259,8 @@ static void jdaw_write_track(FILE *f, Track *track)
 	jdaw_write_clipref(f, track->clips[i]);
     }
 
-
     /* Effects */
-    uint8_ser(f, &track->num_effects);
-    for (int i=0; i<track->num_effects; i++) {
-	jdaw_write_effect(f, track->effects[i]);
-    }
+    jdaw_write_effect_chain(f, &track->effect_chain);
 
     /* Automations */
     uint8_ser(f, &track->num_automations);
@@ -275,6 +271,7 @@ static void jdaw_write_track(FILE *f, Track *track)
     uint8_ser(f, &has_synth);
     if (has_synth) {
 	fwrite(hdr_trck_synth, 1, 5, f);
+	jdaw_write_effect_chain(f, &track->synth->effect_chain);
 	api_node_serialize(f, &track->synth->api_node);
     }
 }
@@ -311,6 +308,14 @@ static void jdaw_write_effect(FILE *f, Effect *e)
 	break;
     default:
 	break;
+    }
+}
+
+static void jdaw_write_effect_chain(FILE *f, EffectChain *ec)
+{
+    int_ser_le(f, &ec->num_effects);
+    for (int i=0; i<ec->num_effects; i++) {
+	jdaw_write_effect(f, ec->effects[i]);
     }
 }
 
@@ -909,8 +914,8 @@ static int jdaw_read_timeline(FILE *f, Project *proj_loc)
 
 static int jdaw_read_clipref(FILE *f, Track *track);
 static int jdaw_read_automation(FILE *f, Track *track);
-static int jdaw_read_effect(FILE *f, Track *track);
-
+static int jdaw_read_effect(FILE *f, EffectChain *ec);
+static int jdaw_read_effect_chain(FILE *f, EffectChain *ec, APINode *api_node, const char *obj_name, int32_t chunk_len_sframes);
 
 static int jdaw_read_track(FILE *f, Timeline *tl)
 {
@@ -1098,12 +1103,18 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
 		}
 	    }
 	} else { /* READ FILE SPEC >= 00.17 */
-	    uint8_t num_effects = uint8_deser(f);
-	    for (int i=0; i<num_effects; i++) {
-		int ret = jdaw_read_effect(f, track);
-		if (ret != 0) {
-		    return ret;
+	    if (read_file_version_older_than("00.23")) {
+		uint8_t num_effects = uint8_deser(f);
+		TESTBREAK;
+		fprintf(stderr, "NUM EFFECTS: %d\n", num_effects);
+		for (int i=0; i<num_effects; i++) {
+		    int ret = jdaw_read_effect(f, &track->effect_chain);
+		    if (ret != 0) {
+			return ret;
+		    }
 		}
+	    } else {
+		jdaw_read_effect_chain(f, &track->effect_chain, &track->api_node, track->name, tl->proj->fourier_len_sframes);
 	    }
 	    uint8_t num_automations = uint8_deser(f);
 	    while (num_automations > 0) {
@@ -1125,10 +1136,25 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
 			fprintf(stderr, "Error: \"SYNTH\" header not found\n");
 			return 1;
 		    }
+		    if (!read_file_version_older_than("00.23")) {
+			jdaw_read_effect_chain(f, &track->synth->effect_chain, &track->synth->api_node, "synth", tl->proj->fourier_len_sframes);
+		    }
 		    api_node_deserialize(f, &track->synth->api_node);
 		}
 	    }
 	}	
+    }
+    return 0;
+}
+
+static int jdaw_read_effect_chain(FILE *f, EffectChain *ec, APINode *api_node, const char *obj_name, int32_t chunk_len_sframes)
+{
+    effect_chain_init(ec, proj_reading, api_node, obj_name, chunk_len_sframes);
+    int num_effects = int_deser_le(f);
+    for (int i=0; i<num_effects; i++) {
+	if (jdaw_read_effect(f, ec) != 0) {
+	    return 1;
+	}
     }
     return 0;
 }
@@ -1139,8 +1165,7 @@ static int jdaw_read_saturation(FILE *f, Saturation *s);
 static int jdaw_read_eq(FILE *f, EQ *eq);
 static int jdaw_read_compressor(FILE *f, Compressor *c);
 
-
-static int jdaw_read_effect(FILE *f, Track *track)
+static int jdaw_read_effect(FILE *f, EffectChain *ec)
 {
     char hdr_buffer[4];
     fread(hdr_buffer, 1, 4, f);
@@ -1150,7 +1175,7 @@ static int jdaw_read_effect(FILE *f, Track *track)
     }
 
     EffectType type = (EffectType)uint8_deser(f);
-    Effect *e = track_add_effect(track, type);
+    Effect *e = effect_chain_add_effect(ec, type);
 
     char name[256] = {0};
     uint8_t namelen = 0;
@@ -1257,7 +1282,7 @@ static int jdaw_read_compressor(FILE *f, Compressor *c)
     float release = float_deser40_le(f);
     c->attack_time = attack;
     c->release_time = release;
-    compressor_set_times_msec(c, attack, release, c->effect->track->tl->proj->sample_rate);
+    compressor_set_times_msec(c, attack, release, c->effect->effect_chain->proj->sample_rate);
     c->threshold = float_deser40_le(f);
     compressor_set_m(c, float_deser40_le(f));
     c->makeup_gain = float_deser40_le(f);

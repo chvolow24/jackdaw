@@ -452,12 +452,15 @@ int audioconn_start_playback(AudioConn *conn)
     return 0;
 }
 
+const char *timestamp();
 static void device_stop_playback(AudioDevice *dev)
 {
     SDL_PauseAudioDevice(dev->id, 1);
     log_tmp(LOG_DEBUG, "PauseAudioDevice returned on dev %p\n", dev);
     dev->playing = false;
-    /* log_tmp(LOG_DEBUG, "Requesting close on device %p\n", dev); */
+    /* TESTBREAK; */
+    log_tmp(LOG_DEBUG, "Requesting close on device %p->playing? %d\n", dev,dev->playing);
+    /* fprintf(stderr, "(%s) Requesting close on device %p->playing? %d\n", timestamp(),dev,dev->playing); */
     /* if (sem_post(dev->request_close) != 0) { */
     /* 	error_exit("Unable to post to dev \"%s\" sem. Error: %s\n", dev->name, strerror(errno)); */
     /* } */

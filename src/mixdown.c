@@ -246,16 +246,8 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 	    total_amp += amp;
 	}
     }
-    /* if (total_amp < AMP_EPSILON) { */
-    /* 	eq_advance(&track->eq, channel); */
-    /* } else { */
-    /* 	eq_buf_apply(&track->eq, chunk, len_sframes, channel); */
-    /* 	filter_buf_apply(&track->fir_filter, chunk, len_sframes, channel); */
-    /* 	saturation_buf_apply(&track->saturation, chunk, len_sframes, channel); */
-    /* } */
-    
-    /* total_amp += delay_line_buf_apply(&track->delay_line, chunk, len_sframes, channel); */
-    total_amp = effect_chain_buf_apply(track->effects, track->num_effects, chunk, output_chunk_len_sframes, channel, total_amp);
+    total_amp += effect_chain_buf_apply(&track->effect_chain, chunk, output_chunk_len_sframes, channel, total_amp);
+    /* total_amp = effect_chain_buf_apply(track->effects, track->num_effects, chunk, output_chunk_len_sframes, channel, total_amp); */
     if (total_amp > AMP_EPSILON) {
 	float_buf_mult(chunk, vol_vals, output_chunk_len_sframes);
 	float_buf_mult(chunk, pan_vals, output_chunk_len_sframes);

@@ -190,11 +190,20 @@ static void loc_queued_bufs_add(float *chunk_L, float *chunk_R, int len_sframes)
     }
 }
 
+const char *timestamp();
 void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 {
     Session *session = session_get();
     set_thread_id(JDAW_THREAD_PLAYBACK);
-    /* log_tmp(LOG_DEBUG, "pb cb enter\n"); */
+    /* log_tmp(LOG_DEBUG, "pb cb enter. playing (%p)? %d; sesh play? %d; monitor? %d\n", user_data, ((AudioDevice *)user_data)->playing, session->playback.playing, session->midi_io.monitoring); */
+    /* fprintf(stderr, "(%s) pb cb enter. playing (%p)? %d; sesh play? %d; monitor? %d\n", timestamp(), user_data, ((AudioDevice *)user_data)->playing, session->playback.playing, session->midi_io.monitoring); */
+    if (!session->playback.playing && !session->midi_io.monitoring) {
+	/* log_tmp(LOG_DEBUG, "\t(zombie)\n"); */
+	/* fprintf(stderr, "PB zombie mode....\n"); */
+	memset(stream, '\0', len);
+	return;
+    }
+
     /* Take care of queued audio bufs */
     int err;
     if ((err = pthread_mutex_lock(&session->queued_ops.queued_audio_buf_lock)) != 0) {

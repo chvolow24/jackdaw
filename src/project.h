@@ -51,7 +51,7 @@
 #define MAX_PROJ_MIDI_CLIPS MAX_PROJ_CLIPS
 #define MAX_GRABBED_CLIPS 255
 /* #define MAX_TRACK_FILTERS 4 */
-#define MAX_TRACK_EFFECTS 16
+/* #define MAX_TRACK_EFFECTS 16 */
 
 #define TRACK_VOL_STEP 0.03f
 #define TRACK_PAN_STEP 0.01f
@@ -142,14 +142,11 @@ typedef struct track {
     /* uint16_t buf_write_pos; */
     /* sem_t *buf_sem; */
 
-    double *buf_L_freq_mag;
-    double *buf_R_freq_mag;
+    /* double *buf_L_freq_mag; */
+    /* double *buf_R_freq_mag; */
 
-
-    Effect *effects[MAX_TRACK_EFFECTS];
-    uint8_t num_effects;
-    uint8_t num_effects_per_type[NUM_EFFECT_TYPES];
-    pthread_mutex_t effect_chain_lock;
+    EffectChain effect_chain;
+    
     /* double order_swap_indices[2]; /\* exploting existence of double_pair jdaw val type *\/ */
     /* Endpoint effect_order_swap_ep; */
     

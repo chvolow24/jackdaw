@@ -75,6 +75,7 @@ void user_global_quit(void *);
 extern void open_file(const char *filepath);
 void user_piano_roll_quantize(void *nullarg);
 
+void effect_chain_open_tabview(EffectChain *ec);
 void loop_project_main()
 {
     Session *session = session_get();
@@ -226,12 +227,12 @@ void loop_project_main()
 		/* } */
 
 		switch (e.key.keysym.scancode) {
- 		/* case SDL_SCANCODE_6: { */
-		/*     int test[3] = {0, 1, 2}; */
-		/*     int r = rand() % 1000; */
-		/*     fprintf(stderr, "%d\n", test[r]); */
-		/*     break; */
-		/* } */
+ 		case SDL_SCANCODE_6: {
+		    Track *track = ACTIVE_TL->tracks[0];
+		    Effect *e = effect_chain_add_effect(&track->synth->effect_chain, EFFECT_DELAY);
+		    effect_chain_open_tabview(&track->synth->effect_chain);
+		}
+		    break;
 		case SDL_SCANCODE_LGUI:
 		case SDL_SCANCODE_RGUI:
 		case SDL_SCANCODE_LCTRL:

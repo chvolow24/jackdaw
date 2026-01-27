@@ -82,7 +82,7 @@ static void eq_freq_dsp_cb(Endpoint *ep)
 {
     EQ *eq = ep->xarg1;
     EQFilterCtrl *ctrl = ep->xarg2;
-    int flen = eq->track->tl->proj->fourier_len_sframes / 2;
+    int flen = eq->effect->effect_chain->proj->fourier_len_sframes / 2;
     ctrl->freq_amp_raw[0] = pow(flen, ctrl->freq_exp) / flen;
     eq_dsp_cb(ep);
 }
@@ -146,8 +146,8 @@ static void selected_filter_active_cb(Endpoint *ep)
 void eq_init(EQ *eq)
 {
     Session *session = session_get();
-    eq->output_freq_mag_L = calloc(eq->track->tl->proj->fourier_len_sframes * 2, sizeof(double));
-    eq->output_freq_mag_R = calloc(eq->track->tl->proj->fourier_len_sframes * 2, sizeof(double));
+    eq->output_freq_mag_L = calloc(eq->effect->effect_chain->proj->fourier_len_sframes * 2, sizeof(double));
+    eq->output_freq_mag_R = calloc(eq->effect->effect_chain->proj->fourier_len_sframes * 2, sizeof(double));
     double nsub1;
     if (session->proj_initialized) {
 	nsub1 = (double)session->proj.fourier_len_sframes / 2 - 1;

@@ -292,6 +292,7 @@ void session_set_proj(Session *session, Project *new_proj)
 	audioconn_close(session->audio_io.playback_conn);
 	reopen_playback_conn = true;
     }
+    fprintf(stderr, "CLOSED ALL PLAYBACK\n");
 
     session_clear_all_queues();
     
@@ -302,7 +303,14 @@ void session_set_proj(Session *session, Project *new_proj)
     session_deinit_panels(session);
     memcpy(&session->proj, new_proj, sizeof(Project));
     for (int i=0; i<session->proj.num_timelines; i++) {
-	session->proj.timelines[i]->proj = &session->proj;
+	Timeline *tl = session->proj.timelines[i];
+	tl->proj = &session->proj;
+	for (int i=0; i<tl->num_tracks; i++) {
+	    tl->tracks[i]->effect_chain.proj = &session->proj;
+	    if (tl->tracks[i]->synth) {
+		tl->tracks[i]->synth->effect_chain.proj = &session->proj;
+	    }
+	}
     }
     session_init_panels(session);
     layout_force_reset(session->gui.layout);

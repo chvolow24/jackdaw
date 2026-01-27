@@ -19,8 +19,11 @@
 #ifndef EFFECT_PAGES_H
 #define EFFECT_PAGES_H
 
+#include "effect.h"
 #include "page.h"
 
-TabView *track_effects_tabview_create(Track *track);
+TabView *effect_chain_tabview_create(EffectChain *ec);
+void effect_chain_open_tabview(EffectChain *ec);
+
 
 #endif

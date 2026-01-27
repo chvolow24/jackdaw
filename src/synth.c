@@ -3,6 +3,7 @@
 #include "adsr.h"
 #include "api.h"
 #include "dsp_utils.h"
+#include "effect.h"
 #include "endpoint.h"
 #include "endpoint_callbacks.h"
 #include "consts.h"
@@ -977,6 +978,8 @@ Synth *synth_create(Track *track)
 	fprintf(stderr, "Error: unable to init synth audio proc lock: %s\n", strerror(err));
 	exit(1);
     }
+
+    effect_chain_init(&s->effect_chain, track->tl->proj, &s->api_node, "synth", track->tl->proj->fourier_len_sframes);
     return s;
 }
 
@@ -1911,6 +1914,7 @@ void synth_add_buf(Synth *s, float *buf, int channel, int32_t len, float step)
 	SynthVoice *v = s->voices + i;
 	synth_voice_add_buf(v, internal_buf, len, channel, step);
     }
+    effect_chain_buf_apply(&s->effect_chain, internal_buf, len, channel, 1.0);
     /* float sum = 0.0f; */
     /* for (int i=0; i<len; i++) { */
     /* 	sum += fabs(internal_buf[i]); */

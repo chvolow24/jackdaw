@@ -72,7 +72,7 @@ typedef struct eq {
     int selected_ctrl;
     bool selected_filter_active;
     Endpoint selected_filter_active_ep;
-    Track *track;
+    /* Track *track; */
 
     Effect *effect;
 } EQ;

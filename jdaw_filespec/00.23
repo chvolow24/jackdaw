@@ -1,4 +1,4 @@
-/**************************** .JDAW VERSION 00.22 FILE SPEC ***********************************
+/**************************** .JDAW VERSION 00.23 FILE SPEC ***********************************
 
    =========================================================
     DIFF (new since 00.19)
@@ -7,6 +7,9 @@
         - tempo (bpm) serialized as float
     (new since 00.21)
         - serialize effect name
+    (new since 00.22)
+        - serialize effects as EffectChain
+	- include EffectChain in synth
    
    =========================================================
 
@@ -90,12 +93,7 @@ TRCK   	      2                 uint16_t                  num cliprefs
 
 
 TRCK	      1			uint8_t			  num_effects
-
-.......................................
-...[TRCK_EFFECTS GO HERE; SEE BELOW]...
-.......................................
-
-TRCK	      1			uint8_t			  num_automations
+TRCK	      ???		EffectChain		  track effects
 
 .....................................
 ...[TRCK_AUTOs GO HERE; SEE BELOW]...
@@ -103,6 +101,7 @@ TRCK	      1			uint8_t			  num_automations
 
 TRCK	      1			bool			  track has synth
 TRCK_SYNTH    5			char[5]			  "SYNTH"
+TRCK_SYNTH    ???		EffectChain		  synth effects
 TRCK_SYNTH    ???		???			  [synth data; see api.h]
 
 TL	      1			uint8_t			  num click tracks

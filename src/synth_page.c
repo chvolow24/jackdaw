@@ -1,6 +1,8 @@
 #include "assets.h"
 #include "color.h"
 #include "dir.h"
+#include "effect.h"
+#include "effect_pages.h"
 #include "geometry.h"
 #include "layout.h"
 #include "modal.h"
@@ -21,6 +23,7 @@ static void add_osc_page(TabView *tv, Track *track);
 static void add_filter_page(TabView *tv, Track *track);
 static void add_amp_env_page(TabView *tv, Track *track);
 static void add_noise_page(TabView *tv, Track *track);
+static void add_effects_page(TabView *tv, Track *track);
 static void add_polyphony_page(TabView *tv, Track *track);
 static void add_preset_page(TabView *tv, Track *track);
 
@@ -45,6 +48,7 @@ TabView *synth_tabview_create(Track *track)
     add_amp_env_page(tv, track);
     add_noise_page(tv, track);
     add_filter_page(tv, track);
+    add_effects_page(tv, track);
     add_polyphony_page(tv, track);
     add_preset_page(tv, track);
     return tv;
@@ -709,7 +713,76 @@ static void add_filter_page(TabView *tv, Track *track)
     page_add_el(page,EL_SLIDER,p,"ramp_exp_slider","ramp_exp_slider");
 
     page_reset(page);
+}
 
+
+static int open_effects_action(void *self, void *target)
+{
+    Synth *synth = target;
+    if (synth->effect_chain.num_effects == 0) {
+	effect_add(&synth->effect_chain, "synth");
+    } else {
+	effect_chain_open_tabview(&synth->effect_chain);
+    }
+    return 0;
+}
+
+static int add_effect_action(void *self, void *target)
+{
+    effect_add(&((Synth *)target)->effect_chain, "synth");
+    return 0;
+}
+
+static void add_effects_page(TabView *tv, Track *track)
+{
+    static SDL_Color effects_bckgrnd = {38, 19, 28, 255};
+    Page *page = tabview_add_page(tv, "Effects", SYNTH_EFFECTS_LT_PATH, &effects_bckgrnd, &colors.white, main_win);
+
+    PageElParams p;
+
+    p.button_p.font = main_win->std_font;
+    p.button_p.text_color = &colors.white;
+    p.button_p.background_color = &colors.grey;
+    p.button_p.text_size = 14;
+    p.button_p.target = track->synth;
+    p.button_p.set_str = "Open effects...";
+    p.button_p.action = open_effects_action;
+    Button *b = page_add_el(page,EL_BUTTON,p,"","open_button")->component;
+
+    textbox_set_dynamic_resize(b->tb, true, true, 14, 8);
+    textbox_set_border(
+	b->tb,
+	&colors.grey,
+	1,
+        STD_CORNER_RAD);
+    textbox_style(
+	b->tb,
+	CENTER,
+	false,
+	&colors.quickref_button_blue,
+	&colors.light_grey);
+
+
+    p.button_p.set_str = "Add effect...";
+    p.button_p.action = add_effect_action;
+    b = page_add_el(page,EL_BUTTON,p,"","add_button")->component;
+    textbox_set_dynamic_resize(b->tb, true, true, 14, 8);
+    /* textbox_set_style(b->tb, BUTTON_DARK); */
+    textbox_set_border(
+	b->tb,
+	&colors.grey,
+	1,
+        STD_CORNER_RAD);
+    textbox_style(
+	b->tb,
+	CENTER,
+	false,
+	&colors.quickref_button_blue,
+	&colors.light_grey);
+
+
+    page_center_contents(page);
+    page_reset(page);
 }
 
 static int open_preset_action(void *self, void *target)
@@ -771,7 +844,6 @@ static void add_polyphony_page(TabView *tv, Track *track)
     page_add_el(page,EL_DIVIDER,p,"","divider");
 
 }
-
 
 static void add_preset_page(TabView *tv, Track *track)
 {

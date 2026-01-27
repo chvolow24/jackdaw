@@ -519,82 +519,6 @@ void open_file(const char *filepath)
 static void openfile_file_select_action(DirNav *dn, DirPath *dp)
 {
     Session *session = session_get();
-    /* char *dotpos = strrchr(dp->path, '.'); */
-    /* if (!dotpos) { */
-    /* 	status_set_errstr("Cannot open file without a .jdaw or .wav extension"); */
-    /* 	fprintf(stderr, "Cannot open file without a .jdaw or .wav extension\n"); */
-    /* 	return; */
-    /* } */
-    /* char *ext = dotpos + 1; */
-    /* /\* fprintf(stdout, "ext char : %c\n", *ext); *\/ */
-    /* if (strcmp("wav", ext) * strcmp("WAV", ext) == 0) { */
-    /* 	fprintf(stdout, "Wav file selected\n"); */
-    /* 	Timeline *tl = ACTIVE_TL; */
-    /* 	if (!tl) return; */
-    /* 	Track *track = timeline_selected_track(tl); */
-    /* 	if (!track) { */
-    /* 	    status_set_errstr("Error: at least one track must exist to load a wav file"); */
-    /* 	    fprintf(stderr, "Error: at least one track must exist to load a wav file\n"); */
-    /* 	    return; */
-    /* 	} */
-    /* 	ClipRef *cr = wav_load_to_track(track, dp->path, tl->play_pos_sframes); */
-    /* 	if (!cr) { */
-    /* 	    Timeline *tl = ACTIVE_TL; */
-    /* 	    tl->needs_redraw = true; */
-    /* 	    window_pop_modal(main_win); */
-    /* 	    return; */
-    /* 	} */
-    /* 	Value nullval = {.int_v = 0}; */
-    /* 	user_event_push( */
-	    
-    /* 	    undo_load_wav, */
-    /* 	    redo_load_wav, */
-    /* 	    NULL, dispose_forward_load_wav, */
-    /* 	    (void *)cr, NULL, */
-    /* 	    nullval, nullval, nullval, nullval, */
-    /* 	    0, 0, false, false); */
-	    
-	
-    /* } else if (strcmp("jdaw", ext) * strcmp("JDAW", ext) * strcmp("bak", ext) == 0) { */
-    /* 	fprintf(stdout, "Jdaw file selected\n"); */
-    /* 	if (session->playback.recording) transport_stop_recording(); */
-    /* 	else if (session->playback.playing) transport_stop_playback(); */
-    /* 	api_quit(); */
-    /* 	Project new_proj; */
-    /* 	memset(&new_proj, '\0', sizeof(new_proj)); */
-    /* 	session->proj_reading = &new_proj; */
-    /* 	int ret = jdaw_read_file(&new_proj, dp->path); */
-    /* 	if (ret == 0) { */
-    /* 	    session_set_proj(session, &new_proj); */
-    /* 	} else { */
-    /* 	    status_set_errstr("Error opening jdaw project");	     */
-    /* 	} */
-    /* 	session->proj_reading = NULL; */
-    /* } else if (strncmp("mid", ext, 3) * strncmp("MID", ext, 3) == 0) { */
-    /* 	midi_file_open(dp->path, false); */
-    /* } else if (strncmp("jsynth", ext, 6) * strncmp("JSYNTH", ext, 6) == 0) { */
-    /* 	Timeline *tl = ACTIVE_TL; */
-    /* 	Track *t = timeline_selected_track(tl); */
-    /* 	if (t) { */
-    /* 	    if (!t->synth) { */
-    /* 		t->synth = synth_create(t); */
-    /* 	    } */
-    /* 	    synth_read_preset_file(dp->path, t->synth); */
-    /* 	} else { */
-    /* 	    status_set_errstr("Error: track not selected"); */
-    /* 	} */
-    /* } */
-    /* char *last_slash_pos = strrchr(dp->path, '/'); */
-    /* if (last_slash_pos) { */
-    /* 	*last_slash_pos = '\0'; */
-    /* 	char *realpath_ret; */
-    /* 	if (!(realpath_ret = realpath(dp->path, NULL))) { */
-    /* 	    perror("Error in realpath"); */
-    /* 	} else { */
-    /* 	    strncpy(DIRPATH_OPEN_FILE, realpath_ret, MAX_PATHLEN); */
-    /* 	    free(realpath_ret); */
-    /* 	} */
-    /* } */
     open_file(dp->path);
     window_pop_modal(main_win);
     Timeline *tl = ACTIVE_TL;
@@ -2007,7 +1931,8 @@ void user_tl_track_add_effect(void *nullarg)
     Timeline *tl = ACTIVE_TL;
     Track *track = timeline_selected_track(tl);
     if (track) {
-	track_add_new_effect(track);
+	effect_add(&track->effect_chain, track->name);
+	/* track_add_new_effect(track); */
 	/* track_add_new_automation(track); */
 	/* track_automations_show_all(track); */
     } else {
@@ -2028,11 +1953,12 @@ void user_tl_track_open_settings(void *nullarg)
     Track *track = timeline_selected_track(tl);
 
     if (track) {
-	if (track->num_effects == 0) {
+	if (track->effect_chain.num_effects == 0) {
 	    user_tl_track_add_effect(NULL);
 	    return;
 	}
-	TabView *tv = track_effects_tabview_create(track);
+	TabView *tv = effect_chain_tabview_create(&track->effect_chain);
+	/* TabView *tv = track_effects_tabview_create(track); */
 	tabview_activate(tv, track);
 	tl->needs_redraw = true;
     } else {

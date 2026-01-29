@@ -727,14 +727,28 @@ static void session_init_output_spectrum(Page *output_spectrum, Session *session
 	session->proj.output_L_freq,
 	session->proj.output_R_freq
     };
-    int steps[] = {1, 1};
+    int lens[] = {
+	session->proj.fourier_len_sframes,
+	session->proj.fourier_len_sframes
+    };
+
     SDL_Color *plot_colors[] = {&colors.freq_L, &colors.freq_R, &colors.white};
     PageElParams p;
-    p.freqplot_p.arrays = arrays;
-    p.freqplot_p.steps = steps;
-    p.freqplot_p.num_arrays = 2;
-    p.freqplot_p.num_items = session->proj.fourier_len_sframes / 2;
-    p.freqplot_p.colors = plot_colors;
+    p.freqplot_p.darrays = arrays;
+    p.freqplot_p.num_darrays = 2;
+    p.freqplot_p.darray_lens = lens;
+    p.freqplot_p.farrays = NULL;
+    p.freqplot_p.num_farrays = 0;
+    p.freqplot_p.darray_colors = plot_colors;
+    p.freqplot_p.farray_colors = NULL;
+    p.freqplot_p.min_freq_hz = 20;
+    p.freqplot_p.max_freq_hz = (double)session->proj.sample_rate / 2;
+
+    /* p.freqplot_p.arrays = arrays; */
+    /* p.freqplot_p.steps = steps; */
+    /* p.freqplot_p.num_arrays = 2; */
+    /* p.freqplot_p.num_items = session->proj.fourier_len_sframes / 2; */
+    /* p.freqplot_p.colors = plot_colors; */
     /* Project *saved_glob_proj = proj; */
     /* proj = proj_loc; /\* Not great *\/ */
     page_add_el(

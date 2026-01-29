@@ -14,7 +14,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include "consts.h"
+#include "dsp_utils.h"
 #include "iir.h"
+#include "logscale.h"
 #include "waveform.h"
 
 
@@ -240,16 +242,22 @@ static void iir_reset_freq_resp(IIRFilter *iir)
     if (iir->num_poles == 1) {
 	for (int i=0; i<IIR_FREQPLOT_RESOLUTION; i++) {
 	    double prop = (double) i / IIR_FREQPLOT_RESOLUTION;
-	    int nsub1 = iir->fp->num_items - 1;
-	    double input = pow(nsub1, prop) / nsub1;
+	    double freq_hz = logscale_from_linear(&iir->fp->x_axis, prop);
+	    double input = freq_hz / iir->fp->x_axis.max_scaled;
+	    /* int nsub1 = iir->fp->num_items - 1; */
+	    /* double input = pow(nsub1, prop) / nsub1; */
 	    iir->freq_resp[i] = biquad_amp_from_freq(input, iir->poles, iir->zeros, &iir->normalization_constant);
 	    iir->freq_resp_stale = false;
 	}
     } else if (iir->num_poles == 2) {
 	for (int i=0; i<IIR_FREQPLOT_RESOLUTION; i++) {
 	    double prop = (double) i / IIR_FREQPLOT_RESOLUTION;
-	    int nsub1 = iir->fp->num_items - 1;
-	    double input = pow(nsub1, prop) / nsub1;
+	    double freq_hz = logscale_from_linear(&iir->fp->x_axis, prop);
+	    double input = freq_hz / iir->fp->x_axis.max_scaled;
+
+	    /* double input = dsp_scale_freq(prop); */
+	    /* int nsub1 = iir->fp->num_items - 1; */
+	    /* double input = pow(nsub1, prop) / nsub1; */
 	    iir->freq_resp[i] = double_biquad_amp_from_freq(input, iir->poles, iir->zeros, &iir->normalization_constant);
 	    iir->freq_resp_stale = false;
 	}

@@ -450,11 +450,16 @@ void page_el_set_params(PageEl *el, PageElParams params, Page *page)
 	break;
     case EL_FREQ_PLOT:
 	el->component = (void *)waveform_create_freq_plot(
-	    params.freqplot_p.arrays,
-	    params.freqplot_p.num_arrays,
-	    params.freqplot_p.colors,
-	    params.freqplot_p.steps,
-	    params.freqplot_p.num_items,
+	    params.freqplot_p.darrays,
+	    params.freqplot_p.darray_lens,
+	    params.freqplot_p.num_darrays,
+	    params.freqplot_p.farrays,
+	    params.freqplot_p.farray_lens,
+	    params.freqplot_p.num_farrays,
+	    params.freqplot_p.darray_colors,
+	    params.freqplot_p.farray_colors,
+	    params.freqplot_p.min_freq_hz,
+	    params.freqplot_p.max_freq_hz,
 	    el->layout);
 	break;
     case EL_BUTTON:

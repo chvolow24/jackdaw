@@ -233,6 +233,11 @@ double dsp_scale_freq_to_hz(double freq_unscaled)
     /* return pow(10.0, log10(sample_rate / 2.0) * freq_unscaled); */
     return  pow((sample_rate / 2.0), freq_unscaled);
 }
+double dsp_unscale_freq_from_hz(double freq_hz)
+{
+    double sample_rate = session_get_sample_rate();
+    return log2(freq_hz) / log2(sample_rate / 2.0);
+}
 
 
 

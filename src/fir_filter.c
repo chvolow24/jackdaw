@@ -371,6 +371,10 @@ void filter_set_bandwidth_hz(FIRFilter *f, double bandwidth_h)
 void filter_set_impulse_response_len(FIRFilter *f, int new_len)
 {
     /* DSP_THREAD_ONLY_WHEN_ACTIVE("filter_set_params"); */
+    if (new_len > f->effect->effect_chain->chunk_len_sframes) {
+	fprintf(stderr, "RESETTING IR LEN TO MATCH EC\n");
+	new_len = f->effect->effect_chain->chunk_len_sframes;
+    }
     f->impulse_response_len = new_len;
     f->overlap_len = new_len - 1;
     double cutoff = f->cutoff_freq;

@@ -154,11 +154,16 @@ struct textentry_params {
 };
 
 struct freqplot_params {
-    double **arrays;
-    int num_arrays;
-    SDL_Color **colors;
-    int *steps;
-    int num_items;
+    double **darrays;
+    int *darray_lens;
+    int num_darrays;
+    float **farrays;
+    int *farray_lens;
+    int num_farrays;
+    SDL_Color **darray_colors;
+    SDL_Color **farray_colors;
+    double min_freq_hz;
+    double max_freq_hz;
 };
 
 struct button_params {

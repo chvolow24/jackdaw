@@ -613,7 +613,8 @@ static void add_filter_page(TabView *tv, Track *track)
 {
 
     Synth *s = track->synth;
-    static SDL_Color filter_bckgrnd = {60, 30, 20, 255};
+    /* static SDL_Color filter_bckgrnd = {60, 30, 20, 255}; */
+    static SDL_Color filter_bckgrnd = {80, 45, 40, 255};
     Page *page = tabview_add_page(tv, "Filter", SYNTH_FILTER_LT_PATH, &filter_bckgrnd, &colors.white, main_win);
 
     s->filter_page = page;
@@ -735,7 +736,7 @@ static int add_effect_action(void *self, void *target)
 
 static void add_effects_page(TabView *tv, Track *track)
 {
-    static SDL_Color effects_bckgrnd = {38, 19, 28, 255};
+    static SDL_Color effects_bckgrnd = {50, 80, 40, 255};
     Page *page = tabview_add_page(tv, "Effects", SYNTH_EFFECTS_LT_PATH, &effects_bckgrnd, &colors.white, main_win);
 
     PageElParams p;
@@ -749,7 +750,12 @@ static void add_effects_page(TabView *tv, Track *track)
     p.button_p.action = open_effects_action;
     Button *b = page_add_el(page,EL_BUTTON,p,"","open_button")->component;
 
-    textbox_set_dynamic_resize(b->tb, true, true, 14, 8);
+    textbox_size_to_fit(b->tb, 14, 6);
+    /* textbox_set_dynamic_resize(b->tb, true, true, 14, 8); */
+    /* b->tb->layout->rect.w = b->tb->text->text_lt->rect.w + 40 * main_win->dpi_scale_factor; */
+    /* layout_set_values_from_rect(b->tb->layout); */
+    int new_w = b->tb->layout->w.value;
+    int new_h = b->tb->layout->h.value;
     textbox_set_border(
 	b->tb,
 	&colors.grey,
@@ -766,7 +772,12 @@ static void add_effects_page(TabView *tv, Track *track)
     p.button_p.set_str = "Add effect...";
     p.button_p.action = add_effect_action;
     b = page_add_el(page,EL_BUTTON,p,"","add_button")->component;
-    textbox_set_dynamic_resize(b->tb, true, true, 14, 8);
+    b->tb->layout->w.value = new_w;
+    b->tb->layout->h.value = new_h;
+    /* b->tb->layout->rect.w = b->tb->text->text_lt->rect.w + 40 * main_win->dpi_scale_factor; */
+    /* layout_set_values_from_rect(b->tb->layout); */
+
+    /* textbox_set_dynamic_resize(b->tb, true, true, 14, 8); */
     /* textbox_set_style(b->tb, BUTTON_DARK); */
     textbox_set_border(
 	b->tb,

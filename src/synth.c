@@ -979,7 +979,7 @@ Synth *synth_create(Track *track)
 	exit(1);
     }
 
-    effect_chain_init(&s->effect_chain, track->tl->proj, &s->api_node, "synth", track->tl->proj->fourier_len_sframes);
+    effect_chain_init(&s->effect_chain, track->tl->proj, &s->api_node, "synth", track->tl->proj->chunk_size_sframes);
     return s;
 }
 

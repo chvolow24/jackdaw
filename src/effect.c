@@ -356,6 +356,15 @@ float effect_chain_buf_apply(EffectChain *ec, float *buf, int len, int channel, 
 {
     static float amp_epsilon = 1e-7f;
     float output = input_amp;
+    if (len > ec->chunk_len_sframes) {
+	int index = 0;
+	while (index < len) {
+	    output = effect_chain_buf_apply(ec, buf + index, ec->chunk_len_sframes, channel, output);
+	    index += ec->chunk_len_sframes;
+	}
+	return output;
+	
+    }
     pthread_mutex_lock(&ec->effect_chain_lock);
     for (int i=0; i<ec->num_effects; i++) {
 	Effect *e = ec->effects[i];

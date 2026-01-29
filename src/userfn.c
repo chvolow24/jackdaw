@@ -512,9 +512,7 @@ void open_file(const char *filepath)
 	timeline_check_set_midi_monitoring();
 	/* tabview_select_tab(tv, 0); */
     }
-
 }
-
 
 static void openfile_file_select_action(DirNav *dn, DirPath *dp)
 {

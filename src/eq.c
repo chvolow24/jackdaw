@@ -17,6 +17,7 @@
 #include "iir.h"
 #include "input.h"
 #include "label.h"
+#include "logscale.h"
 #include "project.h"
 #include "session.h"
 #include "waveform.h"
@@ -101,8 +102,10 @@ static void eq_gui_cb(Endpoint *ep)
     EQ *eq = ep->xarg1;
     EQFilterCtrl *ctrl = ep->xarg2;
     if (eq->fp) {
-	ctrl->x = waveform_freq_plot_x_abs_from_freq(eq->fp, ctrl->freq_amp_raw[0]);
-	ctrl->y = waveform_freq_plot_y_abs_from_amp(eq->fp, ctrl->freq_amp_raw[1], 0, true);
+	ctrl->x = logscale_x_abs(&eq->fp->x_axis, ctrl->freq_amp_raw[0] * eq->fp->x_axis.max_scaled);
+	/* ctrl->y = waveform_amp_from_ */
+	/* ctrl->x = waveform_freq_plot_x_abs_from_freq(eq->fp, ctrl->freq_amp_raw[0]); */
+	/* ctrl->y = waveform_freq_plot_y_abs_from_amp(eq->fp, ctrl->freq_amp_raw[1], 0, true); */
 	Value v = {.double_pair_v = {ctrl->freq_amp_raw[0], ctrl->freq_amp_raw[1]}};
 	if (ep->display_label) {
 	    label_move(ctrl->label, ctrl->x + 10 * main_win->dpi_scale_factor, ctrl->y - 10 * main_win->dpi_scale_factor);
@@ -145,15 +148,15 @@ static void selected_filter_active_cb(Endpoint *ep)
 
 void eq_init(EQ *eq)
 {
-    Session *session = session_get();
-    eq->output_freq_mag_L = calloc(eq->effect->effect_chain->proj->fourier_len_sframes * 2, sizeof(double));
-    eq->output_freq_mag_R = calloc(eq->effect->effect_chain->proj->fourier_len_sframes * 2, sizeof(double));
-    double nsub1;
-    if (session->proj_initialized) {
-	nsub1 = (double)session->proj.fourier_len_sframes / 2 - 1;
-    } else {
-	nsub1 = (double)DEFAULT_FOURIER_LEN_SFRAMES / 2 - 1;
-    }
+    eq->output_freq_mag_L = calloc(eq->effect->effect_chain->chunk_len_sframes * 2, sizeof(double));
+    eq->output_freq_mag_R = calloc(eq->effect->effect_chain->chunk_len_sframes * 2, sizeof(double));
+
+    double nsub1 = (double)eq->effect->effect_chain->chunk_len_sframes - 1;
+    /* if (session->proj_initialized) { */
+    /* 	nsub1 = (double)session->proj.fourier_len_sframes / 2 - 1; */
+    /* } else { */
+    /* 	nsub1 = (double)DEFAULT_FOURIER_LEN_SFRAMES / 2 - 1; */
+    /* } */
     iir_group_init(&eq->group, EQ_DEFAULT_NUM_FILTERS, 2, EQ_DEFAULT_CHANNELS); /* STEREO, BIQUAD */
 
     eq->group.filters[0].type = IIR_LOWSHELF;
@@ -189,6 +192,7 @@ void eq_init(EQ *eq)
 	ctrl->bandwidth_scalar = DEFAULT_BANDWIDTH_SCALAR;
 	ctrl->bandwidth_preferred = DEFAULT_BANDWIDTH_SCALAR;
 	ctrl->freq_amp_raw[0] = pow(nsub1, 0.15 + 0.15 * i) / nsub1;
+	fprintf(stderr, "CTRL %d freq: %f\n", i, ctrl->freq_amp_raw[0]);
 	ctrl->freq_amp_raw[1] = 1.0;
 	ctrl->eq = eq;
 	ctrl->index = i;
@@ -446,7 +450,12 @@ static void eq_set_filter_from_mouse(EQ *eq, int filter_index, SDL_Point mousep)
 {
     eq->ctrls[filter_index].x = mousep.x;
     eq->ctrls[filter_index].y = mousep.y;
-    double freq_raw = waveform_freq_plot_freq_from_x_abs(eq->fp, mousep.x);
+    fprintf(stderr, "MOUSE X: %d (%f)\n", mousep.x, (double)(mousep.x - eq->fp->container->rect.x) / eq->fp->container->rect.w);
+    double freq_hz = logscale_val_from_x_abs(&eq->fp->x_axis, mousep.x);
+    double freq_raw =  freq_hz / eq->fp->x_axis.max_scaled;
+    fprintf(stderr, "\tFreq hz: %f, raw: %f\n", freq_hz, freq_raw);
+    /* fprintf(stderr, "\tFreq hz: %f\n", freq_hz); */
+    /* double freq_raw = waveform_freq_plot_freq_from_x_abs(eq->fp, mousep.x); */
     double amp_raw;
     /* switch(eq->group.filters[filter_index].type) { */
     /* case IIR_PEAKNOTCH: { */
@@ -455,7 +464,7 @@ static void eq_set_filter_from_mouse(EQ *eq, int filter_index, SDL_Point mousep)
 	    amp_raw = 1.0;
 	    /* eq->ctrls[filter_index].y = waveform_freq_plot_y_abs_from_amp(eq->fp, 1.0, 0, true); */
 	} else {
-	    amp_raw = waveform_freq_plot_amp_from_x_abs(eq->fp, mousep.y, 0, true);
+	    amp_raw = waveform_freq_plot_amp_from_y_abs(eq->fp, mousep.y, 0, true);
 	}
 
 	endpoint_start_continuous_change(&eq->ctrls[filter_index].freq_amp_ep, false, (Value){0}, JDAW_THREAD_DSP, (Value){.double_pair_v = {freq_raw, amp_raw}});
@@ -528,25 +537,19 @@ bool eq_mouse_click(EQ *eq, SDL_Point mousep)
 
 void eq_create_freq_plot(EQ *eq, Layout *container)
 {
-    int steps[] = {1, 1};
-    
-    /* if (!eq->track->buf_L_output_freq_mag) eq->track->buf_L_output_freq_mag = calloc(eq->track->tl->proj->fourier_len_sframes * 2, sizeof(double)); */
-    /* if (!eq->track->buf_R_output_freq_mag) eq->track->buf_R_output_freq_mag = calloc(eq->track->tl->proj->fourier_len_sframes * 2, sizeof(double)); */
-
-    /* double *arrs[] = {eq->track->buf_L_output_freq_mag, eq->track->buf_R_output_freq_mag}; */
-
     double *arrs[] = {eq->output_freq_mag_L, eq->output_freq_mag_R};
-    
+    int lens[] = {eq->effect->effect_chain->chunk_len_sframes, eq->effect->effect_chain->chunk_len_sframes};
     /* double *arrs[] = {proj->output_L_freq, proj->output_R_freq}; */
     SDL_Color *fcolors[] = {&colors.freq_L, &colors.freq_R};
 
-    Session *session = session_get();
+    /* Session *session = session_get(); */
     eq->fp = waveform_create_freq_plot(
 	arrs,
+	lens,
 	2,
-	fcolors,
-	steps,
-	session->proj.fourier_len_sframes,
+	NULL, NULL, 0,
+	fcolors, NULL,
+	40, (double)eq->effect->effect_chain->proj->sample_rate / 2,
 	container);
     waveform_reset_freq_plot(eq->fp);
 

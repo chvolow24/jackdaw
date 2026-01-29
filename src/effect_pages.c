@@ -417,19 +417,26 @@ static Page *add_fir_filter_page(FIRFilter *f, EffectChain *ec, TabView *tv)
     /* if (!track->buf_R_freq_mag) track->buf_R_freq_mag = calloc(f->frequency_response_len, sizeof(double)); */
     
     double *arrays[3] = {
-	/* track->buf_L_freq_mag, */
-	/* track->buf_R_freq_mag, */
 	f->output_freq_mag_L,
 	f->output_freq_mag_R,
 	f->frequency_response_mag
     };	
-    int steps[] = {1, 1, 1};
     SDL_Color *plot_colors[] = {&colors.freq_L, &colors.freq_R, &colors.white};
-    p.freqplot_p.arrays = arrays;
-    p.freqplot_p.colors =  plot_colors;
-    p.freqplot_p.steps = steps;
-    p.freqplot_p.num_items = f->frequency_response_len / 2;
-    p.freqplot_p.num_arrays = 3;
+
+    int lens[] = {
+	ec->proj->fourier_len_sframes,
+	ec->proj->fourier_len_sframes,
+	ec->proj->fourier_len_sframes
+    };
+    p.freqplot_p.darrays = arrays;
+    p.freqplot_p.num_darrays = 3;
+    p.freqplot_p.darray_lens = lens;
+    p.freqplot_p.farrays = NULL;
+    p.freqplot_p.num_farrays = 0;
+    p.freqplot_p.darray_colors = plot_colors;
+    p.freqplot_p.farray_colors = NULL;
+    p.freqplot_p.min_freq_hz = 20;
+    p.freqplot_p.max_freq_hz = (double)session->proj.sample_rate / 2;
 
     el = page_add_el(page, EL_FREQ_PLOT, p, "track_settings_filter_freq_plot", "freq_plot");
     /* struct freq_plot *plot = el->component; */

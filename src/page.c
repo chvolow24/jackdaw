@@ -183,6 +183,12 @@ void tabview_destroy(TabView *tv)
 	page_destroy(tv->tabs[i]);
 	textbox_destroy(tv->labels[i]);
     }
+    if (tv->ellipsis_left) {
+	textbox_destroy(tv->ellipsis_left);
+    }
+    if (tv->ellipsis_right) {
+	textbox_destroy(tv->ellipsis_right);
+    }
     textbox_destroy(tv->label);
     free(tv->label_str);
     free(tv);

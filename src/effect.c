@@ -500,8 +500,8 @@ void effect_destroy(Effect *e)
     default:
 	break;
     }
-	free(e->obj);
-	free(e);
+    free(e->obj);
+    free(e);
 }
 
 /* Legacy function: included for backward compatibility (in .jdaw) */

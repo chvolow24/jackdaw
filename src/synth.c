@@ -2076,6 +2076,7 @@ void synth_destroy(Synth *s)
 	session->midi_io.monitor_device = NULL;
 	session->midi_io.monitor_synth = NULL;
     }
+    effect_chain_deinit(&s->effect_chain);
     for (int i=0; i<SYNTH_NUM_BASE_OSCS; i++) {
 	OscCfg *cfg = s->base_oscs + i;
 	free(cfg->active_id);
@@ -2085,6 +2086,12 @@ void synth_destroy(Synth *s)
 	free(cfg->octave_id);
 	free(cfg->tune_coarse_id);
 	free(cfg->tune_fine_id);
+	free(cfg->fix_freq_id);
+	free(cfg->fixed_freq_id);
+	free(cfg->unison.num_voices_id);
+	free(cfg->unison.detune_cents_id);
+	free(cfg->unison.relative_amp_id);
+	free(cfg->unison.stereo_spread_id);
 	free(cfg->fmod_target_dropdown_id);
 	free(cfg->amod_target_dropdown_id);
     }

@@ -539,16 +539,16 @@ static void api_hash_node_destroy(APIHashNode *ahn)
     free(ahn);
 }
 
-static void api_hash_table_destroy()
+static void api_hash_table_destroy(APIHashNode **table)
 {
     for (int i=0; i<API_HASH_TABLE_SIZE; i++) {
-	APIHashNode *ahn = api_hash_table[i];
+	APIHashNode *ahn = table[i];
 	while (ahn) {
 	    APIHashNode *next = ahn->next;
 	    api_hash_node_destroy(ahn);
 	    ahn = next;
 	}
-	api_hash_table[i] = NULL; /* Hash table will be reused if project swapped out */
+	table[i] = NULL; /* Hash table will be reused if project swapped out */
     }
 }
 
@@ -591,6 +591,7 @@ void api_reset_from_stash_and_discard()
 
 void api_discard_stash()
 {
+    api_hash_table_destroy(stashed_api_hash_table);
     free(stashed_api_hash_table);
 }
 /* Use to remove all nodes and endpoints from the API */
@@ -605,7 +606,7 @@ void api_quit()
 {
     Session *session = session_get();
     if (session->server.active) api_teardown_server();
-    api_hash_table_destroy();
+    api_hash_table_destroy(api_hash_table);
 }
 
 

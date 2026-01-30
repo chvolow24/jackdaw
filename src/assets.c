@@ -91,5 +91,6 @@ FILE *asset_open(const char *relative_path, char *mode_str)
     }
     FILE *f = fopen(path, "r");
     if (!f) fprintf(stderr, "Error opening asset at \"%s\" (abs path \"%s\"): \n", relative_path, path);
+    free(path);
     return f;
 }

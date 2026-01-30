@@ -2122,9 +2122,9 @@ static void synth_read_preset_file_internal(const char *filepath, Synth *s, bool
 	    0, 0, true, true);
     }
 	
-    for (int i=0; i<s->effect_chain.num_effects; i++) {
-	api_node_deregister(&s->effect_chain.effects[i]->api_node);
-    }
+    /* for (int i=0; i<s->effect_chain.num_effects; i++) { */
+    /* 	api_node_deregister(&s->effect_chain.effects[i]->api_node); */
+    /* } */
     
     effect_chain_deinit(&s->effect_chain);
     
@@ -2132,10 +2132,7 @@ static void synth_read_preset_file_internal(const char *filepath, Synth *s, bool
     fread(hdr, 1, 10, f);
     if (strncmp(hdr, "JSYNTHv", 7) == 0) {
 	int version = (hdr[7] - '0') * 10 + (hdr[8] - '0') * 10;
-	fprintf(stderr, "JSYNTH VERSION: %d\n", version);
 	if (version >= 2) {
-	    fprintf(stderr, "\treading effect chain\n");
-	    /* BUG: READ FILESPEC NOT SET */
 	    if (jdaw_read_effect_chain_external(f, s->track->tl->proj, &s->effect_chain, NULL, "synth", s->track->tl->proj->chunk_size_sframes) != 0) {
 		status_set_errstr("Error occurred during reading of preset file");
 	    }

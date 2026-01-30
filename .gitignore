@@ -43,3 +43,4 @@ src/factors.py
 pianolt.py
 *feedback.txt
 presets/
+*.jsynth

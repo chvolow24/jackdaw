@@ -2099,7 +2099,6 @@ static void synth_read_preset_file_internal(const char *filepath, Synth *s, bool
 	return;
     }
 
-
     if (!from_undo) {
 	/* Backup the current synth settings for undo */
 	static int backup_file_index = 0;

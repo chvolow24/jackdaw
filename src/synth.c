@@ -2,17 +2,22 @@
 #include <porttime.h>
 #include "adsr.h"
 #include "api.h"
+#include "dot_jdaw.h"
 #include "dsp_utils.h"
 #include "effect.h"
 #include "endpoint.h"
 #include "endpoint_callbacks.h"
+#include "errno.h"
 #include "consts.h"
 #include "iir.h"
 /* #include "test.h" */
 /* #include "modal.h" */
 #include "label.h"
+#include "log.h"
 #include "synth.h"
 #include "session.h"
+#include "tmp.h"
+#include "user_event.h"
 
 extern double MTOF[];
 
@@ -2036,19 +2041,107 @@ void synth_clear_all(Synth *s)
 
 void synth_write_preset_file(const char *filepath, Synth *s)
 {
-    /* fprintf(stderr, "SAVING FILE AT %s\n", filepath); */
     FILE *f = fopen(filepath, "w");
+    fprintf(f, "JSYNTHv02\n");
+    jdaw_write_effect_chain(f, &s->effect_chain);
     api_node_serialize(f, &s->api_node);
     fclose(f);
 }
 
-void synth_read_preset_file(const char *filepath, Synth *s)
-{    
+struct synth_and_preset_path {
+    Synth *synth;
+    char *preset_path_copy;
+};
+
+static void synth_read_preset_file_internal(const char *filepath, Synth *s, bool from_undo);
+
+NEW_EVENT_FN(undo_read_synth_preset, "undo read synth preset file")
+    struct synth_and_preset_path *sp = obj1;
+    synth_read_preset_file_internal(obj2, sp->synth, true);
+}
+
+NEW_EVENT_FN(redo_read_synth_preset, "redo read synth preset file")
+    struct synth_and_preset_path *sp = obj1;
+    synth_read_preset_file_internal(sp->preset_path_copy, sp->synth, true);
+}
+
+NEW_EVENT_FN(dispose_read_synth_preset, "")
+    struct synth_and_preset_path *sp = obj1;
+    free(sp->preset_path_copy);
+    char *backup_filepath = obj2;
+    fprintf(stderr, "DISPOSING read synth preset %s\n", backup_filepath); 
+    FILE *f = fopen(backup_filepath, "r");
+    if (!f) {
+        log_tmp(LOG_ERROR, "Unable to delete tmp file at %s; file could not be opened\n", backup_filepath);
+	/* free(backup_filepath); */
+	return;
+    }
+    char hdr[6];
+    fread(hdr, 1, 6, f);
+    if (strncmp(hdr, "JSYNTH", 6) != 0) {
+        log_tmp(LOG_ERROR, "Unable to safely delete tmp file at %s; expected JSYNTH hdr not found\n", backup_filepath);
+	fclose(f);
+	/* free(backup_filepath); */
+	return;	
+    }
+    fclose(f);
+    if (remove(backup_filepath) != 0) {
+	log_tmp(LOG_ERROR, "Unable to remove tmp file at %s: %s\n", backup_filepath, strerror(errno));
+    }
+}
+
+
+static void synth_read_preset_file_internal(const char *filepath, Synth *s, bool from_undo)
+{   
     FILE *f = fopen(filepath, "r");
     if (!f) {
 	status_set_errstr("File does not exist or could not be opened.");
 	return;
     }
+
+
+    if (!from_undo) {
+	/* Backup the current synth settings for undo */
+	static int backup_file_index = 0;
+	char backup_filename[32] = {0};
+	snprintf(backup_filename, 32, "jackdaw_synth%d.jsynth", backup_file_index);
+	backup_file_index++;
+	char *backup_filepath = create_tmp_file(backup_filename);
+	synth_write_preset_file(backup_filepath, s);
+
+	struct synth_and_preset_path *sp = malloc(sizeof(struct synth_and_preset_path));
+	sp->synth = s;
+	sp->preset_path_copy = strdup(filepath);
+	user_event_push(
+	    undo_read_synth_preset,
+	    redo_read_synth_preset,
+	    dispose_read_synth_preset, dispose_read_synth_preset,
+	    sp,
+	    backup_filepath,
+	    (Value){0}, (Value){0}, (Value){0}, (Value){0},
+	    0, 0, true, true);
+    }
+	
+    for (int i=0; i<s->effect_chain.num_effects; i++) {
+	api_node_deregister(&s->effect_chain.effects[i]->api_node);
+    }
+    
+    effect_chain_deinit(&s->effect_chain);
+    
+    char hdr[10];
+    fread(hdr, 1, 10, f);
+    if (strncmp(hdr, "JSYNTHv", 7) == 0) {
+	int version = (hdr[7] - '0') * 10 + (hdr[8] - '0') * 10;
+	fprintf(stderr, "JSYNTH VERSION: %d\n", version);
+	if (version >= 2) {
+	    fprintf(stderr, "\treading effect chain\n");
+	    /* BUG: READ FILESPEC NOT SET */
+	    jdaw_read_effect_chain(f, &session_get()->proj, &s->effect_chain, &s->api_node, "synth", s->track->tl->proj->chunk_size_sframes);
+	}
+    } else {
+	fseek(f, SEEK_SET, 0);
+    }
+    
     if (api_node_deserialize(f, &s->api_node) == 0) {
 	char buf[256];
 	snprintf(buf, 256, "%s", filepath);
@@ -2067,6 +2160,11 @@ void synth_read_preset_file(const char *filepath, Synth *s)
 	
     }
     fclose(f);
+}
+
+void synth_read_preset_file(const char *filepath, Synth *s)
+{
+    synth_read_preset_file_internal(filepath, s, false);
 }
 
 void synth_destroy(Synth *s)

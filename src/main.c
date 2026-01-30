@@ -29,7 +29,6 @@
 #include "dir.h"
 #include "dot_jdaw.h"
 #include "dsp_utils.h"
-#include "error.h"
 #include "function_lookup.h"
 #include "init_panels.h"
 #include "input.h"

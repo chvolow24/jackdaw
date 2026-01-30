@@ -235,7 +235,7 @@ static void jdaw_write_timeline(FILE *f, Timeline *tl)
 
 static void jdaw_write_clipref(FILE *f, ClipRef *cr);
 static void jdaw_write_automation(FILE *f, Automation *a);
-static void jdaw_write_effect_chain(FILE *f, EffectChain *ec);
+void jdaw_write_effect_chain(FILE *f, EffectChain *ec);
 
 static void jdaw_write_track(FILE *f, Track *track)
 {
@@ -311,7 +311,7 @@ static void jdaw_write_effect(FILE *f, Effect *e)
     }
 }
 
-static void jdaw_write_effect_chain(FILE *f, EffectChain *ec)
+void jdaw_write_effect_chain(FILE *f, EffectChain *ec)
 {
     int_ser_le(f, &ec->num_effects);
     for (int i=0; i<ec->num_effects; i++) {
@@ -331,7 +331,6 @@ static void jdaw_write_fir_filter(FILE *f, FIRFilter *filter)
 
 static void jdaw_write_delay(FILE *f, DelayLine *dl)
 {
-    /* fprintf(stderr, "WRITE Active? %d\nLen? %d\nAmp? */
     fwrite(&dl->effect->active, 1, 1, f);
     int32_ser_le(f, &dl->len);
     float_ser40_le(f, dl->stereo_offset);
@@ -915,7 +914,7 @@ static int jdaw_read_timeline(FILE *f, Project *proj_loc)
 static int jdaw_read_clipref(FILE *f, Track *track);
 static int jdaw_read_automation(FILE *f, Track *track);
 static int jdaw_read_effect(FILE *f, EffectChain *ec);
-static int jdaw_read_effect_chain(FILE *f, EffectChain *ec, APINode *api_node, const char *obj_name, int32_t chunk_len_sframes);
+static int jdaw_read_effect_chain(FILE *f, Project *proj, EffectChain *ec, APINode *api_node, const char *obj_name, int32_t chunk_len_sframes);
 
 static int jdaw_read_track(FILE *f, Timeline *tl)
 {
@@ -1114,7 +1113,7 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
 		    }
 		}
 	    } else {
-		jdaw_read_effect_chain(f, &track->effect_chain, &track->api_node, track->name, tl->proj->fourier_len_sframes);
+		jdaw_read_effect_chain(f, proj_reading, &track->effect_chain, &track->api_node, track->name, tl->proj->fourier_len_sframes);
 	    }
 	    uint8_t num_automations = uint8_deser(f);
 	    while (num_automations > 0) {
@@ -1137,7 +1136,7 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
 			return 1;
 		    }
 		    if (!read_file_version_older_than("00.23")) {
-			jdaw_read_effect_chain(f, &track->synth->effect_chain, &track->synth->api_node, "synth", tl->proj->fourier_len_sframes);
+			jdaw_read_effect_chain(f, proj_reading, &track->synth->effect_chain, &track->synth->api_node, "synth", tl->proj->fourier_len_sframes);
 		    }
 		    api_node_deserialize(f, &track->synth->api_node);
 		}
@@ -1147,9 +1146,9 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
     return 0;
 }
 
-static int jdaw_read_effect_chain(FILE *f, EffectChain *ec, APINode *api_node, const char *obj_name, int32_t chunk_len_sframes)
+int jdaw_read_effect_chain(FILE *f, Project *proj, EffectChain *ec, APINode *api_node, const char *obj_name, int32_t chunk_len_sframes)
 {
-    effect_chain_init(ec, proj_reading, api_node, obj_name, chunk_len_sframes);
+    effect_chain_init(ec, proj, api_node, obj_name, chunk_len_sframes);
     int num_effects = int_deser_le(f);
     for (int i=0; i<num_effects; i++) {
 	if (jdaw_read_effect(f, ec) != 0) {

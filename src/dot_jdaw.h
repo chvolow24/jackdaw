@@ -21,6 +21,10 @@
 
 #include "project.h"
 
+/* Used by synth.c */
+void jdaw_write_effect_chain(FILE *f, EffectChain *ec);
+int jdaw_read_effect_chain(FILE *f, Project *proj, EffectChain *ec, APINode *api_node, const char *obj_name, int32_t chunk_len_sframes);
+    
 /* Write a .jdaw file from the current project at the directory pointed to by 'path' */
 void write_jdaw_file(const char *path);
 

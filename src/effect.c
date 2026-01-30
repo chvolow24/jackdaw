@@ -169,10 +169,16 @@ void effect_chain_block_type(EffectChain *ec, EffectType type)
 /* Destroys all included effects */
 void effect_chain_deinit(EffectChain *ec)
 {
+    pthread_mutex_lock(&ec->effect_chain_lock);
+    ec->num_effects = 0;
+    pthread_mutex_unlock(&ec->effect_chain_lock);
     for (int i=0; i<ec->num_effects; i++) {
 	effect_destroy(ec->effects[i]);
     }
-    free(ec->effects);
+    if (ec->effects) {
+	free(ec->effects);
+    }
+    ec->effects = NULL;
     pthread_mutex_destroy(&ec->effect_chain_lock);
 }
 

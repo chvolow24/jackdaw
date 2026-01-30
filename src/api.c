@@ -89,7 +89,7 @@ void api_node_register(APINode *node, APINode *parent, char *obj_name, const cha
 }
 
 
-void api_node_deregister_internal(APINode *node, bool remove_from_parent)
+static void api_node_deregister_internal(APINode *node, bool remove_from_parent)
 {
     if (node->parent && remove_from_parent && node->parent->num_children > 0) {
 	bool displace = false;

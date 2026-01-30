@@ -1,5 +1,6 @@
 #include "log.h"
 #include "thread_safety.h"
+#include "tmp.h"
 #include <pthread.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -30,26 +31,6 @@ const char *log_level_str(enum log_level level)
     return NULL;
 }
 
-const char* system_tmp_dir() {
-    static char temp_path[1024] = {0};
-
-    /* check TMPDIR env var */
-    char *env_tmp = getenv("TMPDIR");
-    if (env_tmp && env_tmp[0] != '\0') {
-	snprintf(temp_path, sizeof(temp_path), "%s", env_tmp);
-        return temp_path;
-    }
-
-    /* else check /tmp */
-    if (access("/tmp", W_OK) == 0) {
-	snprintf(temp_path, sizeof(temp_path), "/tmp");
-        strncpy(temp_path, "/tmp", sizeof(temp_path) - 1);
-        return temp_path;
-    }
-
-    /* else use cwd */
-    return ".";
-}
 
 void log_init()
 {

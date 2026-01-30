@@ -368,6 +368,9 @@ void window_destroy_fonts(Window *win)
     if (win->mathematical_font) {
 	ttf_destroy_font(win->mathematical_font);
     }
+    if (win->music_font) {
+	ttf_destroy_font(win->music_font);
+    }
 
 }
 

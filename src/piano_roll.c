@@ -646,6 +646,8 @@ void piano_roll_deinit_gui()
     textbox_destroy_keep_lt(state.gui.grabbed_pitch_val);
     textbox_destroy_keep_lt(state.gui.grabbed_vel_val);
 
+    status_light_destroy(state.gui.device_active);
+
     /* textbox_destroy(state.gui.insertion_box); */
 
 }

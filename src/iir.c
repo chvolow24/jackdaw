@@ -45,6 +45,7 @@ void iir_init(IIRFilter *f, int degree, int num_channels)
 void iir_add_freqplot(IIRFilter *f, struct freq_plot *fp)
 {
     f->fp = fp;
+    if (f->freq_resp) free(f->freq_resp);
     f->freq_resp = malloc(sizeof(double) * IIR_FREQPLOT_RESOLUTION);
     f->freq_resp_stale = true;
     for (int i=0; i<IIR_FREQPLOT_RESOLUTION; i++) {

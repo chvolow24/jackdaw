@@ -332,6 +332,7 @@ static void timeline_destroy(Timeline *tl, bool displace_in_proj)
 	perror("Error in sem unlink");
     }
 
+    free(tl->dsp_chunks_info);
     /* layout_destroy(tl->layout); */
     layout_destroy(tl->track_area);
     free(tl);

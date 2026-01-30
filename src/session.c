@@ -119,7 +119,6 @@ Session *session_create()
 	NULL, NULL, NULL, NULL);
     
     api_endpoint_register(&session->playback.play_speed_ep, &session->server.api_root);
-    session_init_status_bar(session);
 
     session->playback.output_vol = 1.0f;
     endpoint_init(

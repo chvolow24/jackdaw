@@ -319,6 +319,8 @@ void radio_destroy(RadioButton *rb);
 void radio_cycle(RadioButton *rb);
 void radio_cycle_back(RadioButton *rb);
 
+void radio_grey_item(RadioButton *rb, int index);
+
 
 /* Symbol radio */
 

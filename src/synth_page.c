@@ -1136,7 +1136,7 @@ pop_modal_and_exit:
     if (track) {
 	if (!main_win->active_tabview) {
 	    TabView *tv = synth_tabview_create(track);
-	    tabview_activate(tv, track);
+	    tabview_activate(tv, track, track->name);
 	    tl->needs_redraw = true;
 	    timeline_check_set_midi_monitoring();
 	    tabview_select_tab(tv, 4);

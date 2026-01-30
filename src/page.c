@@ -1057,9 +1057,10 @@ void page_activate(Page *page)
     win->active_page = page;
 }
 
-void tabview_activate(TabView *tv, void *connected_obj)
+void tabview_activate(TabView *tv, void *connected_obj, const char *connected_obj_name)
 {
     tv->connected_obj = connected_obj;
+    tv->connected_obj_name = connected_obj_name;
     Window *win = tv->win;
     if (win->num_modals  > 0) {
 	window_pop_modal(win);
@@ -1071,19 +1072,18 @@ void tabview_activate(TabView *tv, void *connected_obj)
 	tabview_destroy(win->active_tabview);
     }
 
-    Session *session = session_get();
-    Timeline *tl = ACTIVE_TL;
-    char *track_name;
-    Track *track = timeline_selected_track(tl);
-    if (track) {
-	track_name = track->name;
-    } else {
-	track_name = timeline_selected_click_track(tl)->name;
-    }
+    /* Session *session = session_get(); */
+    /* Timeline *tl = ACTIVE_TL; */
+    /* Track *track = timeline_selected_track(tl); */
+    /* if (track) { */
+    /* 	track_name = track->name; */
+    /* } else { */
+    /* 	track_name = timeline_selected_click_track(tl)->name; */
+    /* } */
     /* ClickTrack *ct; */
-    int label_str_len = strlen(tv->title) + strlen(track_name) + 4;
+    int label_str_len = strlen(tv->title) + strlen(tv->connected_obj_name) + 4;
     tv->label_str = malloc(label_str_len);
-    snprintf(tv->label_str, label_str_len, "%s - %s", tv->title, track_name);
+    snprintf(tv->label_str, label_str_len, "%s - %s", tv->title, tv->connected_obj_name);
     Layout *label_lt = layout_add_child(main_win->layout);
     label_lt->x.type = REVREL;
     label_lt->x.value = 4.0;

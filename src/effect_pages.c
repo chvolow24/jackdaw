@@ -90,10 +90,10 @@ static void effect_chain_swap_pair(EffectChain *ec, int swap_i, int swap_j, bool
 	    false, false);
     } else {
 	/* TODO: replace tabview check */
-	/* TabView *tv = main_win->active_tabview; */
-	/* if (tv && strcmp(tv->title, "Track Effects") == 0) { */
-	/*     tabview_swap_adjacent_tabs(tv, swap_i, swap_j, false); */
-	/* } */
+	TabView *tv = main_win->active_tabview;
+	if (tv &&  tv->connected_obj == ec) {
+	    tabview_swap_adjacent_tabs(tv, swap_i, swap_j, false);
+	}
     }
 
 }
@@ -107,7 +107,7 @@ static void swapfn(void *target, int swap_i, int swap_j)
 TabView *effect_chain_tabview_create(EffectChain *ec)
 {
     Session *session = session_get();
-    TabView *tv = tabview_create("Track Effects", session->gui.layout, main_win);
+    TabView *tv = tabview_create("Effects", session->gui.layout, main_win);
     for (int i=0; i<ec->num_effects; i++) {
 	effect_add_page(ec->effects[i], tv);
     }
@@ -122,9 +122,11 @@ void effect_chain_open_tabview(EffectChain *ec)
     if (main_win->active_tabview) {
 	tabview_close(main_win->active_tabview);
     }
-    TabView *tv = effect_chain_tabview_create(ec);
+    if (ec->num_effects > 0) {
+	TabView *tv = effect_chain_tabview_create(ec);
     /* TabView *tv = track_effects_tabview_create(track); */
-    tabview_activate(tv, ec);   
+	tabview_activate(tv, ec, ec->obj_name);
+    }
 }
 
 

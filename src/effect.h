@@ -57,6 +57,7 @@ typedef struct effect_chain {
     int num_effects;
     int effects_alloc_len;
     int num_effects_per_type[NUM_EFFECT_TYPES];
+    bool blocked_types[NUM_EFFECT_TYPES];
     pthread_mutex_t effect_chain_lock;
     int32_t chunk_len_sframes;
     Project *proj; /* For link through to audio settings */
@@ -66,6 +67,7 @@ typedef struct effect_chain {
 
 void effect_chain_init(EffectChain *ec, Project *proj, APINode *api_node, const char *obj_name, int32_t chunk_len_sframes);
 void effect_chain_deinit(EffectChain *ec);
+void effect_chain_block_type(EffectChain *ec, EffectType type);
 Effect *effect_chain_add_effect(EffectChain *ec, EffectType type);
 
 const char *effect_type_str(EffectType type);

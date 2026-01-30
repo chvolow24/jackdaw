@@ -88,6 +88,7 @@ typedef struct page {
 
 typedef struct tab_view {
     const char *title;
+    const char *connected_obj_name;
     Page *tabs[MAX_TABS];
     Textbox *labels[MAX_TABS + 2]; /* add space for ellipsis tabs */
     Textbox *ellipsis_left;
@@ -281,7 +282,10 @@ typedef union page_el_params {
 
 TabView *tabview_create(const char *title, Layout *parent_lt, Window *win);
 void tabview_destroy(TabView *tv);
-void tabview_activate(TabView *tv, void *connected_obj);
+void tabview_activate(
+    TabView *tv,
+    void *connected_obj,
+    const char *connected_obj_name);
 void tabview_close(TabView *tv);
 Page *tabview_add_page(
     TabView *tv,

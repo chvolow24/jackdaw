@@ -1,6 +1,8 @@
 #ifndef JDAW_PIANO_ROLL_H
 #define JDAW_PIANO_ROLL_H
 
+#define PIANO_ROLL_VEL_ADJ_AMT 9
+
 #include "midi_clip.h"
 
 void piano_roll_deactivate();

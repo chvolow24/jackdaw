@@ -1,6 +1,7 @@
 #include "assets.h"
 #include "clipref.h"
 #include "color.h"
+#include "components.h"
 #include "geometry.h"
 #include "input.h"
 #include "layout.h"
@@ -272,6 +273,53 @@ static Button *piano_roll_create_std_button(
     textbox_set_border(button->tb, &colors.grey, 4, BUTTON_CORNER_RADIUS);
     return button;
 }
+/*
+typedef int (*ComponentFn)(void *, void *)
+*/
+
+
+static int buttonfn_note_up(void *self, void *target)
+{
+    piano_roll_move_note_selector(1);
+    return 0;
+}
+static int buttonfn_note_down(void *self, void *target)
+{
+    piano_roll_move_note_selector(-1);
+    return 0;
+}
+static int buttonfn_vel_up(void *self, void *target)
+{
+    piano_roll_adj_velocity(PIANO_ROLL_VEL_ADJ_AMT);
+    return 0;
+}
+static int buttonfn_vel_down(void *self, void *target)
+{
+    piano_roll_adj_velocity(-PIANO_ROLL_VEL_ADJ_AMT);
+    return 0;
+}
+static int buttonfn_dur_shorter(void *self, void *target)
+{
+    piano_roll_dur_shorter();
+    return 0;
+}
+static int buttonfn_dur_longer(void *self, void *target)
+{
+    piano_roll_dur_longer();
+    return 0;
+}
+/* static int buttonfn_grabbed_pitch_up(void *self, void *target) */
+/* { */
+/*     piano_roll_move_note_selector(1); */
+/*     return 0; */
+/* } */
+/* static int buttonfn_grabbed_pitch_down(void *self, void *target) */
+/* { */
+/*     piano_roll_move_note_selector(-1); */
+/*     return 0; */
+/* } */
+
+
 
 void piano_roll_init_gui()
 {
@@ -373,56 +421,56 @@ void piano_roll_init_gui()
     state.gui.pitch_down = piano_roll_create_std_button(
 	"n↓",
 	"pitch_down",
-	NULL,
+	buttonfn_note_down,
 	NULL);
     state.gui.pitch_up = piano_roll_create_std_button(
 	"p↑",
 	"pitch_up",
-	NULL,
+	buttonfn_note_up,
 	NULL);
 
     state.gui.vel_down = piano_roll_create_std_button(
 	"c↓",
 	"vel_down",
-	NULL,
+	buttonfn_vel_down,
 	NULL);
     state.gui.vel_up = piano_roll_create_std_button(
 	"v↑",
 	"vel_up",
-	NULL,
+	buttonfn_vel_up,
 	NULL);
     
     state.gui.dur_longer = piano_roll_create_std_button(
 	"1↓",
 	"dur_down",
-	NULL,
+	buttonfn_dur_longer,
 	NULL);
     state.gui.dur_shorter = piano_roll_create_std_button(
 	"2↑",
 	"dur_up",
-	NULL,
+	buttonfn_dur_shorter,
 	NULL);
 
     state.gui.grabbed_note_pitch_down = piano_roll_create_std_button(
 	"n↓",
 	"grabbed_pitch_down",
-	NULL,
+	buttonfn_note_down,
 	NULL);
     state.gui.grabbed_note_pitch_up = piano_roll_create_std_button(
 	"p↑",
 	"grabbed_pitch_up",
-	NULL,
+	buttonfn_note_up,
 	NULL);
 
     state.gui.grabbed_note_vel_down = piano_roll_create_std_button(
 	"c↓",
 	"grabbed_vel_down",
-	NULL,
+	buttonfn_vel_down,
 	NULL);
     state.gui.grabbed_note_vel_up = piano_roll_create_std_button(
 	"v↑",
 	"grabbed_vel_up",
-	NULL,
+	buttonfn_vel_up,
 	NULL);
     /* lt = layout_get_child_by_name_recursive(state.console_lt, "dur_down"); */
     /* state.gui.dur_longer_button = textbox_create_from_str( */
@@ -2031,15 +2079,67 @@ static void reset_mouse_sel_rect(SDL_Point mousep)
 static bool mouse_motion_occurred = false;
 void piano_roll_mouse_click(SDL_Point mousep)
 {
-    state.mouse_sel_rect_active = true;
-    state.mouse_sel_rect_origin = mousep;
-    reset_mouse_sel_rect(mousep);
-    mouse_motion_occurred = false;
+    if (SDL_PointInRect(&mousep, &state.note_canvas_lt->rect)) {
+	if (main_win->i_state & I_STATE_CMDCTRL) {
+	    state.mouse_sel_rect_active = true;
+	    state.mouse_sel_rect_origin = mousep;
+	    reset_mouse_sel_rect(mousep);
+	    mouse_motion_occurred = false;
+	} else {
+	    timeline_set_play_position(state.cr->track->tl, timeview_get_pos_sframes(state.tl_tv, mousep.x), false);
+	}
+    } else if (SDL_PointInRect(&mousep, &state.console_lt->rect)) {
+	if (SDL_PointInRect(&mousep, state.gui.track_info_panel)) {
+	    if (SDL_PointInRect(&mousep, &state.gui.solo_button->layout->rect)) {
+		track_solo(state.cr->track);
+		return;
+	    }
+	    /* bool clicked = button_click(state.gui.solo_button, main_win); */
+		
+
+	} else if (SDL_PointInRect(&mousep, state.gui.device_panel)) {
+
+	} else if (SDL_PointInRect(&mousep, state.gui.input_panel)) {
+	    if (button_click(state.gui.pitch_up, main_win))
+		return;
+	    if (button_click(state.gui.pitch_down, main_win))
+		return;
+	    if (button_click(state.gui.vel_up, main_win))
+		return;
+	    if (button_click(state.gui.vel_down, main_win))
+		return;
+	    if (button_click(state.gui.dur_longer, main_win))
+		return;
+	    if (button_click(state.gui.dur_shorter, main_win))
+		return;
+	    if (SDL_PointInRect(&mousep, &state.gui.chord_button->layout->rect)) {
+		piano_roll_toggle_chord_mode();
+		return;
+	    }
+	    if (SDL_PointInRect(&mousep, &state.gui.tie_button->layout->rect)) {
+		piano_roll_toggle_tie();
+		return;
+	    }
+
+	} else if (SDL_PointInRect(&mousep, state.gui.grabbed_note_panel)) {
+	    if (state.clip->num_grabbed_notes == 0)
+		return;
+	    if (button_click(state.gui.grabbed_note_pitch_up, main_win))
+		return;
+	    if (button_click(state.gui.grabbed_note_pitch_down, main_win))
+		return;
+	    if (button_click(state.gui.grabbed_note_vel_up, main_win))
+		return;
+	    if (button_click(state.gui.grabbed_note_vel_down, main_win))
+		return;
+
+	}
+    }
 }
 
 void piano_roll_mouse_motion(SDL_Point mousep)
 {
-    if (main_win->i_state & I_STATE_MOUSE_L) {
+    if (main_win->i_state & I_STATE_MOUSE_L && state.mouse_sel_rect_active) {
 	reset_mouse_sel_rect(mousep);
     }
     mouse_motion_occurred = true;
@@ -2048,29 +2148,30 @@ void piano_roll_mouse_motion(SDL_Point mousep)
 void piano_roll_mouse_up(SDL_Point mousep)
 {
     if (!mouse_motion_occurred) {
-	timeline_set_play_position(state.cr->track->tl, timeview_get_pos_sframes(state.tl_tv, mousep.x), false);
 	return;
     }
     mouse_motion_occurred = false;
-    if (state.clip->num_grabbed_notes > 0 && session_get()->dragging) {
-	midi_clipref_push_grabbed_note_move_event(state.cr);
+    if (state.mouse_sel_rect_active) {
+	if (state.clip->num_grabbed_notes > 0 && session_get()->dragging) {
+	    midi_clipref_push_grabbed_note_move_event(state.cr);
+	}
+	midi_clip_ungrab_all(state.clip);
+	state.mouse_sel_rect_active = false;
+	int sel_piano_note_top = 88 - 88 * (state.mouse_sel_rect.y - state.layout->rect.y) / state.layout->rect.h;
+	int sel_piano_note_bottom = 88 - 88 * (state.mouse_sel_rect.y + state.mouse_sel_rect.h - state.layout->rect.y) / state.layout->rect.h;
+	midi_clipref_grab_area(
+	    state.cr,
+	    timeview_get_pos_sframes(state.tl_tv, state.mouse_sel_rect.x),
+	    timeview_get_pos_sframes(state.tl_tv, state.mouse_sel_rect.x + state.mouse_sel_rect.w),
+	    sel_piano_note_bottom + 20,
+	    sel_piano_note_top + 20);
+	reset_grabbed_pitch_str();
+	reset_grabbed_vel_str();
+	if (session_get()->dragging) {
+	    midi_clipref_cache_grabbed_note_info(state.cr);
+	}
     }
-    midi_clip_ungrab_all(state.clip);
-    state.mouse_sel_rect_active = false;
-    int sel_piano_note_top = 88 - 88 * (state.mouse_sel_rect.y - state.layout->rect.y) / state.layout->rect.h;
-    int sel_piano_note_bottom = 88 - 88 * (state.mouse_sel_rect.y + state.mouse_sel_rect.h - state.layout->rect.y) / state.layout->rect.h;
-    midi_clipref_grab_area(
-	state.cr,
-	timeview_get_pos_sframes(state.tl_tv, state.mouse_sel_rect.x),
-	timeview_get_pos_sframes(state.tl_tv, state.mouse_sel_rect.x + state.mouse_sel_rect.w),
-	sel_piano_note_bottom + 20,
-	sel_piano_note_top + 20);
-    reset_grabbed_pitch_str();
-    reset_grabbed_vel_str();
 
-    if (session_get()->dragging) {
-	midi_clipref_cache_grabbed_note_info(state.cr);
-    }
 
 
 }

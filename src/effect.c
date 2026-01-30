@@ -161,6 +161,11 @@ void effect_chain_init(EffectChain *ec, Project *proj, APINode *api_node, const 
     pthread_mutex_init(&ec->effect_chain_lock, NULL);
 }
 
+void effect_chain_block_type(EffectChain *ec, EffectType type)
+{
+    ec->blocked_types[type] = true;
+}
+
 /* Destroys all included effects */
 void effect_chain_deinit(EffectChain *ec)
 {
@@ -176,6 +181,10 @@ void effect_chain_deinit(EffectChain *ec)
 
 Effect *effect_chain_add_effect(EffectChain *ec, EffectType type)
 {
+    if (ec->blocked_types[type]) {
+	status_set_errstr("%s not allowed here", effect_type_strings[type]);
+	return NULL;
+    }
     if (ec->effects_alloc_len == 0) {
 	if (ec->effects) {
 	    log_tmp(LOG_ERROR, "Effect chain (%p) has effects_alloc_len==0, but effects=%p\n", ec, ec->effects);
@@ -302,7 +311,7 @@ void effect_add(EffectChain *ec, const char *obj_name)
     }
     /* effect_selection_ep.xarg1 = (void *)track; */
     
-    modal_add_radio(
+    ModalEl *el = modal_add_radio(
 	m,
 	&colors.light_grey,
 	/* (void *)track, */
@@ -312,7 +321,12 @@ void effect_add(EffectChain *ec, const char *obj_name)
 	/* AUTOMATION_LABELS, */	
 	/* sizeof(AUTOMATION_LABELS) / sizeof(const char *)); */
 	sizeof(effect_type_strings) / sizeof(const char *));
-    
+
+    for (int i=0; i<NUM_EFFECT_TYPES; i++) {
+	if (ec->blocked_types[i]) {
+	    radio_grey_item(el->obj, i);
+	}
+    }
     modal_add_button(m, "Add", add_effect_form);
     m->submit_form = add_effect_form;
     m->stashed_obj = ec;
@@ -389,19 +403,14 @@ static void effect_reinsert(Effect *e, int index)
     ec->num_effects++;
     pthread_mutex_unlock(&ec->effect_chain_lock);
 
-
-    /*------ TODO: account for synth effect chains (generic effect chains) */
-
     TabView *tv;
-    if ((tv = main_win->active_tabview) && strcmp(tv->title, "Track Effects") == 0) {
+    if ((tv = main_win->active_tabview) && strncmp(tv->title, "Effects", 7) == 0) {
 	
-	/* tabview_close(tv); */
+	tabview_close(tv);
+	effect_chain_open_tabview(ec);
 	/* user_tl_track_open_settings(NULL); */
 	/* user_tl_track_open_settings(NULL); */
     }
-
-    /*------ end ---------------------------------------------------------*/
-
     api_node_reregister(&e->api_node);
     /* undelete_related_automations(&e->api_node); */
 }
@@ -452,8 +461,17 @@ void effect_delete(Effect *e, bool from_undo)
 
     /* delete_related_automations(&e->api_node); */
     TabView *tv;
-    if ((tv = main_win->active_tabview) && strcmp(tv->title, "Track Effects") == 0) {
-	/* tabview_close(tv); */
+    if ((tv = main_win->active_tabview) && strncmp(tv->title, "Effects", 7) == 0) {
+	tabview_close(tv);
+	/* ec->proj->timelines[ec->proj->active_tl_index]->needs_redraw = true; */
+	if (ec->num_effects > 0) {
+	    effect_chain_open_tabview(ec);
+	} else {
+	    ec->proj->timelines[ec->proj->active_tl_index]->needs_redraw = true;
+	}
+	/* if (strncmp(ec->obj_name, "Synth", 5) == 0) { */
+	/* } */
+	
 	/* user_tl_track_open_settings(NULL); */
 	/* if (ec->num_effects > 0)  */
 	/*     user_tl_track_open_settings(NULL); */

@@ -980,6 +980,7 @@ Synth *synth_create(Track *track)
     }
 
     effect_chain_init(&s->effect_chain, track->tl->proj, &s->api_node, "synth", track->tl->proj->chunk_size_sframes);
+    effect_chain_block_type(&s->effect_chain, EFFECT_FIR_FILTER);
     return s;
 }
 

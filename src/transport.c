@@ -197,12 +197,6 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     set_thread_id(JDAW_THREAD_PLAYBACK);
     /* log_tmp(LOG_DEBUG, "pb cb enter. playing (%p)? %d; sesh play? %d; monitor? %d\n", user_data, ((AudioDevice *)user_data)->playing, session->playback.playing, session->midi_io.monitoring); */
     /* fprintf(stderr, "(%s) pb cb enter. playing (%p)? %d; sesh play? %d; monitor? %d\n", timestamp(), user_data, ((AudioDevice *)user_data)->playing, session->playback.playing, session->midi_io.monitoring); */
-    if (!session->playback.playing && !session->midi_io.monitoring) {
-	/* log_tmp(LOG_DEBUG, "\t(zombie)\n"); */
-	/* fprintf(stderr, "PB zombie mode....\n"); */
-	memset(stream, '\0', len);
-	return;
-    }
 
     /* Take care of queued audio bufs */
     int err;
@@ -214,6 +208,13 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     if ((err = pthread_mutex_unlock(&session->queued_ops.queued_audio_buf_lock)) != 0) {
 	fprintf(stderr, "Error unlocking queued audio buf lock (in playback cb): %s\n", strerror(err));
     }
+    if (!session->playback.playing && !session->midi_io.monitoring && queue_loc.num_queued == 0) {
+	/* log_tmp(LOG_DEBUG, "\t(zombie)\n"); */
+	/* fprintf(stderr, "PB zombie mode....\n"); */
+	memset(stream, '\0', len);
+	return;
+    }
+
 
     Project *proj = &session->proj;
     Timeline *tl = ACTIVE_TL;
@@ -1058,8 +1059,10 @@ void transport_stop_recording()
     while (session->proj.active_midi_clip_index < session->proj.num_midi_clips) {
 	MIDIClip *mclip = session->proj.midi_clips[session->proj.active_midi_clip_index];
 	mclip->recording = false;
-	mclip->recorded_from->recording = false;
-	midi_device_close_all_notes(mclip->recorded_from);
+	if (mclip->recorded_from) {
+	    mclip->recorded_from->recording = false;
+	    midi_device_close_all_notes(mclip->recorded_from);
+	}
 	session->proj.active_midi_clip_index++;
 	for (int i=0; i<mclip->num_refs; i++) {
 	    mclip->refs[i]->end_in_clip = mclip->len_sframes;

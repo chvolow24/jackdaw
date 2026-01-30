@@ -644,6 +644,6 @@ void timeline_click_track_edit(Timeline *tl)
     TabView *tv = tabview_create("Click track settings", session->gui.layout, main_win);
     click_track_populate_settings_tabview(tt, tv);
 
-    tabview_activate(tv, tt);
+    tabview_activate(tv, tt, tt->name);
     tl->needs_redraw = true;    
 }

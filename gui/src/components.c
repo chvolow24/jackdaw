@@ -774,6 +774,13 @@ RadioButton *radio_button_create(
     return rb;
 }
 
+void radio_grey_item(RadioButton *rb, int index)
+{
+    Textbox *tb = rb->items[index];
+    textbox_set_text_color(tb, &colors.grey);
+    textbox_reset(tb);
+}
+
 void radio_button_reset_from_endpoint(RadioButton *rb)
 {
     /* if (!rb->target) return; */

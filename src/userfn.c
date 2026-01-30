@@ -507,7 +507,7 @@ void open_file(const char *filepath)
     if (activate_synth_preset_tab_on_exit) {
 	Track *track = timeline_selected_track(tl);
 	TabView *tv = synth_tabview_create(track);
-	tabview_activate(tv, track);
+	tabview_activate(tv, track, track->name);
 	tl->needs_redraw = true;
 	timeline_check_set_midi_monitoring();
 	/* tabview_select_tab(tv, 0); */
@@ -1482,10 +1482,22 @@ void user_tl_track_selector_up(void *nullarg)
 	}
 	TabView *tv;
 	if ((tv = main_win->active_tabview)) {
-	    if (strcmp(tv->title, "Track Effects") == 0) {
-		settings_track_tabview_set_track(tv, selected);
+	    if (strncmp(tv->title, "Effects", 7) == 0) {
+		if (tv->connected_obj == &prev_selected->effect_chain) {
+		    settings_track_tabview_set_track(tv, selected);
+		} else if (tv->connected_obj == &prev_selected->synth->effect_chain) {
+		    tabview_close(tv);
+		    if (selected->synth)
+			effect_chain_open_tabview(&selected->synth->effect_chain);
+		}
 	    } else if (strcmp(tv->title, "Synth") == 0) {
-		user_tl_track_open_synth(NULL);
+		tabview_close(tv);
+		if (selected->synth) {
+		    TabView *tv = synth_tabview_create(selected);
+		    tabview_activate(tv, selected->synth, selected->name);
+		}
+		/* effect_chain_open_tabview(&selected->); */
+
 	    } else {
 		tabview_close(tv);
 	    }
@@ -1571,10 +1583,20 @@ void user_tl_track_selector_down(void *nullarg)
 	}
 	TabView *tv;
 	if ((tv = main_win->active_tabview)) {
-	    if (strcmp(tv->title, "Track Effects") == 0) {
-		settings_track_tabview_set_track(tv, selected);
+	    if (strncmp(tv->title, "Effects", 7) == 0) {
+		if (tv->connected_obj == &prev_selected->effect_chain) {
+		    settings_track_tabview_set_track(tv, selected);
+		} else if (tv->connected_obj == &prev_selected->synth->effect_chain) {
+		    tabview_close(tv);
+		    if (selected->synth)
+			effect_chain_open_tabview(&selected->synth->effect_chain);
+		}
 	    } else if (strcmp(tv->title, "Synth") == 0) {
-		user_tl_track_open_synth(NULL);
+		tabview_close(tv);
+		if (selected->synth) {
+		    TabView *tv = synth_tabview_create(selected);
+		    tabview_activate(tv, selected->synth, selected->name);
+		}
 	    } else {
 		tabview_close(tv);
 	    }
@@ -1957,7 +1979,7 @@ void user_tl_track_open_settings(void *nullarg)
 	}
 	TabView *tv = effect_chain_tabview_create(&track->effect_chain);
 	/* TabView *tv = track_effects_tabview_create(track); */
-	tabview_activate(tv, track);
+	tabview_activate(tv, track, track->name);
 	tl->needs_redraw = true;
     } else {
 	timeline_click_track_edit(tl);
@@ -1968,7 +1990,7 @@ void user_tl_track_open_synth(void *nullarg)
 {
     if (main_win->active_tabview) {
 	bool early_exit = false;
-	if (strcmp(main_win->active_tabview->title, "Track Synth") == 0) {
+	if (strcmp(main_win->active_tabview->title, "Synth") == 0) {
 	    early_exit = true;
 	}
 	tabview_close(main_win->active_tabview);
@@ -1979,7 +2001,7 @@ void user_tl_track_open_synth(void *nullarg)
     Track *track = timeline_selected_track(tl);
     if (track) {
 	TabView *tv = synth_tabview_create(track);
-	tabview_activate(tv, track);
+	tabview_activate(tv, track, track->name);
 	tl->needs_redraw = true;
 	timeline_check_set_midi_monitoring();
     } else {
@@ -2749,7 +2771,7 @@ void user_tl_delete_generic(void *nullarg)
 {
     Session *session = session_get();
     TabView *tv;
-    if ((tv = main_win->active_tabview) && strcmp(tv->title, "Track Effects") == 0) {
+    if ((tv = main_win->active_tabview) && strncmp(tv->title, "Effects", 7) == 0) {
 	Page *active = tv->tabs[tv->current_tab];
 	Effect *e = active->linked_obj;
 	status_cat_callstr(" effect");
@@ -3428,15 +3450,14 @@ void user_piano_roll_note_down_octave(void *nullarg)
     piano_roll_move_note_selector(-12);
 }
 
-
 void user_piano_roll_vel_up(void *nullarg)
 {
-    piano_roll_adj_velocity(9);
+    piano_roll_adj_velocity(PIANO_ROLL_VEL_ADJ_AMT);
 }
 
 void user_piano_roll_vel_down(void *nullarg)
 {
-    piano_roll_adj_velocity(-9);
+    piano_roll_adj_velocity(-PIANO_ROLL_VEL_ADJ_AMT);
 }
 
 

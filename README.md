@@ -2,7 +2,8 @@
 A free, open-source, keyboard-focused digital audio workstation (DAW). Written in C, using SDL (https://libsdl.org/).
 
 <!-- <img src="readme_imgs/main_new_short.gif" width="75%" /> -->
-<img src="https://jackdaw-audio.net/static/readme_imgs/main_new_short.gif" width="75%" />
+<!-- <img src="https://jackdaw-audio.net/static/readme_imgs/main_new_short.gif" width="75%" /> -->
+[!main_gif]("https://jackdaw-audio.net/static/readme_imgs/main_new_short.gif")
 
 ## Table of Contents
 1. [Disclaimer](#disclaimer)

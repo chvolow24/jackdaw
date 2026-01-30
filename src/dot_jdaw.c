@@ -235,7 +235,7 @@ static void jdaw_write_timeline(FILE *f, Timeline *tl)
 
 static void jdaw_write_clipref(FILE *f, ClipRef *cr);
 static void jdaw_write_automation(FILE *f, Automation *a);
-void jdaw_write_effect_chain(FILE *f, EffectChain *ec);
+static void jdaw_write_effect_chain(FILE *f, EffectChain *ec);
 
 static void jdaw_write_track(FILE *f, Track *track)
 {
@@ -311,12 +311,18 @@ static void jdaw_write_effect(FILE *f, Effect *e)
     }
 }
 
-void jdaw_write_effect_chain(FILE *f, EffectChain *ec)
+static void jdaw_write_effect_chain(FILE *f, EffectChain *ec)
 {
     int_ser_le(f, &ec->num_effects);
     for (int i=0; i<ec->num_effects; i++) {
 	jdaw_write_effect(f, ec->effects[i]);
     }
+}
+
+void jdaw_write_effect_chain_external(FILE *f, EffectChain *ec)
+{
+    fwrite(current_file_spec_version, 1, 5, f);
+    jdaw_write_effect_chain(f, ec);
 }
 
 static void jdaw_write_fir_filter(FILE *f, FIRFilter *filter)
@@ -1136,7 +1142,7 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
 			return 1;
 		    }
 		    if (!read_file_version_older_than("00.23")) {
-			jdaw_read_effect_chain(f, proj_reading, &track->synth->effect_chain, &track->synth->api_node, "synth", tl->proj->fourier_len_sframes);
+			jdaw_read_effect_chain(f, proj_reading, &track->synth->effect_chain, NULL, "synth", tl->proj->fourier_len_sframes);
 		    }
 		    api_node_deserialize(f, &track->synth->api_node);
 		}
@@ -1146,7 +1152,18 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
     return 0;
 }
 
-int jdaw_read_effect_chain(FILE *f, Project *proj, EffectChain *ec, APINode *api_node, const char *obj_name, int32_t chunk_len_sframes)
+int jdaw_read_effect_chain_external(FILE *f, Project *proj, EffectChain *ec, APINode *api_node, const char *obj_name, int32_t chunk_len_sframes)
+{
+    user_event_pause();
+    fread(read_file_spec_version, 1, 5, f);
+    read_file_spec_version[5] = '\0';
+    /* read_file_spec_version = version; */
+    int ret = jdaw_read_effect_chain(f, proj, ec, api_node, obj_name, chunk_len_sframes);
+    user_event_unpause();
+    return ret;
+
+}
+static int jdaw_read_effect_chain(FILE *f, Project *proj, EffectChain *ec, APINode *api_node, const char *obj_name, int32_t chunk_len_sframes)
 {
     effect_chain_init(ec, proj, api_node, obj_name, chunk_len_sframes);
     int num_effects = int_deser_le(f);

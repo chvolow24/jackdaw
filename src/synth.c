@@ -984,7 +984,7 @@ Synth *synth_create(Track *track)
 	exit(1);
     }
 
-    effect_chain_init(&s->effect_chain, track->tl->proj, &s->api_node, "synth", track->tl->proj->chunk_size_sframes);
+    effect_chain_init(&s->effect_chain, track->tl->proj, NULL, "synth", track->tl->proj->chunk_size_sframes);
     effect_chain_block_type(&s->effect_chain, EFFECT_FIR_FILTER);
     return s;
 }
@@ -2043,7 +2043,7 @@ void synth_write_preset_file(const char *filepath, Synth *s)
 {
     FILE *f = fopen(filepath, "w");
     fprintf(f, "JSYNTHv02\n");
-    jdaw_write_effect_chain(f, &s->effect_chain);
+    jdaw_write_effect_chain_external(f, &s->effect_chain);
     api_node_serialize(f, &s->api_node);
     fclose(f);
 }
@@ -2136,9 +2136,12 @@ static void synth_read_preset_file_internal(const char *filepath, Synth *s, bool
 	if (version >= 2) {
 	    fprintf(stderr, "\treading effect chain\n");
 	    /* BUG: READ FILESPEC NOT SET */
-	    jdaw_read_effect_chain(f, &session_get()->proj, &s->effect_chain, &s->api_node, "synth", s->track->tl->proj->chunk_size_sframes);
+	    if (jdaw_read_effect_chain_external(f, s->track->tl->proj, &s->effect_chain, NULL, "synth", s->track->tl->proj->chunk_size_sframes) != 0) {
+		status_set_errstr("Error occurred during reading of preset file");
+	    }
 	}
     } else {
+	effect_chain_init(&s->effect_chain, s->track->tl->proj, NULL, "synth", s->track->tl->proj->chunk_size_sframes);
 	fseek(f, SEEK_SET, 0);
     }
     

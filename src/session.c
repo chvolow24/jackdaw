@@ -19,6 +19,7 @@
 #include "layout.h"
 #include "layout_xml.h"
 #include "session.h"
+#include "timeline.h"
 #include "transport.h"
 /* #include "window.h" */
 
@@ -314,10 +315,12 @@ void session_set_proj(Session *session, Project *new_proj)
     session_init_panels(session);
     layout_force_reset(session->gui.layout);
     timeline_switch(0);
+    timeline_play_speed_set(0.0);
     timeline_reset_full(session->proj.timelines[0]);
     if (reopen_playback_conn) {
 	audioconn_open(session, session->audio_io.playback_conn);
     }
+    
 }
 
 uint32_t session_get_sample_rate()

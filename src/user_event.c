@@ -139,6 +139,7 @@ UserEvent *user_event_push(
     if (!session) return NULL;
     if (!session->proj_initialized) return NULL;
     UserEventHistory *history = &session->history;
+    if (history->pause) return NULL;
     UserEvent *e = calloc(1, sizeof(UserEvent));
     e->undo = undo_fn;
     e->redo = redo_fn;
@@ -235,6 +236,20 @@ UserEvent *user_event_push(
 	}
     }
     return e;
+}
+
+void user_event_pause()
+{
+    Session *session = session_get();
+    if (session)
+	session->history.pause = true;
+}
+
+void user_event_unpause()
+{
+    Session *session = session_get();
+    if (session)
+	session->history.pause = false;
 }
 
 void user_event_undo_set_value(

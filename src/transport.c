@@ -370,9 +370,9 @@ static volatile bool cancel_dsp_thread = false;
 
 static void *transport_dsp_thread_fn(void *arg)
 {
-    log_tmp(LOG_INFO, "DSP thread init\n");
     Session *session = session_get();
     set_thread_id(JDAW_THREAD_DSP);
+    log_tmp(LOG_INFO, "DSP thread init\n");
     
     Timeline *tl = (Timeline *)arg;
     
@@ -506,6 +506,7 @@ static void *transport_dsp_thread_fn(void *arg)
 	/* fprintf(stderr, "Stress: %f/%f == \t%f\n", running_elapsed, alloced_msec, (double)running_elapsed / alloced_msec);	 */
     }
     log_tmp(LOG_INFO, "DSP thread exit\n");
+    sem_post(tl->unpause_sem);
 
     return NULL;
 }
@@ -626,6 +627,9 @@ void transport_stop_playback()
 	sem_post(tl->writable_chunks);
 	sem_post(tl->readable_chunks);
     }
+
+    /* Wait for DSP thread to exit */
+    sem_wait(tl->unpause_sem);
 
     /* Exhaust all sems */
     while (sem_trywait(tl->unpause_sem) == 0) {};

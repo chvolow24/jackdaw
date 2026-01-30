@@ -184,13 +184,9 @@ void effect_chain_deinit(EffectChain *ec)
 
 /*------ Higher-level functions; modals and tabview ------------------*/
 
-
-Effect *effect_chain_add_effect(EffectChain *ec, EffectType type)
+/* assume 1 effect is being added */
+static void effect_chain_realloc_maybe(EffectChain *ec)
 {
-    if (ec->blocked_types[type]) {
-	status_set_errstr("%s not allowed here", effect_type_strings[type]);
-	return NULL;
-    }
     if (ec->effects_alloc_len == 0) {
 	if (ec->effects) {
 	    log_tmp(LOG_ERROR, "Effect chain (%p) has effects_alloc_len==0, but effects=%p\n", ec, ec->effects);
@@ -202,6 +198,27 @@ Effect *effect_chain_add_effect(EffectChain *ec, EffectType type)
 	ec->effects_alloc_len *= 2;
 	ec->effects = realloc(ec->effects, ec->effects_alloc_len * sizeof(Effect *));
     }
+
+}
+
+Effect *effect_chain_add_effect(EffectChain *ec, EffectType type)
+{
+    if (ec->blocked_types[type]) {
+	status_set_errstr("%s not allowed here", effect_type_strings[type]);
+	return NULL;
+    }
+    /* if (ec->effects_alloc_len == 0) { */
+    /* 	if (ec->effects) { */
+    /* 	    log_tmp(LOG_ERROR, "Effect chain (%p) has effects_alloc_len==0, but effects=%p\n", ec, ec->effects); */
+    /* 	} */
+    /* 	ec->effects_alloc_len = 4; */
+    /* 	ec->effects = malloc(ec->effects_alloc_len * sizeof(Effect *)); */
+    /* } */
+    /* if (ec->num_effects == ec->effects_alloc_len) { */
+    /* 	ec->effects_alloc_len *= 2; */
+    /* 	ec->effects = realloc(ec->effects, ec->effects_alloc_len * sizeof(Effect *)); */
+    /* } */
+    effect_chain_realloc_maybe(ec);
     Effect *e = calloc(1, sizeof(Effect));
     e->type = type;
     e->effect_chain = ec;
@@ -212,7 +229,8 @@ Effect *effect_chain_add_effect(EffectChain *ec, EffectType type)
 	snprintf(e->name, MAX_NAMELENGTH, "%s %d", effect_type_str(type), num_effects_of_type + 1);
     }
     ec->num_effects_per_type[type]++;
-    api_node_register(&e->api_node, ec->api_node, e->name, NULL);
+    if (ec->api_node)
+	api_node_register(&e->api_node, ec->api_node, e->name, NULL);
 
     switch(type) {
     case EFFECT_EQ:
@@ -400,9 +418,9 @@ float effect_chain_buf_apply(EffectChain *ec, float *buf, int len, int channel, 
 static void effect_reinsert(Effect *e, int index)
 {
     EffectChain *ec = e->effect_chain;
-
-    int num_to_move = ec->num_effects - index;
+    effect_chain_realloc_maybe(ec);
     
+    int num_to_move = ec->num_effects - index;    
     pthread_mutex_lock(&ec->effect_chain_lock);
     memmove(ec->effects + index + 1, ec->effects + index, num_to_move * sizeof(Effect *));
     ec->effects[index] = e;
@@ -417,7 +435,8 @@ static void effect_reinsert(Effect *e, int index)
 	/* user_tl_track_open_settings(NULL); */
 	/* user_tl_track_open_settings(NULL); */
     }
-    api_node_reregister(&e->api_node);
+    if (ec->api_node)
+	api_node_reregister(&e->api_node);
     /* undelete_related_automations(&e->api_node); */
 }
 
@@ -463,7 +482,8 @@ void effect_delete(Effect *e, bool from_undo)
 	    (Value){.int_v = index}, (Value){.int_v = num_related_automations},
 	    0, 0, false, false);
     }
-    api_node_deregister(&e->api_node);
+    if (ec->api_node)
+	api_node_deregister(&e->api_node);
 
     /* delete_related_automations(&e->api_node); */
     TabView *tv;

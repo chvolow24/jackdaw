@@ -192,7 +192,6 @@ void eq_init(EQ *eq)
 	ctrl->bandwidth_scalar = DEFAULT_BANDWIDTH_SCALAR;
 	ctrl->bandwidth_preferred = DEFAULT_BANDWIDTH_SCALAR;
 	ctrl->freq_amp_raw[0] = pow(nsub1, 0.15 + 0.15 * i) / nsub1;
-	fprintf(stderr, "CTRL %d freq: %f\n", i, ctrl->freq_amp_raw[0]);
 	ctrl->freq_amp_raw[1] = 1.0;
 	ctrl->eq = eq;
 	ctrl->index = i;
@@ -450,10 +449,8 @@ static void eq_set_filter_from_mouse(EQ *eq, int filter_index, SDL_Point mousep)
 {
     eq->ctrls[filter_index].x = mousep.x;
     eq->ctrls[filter_index].y = mousep.y;
-    fprintf(stderr, "MOUSE X: %d (%f)\n", mousep.x, (double)(mousep.x - eq->fp->container->rect.x) / eq->fp->container->rect.w);
     double freq_hz = logscale_val_from_x_abs(&eq->fp->x_axis, mousep.x);
     double freq_raw =  freq_hz / eq->fp->x_axis.max_scaled;
-    fprintf(stderr, "\tFreq hz: %f, raw: %f\n", freq_hz, freq_raw);
     /* fprintf(stderr, "\tFreq hz: %f\n", freq_hz); */
     /* double freq_raw = waveform_freq_plot_freq_from_x_abs(eq->fp, mousep.x); */
     double amp_raw;

@@ -73,6 +73,7 @@ typedef struct user_event {
 
 typedef struct user_event_history {
     /* UserEvent *most_recent; */
+    bool pause; /* New push requests will be ignored */
     UserEvent *oldest;
     UserEvent *next_undo;
     int len;
@@ -81,6 +82,9 @@ typedef struct user_event_history {
 
 int user_event_do_undo(UserEventHistory *history);
 int user_event_do_redo(UserEventHistory *history);
+
+void user_event_pause();
+void user_event_unpause();
 
 UserEvent *user_event_push(
     EventFn undo_fn,

@@ -453,6 +453,8 @@ void open_file(const char *filepath)
 	fprintf(stdout, "Jdaw file selected\n");
 	if (session->playback.recording) transport_stop_recording();
 	else if (session->playback.playing) transport_stop_playback();
+	/* Wait for playback callback to exit */
+	audioconn_close(session->audio_io.playback_conn);
 	/* api_quit(); */
 	api_stash_current();
 	Project new_proj;

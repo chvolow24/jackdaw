@@ -104,7 +104,7 @@ void user_event_history_clear(UserEventHistory *history)
 	if (undoable && delete->dispose) {
 	    delete->dispose(delete, delete->obj1, delete->obj2, delete->undo_val1, delete->undo_val2, delete->type1, delete->type2);
 	}
-	if (redoable && delete->dispose_forward) {
+	if (redoable && delete->dispose_forward && delete->dispose_forward != delete->dispose) {
 	    delete->dispose_forward(delete, delete->obj1, delete->obj2, delete->undo_val1, delete->undo_val2, delete->type1, delete->type2);
 	}
 	if (delete == history->next_undo) {

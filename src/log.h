@@ -15,5 +15,7 @@ void log_printall();
 void log_init();
 void log_quit();
 
+void log_print_last_session();
+
 
 #endif

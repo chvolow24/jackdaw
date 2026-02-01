@@ -232,6 +232,7 @@ void session_destroy()
 	fprintf(stderr, "Error: no session to destroy\n");
 	return;
     }
+    user_event_history_clear(&session->history);
     window_clear_higher_modes(main_win, MODE_GLOBAL);
     if (session->playback.recording) {
 	transport_stop_recording();
@@ -271,7 +272,7 @@ void session_destroy()
     session_deinit_midi(session);
 
 
-    user_event_history_clear(&session->history);
+    /* user_event_history_clear(&session->history); */
     if (session->proj_initialized) {
 	project_deinit(&session->proj);
     }

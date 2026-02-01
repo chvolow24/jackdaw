@@ -84,6 +84,7 @@ typedef struct endpoint {
     bool restrict_range;
     Value min;
     Value max;
+    bool has_default_val;
     Value default_val;
     /* struct endpt_cb callbacks[MAX_ENDPOINT_CALLBACKS]; */
     /* uint8_t num_callbacks; */

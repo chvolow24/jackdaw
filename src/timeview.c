@@ -46,16 +46,13 @@ static void timeview_rectify_scroll(TimeView *tv)
 	/* Like crossing the street */
 	if (tv->offset_left_sframes < tv->view_min) {
 	    tv->offset_left_sframes = tv->view_min;
-	    fprintf(stderr, "Offset left dropped below min\n");
 	}
 	if ((overshoot_right = (int64_t)timeview_rightmost_pos(tv) - tv->view_max) > 0) {
 	    tv->offset_left_sframes -= overshoot_right;
-	    fprintf(stderr, "Offset right dropped below min\n");
 	}
 	if (tv->offset_left_sframes < tv->view_min) {
 	    tv->offset_left_sframes = tv->view_min;
 	    tv->sample_frames_per_pixel = tv->max_sfpp;
-	    fprintf(stderr, "Setting offset left to view min, and max sfpp\n");
 	}
     }
 }

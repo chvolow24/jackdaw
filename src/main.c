@@ -165,7 +165,6 @@ int main(int argc, char **argv)
 {
     fprintf(stdout, "\n\nJACKDAW (version %s)\nby Charlie Volow\n\nhttps://jackdaw-audio.net/\n\n%s\n\n", JACKDAW_VERSION, license_text);
     
-    init();
 
     char *file_to_open = NULL;
     bool invoke_open_wav_file = false;
@@ -185,6 +184,9 @@ int main(int argc, char **argv)
 	    exit(0);
 	} else if (strcmp(argv[1], "fn_ref") == 0) {
 	    input_create_function_reference();
+	    exit(0);
+	} else if (strcmp(argv[1], "log") == 0) {
+	    log_print_last_session();
 	    exit(0);
 	}
 	file_to_open = argv[1];
@@ -206,6 +208,8 @@ int main(int argc, char **argv)
 	    exit(1);
 	}
     }
+
+    init();
 
     /* Create a window, assign a std_font, and set a main layout */
     main_win = window_create(WINDOW_DEFAULT_W, WINDOW_DEFAULT_H, "Jackdaw");

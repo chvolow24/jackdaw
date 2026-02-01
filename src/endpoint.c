@@ -77,6 +77,7 @@ void endpoint_set_allowed_range(Endpoint *ep, Value min, Value max)
 
 void endpoint_set_default_value(Endpoint *ep, Value default_val)
 {
+    ep->has_default_val = true;
     ep->default_val = default_val;
 }
 

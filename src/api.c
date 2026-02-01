@@ -145,6 +145,8 @@ void api_node_deregister(APINode *node)
     api_node_deregister_internal(node, true);
 }
 
+static APIHashNode **api_endpoint_get_hash_node_incl_deregistered(const char *route);
+
 static void api_node_reregister_internal(APINode *node, bool reinsert_into_parent)
 {
     if (reinsert_into_parent && node->parent) {
@@ -156,9 +158,9 @@ static void api_node_reregister_internal(APINode *node, bool reinsert_into_paren
 	if (ep->automation && !ep->automation->deleted) {
 	    automation_reinsert(ep->automation);
 	}
-	char route[255];
+	char route[255] = {0};
 	api_endpoint_get_route(ep, route, 255);
-	APIHashNode **ahn = api_endpoint_get_hash_node(route);
+	APIHashNode **ahn = api_endpoint_get_hash_node_incl_deregistered(route);
 	if (ahn) {
 	    (*ahn)->deregistered = false;
 	}
@@ -171,6 +173,19 @@ static void api_node_reregister_internal(APINode *node, bool reinsert_into_paren
 void api_node_reregister(APINode *node)
 {
     api_node_reregister_internal(node, true);
+}
+
+void api_node_set_defaults(APINode *node)
+{
+    for (int i=0; i<node->num_endpoints; i++) {
+	Endpoint *ep = node->endpoints[i];
+	if (ep->has_default_val) {
+	    endpoint_write(ep, ep->default_val, true, true, true, false);
+	}
+    }
+    for (int i=0; i<node->num_children; i++) {
+	api_node_set_defaults(node->children[i]);
+    }
 }
 
 /* void api_node_destroy(APINode *node) */
@@ -331,6 +346,23 @@ static unsigned long api_hash_route(const char *route)
     return hash % API_HASH_TABLE_SIZE;
 }
 
+static APIHashNode **api_endpoint_get_hash_node_incl_deregistered(const char *route)
+{
+    unsigned long hash = api_hash_route(route);
+    APIHashNode **ahn = api_hash_table + hash;
+    if (!*ahn) return NULL;
+    if (!(*ahn)->next) return ahn;
+    while (1) {
+	if (strcmp((*ahn)->route, route) == 0) {
+	    return ahn;
+	} else if ((*ahn)->next) {
+	    ahn = &(*ahn)->next;
+	} else {
+	    return NULL;
+	}
+    }
+}
+
 static APIHashNode **api_endpoint_get_hash_node(const char *route)
 {
     unsigned long hash = api_hash_route(route);
@@ -378,10 +410,6 @@ static void api_hash_node_destroy(APIHashNode *ahn);
    that the completion_target is the api node */
 void api_node_renamed(APINode *an)
 {
-    /* Do not rename any API elements if node already has a fixed name (e.g. "Synth") */
-    if (an->fixed_name) {
-	return;
-    }
     for (int i=0; i<an->num_endpoints; i++) {
 	Endpoint *ep = an->endpoints[i];
 	APIHashNode *to_delete = ep->hash_node;

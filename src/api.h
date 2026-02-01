@@ -80,6 +80,8 @@ void api_node_reregister(APINode *node);
 void api_node_renamed(APINode *node);
 /* static void api_endpoint_get_route(Endpoint *ep, char *dst, size_t dst_size); */
 
+void api_node_set_defaults(APINode *node);
+
 int api_start_server(int port);
     
 void api_node_print_all_routes(APINode *node);

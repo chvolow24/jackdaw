@@ -130,7 +130,7 @@ void log_printall()
     /* char *line_queued[NUM_JDAW_THREADS]; */
 
     for (int i=0; i<NUM_JDAW_THREADS; i++) {
-	fflush(logfile[i]);
+	/* fflush(logfile[i]); */
 	FILE *readfile = fopen(logfile_path[i], "r");
 	while (1) {
 	    char *line = NULL;
@@ -158,4 +158,15 @@ void log_printall()
     free(lines);
 
     fprintf(stderr, "... done printing %d lines\n", num_lines);    
+}
+
+
+/* Called from main */
+void log_print_last_session()
+{
+    for (int i=0; i<NUM_JDAW_THREADS; i++) {
+	snprintf(logfile_path[i], sizeof(logfile_path[i]), "%s/jackdaw_exec_%s.log", system_tmp_dir(), get_thread_name(i));
+    }
+    log_printall();
+
 }

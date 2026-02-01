@@ -1326,12 +1326,7 @@ static void osc_get_buf_preamp(Osc *osc, float step, int len, int after)
 
 static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int channel, float step)
 {
-    if (v->available) return;
-    /* if (strcmp(v->synth->track->name, "Track 6") == 0) { */
-    /* 	fprintf(stderr, "\t\tVoice %ld\n", v - v->synth->voices); */
-    /* 	fprintf(stderr, "\t\t\tADSR stage: %d (%d remaining)\n", v->amp_env->current_stage, v->amp_env->env_remaining); */
-    /* } */
-    /* fprintf(stderr, "\tadding voice %ld\n", v - v->synth->voices); */
+    if (v->available && !(v->synth->mono_mode && v == v->synth->voices)) return;
     float osc_buf[len];
     memset(osc_buf, '\0', len * sizeof(float));
     for (int i=0; i<SYNTHVOICE_NUM_OSCS; i++) {
@@ -1562,7 +1557,6 @@ static void synth_voice_assign_note(SynthVoice *v, double note, int velocity, in
     v->available = false;
 
     if (portamento || stolen) {
-	/* fprintf(stderr, "SYNTH VOICE %ld reinit!\n", v - v->synth->voices); */
 	adsr_reinit(v->amp_env, start_rel);
 	adsr_reinit(v->amp_env + 1, start_rel);
 
@@ -2069,7 +2063,6 @@ NEW_EVENT_FN(dispose_read_synth_preset, "")
     struct synth_and_preset_path *sp = obj1;
     free(sp->preset_path_copy);
     char *backup_filepath = obj2;
-    fprintf(stderr, "DISPOSING read synth preset %s\n", backup_filepath); 
     FILE *f = fopen(backup_filepath, "r");
     if (!f) {
         log_tmp(LOG_ERROR, "Unable to delete tmp file at %s; file could not be opened\n", backup_filepath);
@@ -2099,6 +2092,7 @@ static void synth_read_preset_file_internal(const char *filepath, Synth *s, bool
 	return;
     }
 
+    /* fprintf(stderr, "READ PRESET FILE \"%s\" %s\n", filepath, from_undo ? "(FROM_UNDO!)" : ""); */
     if (!from_undo) {
 	/* Backup the current synth settings for undo */
 	static int backup_file_index = 0;
@@ -2107,7 +2101,7 @@ static void synth_read_preset_file_internal(const char *filepath, Synth *s, bool
 	backup_file_index++;
 	char *backup_filepath = create_tmp_file(backup_filename);
 	synth_write_preset_file(backup_filepath, s);
-
+	/* fprintf(stderr, "\t\t--->Backing up current settings at %s\n", backup_filepath); */
 	struct synth_and_preset_path *sp = malloc(sizeof(struct synth_and_preset_path));
 	sp->synth = s;
 	sp->preset_path_copy = strdup(filepath);
@@ -2126,6 +2120,8 @@ static void synth_read_preset_file_internal(const char *filepath, Synth *s, bool
     /* } */
     
     effect_chain_deinit(&s->effect_chain);
+    /* fprintf(stderr, "\t->set default before deserializing\n"); */
+    api_node_set_defaults(&s->api_node);
     
     char hdr[10];
     fread(hdr, 1, 10, f);

@@ -1110,8 +1110,6 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
 	} else { /* READ FILE SPEC >= 00.17 */
 	    if (read_file_version_older_than("00.23")) {
 		uint8_t num_effects = uint8_deser(f);
-		TESTBREAK;
-		fprintf(stderr, "NUM EFFECTS: %d\n", num_effects);
 		for (int i=0; i<num_effects; i++) {
 		    int ret = jdaw_read_effect(f, &track->effect_chain);
 		    if (ret != 0) {

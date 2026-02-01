@@ -251,7 +251,6 @@ static inline float safe_get_ramp(float *ramp, int32_t len, int32_t env_remainin
 /* int Id=0; */
 
 enum adsr_stage adsr_get_chunk(ADSRState *s, float *restrict buf, int32_t buf_len) {
-    /* fprintf(stderr, "GET CHUNK state %p, STAGE: %d, ENV_R: %d, REL_AFTER: %d, REINIT_AFTER: %d\n", s, s->current_stage, s->env_remaining, s->start_release_after, s->reinit_after); */
 
     int32_t buf_i = 0;
     /* Go til buffer has been filled */

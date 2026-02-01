@@ -15,6 +15,7 @@
 #include "geometry.h"
 #include "input.h"
 #include "layout.h"
+#include "log.h"
 #include "midi_clip.h"
 #include "page.h"
 #include "piano_roll.h"
@@ -432,33 +433,33 @@ static bool internal_tl_needs_redraw = false;
 void clipref_draw_waveform(ClipRef *cr)
 {
     /* condpr(cr, "\nCall to cr wf draw. Redraw? %d Texture? %p\n", cr->waveform_redraw, cr->waveform_texture); */
+    SDL_Rect audio_rect = *session_get()->gui.audio_rect;
     Clip *clip = cr->source_clip;
     if (clip->recording) {
 	pthread_mutex_lock(&clip->buf_realloc_lock);
     }
+    /* NULL cr->waveform_texture is the signal to redraw it (below) */
     if (cr->waveform_redraw && cr->waveform_texture) {
+	/* Old texture is drawn rather than blank to prevent flashing */
 	if (cr->old_texture) {
 	    SDL_DestroyTexture(cr->old_texture);
 	}
-	/* condpr(cr, "Setting old texture\n"); */
 	cr->old_texture = cr->waveform_texture;
-	/* SDL_DestroyTexture(cr->waveform_texture); */
 	cr->waveform_texture = NULL;
 	cr->waveform_redraw = false;
     }
     int32_t cr_len = clipref_len(cr);
-    int32_t start_pos = 0;
-    int32_t end_pos = cr_len;
+    int32_t start_in_clip = cr->start_in_clip;
+    int32_t end_in_clip = cr->start_in_clip + cr_len;
     if (clip->recording) {
-	end_pos = clip->write_bufpos_sframes;
-	cr_len = end_pos;
-    } else if (end_pos - start_pos == 0) {
+	/* Draw the available waveform */
+	end_in_clip = clip->write_bufpos_sframes;
+	cr_len = end_in_clip - start_in_clip;
+    } else if (end_in_clip - start_in_clip == 0) {
 	cr->end_in_clip = clip->len_sframes;
 	cr_len = clipref_len(cr);
-	end_pos = cr_len;
-	fprintf(stderr, "Clip ref len error, likely related to older project file. Applying fix and moving on.\n");
-	/* breakfn(); */
-	/* return; */
+	end_in_clip = cr_len;
+	log_tmp(LOG_ERROR, "Clip ref len error, likely related to older project file. Applying fix and moving on.\n");
     }
     double sfpp = cr->track->tl->timeview.sample_frames_per_pixel;
     SDL_Rect onscreen_rect = cr->layout->rect;
@@ -466,37 +467,33 @@ void clipref_draw_waveform(ClipRef *cr)
     if (clip->recording) {
 	onscreen_rect.w = timeview_get_draw_w(&cr->track->tl->timeview, cr_len);
     }
-    if (onscreen_rect.x > main_win->w_pix) goto unlock_and_exit;
-    if (onscreen_rect.x + onscreen_rect.w < 0) goto unlock_and_exit;
-    if (onscreen_rect.x < 0) {
-	start_pos = sfpp * -1 * onscreen_rect.x;
-	if (start_pos < 0 || start_pos > clipref_len(cr)) {
-	    fprintf(stderr, "ERROR: start pos is %d\n", start_pos);
-	    fprintf(stderr, "vs len: %d\n", start_pos - cr_len);
-	    fprintf(stderr, "Clipref: %s\n", cr->name);
-	    breakfn();
+    
+    if (onscreen_rect.x >= main_win->w_pix) goto unlock_and_exit;
+    if (onscreen_rect.x + onscreen_rect.w <= audio_rect.x) goto unlock_and_exit;
+    /* Left part of clip out of view */
+    if (onscreen_rect.x < audio_rect.x) {
+	start_in_clip += sfpp * (audio_rect.x - onscreen_rect.x);
+	if (start_in_clip < 0) {
+	    log_tmp(LOG_ERROR, "In clipref_draw_waveform: start pos <0 (%d) (clipref \"%s\")\n", start_in_clip, cr->name);
+	} else if (start_in_clip > clip->len_sframes) {
+	    log_tmp(LOG_ERROR, "In clipref_draw_waveform: start pos > clip len (%d > %d) (clipref \"%s\")\n", start_in_clip, clip->len_sframes, cr->name);
 	    goto unlock_and_exit;
 	    /* exit(1); */
 	}
-	onscreen_rect.w += onscreen_rect.x;
-	onscreen_rect.x = 0;
+	/* Reduce width of onscreen rect (x is negative) */
+	onscreen_rect.w -= (audio_rect.x - onscreen_rect.x);
+	onscreen_rect.x = audio_rect.x;
     }
     if (onscreen_rect.x + onscreen_rect.w > main_win->w_pix) {	
-	if (end_pos <= start_pos || end_pos > cr_len) {
-	    fprintf(stderr, "ERROR: end pos is %d\n", end_pos);
-	    breakfn();
-	    goto unlock_and_exit;
-	}
+	end_in_clip -= sfpp * (onscreen_rect.x + onscreen_rect.w - main_win->w_pix);
 	onscreen_rect.w = main_win->w_pix - onscreen_rect.x;
-	end_pos = start_pos + sfpp * onscreen_rect.w;
-	
     }
     if (onscreen_rect.w <= 0) {
 	goto unlock_and_exit;
     }
 
     if (!cr->waveform_texture) {
-	int32_t start_in_clip = cr->start_in_clip;
+	/* int32_t start_in_clip = cr->start_in_clip; */
 	if (FRAME_WF_DRAW_TIME > MAX_WF_FRAME_DRAW_TIME) {
 	    internal_tl_needs_redraw = true;
 	    goto copy_texture_unlock_and_exit;
@@ -526,18 +523,19 @@ void clipref_draw_waveform(ClipRef *cr)
 	if (!clip->L) {
 	    goto unlock_and_exit;
 	}
-	channels[0] = clip->L + start_in_clip + start_pos;
+	channels[0] = clip->L + start_in_clip;
 	if (num_channels > 1) {
-	    channels[1] = clip->R + start_in_clip + start_pos;
+	    channels[1] = clip->R + start_in_clip;
 	}
-	/* MAKE CLIP ARRAY ACCESS SAFE
-	   - race conditions can occur based on the fact that clip bounds
-	     are altered on the audio thread
-	   - these race conditions can result in waveform_draw_all_channels_generic overrunning the clip array */
-	int32_t wf_len = end_pos - start_pos;
+	
+	/* Double check bounds (a bit sloppy) */
+	int32_t wf_len = end_in_clip - start_in_clip;
 	if (!clip->recording && wf_len + start_in_clip > clip->len_sframes) {
 	    wf_len = clip->len_sframes - start_in_clip;
+	} else if (clip->recording && wf_len + start_in_clip > clip->write_bufpos_sframes) {
+	    wf_len = clip->write_bufpos_sframes - start_in_clip;
 	}
+	
 	SDL_Rect waveform_container = {0, 0, onscreen_rect.w, onscreen_rect.h};
 
 	clock_t c = clock();

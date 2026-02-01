@@ -327,7 +327,7 @@ static NEW_EVENT_FN(dispose_delete_clips, "")
     ClipRef **clips = (ClipRef **)obj1;
     uint8_t num = val1.uint8_v;
     for (uint8_t i=0; i<num; i++) {
-	clipref_destroy_no_displace(clips[i]);
+	clipref_destroy(clips[i], true);
     }
 }
 

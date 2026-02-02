@@ -93,6 +93,22 @@ void log_tmp(enum log_level level, char *fmt, ...)
     /* pthread_mutex_unlock(&log_mutex); */
 }
 
+void log_tmp_v(enum log_level level, const char *fmt, va_list ap)
+{
+    #ifndef TESTBUILD
+    if (level == LOG_DEBUG) return;
+    #endif
+    enum jdaw_thread thread = current_thread();
+    if (logfile[thread]) {
+	const char *timestamp_loc = timestamp();
+	fprintf(logfile[thread], "(%s) %s [%s]: ", log_level_str(level), timestamp_loc, get_thread_name(thread));
+	vfprintf(logfile[thread], fmt, ap);
+	fflush(logfile[thread]);
+    } else {
+	fprintf(stderr, "Thread \"%s\" logfile not yet created or unset\n", get_thread_name(thread));
+    }    
+}
+
 void log_print_current_thread()
 {
     /* pthread_mutex_lock(&log_mutex); */

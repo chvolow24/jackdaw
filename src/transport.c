@@ -39,8 +39,32 @@
 #include "timeline.h"
 #include "transport.h"
 
-/* extern pthread_t DSP_THREAD_ID; */
-/* extern pthread_t CURRENT_THREAD_ID; */
+#define JDAW_TRANSPORT_LOG_ALL
+#define JDAW_TRANSPORT_PRINT_ALL
+
+#define TESTBUILD
+#ifdef TESTBUILD
+static bool transport_performance_logging = false;
+
+void toggle_transport_logging()
+{
+    transport_performance_logging = !transport_performance_logging;
+}
+
+void transport_log(const char *fmt, ...)
+{
+    if (transport_performance_logging) {
+	va_list ap;
+	va_start(ap, fmt);
+	vfprintf(stderr, fmt, ap);
+	va_end(ap);
+    }
+}
+#else
+void transport_log(const char *fmt, ...) {}
+void toggle_transport_logging();
+#endif
+
 extern struct colors colors;
 
 /* static bool do_quit_internal; */
@@ -391,24 +415,23 @@ static void *transport_dsp_thread_fn(void *arg)
     
     cancel_dsp_thread = false;
     while (!cancel_dsp_thread) {
+	/* transport_log("Loop iter\n"); */
 	/* Performance timer */
-	/* struct timespec tspec_start; */
-	/* struct timespec tspec_end; */
-	/* double running_elapsed = 0; */
-	/* clock_gettime(CLOCK_THREAD_CPUTIME_ID, &tspec_start); */
+	struct timespec tspec_start;
+	struct timespec tspec_end;
+	double dur_proc = 0.0;
+	double dur_wait = 0.0;
+	clock_gettime(CLOCK_REALTIME, &tspec_start);
 
 	/* pthread_testcancel(); */
 	float play_speed = session->playback.play_speed;
 	/* tl->last_read_playspeed = play_speed; */
 	/* tl->current_dsp_chunk_start = tl->read_pos_sframes; */
 	
-	/* GET MIXDOWN */
+	/* GET MIXDOWN */	
 	get_mixdown_chunk(tl, buf_L, 0, len, tl->read_pos_sframes, play_speed);
 	get_mixdown_chunk(tl, buf_R, 1, len, tl->read_pos_sframes, play_speed);
 	
-	/* double timed = (((double)clock() - cd)/CLOCKS_PER_SEC); */
-	/* fprintf(stderr, "Mixdown: %f\n", timed * 1000); */
-	/* cd = clock(); */
 
 	/* DSP */
 	float dL[len * 2];
@@ -429,12 +452,20 @@ static void *transport_dsp_thread_fn(void *arg)
 	get_magnitude(lfreq, tl->proj->output_L_freq, len);
 	get_magnitude(rfreq, tl->proj->output_R_freq, len);
 
+	/* End processing */
+	clock_gettime(CLOCK_REALTIME, &tspec_end);
+	dur_proc += timespec_elapsed_ms(&tspec_start, &tspec_end);
+	clock_gettime(CLOCK_REALTIME, &tspec_start);
+
 	/* Copy buffer */
 	
 	for (int i=0; i<N; i++) {
 	    sem_wait(tl->writable_chunks);
 	}
-	
+	clock_gettime(CLOCK_REALTIME, &tspec_end);
+	dur_wait += timespec_elapsed_ms(&tspec_start, &tspec_end);
+	clock_gettime(CLOCK_REALTIME, &tspec_start);
+
 	memcpy(tl->buf_L + tl->buf_write_pos, buf_L, sizeof(float) * len);
 	memcpy(tl->buf_R + tl->buf_write_pos, buf_R, sizeof(float) * len);
 	memcpy(tl->proj->output_L, buf_L, sizeof(float) * len);
@@ -475,7 +506,7 @@ static void *transport_dsp_thread_fn(void *arg)
 	
 	/* Move the read (DSP) pos */
 	tl->read_pos_sframes += len * play_speed;
-
+	
 	/* TODO: needs work post play position refactor */
 	if (session->playback.loop_play) {
 	    int32_t loop_len = tl->out_mark_sframes - tl->in_mark_sframes;
@@ -501,11 +532,16 @@ static void *transport_dsp_thread_fn(void *arg)
 	session_do_ongoing_changes(session, JDAW_THREAD_DSP);
 	session_flush_val_changes(session, JDAW_THREAD_DSP);
 	session_flush_callbacks(session, JDAW_THREAD_DSP);
-	
-	/* clock_gettime(CLOCK_THREAD_CPUTIME_ID, &tspec_end); */
-	/* running_elapsed += timespec_elapsed_ms(&tspec_start, &tspec_end); */
-	/* double alloced_msec = 1000.0 * (double)session->proj.fourier_len_sframes / session_get_sample_rate(); */
-	/* fprintf(stderr, "Stress: %f/%f == \t%f\n", running_elapsed, alloced_msec, (double)running_elapsed / alloced_msec);	 */
+
+	clock_gettime(CLOCK_REALTIME, &tspec_end);
+	dur_proc += timespec_elapsed_ms(&tspec_start, &tspec_end);
+
+	double alloced_msec = 1000.0 * (double)session->proj.fourier_len_sframes / session_get_sample_rate();
+	transport_log("TOTAL: %.2fms\t\t%.2fms (%.2f%%) proc\n\t%.2f ms (%.2f%%) wait\n\tstress: %.2f\n",
+		      dur_proc + dur_wait,
+		      dur_proc, 100 * dur_proc / alloced_msec,
+		      dur_wait, 100 * dur_wait / alloced_msec,
+		      dur_proc / alloced_msec);
     }
     log_tmp(LOG_INFO, "DSP thread exit\n");
     sem_post(tl->unpause_sem);

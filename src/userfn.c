@@ -559,6 +559,12 @@ void user_global_chaotic_user_test(void *nullarg)
     session->do_tests = true;
 }
 
+void toggle_transport_logging();
+void user_global_debug_toggle_transport_performance_logging(void *nullarg)
+{
+    toggle_transport_logging();
+}
+
 void api_node_print_all_routes(APINode *node);
 void user_global_api_print_all_routes(void *nullarg)
 {

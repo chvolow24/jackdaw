@@ -202,11 +202,19 @@ static void mode_load_global()
 	user_global_function_lookup);
     mode_subcat_add_fn(mc, fn);
 
+    #ifdef TESTBUILD
     fn = create_user_fn(
 	"chaotic_user_test",
 	"Chaotic user test (debug only)",
 	user_global_chaotic_user_test);
     mode_subcat_add_fn(mc, fn);
+
+    fn = create_user_fn(
+	"toggle_transport_logging",
+	"Toggle tranpsort performance logging (debug only)",
+	user_global_debug_toggle_transport_performance_logging);
+    mode_subcat_add_fn(mc, fn);
+    #endif
 
     fn = create_user_fn(
 	"api_print_all_routes",

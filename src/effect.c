@@ -414,6 +414,27 @@ float effect_chain_buf_apply(EffectChain *ec, float *buf, int len, int channel, 
     return output;
 }
 
+static void effect_silence(Effect *e)
+{
+    switch(e->type) {
+    case EFFECT_EQ:
+	eq_clear(e->obj);
+	break;
+    case EFFECT_DELAY:
+	delay_line_clear(e->obj);
+	break;
+    default:
+	break;
+    }
+}
+
+void effect_chain_silence(EffectChain *ec)
+{
+    for (int i=0; i<ec->num_effects; i++) {
+	effect_silence(ec->effects[i]);
+    }
+}
+
 
 static void effect_reinsert(Effect *e, int index)
 {

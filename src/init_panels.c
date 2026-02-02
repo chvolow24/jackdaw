@@ -741,7 +741,7 @@ static void session_init_output_spectrum(Page *output_spectrum, Session *session
     p.freqplot_p.num_farrays = 0;
     p.freqplot_p.darray_colors = plot_colors;
     p.freqplot_p.farray_colors = NULL;
-    p.freqplot_p.min_freq_hz = 20;
+    p.freqplot_p.min_freq_hz = 40;
     p.freqplot_p.max_freq_hz = (double)session->proj.sample_rate / 2;
 
     /* p.freqplot_p.arrays = arrays; */

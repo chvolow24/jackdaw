@@ -1326,7 +1326,8 @@ static void osc_get_buf_preamp(Osc *osc, float step, int len, int after)
 
 static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int channel, float step)
 {
-    if (v->available && !(v->synth->mono_mode && v == v->synth->voices)) return;
+    /* if (v->available && !(v->synth->mono_mode && v == v->synth->voices)) return; */
+    if (v->available) return;
     float osc_buf[len];
     memset(osc_buf, '\0', len * sizeof(float));
     for (int i=0; i<SYNTHVOICE_NUM_OSCS; i++) {
@@ -1376,9 +1377,10 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
     }
 
     float amp_env[len];
-    enum adsr_stage amp_stage = adsr_get_chunk(&v->amp_env[channel], amp_env, len);
+    bool reinit_scheduled = false;
+    enum adsr_stage amp_stage = adsr_get_chunk(&v->amp_env[channel], amp_env, len, &reinit_scheduled);
     /* fprintf(stderr, "\t\tGot amp chunk channel %d (env %p), end stage %d\n", channel, &v->amp_env[channel], amp_stage); */
-    if (amp_stage == ADSR_OVERRUN && channel == 1) {
+    if (amp_stage == ADSR_OVERRUN && channel == 1 && !reinit_scheduled) {
 	v->available = true;
 	/* fprintf(stderr, "\t\t\tFREEING VOICE %ld (env overrun)\n", v - v->synth->voices); */
 	/* return; */
@@ -1388,7 +1390,7 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
     float filter_env[len];
     float *filter_env_p = amp_env;
     if (v->synth->filter_active && !v->synth->use_amp_env) {
-	adsr_get_chunk(&v->filter_env[channel], filter_env, len);
+	adsr_get_chunk(&v->filter_env[channel], filter_env, len, NULL);
 	filter_env_p = filter_env;
     }
     bool do_noise = false;
@@ -1396,7 +1398,7 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
     if (v->synth->noise_amt > 1e-9) {
 	do_noise = true;
 	if (v->synth->noise_apply_env) {
-	    adsr_get_chunk(&v->noise_amt_env[channel], noise_env, len);
+	    adsr_get_chunk(&v->noise_amt_env[channel], noise_env, len, NULL);
 	}
     }
     for (int i=0; i<len; i++) {
@@ -1907,7 +1909,10 @@ void synth_add_buf(Synth *s, float *buf, int channel, int32_t len, float step)
 	memset(buf, '\0', len * sizeof(float));
 	return;
     }
-    pthread_mutex_lock(&s->audio_proc_lock);
+    if (pthread_mutex_trylock(&s->audio_proc_lock) != 0) {
+	memset(buf, '\0', len * sizeof(float));
+	return;
+    }
     float internal_buf[len];
     memset(internal_buf, 0, sizeof(internal_buf));
     for (int i=0; i<SYNTH_NUM_VOICES; i++) {
@@ -2022,6 +2027,7 @@ void synth_silence(Synth *s)
 	v->available = true;
 	v->amp_env->current_stage = ADSR_OVERRUN;
     }
+    effect_chain_silence(&s->effect_chain);
 }
 void synth_clear_all(Synth *s)
 {
@@ -2092,7 +2098,8 @@ static void synth_read_preset_file_internal(const char *filepath, Synth *s, bool
 	return;
     }
 
-    /* fprintf(stderr, "READ PRESET FILE \"%s\" %s\n", filepath, from_undo ? "(FROM_UNDO!)" : ""); */
+    /* Called on main thread, so dsp/playback must be blocked */
+    pthread_mutex_lock(&s->audio_proc_lock);
     if (!from_undo) {
 	/* Backup the current synth settings for undo */
 	static int backup_file_index = 0;
@@ -2151,9 +2158,10 @@ static void synth_read_preset_file_internal(const char *filepath, Synth *s, bool
 	}
 	if (last_slash_pos != buf) last_slash_pos++;
 	snprintf(s->preset_name, 64, "%s", last_slash_pos);
-	timeline_check_set_midi_monitoring();
 	
     }
+    pthread_mutex_unlock(&s->audio_proc_lock);
+    timeline_check_set_midi_monitoring();
     fclose(f);
 }
 

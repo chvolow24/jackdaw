@@ -244,6 +244,7 @@ static void track_full_pause(Track *track)
 	/* synth_close_all_notes(track->synth); */
 	synth_silence(track->synth);
     }
+    effect_chain_silence(&track->effect_chain);
 }
 
 void timeline_full_pause(Timeline *tl)

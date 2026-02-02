@@ -631,15 +631,14 @@ static void add_filter_page(TabView *tv, Track *track)
     p.textbox_p.set_str = "Base cutoff:";
     page_add_el(page,EL_TEXTBOX,p,"","base_cutoff_label");
 
-    p.textbox_p.set_str = "Pitch amount:";
+    p.textbox_p.set_str = "Key tracking:";
     page_add_el(page,EL_TEXTBOX,p,"","pitch_amt_label");
 
-    p.textbox_p.set_str = "Velocity amount:";
+    p.textbox_p.set_str = "Velocity tracking:";
     page_add_el(page,EL_TEXTBOX,p,"","vel_amt_label");
     
     p.textbox_p.set_str = "Env amount:";
     page_add_el(page,EL_TEXTBOX,p,"","env_amt_label");
-
 
     p.textbox_p.set_str = "Resonance:";
     page_add_el(page,EL_TEXTBOX,p,"","resonance_label");

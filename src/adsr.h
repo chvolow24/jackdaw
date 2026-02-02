@@ -64,7 +64,7 @@ typedef struct adsr_state {
 
 void adsr_endpoints_init(ADSRParams *p, Page **cb_page, APINode *parent_node, char *node_name);
 void adsr_set_params(ADSRParams *p, int32_t a, int32_t d, float s, int32_t r, float ramp_exp);
-void adsr_reset_env_remaining(ADSRParams *p, enum adsr_stage stage, int32_t delta);
+/* void adsr_reset_env_remaining(ADSRParams *p, enum adsr_stage stage, int32_t delta); */
 /* void adsr_get_chunk(ADSRState *adsr, float *dst, int dst_len); */
 /* void adsr_apply_chunk(ADSRState *adsr, float *buf, int buf_len); */
 void adsr_init(ADSRState *s, int32_t after);
@@ -75,7 +75,7 @@ void adsr_reinit(ADSRState *s, int32_t after);
 void adsr_start_release(ADSRState *s, int32_t after);
 float adsr_sample(ADSRState *s, bool *is_finished);
 /* enum adsr_stage adsr_buf_apply(ADSRState *s, float *buf, int32_t buf_len); */
-enum adsr_stage adsr_get_chunk(ADSRState *s, float *restrict buf, int32_t buf_len);
+enum adsr_stage adsr_get_chunk(ADSRState *s, float *restrict buf, int32_t buf_len, bool *reinit_scheduled);
 int32_t adsr_query_position(ADSRState *s);
 /* void adsr_params_init(ADSRParams *p); */
 void adsr_params_add_follower(ADSRParams *p, ADSRState *follower);

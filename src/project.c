@@ -1762,8 +1762,12 @@ bool timeline_check_set_midi_monitoring()
 
 	/* Clear notes in synth if present */
 	Synth *synth = session->midi_io.monitor_synth;
+	
+	pthread_mutex_lock(&synth->audio_proc_lock);
 	synth_close_all_notes(synth);	
 	api_node_set_owner(&track->synth->api_node, JDAW_THREAD_PLAYBACK);
+	pthread_mutex_unlock(&synth->audio_proc_lock);
+	
 	audioconn_start_playback(session->audio_io.playback_conn);
 	session->midi_io.monitoring = true;
 	if (!was_monitoring) {

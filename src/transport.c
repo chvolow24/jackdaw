@@ -411,18 +411,20 @@ static void *transport_dsp_thread_fn(void *arg)
 	/* cd = clock(); */
 
 	/* DSP */
-	float dL[len];
-	float dR[len];
+	float dL[len * 2];
+	float dR[len * 2];
 	for (int i=0; i<len; i++) {
 	    float hamming_v = HAMMING_SCALAR * hamming(i, len);
 	    dL[i] = hamming_v * buf_L[i];
 	    dR[i] = hamming_v * buf_R[i];
 	}
-	double complex lfreq[len];
-	double complex rfreq[len];
+	memset(dL + len, 0, sizeof(float) * len);
+	memset(dR + len, 0, sizeof(float) * len);
+	double complex lfreq[len * 2];
+	double complex rfreq[len * 2];
 
-	FFTf(dL, lfreq, len);
-	FFTf(dR, rfreq, len);
+	FFTf(dL, lfreq, len * 2);
+	FFTf(dR, rfreq, len * 2);
 
 	get_magnitude(lfreq, tl->proj->output_L_freq, len);
 	get_magnitude(rfreq, tl->proj->output_R_freq, len);

@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "adsr.h"
-#include "dsp_utils.h"
 #include "endpoint_callbacks.h"
 #include "session.h"
 #include <math.h>
@@ -12,24 +11,24 @@
 
 static void dsp_cb_attack(Endpoint *ep)
 {
-    int msec_prev = ep->overwrite_val.int_v;
+    /* int msec_prev = ep->overwrite_val.int_v; */
     int msec = endpoint_safe_read(ep, NULL).int_v;
-    int32_t samples_prev = (double)msec_prev * (double)session_get_sample_rate() / 1000.0;
+    /* int32_t samples_prev = (double)msec_prev * (double)session_get_sample_rate() / 1000.0; */
     int32_t samples = (double)msec * (double)session_get_sample_rate() / 1000.0;
     
     ADSRParams *p = ep->xarg1;
-    adsr_reset_env_remaining(p, ADSR_A, samples - samples_prev);
+    /* adsr_reset_env_remaining(p, ADSR_A, samples - samples_prev); */
     adsr_set_params(p, samples, p->d, p->s_ep_targ, p->r, p->ramp_exp);
 }
 
 static void dsp_cb_decay(Endpoint *ep)
 {
-    int msec_prev = ep->overwrite_val.int_v;
+    /* int msec_prev = ep->overwrite_val.int_v; */
     int msec = endpoint_safe_read(ep, NULL).int_v;
-    int32_t samples_prev = msec_prev * session_get_sample_rate() / 1000;
+    /* int32_t samples_prev = msec_prev * session_get_sample_rate() / 1000; */
     int32_t samples = msec * session_get_sample_rate() / 1000;
     ADSRParams *p = ep->xarg1;
-    adsr_reset_env_remaining(p, ADSR_D, samples - samples_prev);
+    /* adsr_reset_env_remaining(p, ADSR_D, samples - samples_prev); */
     adsr_set_params(p, p->a, samples, p->s_ep_targ, p->r, p->ramp_exp);
 }
 
@@ -43,12 +42,12 @@ static void dsp_cb_sustain(Endpoint *ep)
 
 static void dsp_cb_release(Endpoint *ep)
 {
-    int msec_prev = ep->overwrite_val.int_v;
+    /* int msec_prev = ep->overwrite_val.int_v; */
     int msec = endpoint_safe_read(ep, NULL).int_v;
     int32_t samples = msec * session_get_sample_rate() / 1000;
-    int32_t samples_prev = msec_prev * session_get_sample_rate() / 1000;
+    /* int32_t samples_prev = msec_prev * session_get_sample_rate() / 1000; */
     ADSRParams *p = ep->xarg1;
-    adsr_reset_env_remaining(p, ADSR_R, samples - samples_prev);
+    /* adsr_reset_env_remaining(p, ADSR_R, samples - samples_prev); */
     adsr_set_params(p, p->a, p->d, p->s_ep_targ, samples, p->ramp_exp);
 }
 static void dsp_cb_ramp_exp(Endpoint *ep)
@@ -149,19 +148,19 @@ void adsr_params_add_follower(ADSRParams *p, ADSRState *follower)
     p->num_followers++;
 }
 
-void adsr_reset_env_remaining(ADSRParams *p, enum adsr_stage stage, int32_t delta)
-{
-    for (int i=0; i<p->num_followers; i++) {
-        ADSRState *s = p->followers[i];
-	if (s->current_stage == stage) {
-	    /* fprintf(stderr, "p %p STAGE %d delta %d %d->%d\n", p, stage, delta, s->env_remaining, s->env_remaining + delta); */
-	    s->env_remaining += delta;
-	    if (s->env_remaining < 0) {
-		s->env_remaining = 0;
-	    }
-	}
-    }
-}
+/* void adsr_reset_env_remaining(ADSRParams *p, enum adsr_stage stage, int32_t delta) */
+/* { */
+/*     for (int i=0; i<p->num_followers; i++) { */
+/*         ADSRState *s = p->followers[i]; */
+/* 	if (s->current_stage == stage) { */
+/* 	    /\* fprintf(stderr, "p %p STAGE %d delta %d %d->%d\n", p, stage, delta, s->env_remaining, s->env_remaining + delta); *\/ */
+/* 	    s->env_remaining += delta; */
+/* 	    if (s->env_remaining < 0) { */
+/* 		s->env_remaining = 0; */
+/* 	    } */
+/* 	} */
+/*     } */
+/* } */
 
 void adsr_set_params(
     ADSRParams *p,
@@ -185,13 +184,12 @@ void adsr_set_params(
     /* if (ramp_exp > 1e-4) */
     /* 	p->s = pow(s, 1.0/ramp_exp); */
     /* else */
-	p->s = s;
+    p->s = s;
     p->r = r;
     p->ramp_exp = ramp_exp;
 
     if (p->a_ramp) free(p->a_ramp);
     if (p->d_ramp) free(p->d_ramp);
-    /* if (p->r_ramp) free(p->r_ramp); */
     p->a_ramp = malloc(sizeof(float) * a);
     p->d_ramp = malloc(sizeof(float) * d);
     for (int32_t i=0; i<a; i++) {
@@ -204,6 +202,33 @@ void adsr_set_params(
 	float shifted = scaled + p->s;
 	p->d_ramp[i] = shifted;
     }
+    for (int i=0; i<p->num_followers; i++) {
+	ADSRState *state = p->followers[i];
+	switch (state->current_stage) {
+	case ADSR_UNINIT:
+	    break;
+	case ADSR_A:
+	    if (state->env_remaining > p->a) {
+		state->env_remaining = p->a;
+	    }
+	    break;
+	case ADSR_D:
+	    if (state->env_remaining > p->d) {
+		state->env_remaining = p->d;
+	    }
+	    break;
+	case ADSR_S:
+	    break;
+	case ADSR_R:
+	    if (state->env_remaining > p->r) {
+		state->env_remaining = p->r;
+	    }
+	    break;
+	case ADSR_OVERRUN:
+	    break;
+	}
+    }
+    
 }
 
 void adsr_init(ADSRState *s, int32_t after)
@@ -214,6 +239,7 @@ void adsr_init(ADSRState *s, int32_t after)
     s->reinit_after = -1;
     s->release_start_env = 0.0;
     s->s_time = 0;
+    /* s->a_ramp = malloc(sizeof(float) * */
     #ifdef TESTBUILD
     if (after < 0) {
 	breakfn();
@@ -250,7 +276,7 @@ static inline float safe_get_ramp(float *ramp, int32_t len, int32_t env_remainin
 }
 /* int Id=0; */
 
-enum adsr_stage adsr_get_chunk(ADSRState *s, float *restrict buf, int32_t buf_len) {
+enum adsr_stage adsr_get_chunk(ADSRState *s, float *restrict buf, int32_t buf_len, bool *reinit_scheduled) {
 
     int32_t buf_i = 0;
     /* Go til buffer has been filled */
@@ -425,6 +451,7 @@ enum adsr_stage adsr_get_chunk(ADSRState *s, float *restrict buf, int32_t buf_le
     /* 	} */
     /* } */
     /* fprintf(stderr, "\t\t\t\t%p current stage %d\n", s, s->current_stage); */
+    if (reinit_scheduled && s->reinit_after >= 0) *reinit_scheduled = true;
     return s->current_stage;
 }
 

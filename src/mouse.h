@@ -21,6 +21,8 @@
 #include <stdbool.h>
 #include "layout.h"
 
+int mouse_triage_click(SDL_Event e);
+
 void mouse_triage_click_project(uint8_t button);
 void mouse_triage_motion_menu();
 void mouse_triage_click_menu(uint8_t button);

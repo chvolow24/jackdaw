@@ -121,6 +121,8 @@ typedef struct endpoint {
     Automation *automation;
     LabelStrFn label_fn;
 
+    bool do_not_serialize;
+
     /* API */
     APINode *parent;
     APIHashNode *hash_node;

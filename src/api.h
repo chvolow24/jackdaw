@@ -45,6 +45,8 @@ typedef struct api_node {
     uint8_t num_endpoints;
     char *obj_name;
     const char *fixed_name;
+    bool do_not_serialize;
+    bool do_not_automate;
 } APINode;
 
 struct api_server {

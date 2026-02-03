@@ -697,11 +697,16 @@ void api_table_print()
 }
 
 static void api_node_serialize_recursive(FILE *f, APINode *root, APINode *node)
-{    
+{
+    char dst[255];
+    api_node_get_route(node, dst, 255);
+    fprintf(stderr, "SERIALIZE ROOT: %s DNS? %d\n", dst, node->do_not_serialize);
+    if (node->do_not_serialize) return;
     char buf[MAX_ROUTE_LEN];
     /* fprintf(stderr, "NODE %p, parent name? %s name %s, ep: %d, children: %d\n", node, node->parent->obj_name, node->obj_name, node->num_children, node->num_endpoints); */
     for (int i=0; i<node->num_endpoints; i++) {
 	Endpoint *ep = node->endpoints[i];
+	if (ep->do_not_serialize) continue;
 	api_endpoint_get_route_until(ep, buf, MAX_ROUTE_LEN, root);
 	/* fprintf(stderr, "SER ROUTE: %s\n", buf); */
 	fprintf(f, "%s ", buf);
@@ -779,11 +784,18 @@ int api_node_deserialize(FILE *f, APINode *root)
 	/* DEBUG */
 	/* char str_buf[255]; */
 	/* jdaw_val_to_str(str_buf, 255, v, t, 4); */
-	/* fprintf(stderr, "DESER %s == %s\n", route_buf, str_buf); */
 	/* END DEBUG */
 	
 	Endpoint *ep = api_endpoint_get(route_buf);
+
+	
 	if (ep) {
+	    /* DEBUG */
+	    /* if (strcmp(ep->local_id, "sustain") == 0) { */
+	    /* 	fprintf(stderr, "DESER %s == %s (ep %p)\n", route_buf, str_buf, ep); */
+	    /* } */
+	    /* END DEBUG */
+
 	    endpoint_write(ep, v, true, true, true, false);
 	} else {
 	    ret++;

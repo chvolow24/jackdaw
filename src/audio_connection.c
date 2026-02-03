@@ -22,7 +22,7 @@
 
 
 /* #define DEVICE_BUFLEN_SECONDS 2 /\* TODO: reduce, and write to clip during recording *\/ */
-#define DEVICE_BUFLEN_CHUNKS 256
+#define DEVICE_BUFLEN_CHUNKS 64
 
 #define PD_BUFLEN_CHUNKS 1024
 
@@ -303,7 +303,7 @@ int audioconn_open(Session *session, AudioConn *conn)
     case JACKDAW:
 	if (conn->iscapture) {
 	    JDAWConn *jconn = conn->obj;
-	    jconn->rec_buf_len_sframes = PD_BUFLEN_CHUNKS * session->proj.chunk_size_sframes;
+	    jconn->rec_buf_len_sframes = PD_BUFLEN_CHUNKS * 64;
 	    if (!jconn->rec_buffer_L) jconn->rec_buffer_L = malloc(sizeof(float) * jconn->rec_buf_len_sframes);
 	    if (!jconn->rec_buffer_R) jconn->rec_buffer_R = malloc(sizeof(float) * jconn->rec_buf_len_sframes);
 	}

@@ -253,7 +253,6 @@
   - C-S-l	: tabview_move_current_tab_right
   - C-S-h	: tabview_move_current_tab_left
   - C-S-;	: tabview_move_current_tab_right
-  - g		: tabview_escape
   - <esc>	: tabview_escape
   - C-<del>	: tabview_escape
   - S-<del>	: tabview_escape
@@ -297,7 +296,6 @@
   - i		: null
   - q		: null
   - r		: null
-  - <ret>	: null
   - [		: null
   - ]		: null
   - `		: null

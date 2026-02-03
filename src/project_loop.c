@@ -227,12 +227,12 @@ void loop_project_main()
 		/* } */
 
 		switch (e.key.keysym.scancode) {
- 		case SDL_SCANCODE_6: {
-		    Track *track = ACTIVE_TL->tracks[0];
-		    Effect *e = effect_chain_add_effect(&track->synth->effect_chain, EFFECT_DELAY);
-		    effect_chain_open_tabview(&track->synth->effect_chain);
-		}
-		    break;
+ 		/* case SDL_SCANCODE_6: { */
+		/*     Track *track = ACTIVE_TL->tracks[0]; */
+		/*     Effect *e = effect_chain_add_effect(&track->synth->effect_chain, EFFECT_DELAY); */
+		/*     effect_chain_open_tabview(&track->synth->effect_chain); */
+		/* } */
+		/*     break; */
 		case SDL_SCANCODE_LGUI:
 		case SDL_SCANCODE_RGUI:
 		case SDL_SCANCODE_LCTRL:
@@ -347,7 +347,7 @@ void loop_project_main()
 		Layout *modal_scrollable = NULL;
 		if ((modal_scrollable = mouse_triage_wheel(e.wheel.x * TL_SCROLL_STEP_H, e.wheel.y * TL_SCROLL_STEP_V, fingersdown))) {
 		    temp_scrolling_lt = modal_scrollable;
-		} else if (TOP_MODE == MODE_TIMELINE || TOP_MODE == MODE_TABVIEW || TOP_MODE == MODE_PIANO_ROLL) {
+		} else if (TOP_MODE == MODE_TIMELINE || TOP_MODE == MODE_TABVIEW || TOP_MODE == MODE_PIANO_ROLL || TOP_MODE == MODE_MIDI_QWERTY) {
 		    if (main_win->i_state & I_STATE_SHIFT) {
 			if (fabs(e.wheel.preciseY) > fabs(e.wheel.preciseX)) {
 			    scrub_block = true;
@@ -400,42 +400,43 @@ void loop_project_main()
 		} else if (e.button.button == SDL_BUTTON_RIGHT) {
 		    main_win->i_state |= I_STATE_MOUSE_R;
 		}
-	    escaped_text_edit:
-		switch(TOP_MODE) {
-		case MODE_MIDI_QWERTY:
-		case MODE_TIMELINE:
-		    /* if (!mouse_triage_click_page() && !mouse_triage_click_tabview()) */
-		    mouse_triage_click_project(e.button.button);
-		    break;
-		case MODE_MENU_NAV:
-		    mouse_triage_click_menu(e.button.button);
-		    break;
-		case MODE_MODAL:
-		    mouse_triage_click_modal(e.button.button);
-		    break;
-		case MODE_AUTOCOMPLETE_LIST:
-		    mouse_triage_click_autocompletion();
-		    break;
-		case MODE_TEXT_EDIT:
-		    if (!mouse_triage_click_text_edit(e.button.button)) {
-			if (TOP_MODE == MODE_TEXT_EDIT) {
-			    fprintf(stderr, "Error: text edit escaped improperly");
-			    window_clear_higher_modes(main_win, MODE_GLOBAL);
-			    /* window_pop_mode(main_win); */
-			}
-			goto escaped_text_edit;
-		    }
-		    break;
-		case MODE_TABVIEW:
-		    if (!mouse_triage_click_tabview())
-			mouse_triage_click_page();
-		    break;
-		case MODE_PIANO_ROLL:
-		    piano_roll_mouse_click(main_win->mousep);
-		    break;
-		default:
-		    break;
-		}
+		mouse_triage_click(e);
+	    /* escaped_text_edit: */
+	    /* 	switch(TOP_MODE) { */
+	    /* 	case MODE_MIDI_QWERTY: */
+	    /* 	case MODE_TIMELINE: */
+	    /* 	    /\* if (!mouse_triage_click_page() && !mouse_triage_click_tabview()) *\/ */
+	    /* 	    mouse_triage_click_project(e.button.button); */
+	    /* 	    break; */
+	    /* 	case MODE_MENU_NAV: */
+	    /* 	    mouse_triage_click_menu(e.button.button); */
+	    /* 	    break; */
+	    /* 	case MODE_MODAL: */
+	    /* 	    mouse_triage_click_modal(e.button.button); */
+	    /* 	    break; */
+	    /* 	case MODE_AUTOCOMPLETE_LIST: */
+	    /* 	    mouse_triage_click_autocompletion(); */
+	    /* 	    break; */
+	    /* 	case MODE_TEXT_EDIT: */
+	    /* 	    if (!mouse_triage_click_text_edit(e.button.button)) { */
+	    /* 		if (TOP_MODE == MODE_TEXT_EDIT) { */
+	    /* 		    fprintf(stderr, "Error: text edit escaped improperly"); */
+	    /* 		    window_clear_higher_modes(main_win, MODE_GLOBAL); */
+	    /* 		    /\* window_pop_mode(main_win); *\/ */
+	    /* 		} */
+	    /* 		goto escaped_text_edit; */
+	    /* 	    } */
+	    /* 	    break; */
+	    /* 	case MODE_TABVIEW: */
+	    /* 	    if (!mouse_triage_click_tabview()) */
+	    /* 		mouse_triage_click_page(); */
+	    /* 	    break; */
+	    /* 	case MODE_PIANO_ROLL: */
+	    /* 	    piano_roll_mouse_click(main_win->mousep); */
+	    /* 	    break; */
+	    /* 	default: */
+	    /* 	    break; */
+	    /* 	} */
 		break;
 	    case SDL_MOUSEBUTTONUP:
 		scrolling_lt = NULL;

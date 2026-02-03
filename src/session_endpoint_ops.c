@@ -10,6 +10,7 @@
 
 #include "session_endpoint_ops.h"
 #include "endpoint.h"
+#include "log.h"
 #include "timeline.h"
 
 /* CALLBACKS */
@@ -61,11 +62,13 @@ int session_queue_val_change(Session *session, Endpoint *ep, Value new_val, bool
 }
 
 
-static JDAW_THREAD_LOCAL int MAX_DEFERRED = 32;
+static JDAW_THREAD_LOCAL int MAX_DEFERRED = 256;
 static JDAW_THREAD_LOCAL int num_deferred = 0;
-static JDAW_THREAD_LOCAL Endpoint *deferred_eps[32];
-static JDAW_THREAD_LOCAL EndptCb deferred_cbs[32];
-static JDAW_THREAD_LOCAL enum jdaw_thread deferred_threads[32];
+static JDAW_THREAD_LOCAL Endpoint *deferred_eps[256];
+static JDAW_THREAD_LOCAL EndptCb deferred_cbs[256];
+static JDAW_THREAD_LOCAL enum jdaw_thread deferred_threads[256];
+
+static int session_queue_callback_internal(Session *session, Endpoint *ep, EndptCb cb, enum jdaw_thread thread, bool allow_defer);
 
 void session_flush_val_changes(Session *session, enum jdaw_thread thread)
 {
@@ -78,9 +81,11 @@ void session_flush_val_changes(Session *session, enum jdaw_thread thread)
     for (int i=0; i<session->queued_ops.num_queued_val_changes[thread]; i++) {
 	/* if (i==0)     fprintf(stderr, "FLUSHING THREAD %s\n", get_thread_name()); */
 	struct queued_val_change *qvc = &session->queued_ops.queued_val_changes[thread][i];
-	Endpoint *ep = qvc->ep;
+	Endpoint *ep = qvc->ep;	
 	/* Protected write */
-	/* fprintf(stderr, "\tVal change flush \"%s\", intval %d\n", ep->local_id, qvc->new_val.int_v); */
+	if (strcmp(ep->local_id, "sustain") == 0) {
+	    fprintf(stderr, "\t\tVal change flush \"%s\", floatval %f\n", ep->local_id, qvc->new_val.float_v);
+	}
 	pthread_mutex_lock(&ep->val_lock);
 	jdaw_val_set_ptr(ep->val, ep->val_type, qvc->new_val);
 	pthread_mutex_unlock(&ep->val_lock);
@@ -94,37 +99,44 @@ void session_flush_val_changes(Session *session, enum jdaw_thread thread)
     session->queued_ops.num_queued_val_changes[thread] = 0;
     pthread_mutex_unlock(&session->queued_ops.queued_val_changes_lock);
     for (int i=0; i<num_deferred; i++) {
-	session_queue_callback(session, deferred_eps[i], deferred_cbs[i], deferred_threads[i]);
+	int ret = session_queue_callback_internal(session, deferred_eps[i], deferred_cbs[i], deferred_threads[i], false);
+	
     }
     num_deferred = 0;
 }
 
-int session_queue_callback(Session *session, Endpoint *ep, EndptCb cb, enum jdaw_thread thread)
+/*
+  Return values:
+   0: sucessfully queued
+   1: could not be queued; reached maximum num queued
+   2: lock could not be obtained; deferred (for execution on next flush val changes)
+*/
+static int session_queue_callback_internal(Session *session, Endpoint *ep, EndptCb cb, enum jdaw_thread thread, bool allow_defer)
 {
-    /* fprintf(stderr, "QUEUE from thread %s\n", get_thread_name()); */
-    int ret;
-    if ((ret = pthread_mutex_trylock(&session->queued_ops.queued_callback_lock)) != 0) {
-	if (num_deferred == MAX_DEFERRED) return 3;
-	deferred_eps[num_deferred] = ep;
-	deferred_cbs[num_deferred] = cb;
-	deferred_threads[num_deferred] = thread;
-	num_deferred++;
-	return 2;
-	/* return 2; */
+    int ret = 0;
+    if (allow_defer) {
+	if ((ret = pthread_mutex_trylock(&session->queued_ops.queued_callback_lock)) != 0) {
+	    if (num_deferred == MAX_DEFERRED) return 3;
+	    deferred_eps[num_deferred] = ep;
+	    deferred_cbs[num_deferred] = cb;
+	    deferred_threads[num_deferred] = thread;
+	    num_deferred++;
+	    return 2;
+	}
+    } else {
+	pthread_mutex_lock(&session->queued_ops.queued_callback_lock);
     }
     int num_queued = session->queued_ops.num_queued_callbacks[thread];
     /* bool already_queued = false; */
     for (int i=0; i<num_queued; i++) {
 	if (session->queued_ops.queued_callbacks[thread][i] == cb
 	    && session->queued_ops.queued_callback_args[thread][i] == ep) {
-	    /* fprintf(stderr, "Already queued...\n"); */
-	    /* already_queued = true; */
 	    goto unlock_and_exit;
 	}
     }
     if (session->queued_ops.num_queued_callbacks[thread] == MAX_QUEUED_OPS) {
-	pthread_mutex_unlock(&session->queued_ops.queued_callback_lock);
-	return 1;
+	ret = 1;
+	goto unlock_and_exit;
     }
     session->queued_ops.queued_callbacks[thread][session->queued_ops.num_queued_callbacks[thread]] = cb;
     session->queued_ops.queued_callback_args[thread][session->queued_ops.num_queued_callbacks[thread]] = ep;
@@ -134,7 +146,18 @@ unlock_and_exit:
 	fprintf(stderr, "Error in session_queue_callback unlock: %s\n", strerror(ret));
     }
     /* fprintf(stderr, "\t->completing queue on thread %s\n", get_thread_name()); */
-    return 0;
+    return ret;
+    
+}
+
+/* Return values:
+   0: sucessfully queued
+   1: could not be queued; reached maximum num queued
+   2: lock could not be obtained; deferred (for execution on next flush val changes)
+*/
+int session_queue_callback(Session *session, Endpoint *ep, EndptCb cb, enum jdaw_thread thread)
+{
+    return session_queue_callback_internal(session, ep, cb, thread, true);
 }
 
 void session_flush_callbacks(Session *session, enum jdaw_thread thread)

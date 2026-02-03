@@ -61,11 +61,12 @@ typedef struct effect_chain {
     pthread_mutex_t effect_chain_lock;
     int32_t chunk_len_sframes;
     Project *proj; /* For link through to audio settings */
-    APINode *api_node; /* Allocated on parent object, e.g. track or synth */
+    APINode api_node;
+    /* APINode *api_node; /\* Allocated on parent object, e.g. track or synth *\/ */
     const char *obj_name;
 } EffectChain;
 
-void effect_chain_init(EffectChain *ec, Project *proj, APINode *api_node, const char *obj_name, int32_t chunk_len_sframes);
+void effect_chain_init(EffectChain *ec, Project *proj, APINode *parent_node, const char *obj_name, int32_t chunk_len_sframes);
 void effect_chain_deinit(EffectChain *ec);
 void effect_chain_block_type(EffectChain *ec, EffectType type);
 Effect *effect_chain_add_effect(EffectChain *ec, EffectType type);

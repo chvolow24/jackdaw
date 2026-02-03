@@ -210,7 +210,6 @@ void eq_init(EQ *eq)
 
 
 	snprintf(api_ctrl_node_names[i], 12, "Filter %d", i + 1);
-
 	api_node_register(&ctrl->api_node, &eq->effect->api_node, NULL, api_ctrl_node_names[i]);
 
 	    
@@ -275,7 +274,9 @@ void eq_init(EQ *eq)
 	    JDAW_THREAD_DSP,
 	    eq_gui_cb, NULL, eq_dsp_cb,
 	    (void *)eq, (void *)(ctrl), NULL, NULL);
-
+	api_endpoint_register(&ctrl->freq_amp_ep, &ctrl->api_node);
+	ctrl->freq_amp_ep.automatable = false;
+	ctrl->freq_amp_ep.do_not_serialize = true;
 
 	/* snprintf(buf, 255, "EQ filter %d bandwidth", i + 1); */
 	/* display_name = strdup(buf); */

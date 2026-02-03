@@ -19,6 +19,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "endpoint.h"
+#include "log.h"
 #include "session_endpoint_ops.h"
 #include "timeline.h"
 #include "status.h"
@@ -140,6 +141,7 @@ int endpoint_write(
     bool undoable)
 {
     enum jdaw_thread owner = endpoint_get_owner(ep);
+    fprintf(stderr, "OK Write endpoint %s, on thread %s, owner %s\n", ep->local_id, get_current_thread_name(), get_thread_name(owner));
     ep->overwrite_val = endpoint_safe_read(ep, NULL);
     Session *session = session_get();
     int ret = 0;
@@ -187,6 +189,7 @@ int endpoint_write(
 	on_thread(owner)
 	|| (owner == JDAW_THREAD_DSP && !session->playback.playing)
 	|| (owner == JDAW_THREAD_PLAYBACK && !session->audio_io.playback_conn->playing)) {
+
 	pthread_mutex_lock(&ep->val_lock);
 	jdaw_val_set_ptr(ep->val, ep->val_type, new_val);
 	if (ep->automation && ep->automation->write) {
@@ -208,14 +211,17 @@ int endpoint_write(
 	if (on_thread(JDAW_THREAD_DSP)) {
 	    ep->dsp_callback(ep);
 	} else {
-	    if (session->playback.playing) {
+	    if (session->playback.playing || session->audio_io.playback_conn->playing) {
 		/* If ep owner assigned to playback thread, run DSP callbacks on that thread */
 		enum jdaw_thread dst_thread = owner == JDAW_THREAD_PLAYBACK ? JDAW_THREAD_PLAYBACK : JDAW_THREAD_DSP;
-		session_queue_callback(session, ep, ep->dsp_callback, dst_thread);
+		int ret = session_queue_callback(session, ep, ep->dsp_callback, dst_thread);
+		if (ret == 3) {
+		    log_tmp(LOG_ERROR, "Error: call to queue callback for ep \"%s\" could not be deferred.\n", ep->local_id);
+		}
 		async_change_will_occur = true;
-	    } else if (session->midi_io.monitor_synth && owner == JDAW_THREAD_PLAYBACK) {
-		session_queue_callback(session, ep, ep->dsp_callback, JDAW_THREAD_PLAYBACK);
-		async_change_will_occur = true;
+	    /* } else if (session->midi_io.monitor_synth && owner == JDAW_THREAD_PLAYBACK) { */
+	    /* 	session_queue_callback(session, ep, ep->dsp_callback, JDAW_THREAD_PLAYBACK); */
+	    /* 	async_change_will_occur = true; */
 	    } else {
 		ep->dsp_callback(ep);
 	    }

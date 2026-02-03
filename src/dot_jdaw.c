@@ -116,14 +116,18 @@ void jdaw_write_project(const char *path)
     uint32_ser_le(f, &proj->sample_rate);
     uint16_ser_le(f, &proj->chunk_size_sframes);
     uint16_ser_le(f, (uint16_t *)&proj->fmt);
-    uint16_ser_le(f, &proj->num_clips);
+    uint16_t num_clips = 0;
+    for (uint16_t i=0; i<proj->num_clips; i++) {
+	if (proj->clips[i]->num_refs > 0) num_clips++;
+    }
+    uint16_ser_le(f, &num_clips);
     uint16_ser_le(f, &proj->num_midi_clips);
     uint8_ser(f, &proj->num_timelines);
     /* fwrite(&proj->num_timelines, 1, 1, f); */
 
     session_loading_screen_update("Writing clip data...", 0.2);
     /* fprintf(stderr, "Serializing %d audio clips...\n", proj->num_clips); */
-    for (uint16_t i=0; i<proj->num_clips; i++) {
+    for (uint16_t i=0; i<num_clips; i++) {
 	session_loading_screen_update(NULL, 0.1 + 0.8 * (float)i/proj->num_clips);
 	jdaw_write_clip(f, proj->clips[i], i);
     }
@@ -1140,8 +1144,12 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
 			return 1;
 		    }
 		    if (!read_file_version_older_than("00.23")) {
-			jdaw_read_effect_chain(f, proj_reading, &track->synth->effect_chain, NULL, "synth", tl->proj->fourier_len_sframes);
+			fprintf(stderr, "\n\nReading synth effect chain....\n");
+			jdaw_read_effect_chain(f, proj_reading, &track->synth->effect_chain, &track->synth->api_node, "synth", tl->proj->fourier_len_sframes);
+			track->synth->effect_chain.api_node.do_not_serialize = true;
+			track->synth->effect_chain.api_node.do_not_automate = true;
 		    }
+		    fprintf(stderr, "\n\nDeserializing synth node....\n");
 		    api_node_deserialize(f, &track->synth->api_node);
 		}
 	    }
@@ -1161,9 +1169,9 @@ int jdaw_read_effect_chain_external(FILE *f, Project *proj, EffectChain *ec, API
     return ret;
 
 }
-static int jdaw_read_effect_chain(FILE *f, Project *proj, EffectChain *ec, APINode *api_node, const char *obj_name, int32_t chunk_len_sframes)
+static int jdaw_read_effect_chain(FILE *f, Project *proj, EffectChain *ec, APINode *parent_api_node, const char *obj_name, int32_t chunk_len_sframes)
 {
-    effect_chain_init(ec, proj, api_node, obj_name, chunk_len_sframes);
+    effect_chain_init(ec, proj, parent_api_node, obj_name, chunk_len_sframes);
     int num_effects = int_deser_le(f);
     for (int i=0; i<num_effects; i++) {
 	if (jdaw_read_effect(f, ec) != 0) {
@@ -1372,6 +1380,8 @@ static int jdaw_read_clipref(FILE *f, Track *track)
 
 static int jdaw_read_keyframe(FILE *f, Automation *a);
 
+char *try_fix_api_route(char *route, int route_len);
+
 static int jdaw_read_automation(FILE *f, Track *track)
 {
 
@@ -1401,22 +1411,18 @@ static int jdaw_read_automation(FILE *f, Track *track)
 	    a = track_add_automation_from_endpoint(track, ep);
 	    /* exit(0); */
 	} else {
-	    fprintf(stderr, "Could not get ep with route %s\n", route);
-	    api_table_print();
-	    /* api_debug_print_hash_table(); */
-	    /* for (int i=0; i< */
-	    /* api_node_print_all_routes(&track->api_node); */
-	    return 1;
+	    /* Horrible, stop it */
+	    char *try = try_fix_api_route(route, route_len);
+	    if (try) {
+		ep = api_endpoint_get(try);
+		if (!ep) {
+		    TESTBREAK;
+		    return 1;
+		}
+		a = track_add_automation_from_endpoint(track, ep);
+		free(try);
+	    }
 	}
-	/* for (int i=0; i<track->api_node.num_endpoints; i++) { */
-	/*     Endpoint *ep = track->api_node.endpoints[i]; */
-	/*     int ep_loc_len = strlen(ep->local_id); */
-	/*     if (ep_loc_len == ep_loc_id_read_len && strncmp(ep->local_id, loc_id, ep_loc_len) == 0) { */
-	/* 	a = track_add_automation_from_endpoint(track, ep); */
-	/* 	break; */
-	/*     } */
-	/* } */
-	/* fwrite(a->endpoint->local_id, 1, ep_loc_id_len, f); */
     } else {
 	a = track_add_automation(track, t);
     }

@@ -8,6 +8,7 @@
 
 *****************************************************************************************************************/
 
+#include "api.h"
 #include "color.h"
 #include "delay_line.h"
 #include "effect.h"
@@ -149,13 +150,25 @@ NEW_EVENT_FN(dispose_forward_add_effect, "")
 /* } */
 
 /* Always call before adding any effects */
-void effect_chain_init(EffectChain *ec, Project *proj, APINode *api_node, const char *obj_name, int32_t chunk_len_sframes)
+void effect_chain_init(EffectChain *ec, Project *proj, APINode *parent_api_node, const char *obj_name, int32_t chunk_len_sframes)
 {
+    bool already_init = false;
+    if (ec->proj) {
+	already_init = true;
+	return;
+    }
     ec->proj = proj;
     ec->obj_name = obj_name;
     ec->effects_alloc_len = 0;
     ec->num_effects = 0;
-    ec->api_node = api_node;
+    if (!already_init) {
+	api_node_register(&ec->api_node, parent_api_node, NULL, "Effects");
+    } else {
+	if (ec->api_node.parent != parent_api_node) {
+	    log_tmp(LOG_ERROR, "In redundant call to effect_chain_init, api_node is not equal to (new) parent\n");
+	}
+    }
+    /* ec->api_node = api_node; */
     ec->chunk_len_sframes = chunk_len_sframes;
     memset(ec->num_effects_per_type, 0, sizeof(int) * NUM_EFFECT_TYPES);
     pthread_mutex_init(&ec->effect_chain_lock, NULL);
@@ -229,8 +242,7 @@ Effect *effect_chain_add_effect(EffectChain *ec, EffectType type)
 	snprintf(e->name, MAX_NAMELENGTH, "%s %d", effect_type_str(type), num_effects_of_type + 1);
     }
     ec->num_effects_per_type[type]++;
-    if (ec->api_node)
-	api_node_register(&e->api_node, ec->api_node, e->name, NULL);
+    api_node_register(&e->api_node, &ec->api_node, e->name, NULL);
 
     switch(type) {
     case EFFECT_EQ:
@@ -456,8 +468,7 @@ static void effect_reinsert(Effect *e, int index)
 	/* user_tl_track_open_settings(NULL); */
 	/* user_tl_track_open_settings(NULL); */
     }
-    if (ec->api_node)
-	api_node_reregister(&e->api_node);
+    api_node_reregister(&e->api_node);
     /* undelete_related_automations(&e->api_node); */
 }
 
@@ -503,8 +514,7 @@ void effect_delete(Effect *e, bool from_undo)
 	    (Value){.int_v = index}, (Value){.int_v = num_related_automations},
 	    0, 0, false, false);
     }
-    if (ec->api_node)
-	api_node_deregister(&e->api_node);
+    api_node_deregister(&e->api_node);
 
     /* delete_related_automations(&e->api_node); */
     TabView *tv;

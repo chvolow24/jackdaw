@@ -369,6 +369,15 @@ Automation *track_add_automation(Track *track, AutomationType type)
 
 static void track_add_automation_from_api_node(Track *track, APINode *node);
 
+struct automation_add_item {
+    Endpoint *ep;
+    APINode *node;
+    int true_index;
+};
+
+static struct automation_add_item automation_add_items[32];
+static int num_automation_add_items = 0;
+
 static int add_auto_form(void *mod_v, void *nullarg)
 {
     Modal *modal = (Modal *)mod_v;
@@ -389,13 +398,16 @@ static int add_auto_form(void *mod_v, void *nullarg)
 	    break;
 	}
     }
+    fprintf(stderr, "EP INDEX: %d; NODE: %p; TRACK: %p\n", ep_index, node, track);
 
+    struct automation_add_item item = automation_add_items[ep_index];
+    
     if (!track || ep_index < 0) {
 	fprintf(stderr, "Error: illegal value for ep_index or no track in auto_add_form\n");
 	exit(1);
     }
-    if (ep_index < node->num_endpoints) {
-	Endpoint *ep = node->endpoints[ep_index];
+    if (item.ep) {
+	Endpoint *ep = item.ep;
 	for (uint8_t i=0; i<track->num_automations; i++) {
 	    if (track->automations[i]->endpoint == ep) {
 		status_set_errstr("Track already has an automation of that type");
@@ -415,10 +427,11 @@ static int add_auto_form(void *mod_v, void *nullarg)
 	window_pop_modal(main_win);
     } else {
 	/* fprintf(stderr, "Item index is %d; num eps is %d\n", ep_index, track->api_node.num_endpoints); */
-	APINode *subnode = node->children[ep_index - node->num_endpoints];
+	/* APINode *subnode = node->children[ep_index - node->num_endpoints]; */
 	/* fprintf(stderr, "OK NODE: %p:\n", subnode); */
+	APINode *node = item.node;
 	window_pop_modal(main_win);
-	track_add_automation_from_api_node(track, subnode);
+	track_add_automation_from_api_node(track, node);
     }
     return 0;
 }
@@ -451,7 +464,7 @@ static void track_add_automation_from_api_node(Track *track, APINode *node)
     /* APINode node = track->api_node; */
     /* Endpoint *items[node->num_endpoints + node->num_children]; */
 
-    void *items[node->num_endpoints + node->num_children];
+    /* void *items[node->num_endpoints + node->num_children]; */
     const char *item_labels[node->num_endpoints + node->num_children];
 
     char *dynamic_text = NULL;
@@ -459,22 +472,38 @@ static void track_add_automation_from_api_node(Track *track, APINode *node)
 	dynamic_text = calloc(node->num_children * 64, sizeof(char));
     char *child_node_item = dynamic_text;
 
-    int items_i = 0;
+    /* int items_i = 0; */
+    num_automation_add_items = 0;
     for (int i=0; i<node->num_endpoints; i++) {
 	Endpoint *ep = node->endpoints[i];
 	if (ep->automatable) {
-	    items[items_i] = node->endpoints[i];
-	    item_labels[items_i] = node->endpoints[i]->display_name;
-	    items_i++;
+	    /* fprintf(stderr, "ADD FOR AUTOMATABLE %d %d %s\n", items_i, i, node->endpoints[i]->display_name); */
+	    /* items[items_i] = node->endpoints[i]; */
+	    item_labels[num_automation_add_items] = node->endpoints[i]->display_name;
+	    /* items_i++; */
+	    automation_add_items[num_automation_add_items].ep = ep;
+	    automation_add_items[num_automation_add_items].true_index = i;
+	    automation_add_items[num_automation_add_items].node = NULL;
+	    num_automation_add_items++;
 	}
     }
     for (int i=0; i<node->num_children; i++) {
-	items[node->num_endpoints + i] = node->children[i];
+	APINode *child = node->children[i];
+	if (child->num_endpoints == 0 && child->num_children == 0)
+	    continue;
+	if (child->do_not_automate)
+	    continue;
+	automation_add_items[num_automation_add_items].node = child;
+	automation_add_items[num_automation_add_items].true_index = i;
+	automation_add_items[num_automation_add_items].ep = NULL;
 	char *node_name = node->children[i]->fixed_name ? (char *)node->children[i]->fixed_name : node->children[i]->obj_name;
 	int num_chars_printed = snprintf(child_node_item, 64, "%s...", node_name);
 	child_node_item[num_chars_printed] = '\0';
-	item_labels[node->num_endpoints + i] = child_node_item;
+	item_labels[num_automation_add_items] = child_node_item;
 	child_node_item += num_chars_printed + 1;
+
+	num_automation_add_items++;
+	/* items[node->num_endpoints + i] = node->children[i]; */
     }
     
     ModalEl *el = modal_add_radio(
@@ -482,7 +511,8 @@ static void track_add_automation_from_api_node(Track *track, APINode *node)
 	&colors.light_grey,
 	&automation_selection_ep,
 	item_labels,
-	items_i + node->num_children);
+	num_automation_add_items);
+	/* items_i + node->num_children); */
 
     RadioButton *rb = el->obj;
     rb->dynamic_text = dynamic_text;

@@ -1412,6 +1412,7 @@ static int jdaw_read_automation(FILE *f, Track *track)
 	    /* exit(0); */
 	} else {
 	    /* Horrible, stop it */
+	    fprintf(stderr, "Endpoint not found at route \"%s\"\n", route);
 	    char *try = try_fix_api_route(route, route_len);
 	    if (try) {
 		ep = api_endpoint_get(try);

@@ -325,7 +325,7 @@ static void portamento_len_dsp_cb(Endpoint *ep)
 Synth *synth_create(Track *track)
 {
     Synth *s = calloc(1, sizeof(Synth));
-
+    
     snprintf(s->preset_name, MAX_NAMELENGTH, "preset.jsynth");
     s->track = track;
 
@@ -660,7 +660,21 @@ Synth *synth_create(Track *track)
 	page_el_gui_cb, NULL, NULL,
 	NULL, NULL, &s->polyphony_page, "allow_voice_stealing_toggle");
     endpoint_set_default_value(&s->allow_voice_stealing_ep, (Value){.bool_v = true});
-    api_endpoint_register(&s->allow_voice_stealing_ep, &s->api_node);    
+    api_endpoint_register(&s->allow_voice_stealing_ep, &s->api_node);
+
+    s->poly_portamento_mode = false;
+    endpoint_init(
+	&s->poly_portamento_mode_ep,
+	&s->poly_portamento_mode,
+	JDAW_BOOL,
+	"poly_portamento_mode",
+	"Poly portamento mode",
+	JDAW_THREAD_DSP,
+	page_el_gui_cb, NULL, NULL,
+	NULL, NULL, &s->polyphony_page, "poly_portamento_mode_toggle");
+    endpoint_set_default_value(&s->poly_portamento_mode_ep, (Value){.bool_v=false});
+    api_endpoint_register(&s->poly_portamento_mode_ep, &s->api_node);
+
     
     s->mono_mode = false;
     endpoint_init(
@@ -1524,7 +1538,7 @@ static void synth_voice_assign_note(SynthVoice *v, double note, int velocity, in
     bool stolen = false;
     if (!v->available) {
 	stolen = true;
-	if (v->synth->mono_mode) {
+	if (v->synth->mono_mode || v->synth->poly_portamento_mode) {
 	    v->portamento_from = v->note_val;
 	    v->portamento_len_sframes = synth->portamento_len_msec / 1000.0 * session_get_sample_rate();
 	    v->portamento_elapsed_sframes = 0;
@@ -1814,22 +1828,57 @@ void synth_feed_midi(
 	    }
 	    if (!note_assigned) {
 		if (s->allow_voice_stealing) { /* check amp env for oldest voice */
-		    int32_t oldest_dur = 0;
-		    SynthVoice *oldest = NULL;
-		    for (int i=0; i<s->num_voices; i++) {
-			SynthVoice *v = s->voices + i;
-			if (!v->available) {
-			    int32_t dur = adsr_query_position(v->amp_env);
-			    if (dur > oldest_dur) {
-				oldest_dur =  dur;
-				oldest = v;
+		    if (!s->poly_portamento_mode) {
+			int32_t oldest_dur = 0;
+			SynthVoice *oldest = NULL;
+			for (int i=0; i<s->num_voices; i++) {
+			    SynthVoice *v = s->voices + i;
+			    if (!v->available) {
+				int32_t dur = adsr_query_position(v->amp_env);
+				if (dur > oldest_dur) {
+				    oldest_dur =  dur;
+				    oldest = v;
+				}
 			    }
 			}
-		    }
-		    if (oldest) { /* steal the oldest voice */
-			int32_t start_rel = send_immediate ? 0 : e.timestamp - tl_start;
-			synth_voice_assign_note(oldest, note_val, velocity, start_rel);
-			note_assigned = true;
+			if (oldest) { /* steal the oldest voice */
+			    int32_t start_rel = send_immediate ? 0 : e.timestamp - tl_start;
+			    synth_voice_assign_note(oldest, note_val, velocity, start_rel);
+			    note_assigned = true;
+			}
+		    } else {
+			SynthVoice *nearest = NULL;
+			int dist = 127;
+			/* First try to get nearest voice that is in release stage */
+			for (int i=0; i<s->num_voices; i++) {
+			    SynthVoice *v = s->voices + i;
+			    if (!v->available && v->amp_env->current_stage >= ADSR_R) {
+				int vdist = abs((int)v->note_val - note_val);
+				if (vdist < dist) {
+				    nearest = v;
+				    dist = vdist;
+				}
+			    }
+			}
+			/* Next just get nearest voice (even if in earlier ADSR stage) */
+			if (!nearest) {
+			    for (int i=0; i<s->num_voices; i++) {
+				SynthVoice *v = s->voices + i;
+				if (!v->available) {
+				    int vdist = abs((int)v->note_val - note_val);
+				    if (vdist < dist) {
+					nearest = v;
+					dist = vdist;
+				    }
+				}
+			    }
+			}
+			if (nearest) { /* steal the nearest voice */
+			    int32_t start_rel = send_immediate ? 0 : e.timestamp - tl_start;
+			    synth_voice_assign_note(nearest, note_val, velocity, start_rel);
+			    note_assigned = true;
+			}
+
 		    }
 		}
 	    }

@@ -826,6 +826,9 @@ static void add_polyphony_page(TabView *tv, Track *track)
     p.textbox_p.set_str = "Num voices:";
     page_add_el(page,EL_TEXTBOX,p,"","num_voices_label");
 
+    p.textbox_p.set_str = "Poly portamento mode";
+    page_add_el(page,EL_TEXTBOX,p,"","poly_portamento_mode_label");
+
     p.textbox_p.set_str = "Mono mode:";
     page_add_el(page,EL_TEXTBOX,p,"","mono_mode_label");
 
@@ -840,6 +843,9 @@ static void add_polyphony_page(TabView *tv, Track *track)
 
     page_el_params_slider_from_ep(&p, &synth->num_voices_ep);
     page_add_el(page,EL_SLIDER,p,"num_voices_slider","num_voices_slider");
+
+    p.toggle_p.ep = &synth->poly_portamento_mode_ep;
+    page_add_el(page,EL_TOGGLE,p,"poly_portamento_mode_toggle","poly_portamento_mode_toggle");
 
     p.toggle_p.ep = &synth->mono_mode_ep;
     page_add_el(page,EL_TOGGLE,p,"mono_mode_toggle","mono_mode_toggle");

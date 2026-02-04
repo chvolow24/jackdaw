@@ -52,6 +52,30 @@
         </Layout>
       </children>
     </Layout>
+    <Layout name="row" type="NORMAL">
+      <x>SCALE 0.046667</x>
+      <y>STACK 24</y>
+      <w>SCALE 0.864167</w>
+      <h>ABS 24</h>
+      <children>
+        <Layout name="poly_portamento_mode_label" type="NORMAL">
+          <x>REL 0</x>
+          <y>REL 0</y>
+          <w>REL 250</w>
+          <h>SCALE 1.000000</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="poly_portamento_mode_toggle" type="NORMAL">
+          <x>REL 250</x>
+          <y>REL 0</y>
+          <w>REL 24</w>
+          <h>SCALE 1.000000</h>
+          <children>
+          </children>
+        </Layout>
+      </children>
+    </Layout>
     <Layout name="divider" type="NORMAL">
       <x>SCALE 0.046667</x>
       <y>STACK 32</y>

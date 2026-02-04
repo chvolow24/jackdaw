@@ -229,6 +229,9 @@ typedef struct synth {
     Endpoint num_voices_ep;
     bool allow_voice_stealing;
     Endpoint allow_voice_stealing_ep;
+
+    bool poly_portamento_mode;
+    Endpoint poly_portamento_mode_ep;
     
     bool mono_mode;
     Endpoint mono_mode_ep;

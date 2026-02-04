@@ -170,9 +170,9 @@ void adsr_set_params(
     int32_t r,
     float ramp_exp)
 {
-    if (s != p->s) {
-	fprintf(stderr, "\tSET PARAMS %p %d %d %f %d %f\n", p, a, d, s, r, ramp_exp);
-    }
+    /* if (s != p->s) { */
+    /* 	fprintf(stderr, "\tSET PARAMS %p %d %d %f %d %f\n", p, a, d, s, r, ramp_exp); */
+    /* } */
     /* const char *thread = get_thread_name(); */
     /* fprintf(stderr, "PARAM CALL ON THREAD %s\n", thread); */
     

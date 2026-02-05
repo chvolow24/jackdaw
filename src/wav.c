@@ -42,6 +42,7 @@ Positions	Sample Value	    Description
 #include "dsp_utils.h"
 #include "project.h"
 #include "mixdown.h"
+#include "timeline.h"
 #include "transport.h"
 #include "session.h"
 #include "status.h"
@@ -155,6 +156,9 @@ void wav_write_mixdown(const char *filepath)
     Project *proj = &session->proj;
 
     Timeline *tl = ACTIVE_TL;
+    transport_stop_playback();
+    timeline_full_pause(tl);
+    timeline_force_stop_midi_monitoring();
     /* reset_overlap_buffers(); */
     /* fprintf(stdout, "Chunk size sframes: %d, chan: %d, sr: %d\n", proj->chunk_size_sframes, proj->channels, proj->sample_rate); */
     uint16_t chunk_len_sframes = proj->fourier_len_sframes;
@@ -187,8 +191,8 @@ void wav_write_mixdown(const char *filepath)
 	get_mixdown_chunk(tl, samples_L, 0, chunk_len_sframes, tl->in_mark_sframes + (c * chunk_len_sframes), 1);
         get_mixdown_chunk(tl, samples_R, 1, chunk_len_sframes, tl->in_mark_sframes + (c * chunk_len_sframes), 1);
         for (uint32_t i=0; i<chunk_len_samples; i+=2) {
-            samples[c * chunk_len_samples + i] = samples_L[i/2] * INT16_MAX;
-            samples[c * chunk_len_samples + i + 1] = samples_R[i/2] * INT16_MAX;
+            samples[c * chunk_len_samples + i] = clip_float_sample(samples_L[i/2]) * INT16_MAX;
+            samples[c * chunk_len_samples + i + 1] = clip_float_sample(samples_R[i/2]) * INT16_MAX;
         }
     }
 

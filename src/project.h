@@ -488,6 +488,7 @@ void timeline_delete(Timeline *tl, bool from_undo);
 void timeline_switch(uint8_t new_tl_index);
 
 bool timeline_check_set_midi_monitoring();
+void timeline_force_stop_midi_monitoring();
 void project_deinit(Project *proj);
 
 void session_set_default_out(void *nullarg);

@@ -1705,6 +1705,27 @@ void track_set_input(Track *track)
     /* } */
 }
 
+void timeline_force_stop_midi_monitoring()
+{
+    log_tmp(LOG_DEBUG, "Forcing stop midi monitoring...\n");
+    Session *session = session_get();
+    if (!session->midi_io.monitoring) return;
+    Synth *synth = session->midi_io.monitor_synth;
+    if (!synth) return;
+    session->midi_io.monitor_synth = NULL;
+    session->midi_io.monitor_device = NULL;
+    /* Only close output audio device if project is not playing from timeline */
+    if (!session->playback.playing) {
+	audioconn_stop_playback(session->audio_io.playback_conn);
+    }
+    pthread_mutex_lock(&synth->audio_proc_lock);
+    synth_close_all_notes(synth);
+    api_node_set_owner(&synth->api_node, JDAW_THREAD_DSP);
+    pthread_mutex_unlock(&synth->audio_proc_lock);
+
+    session->midi_io.monitoring = false;
+}
+
 /* Use on the selected track to set session monitoring info */
 bool timeline_check_set_midi_monitoring()
 {
@@ -1764,7 +1785,7 @@ bool timeline_check_set_midi_monitoring()
 	Synth *synth = session->midi_io.monitor_synth;
 	
 	pthread_mutex_lock(&synth->audio_proc_lock);
-	synth_close_all_notes(synth);	
+	synth_close_all_notes(synth);
 	api_node_set_owner(&track->synth->api_node, JDAW_THREAD_PLAYBACK);
 	pthread_mutex_unlock(&synth->audio_proc_lock);
 	
@@ -1784,7 +1805,11 @@ bool timeline_check_set_midi_monitoring()
 	    audioconn_stop_playback(session->audio_io.playback_conn);
 	}
 	if (track && track->synth) {
+	    pthread_mutex_lock(&track->synth->audio_proc_lock);
+	    synth_close_all_notes(track->synth);
 	    api_node_set_owner(&track->synth->api_node, JDAW_THREAD_DSP);
+	    pthread_mutex_unlock(&track->synth->audio_proc_lock);
+	    /* api_node_set_owner(&track->synth->api_node, JDAW_THREAD_DSP); */
 	}
 	session->midi_io.monitoring = false;
 	/* fprintf(stderr, "NO Monitor\n"); */

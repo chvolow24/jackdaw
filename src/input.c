@@ -721,28 +721,28 @@ void input_create_function_reference()
 		char *c = fn->annotation;
 		int i=0;
 		/* bool had_multiple = false; */
-		strncpy(buf, "<kbd>", 5);
+		strlcpy(buf, "<kbd>", 5);
 		i += 5;
 		while (*c != '\0') {
 		    if (*c == '\t') {
 			/* if (had_multiple) { */
-			/*     strncpy(buf + i, ", <kbd>", 5); */
+			/*     strlcpy(buf + i, ", <kbd>", 5); */
 			/*     i+=5; */
 			/* } */
-			strncpy(buf + i, "</kbd>, <kbd>", 13);
+			strlcpy(buf + i, "</kbd>, <kbd>", 13);
 			i+=13;
 			/* had_multiple = true; */
 			c+=3;
 		    } else if (*c == '<') {
-			strncpy(buf + i, "\\<", 2);
+			strlcpy(buf + i, "\\<", 2);
 			i+=2;
 			c++;
 		    } else if (*c == '>') {
-			strncpy(buf + i, "\\>", 2);
+			strlcpy(buf + i, "\\>", 2);
 			i+=2;
 			c++;
 		    } else {
-			strncpy(buf + i, c, 1);
+			strlcpy(buf + i, c, 1);
 			c++;
 			i++;
 		    }

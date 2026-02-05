@@ -119,7 +119,7 @@ static void init()
     if (!(realpath_ret = realpath(".", NULL))) {
 	perror("Error in realpath");
     } else {
-	strncpy(DIRPATH_SAVED_PROJ, realpath_ret, MAX_PATHLEN);
+	strlcpy(DIRPATH_SAVED_PROJ, realpath_ret, MAX_PATHLEN);
 	free(realpath_ret);
     }
     strcpy(DIRPATH_OPEN_FILE, DIRPATH_SAVED_PROJ);
@@ -252,7 +252,7 @@ int main(int argc, char **argv)
 	    char *last_slash_pos = strrchr(realpath_ret, '/');
 	    if (last_slash_pos) {
 		*last_slash_pos = '\0';
-		strncpy(DIRPATH_SAVED_PROJ, realpath_ret, MAX_PATHLEN);
+		strlcpy(DIRPATH_SAVED_PROJ, realpath_ret, MAX_PATHLEN);
 	    }
 	    free(realpath_ret);
 	}
@@ -287,7 +287,7 @@ int main(int argc, char **argv)
 	    char *last_slash_pos = strrchr(filepath, '/');
 	    if (last_slash_pos) {
 		*last_slash_pos = '\0';
-		strncpy(DIRPATH_OPEN_FILE, filepath, MAX_PATHLEN);
+		strlcpy(DIRPATH_OPEN_FILE, filepath, MAX_PATHLEN);
 	    } else {
 		fprintf(stderr, "Error: no slash in real path of opened file\n");
 	    }
@@ -302,7 +302,7 @@ int main(int argc, char **argv)
 	    char *last_slash_pos = strrchr(filepath, '/');
 	    if (last_slash_pos) {
 		*last_slash_pos = '\0';
-		strncpy(DIRPATH_OPEN_FILE, filepath, MAX_PATHLEN);
+		strlcpy(DIRPATH_OPEN_FILE, filepath, MAX_PATHLEN);
 	    } else {
 		fprintf(stderr, "Error: no slash in real path of opened file\n");
 	    }

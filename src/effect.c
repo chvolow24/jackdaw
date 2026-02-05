@@ -498,7 +498,7 @@ void effect_delete(Effect *e, bool from_undo)
 {
     EffectChain *ec = e->effect_chain;
     bool displace = false;
-    int index;
+    int index = -1;
     for (int i=0; i<ec->num_effects; i++) {
 	if (e == ec->effects[i]) {
 	    displace = true;
@@ -506,6 +506,10 @@ void effect_delete(Effect *e, bool from_undo)
 	} else if (displace) {
 	    ec->effects[i - 1] = ec->effects[i];
 	}
+    }
+    if (index < 0) {
+	log_tmp(LOG_ERROR, "In effect delete: effect not found in chain\n");
+	return;
     }
     
     ec->num_effects--;

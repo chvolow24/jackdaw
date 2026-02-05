@@ -1468,7 +1468,6 @@ static void midi_clipref_notes_adj_quantize_amount(ClipRef *cr, Note **notes, in
 static void midi_clipref_notes_in_range_adj_quantize_amount(ClipRef *cr, float new_amount, int32_t start_tl_pos, int32_t end_tl_pos)
 {
     if (!cr) return;
-    Timeline *tl = cr->track->tl;    
     Note **intersecting;
     int num_intersecting = midi_clipref_notes_intersecting_area(cr, start_tl_pos, end_tl_pos, 0, 127, &intersecting);
     midi_clipref_notes_adj_quantize_amount(cr, intersecting, num_intersecting, new_amount, false);

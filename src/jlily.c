@@ -112,7 +112,6 @@ static int note_name_interval(char note1, char note2)
 static int32_t get_current_dur_sframes()
 {
     int32_t measure_dur, beat_dur, subdiv_dur;
-    int32_t check_ts = state.ts;
     click_segment_get_durs_at(state.ct, state.ts, &measure_dur, &beat_dur, &subdiv_dur);
     int32_t dur_predot;
     switch (state.dur_literal) {
@@ -489,11 +488,6 @@ int jlily_string_to_mclip(
 		(int32_t)jnote->ts - tl_pos,
 		(int32_t)jnote->ts - tl_pos + jnote->dur);
 		/* (int32_t)jnote->ts + pos_offset + 1000); */
-	}
-    } else {
-	for (int i=0; i<state.num_notes; i++) {
-	    JLilyNote *jnote = state.notes + i;
-	    /* fprintf(stderr, "(%d) pitch %d vel %d\n", (int32_t)jnote->ts + pos_offset, jnote->pitch, jnote->velocity); */
 	}
     }
     return state.num_notes;

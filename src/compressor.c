@@ -50,7 +50,7 @@ float compressor_buf_apply(void *compressor_v, float *buf, int len, int channel,
     Compressor *c = compressor_v;
     /* if (!c->active) return input_amp; */
     float amp_scalar;
-    float env;
+    float env = 0.0f;
     float output_amp = 0.0f;
     for (int i=0; i<len; i++) {
 	env = envelope_follower_sample(&c->ef[channel], buf[i]);

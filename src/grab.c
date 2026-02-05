@@ -11,7 +11,6 @@
 #include "audio_clip.h"
 #include "clipref.h"
 #include "grab.h"
-#include "piano_roll.h"
 #include "project.h"
 #include "session.h"
 #include "status.h"
@@ -403,7 +402,7 @@ void timeline_grabbed_clips_move(Timeline *tl, int32_t move_by_sframes)
     }
     for (int i=0; i<tl->num_grabbed_clips; i++) {
 	ClipRef *cr = tl->grabbed_clips[i];
-	int32_t clip_len;
+	int32_t clip_len = 0;
 	switch (cr->type) {
 	case CLIP_AUDIO:
 	    clip_len = ((Clip *)cr->source_clip)->len_sframes;

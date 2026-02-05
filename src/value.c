@@ -345,7 +345,7 @@ Value jdaw_val_mult(Value a, Value b, ValType vt)
 	ret.int32_v = a.int32_v * b.int32_v;
 	break;
     case JDAW_BOOL:
-	ret.bool_v = a.bool_v * b.bool_v;
+	ret.bool_v = a.bool_v && b.bool_v;
 	break;
     case JDAW_DOUBLE_PAIR:
 	ret.double_pair_v[0] = a.double_pair_v[0] * b.double_pair_v[0];
@@ -534,9 +534,6 @@ double jdaw_val_div_double(Value a, Value b, ValType vt)
 	ret = a.double_pair_v[0] / b.double_pair_v[0];
 	/* ret.double_pair_v[0] = a.double_pair_v[0] * -1; */
 	/* ret.double_pair_v[1] = a.double_pair_v[1] * -1; */
-	break;
-
-    default:
 	break;
     }
     return ret;

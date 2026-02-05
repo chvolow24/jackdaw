@@ -97,6 +97,13 @@ static void init_SDL()
     SDL_StopTextInput();
 }
 
+static void input_init()
+{
+    input_init_hash_table();
+    input_init_mode_load_all();
+    input_load_keybinding_config(DEFAULT_KEYBIND_CFG_PATH);
+
+}
 
 static void init()
 {
@@ -110,16 +117,15 @@ static void init()
     log_init();
     init_SDL();
     get_native_byte_order();
-    input_init_hash_table();
-    input_init_mode_load_all();
-    input_load_keybinding_config(DEFAULT_KEYBIND_CFG_PATH);
+    input_init();
     mqwert_init();
     pd_jackdaw_shm_init();
     char *realpath_ret;
     if (!(realpath_ret = realpath(".", NULL))) {
 	perror("Error in realpath");
     } else {
-	strlcpy(DIRPATH_SAVED_PROJ, realpath_ret, MAX_PATHLEN);
+	snprintf(DIRPATH_SAVED_PROJ, MAX_PATHLEN, "%s", realpath_ret); 
+	/* strlcpy(DIRPATH_SAVED_PROJ, realpath_ret, MAX_PATHLEN); */
 	free(realpath_ret);
     }
     strcpy(DIRPATH_OPEN_FILE, DIRPATH_SAVED_PROJ);
@@ -183,6 +189,7 @@ int main(int argc, char **argv)
 	    /* /\* pd_jackdaw_record_get_block(); *\/ */
 	    exit(0);
 	} else if (strcmp(argv[1], "fn_ref") == 0) {
+	    input_init();
 	    input_create_function_reference();
 	    exit(0);
 	} else if (strcmp(argv[1], "log") == 0) {
@@ -252,7 +259,8 @@ int main(int argc, char **argv)
 	    char *last_slash_pos = strrchr(realpath_ret, '/');
 	    if (last_slash_pos) {
 		*last_slash_pos = '\0';
-		strlcpy(DIRPATH_SAVED_PROJ, realpath_ret, MAX_PATHLEN);
+		snprintf(DIRPATH_SAVED_PROJ, MAX_PATHLEN, "%s", realpath_ret);
+		/* strlcpy(DIRPATH_SAVED_PROJ, realpath_ret, MAX_PATHLEN); */
 	    }
 	    free(realpath_ret);
 	}
@@ -287,7 +295,8 @@ int main(int argc, char **argv)
 	    char *last_slash_pos = strrchr(filepath, '/');
 	    if (last_slash_pos) {
 		*last_slash_pos = '\0';
-		strlcpy(DIRPATH_OPEN_FILE, filepath, MAX_PATHLEN);
+		snprintf(DIRPATH_OPEN_FILE, MAX_PATHLEN, "%s", filepath);
+		/* strlcpy(DIRPATH_OPEN_FILE, filepath, MAX_PATHLEN); */
 	    } else {
 		fprintf(stderr, "Error: no slash in real path of opened file\n");
 	    }
@@ -302,7 +311,8 @@ int main(int argc, char **argv)
 	    char *last_slash_pos = strrchr(filepath, '/');
 	    if (last_slash_pos) {
 		*last_slash_pos = '\0';
-		strlcpy(DIRPATH_OPEN_FILE, filepath, MAX_PATHLEN);
+		snprintf(DIRPATH_OPEN_FILE, MAX_PATHLEN, "%s", filepath);
+		/* strlcpy(DIRPATH_OPEN_FILE, filepath, MAX_PATHLEN); */
 	    } else {
 		fprintf(stderr, "Error: no slash in real path of opened file\n");
 	    }

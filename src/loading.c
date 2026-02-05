@@ -41,9 +41,11 @@ static void loading_screen_init(
     bool draw_progress_bar)
 {
     if (title)
-	strlcpy(ls->title, title, MAX_LOADSTR_LEN);
+	snprintf(ls->title, MAX_LOADSTR_LEN, "%s", title);
+	/* strlcpy(ls->title, title, MAX_LOADSTR_LEN); */
     if (subtitle)
-	strlcpy(ls->subtitle, subtitle, MAX_LOADSTR_LEN);
+	snprintf(ls->subtitle, MAX_LOADSTR_LEN, "%s", subtitle);
+	/* strlcpy(ls->subtitle, subtitle, MAX_LOADSTR_LEN); */
     ls->draw_progress_bar = draw_progress_bar;
 
     if (ls->layout) layout_destroy(ls->layout);
@@ -146,7 +148,8 @@ int session_loading_screen_update(
     LoadingScreen *ls = &session->loading_screen;
     ls->progress = progress;
     if (subtitle) {
-	strlcpy(ls->subtitle, subtitle, MAX_LOADSTR_LEN);
+	snprintf(ls->subtitle, MAX_LOADSTR_LEN, "%s", subtitle);
+	/* strlcpy(ls->subtitle, subtitle, MAX_LOADSTR_LEN); */
 	textbox_reset_full(ls->subtitle_tb);
     }
     

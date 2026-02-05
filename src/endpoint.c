@@ -141,7 +141,7 @@ int endpoint_write(
     bool undoable)
 {
     enum jdaw_thread owner = endpoint_get_owner(ep);
-    fprintf(stderr, "OK Write endpoint %s, on thread %s, owner %s\n", ep->local_id, get_current_thread_name(), get_thread_name(owner));
+    /* fprintf(stderr, "OK Write endpoint %s, on thread %s, owner %s\n", ep->local_id, get_current_thread_name(), get_thread_name(owner)); */
     ep->overwrite_val = endpoint_safe_read(ep, NULL);
     Session *session = session_get();
     int ret = 0;

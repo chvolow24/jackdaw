@@ -92,7 +92,6 @@ dev_build:
 FILE *asset_open(const char *relative_path, char *mode_str)
 {
     char *path = asset_get_abs_path(relative_path);
-    fprintf(stderr, "In asset open, path is %s\n", path);
     if (!path) {
 	fprintf(stderr, "Error retrieving absolute path for asset at \"%s\"\n", relative_path);
 	return NULL;

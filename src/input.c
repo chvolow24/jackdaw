@@ -717,11 +717,11 @@ void input_create_function_reference()
 	    }
 	    for (uint8_t k=0; k<sc->num_fns; k++) {
 		UserFn *fn = sc->fns[k];
-		char buf[255];
+		char buf[255] = {0};
 		char *c = fn->annotation;
 		int i=0;
 		/* bool had_multiple = false; */
-		strlcpy(buf, "<kbd>", 5);
+		snprintf(buf, 6, "<kbd>");
 		i += 5;
 		while (*c != '\0') {
 		    if (*c == '\t') {
@@ -729,20 +729,21 @@ void input_create_function_reference()
 			/*     strlcpy(buf + i, ", <kbd>", 5); */
 			/*     i+=5; */
 			/* } */
-			strlcpy(buf + i, "</kbd>, <kbd>", 13);
+			snprintf(buf + i, 14, "</kbd>, <kbd>");
+			/* strlcpy(buf + i, "</kbd>, <kbd>", 13); */
 			i+=13;
 			/* had_multiple = true; */
 			c+=3;
 		    } else if (*c == '<') {
-			strlcpy(buf + i, "\\<", 2);
+			snprintf(buf + i, 3, "\\<");
 			i+=2;
 			c++;
 		    } else if (*c == '>') {
-			strlcpy(buf + i, "\\>", 2);
+			snprintf(buf + i, 3, "\\>");
 			i+=2;
 			c++;
 		    } else {
-			strlcpy(buf + i, c, 1);
+			snprintf(buf + i, 2, "%s", c);
 			c++;
 			i++;
 		    }

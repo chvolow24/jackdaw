@@ -1144,12 +1144,12 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
 			return 1;
 		    }
 		    if (!read_file_version_older_than("00.23")) {
-			fprintf(stderr, "\n\nReading synth effect chain....\n");
+			/* fprintf(stderr, "\n\nReading synth effect chain....\n"); */
 			jdaw_read_effect_chain(f, proj_reading, &track->synth->effect_chain, &track->synth->api_node, "synth", tl->proj->fourier_len_sframes);
 			track->synth->effect_chain.api_node.do_not_serialize = true;
 			track->synth->effect_chain.api_node.do_not_automate = true;
 		    }
-		    fprintf(stderr, "\n\nDeserializing synth node....\n");
+		    /* fprintf(stderr, "\n\nDeserializing synth node....\n"); */
 		    api_node_deserialize(f, &track->synth->api_node);
 		}
 	    }

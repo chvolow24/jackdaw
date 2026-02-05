@@ -515,7 +515,7 @@ void input_load_keybinding_config(const char *asset_path)
 	fprintf(stderr, "Error: failed to open asset at %s\n", asset_path);
 	return;
     }
-    char c;
+    int c;
     int i=0;
     char buf[255];
     
@@ -602,6 +602,13 @@ void input_load_keybinding_config(const char *asset_path)
 		more_modes = false;
 	    }
 	    buf[i] = '\0';
+	    int end_check = fgetc(f);
+	    if (end_check == EOF) {
+		more_bindings = false;
+		more_modes = false;		
+	    } else {
+		ungetc(end_check, f);
+	    }
 	    ungetc(c, f);
 	    fn = input_get_fn_by_id(buf, mode);
 

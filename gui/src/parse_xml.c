@@ -15,7 +15,7 @@
 
 static void clear_whitespace(FILE *f) 
 {
-    char c;
+    int c;
     while ((c = fgetc(f)) == ' ' || c == '\n' || c == '\t') {}
     ungetc(c, f);
 }
@@ -37,7 +37,7 @@ static long xml_get_tag_endrange(FILE *f, char *tagname);
 int xml_get_next_tag(FILE *f, char *buf, int maxlen, long *startrange, long *endrange)
 {
 
-    char c;
+    int c;
     int i=0;
     while ((c = fgetc(f)) != '<' && c != EOF) {}
     while ((c = fgetc(f)) != '>' && not_whitespace_char(c)) {
@@ -115,7 +115,7 @@ static long xml_get_tag_endrange(FILE *f, char *tagname)
 */
 int xml_get_tag_attr(FILE *f, char *attr_name_buf, char *attr_value_buf, int maxlen)
 {
-    char c;
+    int c;
     int i=0;
     clear_whitespace(f);
     while ((c = fgetc(f)) != '=') {

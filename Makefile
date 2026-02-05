@@ -42,15 +42,16 @@ LINK_ASOUND :=
 # Operation system checks
 ifeq ($(UNAME_S),Darwin)
 SDL_FLAGS := $(SDL_FLAGS_MACOS_ONLY) $(SDL_FLAGS_ALL)
+LDFLAGS := -lpthread -lm
 else
 SDL_FLAGS := $(SDL_FLAGS_ALL)
 LINK_ASOUND := -lasound
+LDFLAGS := -lpthread -lm -ldl -lrt
 endif
 
 LIBS := $(SDL_LIB) $(SDL_TTF_LIB) $(PORTMIDI_LIB)
 
 CFLAGS := -Wall -Wno-unused-command-line-argument -I$(SRC_DIR) -I$(GUI_SRC_DIR) \
-	-lpthread -lm \
 	-Iportmidi/porttime \
 	-Iportmidi/pm_common \
 	-ISDL_ttf \
@@ -116,13 +117,13 @@ ifeq ($(MAKECMDGOALS),layout)
 endif
 
 $(EXEC): $(OBJS) $(GUI_OBJS)
-	$(CC) -o $@  $(filter-out %_target,$^) $(CFLAGS) $(CFLAGS_ADDTL) $(CFLAGS_JDAW_ONLY) $(SDL_FLAGS) $(LIBS) $(LINK_ASOUND)
+	$(CC) -o $@  $(filter-out %_target,$^) $(CFLAGS) $(CFLAGS_ADDTL) $(CFLAGS_JDAW_ONLY) $(SDL_FLAGS) $(LIBS) $(LINK_ASOUND) $(LFLAGS)
 
 .PHONY: debug
 debug: $(EXEC)
 
 $(LT_EXEC): $(LT_OBJS)
-	$(CC) -o $@ $^ $(CFLAGS) $(CFLAGS_ADDTL) $(CFLAGS_LT_ONLY) $(LIBS)
+	$(CC) -o $@ $^ $(CFLAGS) $(CFLAGS_ADDTL) $(CFLAGS_LT_ONLY) $(LIBS) $(LFLAGS)
 
 $(BUILD_DIR):
 	mkdir $(BUILD_DIR)

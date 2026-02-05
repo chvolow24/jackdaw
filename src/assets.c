@@ -1,4 +1,5 @@
 #include "assets.h"
+#include "log.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -79,12 +80,19 @@ dev_build:
     int len = strlen(relative_path) + strlen(head) + 1;
     char path[len];
     snprintf(path, len, "%s%s", head, relative_path);
-    return strdup(path);
+    char abspath[PATH_MAX];
+    if (!realpath(path, abspath)) {
+	log_tmp(LOG_ERROR, "Unable to obtain absolute path of resource \"%s\"\n", relative_path);
+	return strdup(path);
+    } else {
+	return strdup(abspath);
+    }
 }
 
 FILE *asset_open(const char *relative_path, char *mode_str)
 {
     char *path = asset_get_abs_path(relative_path);
+    fprintf(stderr, "In asset open, path is %s\n", path);
     if (!path) {
 	fprintf(stderr, "Error retrieving absolute path for asset at \"%s\"\n", relative_path);
 	return NULL;

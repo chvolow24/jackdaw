@@ -278,7 +278,10 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 	    int wait_count = 0;
 	    while (sem_trywait(tl->readable_chunks) != 0) {
 		wait_count++;
-		if (wait_count > 100) return;
+		if (wait_count > 100) {
+		    transport_log("Playback callback early exit (can't wait on readable chunks)\n");
+		    return;
+		}
 	    }
 	    memcpy(chunk_L, tl->buf_L + tl->buf_read_pos, sizeof(float) * len_sframes);
 	    memcpy(chunk_R, tl->buf_R + tl->buf_read_pos, sizeof(float) * len_sframes);

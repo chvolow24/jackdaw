@@ -153,7 +153,7 @@ NEW_EVENT_FN(dispose_forward_add_effect, "")
 void effect_chain_init(EffectChain *ec, Project *proj, APINode *parent_api_node, const char *obj_name, int32_t chunk_len_sframes)
 {
     bool already_init = false;
-    if (ec->proj) {
+    if (ec->effects) {
 	already_init = true;
 	return;
     }
@@ -384,6 +384,16 @@ static int add_effect_form(void *mod_v, void *nullarg)
     EffectType t = b->selected_item;
     EffectChain *ec = modal->stashed_obj;
     Effect *e = effect_chain_add_effect(ec, t);
+    Session *session = session_get();
+    /* If effect is being added to a currently-monitored synth, make sure it has the right owner! */
+    if (session->midi_io.monitoring && session->midi_io.monitor_synth && &session->midi_io.monitor_synth->effect_chain == ec) {
+	Synth *synth = session->midi_io.monitor_synth;
+	pthread_mutex_lock(&synth->audio_proc_lock);
+	synth_close_all_notes(synth);
+	api_node_set_owner(&e->api_node, JDAW_THREAD_PLAYBACK);
+	pthread_mutex_unlock(&synth->audio_proc_lock);
+    }
+
     /* Effect *e = track_add_effect(track, t); */
     window_pop_modal(main_win);
     if (e) {

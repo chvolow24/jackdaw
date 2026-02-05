@@ -117,7 +117,7 @@ ifeq ($(MAKECMDGOALS),layout)
 endif
 
 $(EXEC): $(OBJS) $(GUI_OBJS)
-	$(CC) -o $@  $(filter-out %_target,$^) $(CFLAGS) $(CFLAGS_ADDTL) $(CFLAGS_JDAW_ONLY) $(SDL_FLAGS) $(LIBS) $(LINK_ASOUND) $(LFLAGS)
+	$(CC) -o $@  $(filter-out %_target,$^) $(CFLAGS) $(CFLAGS_ADDTL) $(CFLAGS_JDAW_ONLY) $(SDL_FLAGS) $(LIBS) $(LINK_ASOUND) $(LDFLAGS)
 
 .PHONY: debug
 debug: $(EXEC)
@@ -131,8 +131,8 @@ $(BUILD_DIR):
 $(GUI_BUILD_DIR):
 	mkdir -p $(GUI_BUILD_DIR)
 
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c $(LIBS) | $(BUILD_DIR)
-	$(CC) $(CFLAGS) $(CFLAGS_ADDTL) $(SDL_FLAGS) $(LIBS) $(DEPFLAGS) -c $< -o $@
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR)
+	$(CC) $(CFLAGS) $(CFLAGS_ADDTL) $(SDL_FLAGS) $(DEPFLAGS) -c $< -o $@
 
 $(GUI_BUILD_DIR)/%.o: $(GUI_SRC_DIR)/%.c $(LIBS) | $(GUI_BUILD_DIR)
 	$(CC) $(CFLAGS) $(CFLAGS_ADDTL) $(SDL_FLAGS) $(LIBS) $(DEPFLAGS) -c $< -o $@

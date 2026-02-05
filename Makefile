@@ -51,7 +51,7 @@ endif
 
 LIBS := $(SDL_LIB) $(SDL_TTF_LIB) $(PORTMIDI_LIB)
 
-CFLAGS := -Wall -Wno-unused-command-line-argument -I$(SRC_DIR) -I$(GUI_SRC_DIR) \
+CFLAGS := -Wall -Wno-unused-command-line-argument -Wno-format-truncation -I$(SRC_DIR) -I$(GUI_SRC_DIR) \
 	-Iportmidi/porttime \
 	-Iportmidi/pm_common \
 	-ISDL_ttf \

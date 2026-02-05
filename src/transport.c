@@ -42,7 +42,6 @@
 #define JDAW_TRANSPORT_LOG_ALL
 #define JDAW_TRANSPORT_PRINT_ALL
 
-#define TESTBUILD
 #ifdef TESTBUILD
 static bool transport_performance_logging = false;
 
@@ -757,7 +756,7 @@ void transport_start_recording()
 		MIDIDevice *mdevice = track->input;
 		mdevice->recording = true;
 		midi_device_open(mdevice);
-		if (mdevice->type == MODE_MIDI_QWERTY) {
+		if (mdevice->type == MIDI_DEVICE_QWERTY) {
 		    activate_mqwert = true;
 		}
 		MIDIClip *mclip = midi_clip_create(mdevice, track);

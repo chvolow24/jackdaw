@@ -64,6 +64,25 @@ void transport_log(const char *fmt, ...) {}
 void toggle_transport_logging();
 #endif
 
+
+double timespec_elapsed_ms(const struct timespec *start, const struct timespec *end) {
+    long sec_diff = end->tv_sec - start->tv_sec;
+    long nsec_diff = end->tv_nsec - start->tv_nsec;
+    return (sec_diff * 1e3) + (nsec_diff * 1e-6);
+}
+
+static struct timespec glob_start, glob_end;
+static void timer_start()
+{
+    clock_gettime(CLOCK_REALTIME, &glob_start);
+}
+
+static void timer_stop_and_print(const char *msg)
+{
+    clock_gettime(CLOCK_REALTIME, &glob_end);
+    transport_log("(%f): %s\n", timespec_elapsed_ms(&glob_start, &glob_end), msg);
+}
+
 extern struct colors colors;
 
 /* static bool do_quit_internal; */
@@ -216,6 +235,7 @@ static void loc_queued_bufs_add(float *chunk_L, float *chunk_R, int len_sframes)
 const char *timestamp();
 void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 {
+    timer_start();
     Session *session = session_get();
     set_thread_id(JDAW_THREAD_PLAYBACK);
     /* log_tmp(LOG_DEBUG, "pb cb enter. playing (%p)? %d; sesh play? %d; monitor? %d\n", user_data, ((AudioDevice *)user_data)->playing, session->playback.playing, session->midi_io.monitoring); */
@@ -267,6 +287,8 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     /* 	/\* dev->request_close = false; *\/ */
     /* 	dev->playing = false; */
     /* } */
+    timer_stop_and_print("PB callback set bufs nil");
+    timer_start();
     
     /* Gather data from timeline, generated in DSP threadfn */
     if (session->playback.playing) {
@@ -291,24 +313,36 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 	}
     }
 
+    timer_stop_and_print("Read mixdown buf");
+    
+
+
+    /* transport_log("playback callback, cleared buffer..\n"); */
     /* Check for monitor synth and add buf to chunk_L and chunk_R */
     MIDIDevice *d = session->midi_io.monitor_device;
     Synth *s = session->midi_io.monitor_synth;
     if (d && s) {
+	timer_start();
 	midi_device_read(d);
+	timer_stop_and_print("Read mdevice");
+	timer_start();
 	float playspeed = session->playback.play_speed;
 	if (session->piano_roll) {
 	    piano_roll_feed_midi(d->buffer, d->num_unconsumed_events);
 	}
 	synth_feed_midi(s, d->buffer, d->num_unconsumed_events, 0, true);
+	timer_stop_and_print("Fed MIDI");
 	if (d->current_clip && d->current_clip->recording) {
 	    midi_device_output_chunk_to_clip(d, 1);
 	    d->current_clip->len_sframes += len_sframes;
 	}
 	d->num_unconsumed_events = 0;
 	if (fabs(playspeed) < 1e-6 || !session->playback.playing) playspeed = 1.0f;
+
+	timer_start();
 	synth_add_buf(s, chunk_L, 0, len_sframes, playspeed); /* TL Pos ignored */
 	synth_add_buf(s, chunk_R, 1, len_sframes, playspeed); /* TL Pos ignored */
+	timer_stop_and_print("Added synth bufs");
     }
 
     /* Check for queued bufs and add to chunk_L and chunk_R */
@@ -339,6 +373,7 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 	}
 	tl->needs_redraw = true;
     } else if (session->playback.playing) {
+	timer_start();
 	struct dsp_chunk_info *chunk_info = tl->dsp_chunks_info + tl->dsp_chunks_info_read_i;
 	chunk_info->elapsed_playback_chunks++;
 	int32_t new_play_pos = chunk_info->tl_start + proj->chunk_size_sframes * chunk_info->elapsed_playback_chunks * chunk_info->playspeed;
@@ -351,10 +386,14 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 	    }
 	}
 	sem_post(tl->writable_chunks);
+	timer_stop_and_print("Did playback_things");
     }
+    timer_start();
     session_do_ongoing_changes(session, JDAW_THREAD_PLAYBACK);
     session_flush_val_changes(session, JDAW_THREAD_PLAYBACK);
     session_flush_callbacks(session, JDAW_THREAD_PLAYBACK);
+    timer_stop_and_print("Did ongoing changes");
+    /* transport_log("...done ongoing changes\n"); */
 
     if (dev->channel_dsts[0].conn->request_playhead_reset) {
 	int32_t saved_write_pos = tl->buf_write_pos;
@@ -384,12 +423,6 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     /* if (log_fn_exit) { */
     /* 	log_tmp(LOG_DEBUG, "Exiting playback callback\n"); */
     /* } */
-}
-
-double timespec_elapsed_ms(const struct timespec *start, const struct timespec *end) {
-    long sec_diff = end->tv_sec - start->tv_sec;
-    long nsec_diff = end->tv_nsec - start->tv_nsec;
-    return (sec_diff * 1e3) + (nsec_diff * 1e-6);
 }
 
 static volatile bool cancel_dsp_thread = false;

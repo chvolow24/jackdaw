@@ -10,6 +10,7 @@
 
 #include <errno.h>
 #include <pthread.h>
+#include <stdatomic.h>
 #include <string.h>
 #include <semaphore.h>
 #include <fcntl.h>
@@ -244,40 +245,43 @@ retry1:
 	/* exit(1); */
 	
     }
-retry2:
-    snprintf(buf, 128, SEM_NAME_READABLE_CHUNKS, new_tl->index);
-    if ((new_tl->readable_chunks = sem_open(buf, O_CREAT | O_EXCL, 0666, 0)) == SEM_FAILED) {
-	if (errno != EEXIST) {
-	    perror("Error opening readable chunks sem");
-	}
-	sem_unlink(buf);
-	if (!retry) {
-	    goto retry2;
-	    retry = true;
-	} else {
-	    fprintf(stderr, "Fatal error: retry failed\n");
-	    exit(1);
-	}
+    new_tl->writable_small_chunks = 0;
+    atomic_init(&new_tl->writable_chunks, 0);
+    atomic_init(&new_tl->readable_chunks, 0);
+/* retry2: */
+/*     snprintf(buf, 128, SEM_NAME_READABLE_CHUNKS, new_tl->index); */
+/*     if ((new_tl->readable_chunks = sem_open(buf, O_CREAT | O_EXCL, 0666, 0)) == SEM_FAILED) { */
+/* 	if (errno != EEXIST) { */
+/* 	    perror("Error opening readable chunks sem"); */
+/* 	} */
+/* 	sem_unlink(buf); */
+/* 	if (!retry) { */
+/* 	    goto retry2; */
+/* 	    retry = true; */
+/* 	} else { */
+/* 	    fprintf(stderr, "Fatal error: retry failed\n"); */
+/* 	    exit(1); */
+/* 	} */
 
-	/* exit(1); */
-    }
-retry3:
-    snprintf(buf, 128, SEM_NAME_WRITABLE_CHUNKS, new_tl->index);
-    int init_writable_chunks = proj->fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS / proj->chunk_size_sframes;
-    if ((new_tl->writable_chunks = sem_open(buf, O_CREAT | O_EXCL, 0666, init_writable_chunks)) == SEM_FAILED) {
-	if (errno != EEXIST) {
-	    perror("Error opening writable chunks sem");
-	}
-	sem_unlink(buf);
-	if (!retry) {
-	    goto retry3;
-	    retry = true;
-	} else {
-	    fprintf(stderr, "Fatal error: retry failed\n");
-	    exit(1);
-	}
-	/* exit(1); */
-    }
+/* 	/\* exit(1); *\/ */
+/*     } */
+/* retry3: */
+/*     snprintf(buf, 128, SEM_NAME_WRITABLE_CHUNKS, new_tl->index); */
+/*     int init_writable_chunks = proj->fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS / proj->chunk_size_sframes; */
+/*     if ((new_tl->writable_chunks = sem_open(buf, O_CREAT | O_EXCL, 0666, init_writable_chunks)) == SEM_FAILED) { */
+/* 	if (errno != EEXIST) { */
+/* 	    perror("Error opening writable chunks sem"); */
+/* 	} */
+/* 	sem_unlink(buf); */
+/* 	if (!retry) { */
+/* 	    goto retry3; */
+/* 	    retry = true; */
+/* 	} else { */
+/* 	    fprintf(stderr, "Fatal error: retry failed\n"); */
+/* 	    exit(1); */
+/* 	} */
+/* 	/\* exit(1); *\/ */
+/*     } */
     new_tl->needs_redraw = true;
     proj->timelines[proj->num_timelines] = new_tl;
     proj->num_timelines++;
@@ -315,8 +319,8 @@ static void timeline_destroy(Timeline *tl, bool displace_in_proj)
     /* if (tl->loop_play_lemniscate) textbox_destroy(tl->loop_play_lemniscate); */
 
     if (sem_close(tl->unpause_sem) != 0) perror("Sem close");
-    if (sem_close(tl->writable_chunks) != 0) perror("Sem close");
-    if (sem_close(tl->readable_chunks) != 0) perror("Sem close");
+    /* if (sem_close(tl->writable_chunks) != 0) perror("Sem close"); */
+    /* if (sem_close(tl->readable_chunks) != 0) perror("Sem close"); */
 
     char buf[128];
     snprintf(buf, 128, SEM_NAME_UNPAUSE, tl->index);

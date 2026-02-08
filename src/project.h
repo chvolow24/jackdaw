@@ -292,8 +292,11 @@ typedef struct timeline {
     float *buf_R;
     uint32_t buf_read_pos;
     uint32_t buf_write_pos;
-    sem_t *readable_chunks;
-    sem_t *writable_chunks;
+    _Atomic int readable_chunks;
+    int writable_small_chunks; /* Owned by audio thread */
+    _Atomic int writable_chunks;
+    /* sem_t *readable_chunks; */
+    /* sem_t *writable_chunks; */
     sem_t *unpause_sem;
     /* dsp_chunks_info records information about buffered fourier-length
        chunks, which is used in the playback callback to reset the playhead

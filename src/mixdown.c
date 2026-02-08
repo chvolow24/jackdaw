@@ -220,7 +220,7 @@ float get_track_channel_chunk(Track *track, float *chunk, uint8_t channel, int32
 	switch(track->midi_out_type) {
 	case MIDI_OUT_SYNTH: {
 	    Synth *synth = track->midi_out;
-	    synth_add_buf(synth, chunk, channel, output_chunk_len_sframes, step);
+	    synth_add_buf(synth, chunk, channel, output_chunk_len_sframes, step, false, 0);
 	    /* synth_add_buf(synth, chunk, channel, output_chunk_len_sframes, start_pos_sframes, false, step); */
 	    total_amp += 1.0;
 	}

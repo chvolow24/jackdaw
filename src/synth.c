@@ -16,6 +16,7 @@
 #include "log.h"
 #include "synth.h"
 #include "session.h"
+#include "time.h"
 #include "tmp.h"
 #include "user_event.h"
 
@@ -1949,7 +1950,9 @@ void synth_debug_summary(Synth *s, int channel, int32_t len, float step)
     }
 }
 
-void synth_add_buf(Synth *s, float *buf, int channel, int32_t len, float step)
+double timespec_elapsed_ms(const struct timespec *start, const struct timespec *end);
+
+void synth_add_buf(Synth *s, float *buf, int channel, int32_t len, float step, bool has_timeout, double timeout_after_msec)
 {
     /* synth_debug_summary(s, channel, len, step); */
     /* fprintf(stderr, "PED? %d\n", s->pedal_depressed); */
@@ -1966,11 +1969,35 @@ void synth_add_buf(Synth *s, float *buf, int channel, int32_t len, float step)
     }
     float internal_buf[len];
     memset(internal_buf, 0, sizeof(internal_buf));
+
+    bool timed_out = false;
+    struct timespec start, end;
+    if (has_timeout) {
+	clock_gettime(CLOCK_REALTIME, &start);
+    }
+    
     for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 	SynthVoice *v = s->voices + i;
-	synth_voice_add_buf(v, internal_buf, len, channel, step);
+	if (!timed_out) {
+	    synth_voice_add_buf(v, internal_buf, len, channel, step);
+	} else { /* silence voice */
+	    v->available = true;
+	    v->amp_env->current_stage = ADSR_OVERRUN;
+	}
+	if (has_timeout && !timed_out) {
+	    clock_gettime(CLOCK_REALTIME, &end);
+	    double elapsed_msec = timespec_elapsed_ms(&start, &end);
+	    /* fprintf(stderr, "Voice %d elapsed %f/%f\n", i, elapsed_msec, timeout_after_msec); */
+	    if (elapsed_msec > timeout_after_msec) {
+		timed_out = true;
+	    }
+	}
     }
-    effect_chain_buf_apply(&s->effect_chain, internal_buf, len, channel, 1.0);
+    if (!timed_out) {
+	effect_chain_buf_apply(&s->effect_chain, internal_buf, len, channel, 1.0);
+    } else {
+	effect_chain_silence(&s->effect_chain);
+    }
     /* float sum = 0.0f; */
     /* for (int i=0; i<len; i++) { */
     /* 	sum += fabs(internal_buf[i]); */
@@ -2028,8 +2055,8 @@ int32_t synth_make_notes(Synth *s, int *pitches, int *velocities, int num_pitche
 	    memset(buf_L + alloc_len / 2, '\0', alloc_len * sizeof(float) / 2);
 	    memset(buf_R + alloc_len / 2, '\0', alloc_len * sizeof(float) / 2);
 	}
-	synth_add_buf(s, buf_L + len, 0, incr_len, 1.0);
-	synth_add_buf(s, buf_R + len, 1, incr_len, 1.0);
+	synth_add_buf(s, buf_L + len, 0, incr_len, 1.0, false, 0);
+	synth_add_buf(s, buf_R + len, 1, incr_len, 1.0, false, 0);
 	len += incr_len;
 	
 	/* Quarter-second sustain time */

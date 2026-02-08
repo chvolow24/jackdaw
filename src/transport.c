@@ -340,8 +340,9 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 	if (fabs(playspeed) < 1e-6 || !session->playback.playing) playspeed = 1.0f;
 
 	timer_start();
-	synth_add_buf(s, chunk_L, 0, len_sframes, playspeed); /* TL Pos ignored */
-	synth_add_buf(s, chunk_R, 1, len_sframes, playspeed); /* TL Pos ignored */
+	double alloced_msec = 1000.0 * session->proj.chunk_size_sframes / session->proj.sample_rate;
+	synth_add_buf(s, chunk_L, 0, len_sframes, playspeed, true, alloced_msec / 2); /* TL Pos ignored */
+	synth_add_buf(s, chunk_R, 1, len_sframes, playspeed, true, alloced_msec / 2); /* TL Pos ignored */
 	timer_stop_and_print("Added synth bufs");
     }
 

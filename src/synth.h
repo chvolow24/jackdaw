@@ -91,6 +91,7 @@ typedef struct synth_voice {
     uint8_t note_val;
     bool do_portamento;
     uint8_t portamento_from;
+    uint8_t portamento_velocity_from;
 /* buf_len    float portamento_len_bufs; */
     int32_t portamento_len_sframes;
     int32_t portamento_elapsed_sframes;
@@ -255,11 +256,14 @@ typedef struct synth {
     Endpoint vol_ep;
     Endpoint pan_ep;
 
+    /* Pedal sustain */
     bool pedal_depressed;
-
     SynthVoice *deferred_offs[SYNTH_NUM_VOICES];
     uint8_t num_deferred_offs;
-    /* bool deferred_note_offs[128]; */
+
+    /* Controllers */
+    Endpoint *cc_targets[120];
+    Endpoint *aftertouch_target;
 
     IIRFilter dc_blocker; /* internal use only */
 

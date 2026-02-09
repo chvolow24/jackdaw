@@ -700,7 +700,6 @@ static void api_node_serialize_recursive(FILE *f, APINode *root, APINode *node)
 {
     char dst[255];
     api_node_get_route(node, dst, 255);
-    fprintf(stderr, "SERIALIZE ROOT: %s DNS? %d\n", dst, node->do_not_serialize);
     if (node->do_not_serialize) return;
     char buf[MAX_ROUTE_LEN];
     /* fprintf(stderr, "NODE %p, parent name? %s name %s, ep: %d, children: %d\n", node, node->parent->obj_name, node->obj_name, node->num_children, node->num_endpoints); */

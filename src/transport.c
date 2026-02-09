@@ -42,9 +42,14 @@
 #define JDAW_TRANSPORT_LOG_ALL
 #define JDAW_TRANSPORT_PRINT_ALL
 
-#ifdef TESTBUILD
+#define TRANSPORT_PERFORMANCE_LOG_TICKS_PER 10
 static bool transport_performance_logging = false;
+static int transport_performance_log_elapsed_ticks = 0;
+static double dur_proc = 0.0;
+static double dur_wait = 0.0;
 
+
+#ifdef TESTBUILD
 void toggle_transport_logging()
 {
     transport_performance_logging = !transport_performance_logging;
@@ -232,14 +237,10 @@ static void loc_queued_bufs_add(float *chunk_L, float *chunk_R, int len_sframes)
     }
 }
 
-const char *timestamp();
 void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 {
-    timer_start();
     Session *session = session_get();
     set_thread_id(JDAW_THREAD_PLAYBACK);
-    /* log_tmp(LOG_DEBUG, "pb cb enter. playing (%p)? %d; sesh play? %d; monitor? %d\n", user_data, ((AudioDevice *)user_data)->playing, session->playback.playing, session->midi_io.monitoring); */
-    /* fprintf(stderr, "(%s) pb cb enter. playing (%p)? %d; sesh play? %d; monitor? %d\n", timestamp(), user_data, ((AudioDevice *)user_data)->playing, session->playback.playing, session->midi_io.monitoring); */
 
     /* Take care of queued audio bufs */
     int err;
@@ -252,8 +253,6 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 	fprintf(stderr, "Error unlocking queued audio buf lock (in playback cb): %s\n", strerror(err));
     }
     if (!session->playback.playing && !session->midi_io.monitoring && queue_loc.num_queued == 0) {
-	/* log_tmp(LOG_DEBUG, "\t(zombie)\n"); */
-	/* fprintf(stderr, "PB zombie mode....\n"); */
 	memset(stream, '\0', len);
 	return;
     }
@@ -262,9 +261,6 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     Project *proj = &session->proj;
     Timeline *tl = ACTIVE_TL;
     AudioDevice *dev = (AudioDevice *)user_data;
-    /* log_tmp(LOG_DEBUG, "\trequest close on %p? %d\n", dev, dev->request_close); */
-    /* clock_gettime(CLOCK_MONOTONIC, &(conn->callback_time.ts)); */
-    /* conn->callback_time.timeline_pos = tl->play_pos_sframes + (tl->buf_read_pos % (proj->fourier_len_sframes / proj->chunk_size_sframes)); */
 
     memset(stream, '\0', len);
     uint32_t stream_len_samples = len / sizeof(int16_t);
@@ -273,22 +269,6 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     float chunk_R[len_sframes];
     memset(chunk_L, '\0', sizeof(chunk_L));
     memset(chunk_R, '\0', sizeof(chunk_L));
-
-    /* Shutdown the audio device */
-    /* bool log_fn_exit = false; */
-    /* if (sem_trywait(dev->request_close) == 0) { */
-    /* 	log_fn_exit = true; */
-    /* 	log_tmp(LOG_INFO, "Closing audio device \"%s\"\n", dev->name); */
-    /* 	log_tmp(LOG_DEBUG, "(will log when callback fn exits)\n"); */
-    /* 	/\* breakfn(); *\/ */
-    /* 	SDL_PauseAudioDevice(dev->id, 1); */
-    /* 	log_tmp(LOG_DEBUG, "Setting %p request close to false\n", dev); */
-    /* 	/\* fprintf(stderr, "SETTING %p request close to false! \n", dev); *\/ */
-    /* 	/\* dev->request_close = false; *\/ */
-    /* 	dev->playing = false; */
-    /* } */
-    timer_stop_and_print("PB callback set bufs nil");
-    timer_start();
     
     /* Gather data from timeline, generated in DSP threadfn */
     if (session->playback.playing) {
@@ -313,25 +293,17 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 	}
     }
 
-    timer_stop_and_print("Read mixdown buf");
-    
-
-
     /* transport_log("playback callback, cleared buffer..\n"); */
     /* Check for monitor synth and add buf to chunk_L and chunk_R */
     MIDIDevice *d = session->midi_io.monitor_device;
     Synth *s = session->midi_io.monitor_synth;
     if (d && s) {
-	timer_start();
 	midi_device_read(d);
-	timer_stop_and_print("Read mdevice");
-	timer_start();
 	float playspeed = session->playback.play_speed;
 	if (session->piano_roll) {
 	    piano_roll_feed_midi(d->buffer, d->num_unconsumed_events);
 	}
 	synth_feed_midi(s, d->buffer, d->num_unconsumed_events, 0, true);
-	timer_stop_and_print("Fed MIDI");
 	if (d->current_clip && d->current_clip->recording) {
 	    midi_device_output_chunk_to_clip(d, 1);
 	    d->current_clip->len_sframes += len_sframes;
@@ -339,11 +311,10 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 	d->num_unconsumed_events = 0;
 	if (fabs(playspeed) < 1e-6 || !session->playback.playing) playspeed = 1.0f;
 
-	timer_start();
-	double alloced_msec = 1000.0 * session->proj.chunk_size_sframes / session->proj.sample_rate;
-	synth_add_buf(s, chunk_L, 0, len_sframes, playspeed, true, alloced_msec / 2); /* TL Pos ignored */
-	synth_add_buf(s, chunk_R, 1, len_sframes, playspeed, true, alloced_msec / 2); /* TL Pos ignored */
-	timer_stop_and_print("Added synth bufs");
+	/* Why so long?? */
+	double alloced_msec = 0.5 * 1000.0 * session->proj.chunk_size_sframes / session->proj.sample_rate;
+	synth_add_buf(s, chunk_L, 0, len_sframes, playspeed, true, alloced_msec); /* TL Pos ignored */
+	synth_add_buf(s, chunk_R, 1, len_sframes, playspeed, true, alloced_msec); /* TL Pos ignored */
     }
 
     /* Check for queued bufs and add to chunk_L and chunk_R */
@@ -374,7 +345,7 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 	}
 	tl->needs_redraw = true;
     } else if (session->playback.playing) {
-	timer_start();
+	/* timer_start(); */
 	struct dsp_chunk_info *chunk_info = tl->dsp_chunks_info + tl->dsp_chunks_info_read_i;
 	chunk_info->elapsed_playback_chunks++;
 	int32_t new_play_pos = chunk_info->tl_start + proj->chunk_size_sframes * chunk_info->elapsed_playback_chunks * chunk_info->playspeed;
@@ -387,13 +358,13 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 	    }
 	}
 	sem_post(tl->writable_chunks);
-	timer_stop_and_print("Did playback_things");
+	/* timer_stop_and_print("Did playback_things"); */
     }
-    timer_start();
+    /* timer_start(); */
     session_do_ongoing_changes(session, JDAW_THREAD_PLAYBACK);
     session_flush_val_changes(session, JDAW_THREAD_PLAYBACK);
     session_flush_callbacks(session, JDAW_THREAD_PLAYBACK);
-    timer_stop_and_print("Did ongoing changes");
+    /* timer_stop_and_print("Did ongoing changes"); */
     /* transport_log("...done ongoing changes\n"); */
 
     if (dev->channel_dsts[0].conn->request_playhead_reset) {
@@ -455,9 +426,11 @@ static void *transport_dsp_thread_fn(void *arg)
 	/* Performance timer */
 	struct timespec tspec_start;
 	struct timespec tspec_end;
-	double dur_proc = 0.0;
-	double dur_wait = 0.0;
-	clock_gettime(CLOCK_REALTIME, &tspec_start);
+	/* double dur_proc = 0.0; */
+	/* double dur_wait = 0.0; */
+	if (transport_performance_logging) {
+	    clock_gettime(CLOCK_REALTIME, &tspec_start);
+	}
 
 	/* pthread_testcancel(); */
 	float play_speed = session->playback.play_speed;
@@ -489,18 +462,23 @@ static void *transport_dsp_thread_fn(void *arg)
 	get_magnitude(rfreq, tl->proj->output_R_freq, len);
 
 	/* End processing */
-	clock_gettime(CLOCK_REALTIME, &tspec_end);
-	dur_proc += timespec_elapsed_ms(&tspec_start, &tspec_end);
-	clock_gettime(CLOCK_REALTIME, &tspec_start);
+	if (transport_performance_logging) {
+	    clock_gettime(CLOCK_REALTIME, &tspec_end);
+	    dur_proc += timespec_elapsed_ms(&tspec_start, &tspec_end);
+	    clock_gettime(CLOCK_REALTIME, &tspec_start);
+	}
 
 	/* Copy buffer */
 	
 	for (int i=0; i<N; i++) {
 	    sem_wait(tl->writable_chunks);
 	}
-	clock_gettime(CLOCK_REALTIME, &tspec_end);
-	dur_wait += timespec_elapsed_ms(&tspec_start, &tspec_end);
-	clock_gettime(CLOCK_REALTIME, &tspec_start);
+
+	if (transport_performance_logging) {
+	    clock_gettime(CLOCK_REALTIME, &tspec_end);
+	    dur_wait += timespec_elapsed_ms(&tspec_start, &tspec_end);
+	    clock_gettime(CLOCK_REALTIME, &tspec_start);
+	}
 
 	memcpy(tl->buf_L + tl->buf_write_pos, buf_L, sizeof(float) * len);
 	memcpy(tl->buf_R + tl->buf_write_pos, buf_R, sizeof(float) * len);
@@ -569,15 +547,24 @@ static void *transport_dsp_thread_fn(void *arg)
 	session_flush_val_changes(session, JDAW_THREAD_DSP);
 	session_flush_callbacks(session, JDAW_THREAD_DSP);
 
-	clock_gettime(CLOCK_REALTIME, &tspec_end);
-	dur_proc += timespec_elapsed_ms(&tspec_start, &tspec_end);
+	if (transport_performance_logging) {
+	    clock_gettime(CLOCK_REALTIME, &tspec_end);
+	    dur_proc += timespec_elapsed_ms(&tspec_start, &tspec_end);
 
-	double alloced_msec = 1000.0 * (double)session->proj.fourier_len_sframes / session_get_sample_rate();
-	transport_log("TOTAL: %.2fms\t\t%.2fms (%.2f%%) proc\n\t%.2f ms (%.2f%%) wait\n\tstress: %.2f\n",
-		      dur_proc + dur_wait,
-		      dur_proc, 100 * dur_proc / alloced_msec,
-		      dur_wait, 100 * dur_wait / alloced_msec,
-		      dur_proc / alloced_msec);
+	    if (transport_performance_log_elapsed_ticks < TRANSPORT_PERFORMANCE_LOG_TICKS_PER) {
+		transport_performance_log_elapsed_ticks++;
+	    } else {
+		double alloced_msec = transport_performance_log_elapsed_ticks * 1000.0 * (double)session->proj.fourier_len_sframes / session_get_sample_rate();
+		transport_log("TOTAL: %.2fms\n\t%.2fms (%.2f%%) proc\n\t%.2f ms (%.2f%%) wait\n\tstress: %.2f\n",
+			      dur_proc + dur_wait,
+			      dur_proc, 100 * dur_proc / alloced_msec,
+			      dur_wait, 100 * dur_wait / alloced_msec,
+			      dur_proc / alloced_msec);
+		dur_proc = 0.0;
+		dur_wait = 0.0;
+		transport_performance_log_elapsed_ticks = 0;
+	    }
+	}
     }
     log_tmp(LOG_INFO, "DSP thread exit\n");
     sem_post(tl->unpause_sem);

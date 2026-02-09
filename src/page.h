@@ -311,6 +311,8 @@ const char *tabview_active_tab_title(TabView *tv);
 void tabview_tab_drag(TabView *tv);
 Page *tabview_select_tab(TabView *tv, int i);
 
+/* Checks main_win->active_tabview for selected slider, and returns bound endpoint */
+Endpoint *tabview_selected_endpoint();
 
 /* Page methods */
 

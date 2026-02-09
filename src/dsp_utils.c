@@ -11,7 +11,6 @@
 #include "consts.h"
 #include "dsp_utils.h"
 /* #include "endpoint_callbacks.h" */
-#include "project.h"
 #include "session.h"
 
 
@@ -267,3 +266,21 @@ float clip_float_sample(float f)
     if (f < -1.0) return -1.0;
     return f;
 }
+
+
+void make_ramp(double *restrict buf, int32_t len, double start, double end)
+{
+    double diff = end - start;
+    for (int32_t i=0; i<len; i++) {
+	buf[i] = start + ((double)i / len) * diff;
+    }
+}
+
+void make_rampf(float *buf, int32_t len, float start, float end)
+{
+    float diff = end - start;
+    for (int32_t i=0; i<len; i++) {
+	buf[i] = start + ((float)i / len) * diff;
+    }
+}
+

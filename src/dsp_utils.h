@@ -70,7 +70,7 @@ float db_to_amp(float db);
 
 float clip_float_sample(float f);
 
-
-
+void make_rampf(float *buf, int32_t len, float start, float end);
+void make_ramp(double *restrict buf, int32_t len, double start, double end);
 
 #endif

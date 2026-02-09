@@ -83,9 +83,6 @@ void session_flush_val_changes(Session *session, enum jdaw_thread thread)
 	struct queued_val_change *qvc = &session->queued_ops.queued_val_changes[thread][i];
 	Endpoint *ep = qvc->ep;	
 	/* Protected write */
-	if (strcmp(ep->local_id, "sustain") == 0) {
-	    fprintf(stderr, "\t\tVal change flush \"%s\", floatval %f\n", ep->local_id, qvc->new_val.float_v);
-	}
 	pthread_mutex_lock(&ep->val_lock);
 	jdaw_val_set_ptr(ep->val, ep->val_type, qvc->new_val);
 	pthread_mutex_unlock(&ep->val_lock);
@@ -100,7 +97,9 @@ void session_flush_val_changes(Session *session, enum jdaw_thread thread)
     pthread_mutex_unlock(&session->queued_ops.queued_val_changes_lock);
     for (int i=0; i<num_deferred; i++) {
 	int ret = session_queue_callback_internal(session, deferred_eps[i], deferred_cbs[i], deferred_threads[i], false);
-	
+	if (ret != 0) {
+	    log_tmp(LOG_ERROR, "Could not queue callback; return %d\n", ret);
+	}
     }
     num_deferred = 0;
 }

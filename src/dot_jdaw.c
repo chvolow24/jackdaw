@@ -1484,10 +1484,12 @@ static int jdaw_read_keyframe(FILE *f, Automation *a)
     return 0;
 }
 
+static bool first_segment = true;
 
 static int jdaw_read_click_segment(FILE *f, ClickTrack *ct, bool *more_segments);
 static int jdaw_read_click_track(FILE *f, Timeline *tl)
 {
+    first_segment = true;
     char hdr_buf[4];
     fread(hdr_buf, 1, 4, f);
     if (strncmp(hdr_buf, hdr_click, 4) != 0) {
@@ -1515,7 +1517,6 @@ static int jdaw_read_click_track(FILE *f, Timeline *tl)
     
 }
 
-static bool first_segment = true;
 
 static int jdaw_read_click_segment(FILE *f, ClickTrack *ct, bool *more_segments)
 {

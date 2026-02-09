@@ -177,6 +177,29 @@ Page *tabview_select_tab(TabView *tv, int i)
     return p;    
 }
 
+
+static PageEl *tabview_selected_el(TabView *tv)
+{
+    Page *sel_page = tv->tabs[tv->current_tab];
+    if (sel_page && sel_page->num_selectable > 0) {
+	return sel_page->selectable_els[sel_page->selected_i];
+    }
+    return NULL;
+}
+Endpoint *tabview_selected_endpoint()
+{
+    if (main_win->active_tabview) {
+	PageEl *el = tabview_selected_el(main_win->active_tabview);
+	switch (el->type) {
+	case EL_SLIDER:
+	    return ((Slider *)el->component)->ep;
+	default:
+	    break;
+	}
+    }
+    return NULL;
+}
+
 void tabview_destroy(TabView *tv)
 {
     for (uint8_t i=0; i<tv->num_tabs; i++) {

@@ -324,17 +324,6 @@ void midi_device_read(MIDIDevice *d)
     if (num_read < 0) {
 	fprintf(stderr, "Error: midi record error: %s\n", Pm_GetErrorText(num_read));
 	fprintf(stderr, "Args passed: device: %p, d->stream %p, d->buffer %p\n", d, d->stream, d->buffer);
-	Session *session = session_get();
-	for (int i=0; i<session->midi_io.num_inputs; i++) {
-	    MIDIDevice *dl = session->midi_io.inputs + i;
-	    fprintf(stderr, "INPUT %d/%d: %p, %s stream %p", i, session->midi_io.num_inputs, dl, dl->info->name, dl->stream);
-	    if (dl == d) {
-		fprintf(stderr, " <---\n");
-	    } else {
-		fprintf(stderr, "\n");
-	    }
-	}
-	/* exit(1); */
 	return;
     }
     d->num_unconsumed_events = num_read;

@@ -654,7 +654,7 @@ void loop_project_main()
 
     end_frame:
 
-	if (!session->playback.playing && frames_since_event >= IDLE_AFTER_N_FRAMES) {
+	if (!session->playback.playing && !session->midi_io.monitoring && frames_since_event >= IDLE_AFTER_N_FRAMES) {
 	    SDL_Delay(100);
 	} else {
 	    SDL_Delay(1);

@@ -12,6 +12,7 @@
 #include "iir.h"
 /* #include "test.h" */
 /* #include "modal.h" */
+#include "input.h"
 #include "label.h"
 #include "log.h"
 #include "synth.h"
@@ -1462,14 +1463,41 @@ static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int chan
 	}
 	/* buf[i] += osc_buf[i] * (float)v->velocity / 127.0f; */
     }
-    if (v->do_portamento && v->portamento_elapsed_sframes < v->portamento_len_sframes) {
+    float_buf_mult(osc_buf, amp_env, len);
+
+    int32_t p_len_remaining = 0;
+    if (v->do_portamento && (p_len_remaining = (v->portamento_len_sframes - v->portamento_elapsed_sframes) * step) > 0) {
+	float vel_ramp[len];
+	float abs_start = (float)v->portamento_velocity_from / 127.0f;
+	float abs_end = (float)v->velocity / 127.0f;
+	float m = abs_end - abs_start;
+	int32_t p_len = p_len_remaining > len * step ? len * step : p_len_remaining;
+	int32_t ramp_len;
+	if (p_len_remaining > len * step) {
+	    ramp_len = len;
+	} else {
+	    ramp_len = p_len / step;
+	}
+	float start = abs_start + ((double)v->portamento_elapsed_sframes / v->portamento_len_sframes) * m;
+	float end = abs_start + (((double)v->portamento_elapsed_sframes + p_len) / v->portamento_len_sframes) * m;
+	make_rampf(vel_ramp, ramp_len, start, end);
+	/* fprintf(stderr, "VEl ramp %f->%f\n", start, end); */
+	float_buf_mult(osc_buf, vel_ramp, ramp_len);
+	if (ramp_len < len) {
+	    float_buf_mult_const(osc_buf + ramp_len, end, len - ramp_len);
+	}
+    } else {
+	float_buf_mult_const(osc_buf, (float)v->velocity / 127.0f, len);
+    }
+
+    if (p_len_remaining > 0) {
+    /* if (v->do_portamento && v->portamento_elapsed_sframes < v->portamento_len_sframes) { */
 	v->portamento_elapsed_sframes += len * step;
 	if (v->portamento_elapsed_sframes > v->portamento_len_sframes)
 	    v->portamento_elapsed_sframes = v->portamento_len_sframes;
     }
 
-    float_buf_mult(osc_buf, amp_env, len);
-    float_buf_mult_const(osc_buf, (float)v->velocity / 127.0f, len);
+
     float_buf_add(buf, osc_buf, len);
 }
 
@@ -1572,6 +1600,7 @@ static void synth_voice_assign_note(SynthVoice *v, double note, int velocity, in
 	    }
 	}
     }
+    v->portamento_velocity_from = v->velocity;
     v->velocity = velocity;
     v->available = false;
 
@@ -1749,7 +1778,14 @@ void synth_voice_start_release(SynthVoice *v, int32_t after)
     adsr_start_release(v->filter_env + 1, after);
     adsr_start_release(v->noise_amt_env, after);
     adsr_start_release(v->noise_amt_env + 1, after);
-}    
+}
+
+static Value endpoint_val_from_midi(Endpoint *ep, int midi_val)
+{
+    Value range = jdaw_val_sub(ep->max, ep->min, ep->val_type);
+    Value scaled = jdaw_val_scale(range, (double)midi_val / 127, ep->val_type);
+    return jdaw_val_add(ep->min, scaled, ep->val_type);
+}
 
 void synth_feed_midi(
     Synth *s,
@@ -1899,23 +1935,49 @@ void synth_feed_midi(
 	    uint8_t type = Pm_MessageData1(e.message);
 	    uint8_t value = Pm_MessageData2(e.message);
 	    /* MIDICC cc = midi_cc_from_event(&e, 0); */
-	    /* fprintf(stderr, "REC'd contrl change type %d val %d\n", cc.type, cc.value); */
+	    /* fprintf(stderr, "REC'd contrl change type %d val %d\n", type, value); */
 	    if (type == 64) {
 		s->pedal_depressed = value >= 64;
 		if (!s->pedal_depressed) {
 		    int32_t end_rel = send_immediate ? 0 : e.timestamp - tl_start;
 		    for (int i=0; i<s->num_deferred_offs; i++) {
 			synth_voice_start_release(s->deferred_offs[i], end_rel);
-			/* fprintf(stderr, "----RElease Voice %ld\n", s->deferred_offs[i] - s->voices); */
 			s->deferred_offs[i]->note_off_deferred = false;
 			s->deferred_offs[i] = NULL;
-			/* adsr_start_release(s->deferred_offs[i], end_rel); */
 		    }
 		    s->num_deferred_offs = 0;
 		}
-		/* fprintf(stderr, "DEPR? %d\n", s->pedal_depressed); */
+	    } else {
+		if (s->cc_targets[type]) {
+		    if (main_win->i_state & I_STATE_META) {
+			s->cc_targets[type] = NULL;
+		    } else {
+			Endpoint *ep = s->cc_targets[type];
+			endpoint_write(ep, endpoint_val_from_midi(ep, value), true, true, true, false);
+
+			/* endpoint_write( */		    }
+		} else {
+		    Endpoint *ep = tabview_selected_endpoint();
+		    s->cc_targets[type] = ep;
+		    if (ep) {
+			endpoint_write(ep, endpoint_val_from_midi(ep, value), true, true, true, false);
+		    }
+		}
 	    }
 
+	} else if (msg_type == 0xD) {
+	    uint8_t value = Pm_MessageData1(e.message);
+	    if (main_win->i_state & I_STATE_CMDCTRL) {
+		Endpoint *ep = tabview_selected_endpoint();
+		if (ep) {
+		    s->aftertouch_target = ep;
+		    endpoint_write(ep, endpoint_val_from_midi(ep, value), true, true, true, false);
+		}
+	    } else if (main_win->i_state & I_STATE_META) {
+		s->aftertouch_target = NULL;
+	    } else if (s->aftertouch_target) {
+		endpoint_write(s->aftertouch_target, endpoint_val_from_midi(s->aftertouch_target, value), true, true, true, false);
+	    }	    
 	}
     }
 }
@@ -1973,7 +2035,7 @@ void synth_add_buf(Synth *s, float *buf, int channel, int32_t len, float step, b
     bool timed_out = false;
     struct timespec start, end;
     if (has_timeout) {
-	clock_gettime(CLOCK_REALTIME, &start);
+	clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start);
     }
     
     for (int i=0; i<SYNTH_NUM_VOICES; i++) {
@@ -1985,19 +2047,19 @@ void synth_add_buf(Synth *s, float *buf, int channel, int32_t len, float step, b
 	    v->amp_env->current_stage = ADSR_OVERRUN;
 	}
 	if (has_timeout && !timed_out) {
-	    clock_gettime(CLOCK_REALTIME, &end);
+	    clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end);
 	    double elapsed_msec = timespec_elapsed_ms(&start, &end);
-	    /* fprintf(stderr, "Voice %d elapsed %f/%f\n", i, elapsed_msec, timeout_after_msec); */
 	    if (elapsed_msec > timeout_after_msec) {
+		log_tmp(LOG_WARN, "Synth timed out on voice %d (%f/%f ms)\n", i, elapsed_msec, timeout_after_msec);
 		timed_out = true;
 	    }
 	}
     }
-    if (!timed_out) {
+    /* if (!timed_out) { */
 	effect_chain_buf_apply(&s->effect_chain, internal_buf, len, channel, 1.0);
-    } else {
-	effect_chain_silence(&s->effect_chain);
-    }
+    /* } else { */
+	/* effect_chain_silence(&s->effect_chain); */
+    /* } */
     /* float sum = 0.0f; */
     /* for (int i=0; i<len; i++) { */
     /* 	sum += fabs(internal_buf[i]); */

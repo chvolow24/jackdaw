@@ -1263,6 +1263,7 @@ void midi_clipref_cache_grabbed_note_info(ClipRef *cr)
 
 struct quantize_undo_info {
     uint32_t note_id;
+    /* ClickSegment old_segment; */
     struct note_quantize_info old_info;
     struct note_quantize_info new_info;
 };
@@ -1270,10 +1271,10 @@ struct quantize_undo_info {
 /* Set note positions based on quantize info (and parent clipref) */
 static void note_apply_quantize_amt(ClipRef *cr, Note *note)
 {
-    int32_t tl_pos_orig = click_track_pos_to_tl_pos(&note->quantize_info.orig_start_pos);    
+    int32_t tl_pos_orig = click_track_pos_to_tl_pos(&note->quantize_info.unquantized_start_pos);    
     if (!note->quantize_info.quantized) {
 	note->start_rel = tl_pos_orig - cr->tl_pos + cr->start_in_clip;
-	tl_pos_orig = click_track_pos_to_tl_pos(&note->quantize_info.orig_end_pos);
+	tl_pos_orig = click_track_pos_to_tl_pos(&note->quantize_info.unquantized_end_pos);
 	note->end_rel = tl_pos_orig - cr->tl_pos + cr->start_in_clip;
 	return;
     }
@@ -1282,13 +1283,13 @@ static void note_apply_quantize_amt(ClipRef *cr, Note *note)
     int32_t dst_tl_pos = tl_pos_orig + diff * note->quantize_info.amt;
     note->start_rel = dst_tl_pos - cr->tl_pos + cr->start_in_clip;
     if (note->quantize_info.quantize_note_off) {
-	tl_pos_orig = click_track_pos_to_tl_pos(&note->quantize_info.orig_end_pos);
+	tl_pos_orig = click_track_pos_to_tl_pos(&note->quantize_info.unquantized_end_pos);
 	tl_pos_quantized = click_track_pos_to_tl_pos(&note->quantize_info.quantized_end_pos);
 	diff = tl_pos_quantized - tl_pos_orig;
 	dst_tl_pos = tl_pos_orig + diff * note->quantize_info.amt;
 	note->end_rel = dst_tl_pos - cr->tl_pos + cr->start_in_clip;
     } else {
-	tl_pos_orig = click_track_pos_to_tl_pos(&note->quantize_info.orig_end_pos);
+	tl_pos_orig = click_track_pos_to_tl_pos(&note->quantize_info.unquantized_end_pos);
 	dst_tl_pos = tl_pos_orig + diff * note->quantize_info.amt;
 	note->end_rel = dst_tl_pos - cr->tl_pos + cr->start_in_clip;	
     }
@@ -1301,8 +1302,9 @@ NEW_EVENT_FN(undo_quantize_notes, "undo quantize notes")
     int32_t num_notes = val1.int32_v;
     for (int32_t i=0; i<num_notes; i++) {
 	Note *note = mclip->notes + midi_clip_get_note_by_id(cr->source_clip, info[i].note_id);
-	note->quantize_info = info[i].old_info;
+	note->quantize_info.amt = 0;
 	note_apply_quantize_amt(cr, note);
+	note->quantize_info = info[i].old_info;
     }
     midi_clip_resort_notes(mclip);
     cr->track->tl->needs_redraw = true;
@@ -1330,15 +1332,23 @@ static void midi_clipref_quantize_notes(ClipRef *cr, Note **notes, int num, Clic
     struct quantize_undo_info *undo_info = malloc(sizeof(struct quantize_undo_info) * num);
     for (int i=0; i<num; i++) {
 	undo_info[i].note_id = notes[i]->id;
-	notes[i]->quantize_info.orig_start_pos = click_track_get_pos(ct, note_tl_start_pos(notes[i], cr));
-	notes[i]->quantize_info.orig_end_pos = click_track_get_pos(ct, note_tl_end_pos(notes[i], cr));
 	undo_info[i].old_info = notes[i]->quantize_info;
+	
+	notes[i]->quantize_info.unquantized_start_pos = click_track_get_pos(ct, note_tl_start_pos(notes[i], cr));
+	notes[i]->quantize_info.unquantized_end_pos = click_track_get_pos(ct, note_tl_end_pos(notes[i], cr));
+
+	/* if (notes[i]->quantize_info.orig_start_pos.seg) { */
+	/*     memcpy(&undo_info[i].old_segment, notes[i]->quantize_info.orig_start_pos.seg, sizeof(ClickSegment)); */
+	/* } else { */
+	/*     undo_info[i].old_segment.click_track = NULL; */
+	/* } */
+
 	notes[i]->quantize_info.amt = amount;
 	notes[i]->quantize_info.quantized = true;
-	ClickTrackPos quantized_start = click_track_pos_round(notes[i]->quantize_info.orig_start_pos, resolution);
+	ClickTrackPos quantized_start = click_track_pos_round(notes[i]->quantize_info.unquantized_start_pos, resolution);
 	notes[i]->quantize_info.quantized_start_pos = quantized_start;
 	if ((notes[i]->quantize_info.quantize_note_off = quantize_note_offs)) {
-	    ClickTrackPos quantized_end = click_track_pos_round(notes[i]->quantize_info.orig_end_pos, resolution);
+	    ClickTrackPos quantized_end = click_track_pos_round(notes[i]->quantize_info.unquantized_end_pos, resolution);
 	    if (memcmp(&quantized_start, &quantized_end, sizeof(ClickTrackPos)) == 0) {
 		quantized_end = click_track_pos_do_increment(quantized_end, resolution);
 	    }

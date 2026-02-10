@@ -168,12 +168,12 @@ void log_printall()
     qsort(lines, num_lines, sizeof(char *), line_cmp);
 
     for (int i=0; i<num_lines; i++) {
-	fprintf(stderr, "%s", lines[i]);
+	fprintf(stdout, "%s", lines[i]);
 	free(lines[i]);
     }
     free(lines);
 
-    fprintf(stderr, "... done printing %d lines\n", num_lines);    
+    fprintf(stdout, "... done printing %d lines\n", num_lines);    
 }
 
 

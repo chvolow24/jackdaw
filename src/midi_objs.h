@@ -32,10 +32,10 @@ typedef enum note_edge {
 
 struct note_quantize_info {
     bool quantized;
-    ClickTrackPos orig_start_pos;
+    ClickTrackPos unquantized_start_pos;
     ClickTrackPos quantized_start_pos;
     bool quantize_note_off;
-    ClickTrackPos orig_end_pos;
+    ClickTrackPos unquantized_end_pos;
     ClickTrackPos quantized_end_pos;
     float amt;
     /* int32_t start_rel_before; /\* original note pos *\/ */

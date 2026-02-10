@@ -1578,13 +1578,13 @@ void mode_load_piano_roll()
 
     fn = create_user_fn(
 	"piano_roll_next_note",
-	"Go to next note",
+	"Go to next note boundary",
 	user_piano_roll_next_note);
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
 	"piano_roll_prev_note",
-	"Go to previous note",
+	"Go to previous note boundary",
 	user_piano_roll_prev_note);
     mode_subcat_add_fn(sc, fn);
 

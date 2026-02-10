@@ -61,8 +61,8 @@ int session_queue_val_change(Session *session, Endpoint *ep, Value new_val, bool
     return 0;
 }
 
-
-static JDAW_THREAD_LOCAL int MAX_DEFERRED = 256;
+#define MAX_DEFERRED 256
+/* static JDAW_THREAD_LOCAL int MAX_DEFERRED = 256; */
 static JDAW_THREAD_LOCAL int num_deferred = 0;
 static JDAW_THREAD_LOCAL Endpoint *deferred_eps[256];
 static JDAW_THREAD_LOCAL EndptCb deferred_cbs[256];

@@ -2144,7 +2144,6 @@ int32_t synth_make_notes(Synth *s, int *pitches, int *velocities, int num_pitche
 
 void synth_close_all_notes(Synth *s)
 {
-    /* fprintf(stderr, "CLOSE ALL NOTES\n"); */
     for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 	SynthVoice *v = s->voices + i;
 	synth_voice_pitch_bend(v, 0.0);

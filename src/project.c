@@ -679,8 +679,7 @@ Track *timeline_add_track_with_name(Timeline *tl, const char *track_name, int at
 {
     if (tl->num_tracks == MAX_TRACKS) return NULL;
     Track *track = calloc(1, sizeof(Track));
-    tl->tracks[tl->num_tracks] = track;
-    track->tl_rank = tl->num_tracks++;
+    track->tl_rank = tl->num_tracks;
     track->tl = tl;
     strncpy(track->name, track_name, MAX_NAMELENGTH);
 
@@ -705,7 +704,6 @@ Track *timeline_add_track_with_name(Timeline *tl, const char *track_name, int at
     /* } */
 
     midi_event_ring_buf_init(&track->note_offs);
-   
     api_node_register(&track->api_node, &track->tl->api_node, track->name, NULL);
         
     endpoint_init(
@@ -991,10 +989,13 @@ Track *timeline_add_track_with_name(Timeline *tl, const char *track_name, int at
     track->console_rect = &(layout_get_child_by_name_recursive(track->inner_layout, "track_console")->rect);
     track->colorbar = &(layout_get_child_by_name_recursive(track->inner_layout, "colorbar")->rect);
 
+    tl->tracks[tl->num_tracks] = track;
+    tl->num_tracks++;
 
     track_reset_full(track);
     if (tl->layout_selector < 0) tl->layout_selector = 0;    
     timeline_rectify_track_indices(tl);
+
 
     /* api_endpoint_register(&track->saturation.gain_ep, &track->saturation.track->api_node); */
     return track;
@@ -1752,6 +1753,7 @@ bool timeline_check_set_midi_monitoring()
     }
 
     if (track && /*track->input_type == MIDI_DEVICE && */ track->midi_out && track->midi_out_type == MIDI_OUT_SYNTH) {
+	Synth *old_synth = session->midi_io.monitor_synth;
 	session->midi_io.monitor_synth = track->midi_out;
 	if (session->midi_qwerty) {
 	    session->midi_io.monitor_device = session->midi_io.midi_qwerty;
@@ -1783,11 +1785,20 @@ bool timeline_check_set_midi_monitoring()
 
 	/* Clear notes in synth if present */
 	Synth *synth = session->midi_io.monitor_synth;
-	
-	pthread_mutex_lock(&synth->audio_proc_lock);
-	synth_close_all_notes(synth);
-	api_node_set_owner(&track->synth->api_node, JDAW_THREAD_PLAYBACK);
-	pthread_mutex_unlock(&synth->audio_proc_lock);
+	if (!was_monitoring || old_synth != synth) {
+	    fprintf(stderr, "Clearing current synth...\n");
+	    pthread_mutex_lock(&synth->audio_proc_lock);
+	    synth_close_all_notes(synth);
+	    api_node_set_owner(&track->synth->api_node, JDAW_THREAD_PLAYBACK);
+	    pthread_mutex_unlock(&synth->audio_proc_lock);
+	}
+	if (was_monitoring && old_synth && old_synth != synth) {
+	    fprintf(stderr, "Clearing OLD synth...\n");
+	    pthread_mutex_lock(&old_synth->audio_proc_lock);
+	    synth_close_all_notes(old_synth);
+	    api_node_set_owner(&old_synth->api_node, JDAW_THREAD_PLAYBACK);
+	    pthread_mutex_unlock(&old_synth->audio_proc_lock);	    
+	}
 	
 	audioconn_start_playback(session->audio_io.playback_conn);
 	session->midi_io.monitoring = true;
@@ -1804,7 +1815,7 @@ bool timeline_check_set_midi_monitoring()
 	if (!session->playback.playing) {
 	    audioconn_stop_playback(session->audio_io.playback_conn);
 	}
-	if (track && track->synth) {
+	if (track && track->synth && was_monitoring) {
 	    pthread_mutex_lock(&track->synth->audio_proc_lock);
 	    synth_close_all_notes(track->synth);
 	    api_node_set_owner(&track->synth->api_node, JDAW_THREAD_DSP);

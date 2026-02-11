@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "clipref.h"
+#include "log.h"
 #include "midi_clip.h"
 #include "midi_io.h"
 #include "midi_objs.h"
@@ -261,7 +262,7 @@ static MIDIChunkType get_chunk_data(FILE *f, uint32_t *len)
 	t = MIDI_CHUNK_TRCK;
     } else {
 	hdr[4] = '\0';
-	fprintf(stderr, "Unknown hdr: %s\n", hdr);
+	/* fprintf(stderr, "Unknown hdr: %s\n", hdr); */
     }
     *len = get_32(f);
     return t;
@@ -295,7 +296,7 @@ static int8_t decode_smpte_fps(uint8_t raw)
 static void get_midi_hdr(FILE *f)
 {
     file_info.format = get_16(f);
-    fprintf(stderr, "MIDI FILE FORMAT: %d\n", file_info.format);
+    log_tmp(LOG_DEBUG, "MIDI FILE FORMAT: %d\n", file_info.format);
     file_info.num_tracks = get_16(f);
     uint16_t division = get_16(f);
     file_info.division_raw = division;
@@ -312,14 +313,15 @@ static void get_midi_hdr(FILE *f)
 	uint8_t smpte_byte = rest >> 8;
 	file_info.division_fmt.smpte_fmt = decode_smpte_fps(smpte_byte);
 	file_info.division_fmt.ticks_per_frame = rest & 0xFF;
-	fprintf(stderr, "Division fmt ticks per frame: %d\n", file_info.division_fmt.ticks_per_frame);
+	/* fprintf(stderr, "Division fmt ticks per frame: %d\n", file_info.division_fmt.ticks_per_frame); */
     }
 }
 
 /* Assumes already read "MTrk" and length value */
 static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mclips, int num_clips, int32_t tl_start_pos)
 {
-    fprintf(stderr, "\n\n\n");
+    /* fprintf(stderr, "\n\n\n"); */
+    log_tmp(LOG_DEBUG, "MIDI file: read track...\n");
     uint32_t num_note_ons[16] = {0};
     uint32_t num_note_offs[16] = {0};
     uint64_t running_ts = 0;
@@ -338,7 +340,7 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 	static uint8_t prev_status;
     done_get_status:
 	(void)0;
-	fprintf(stderr, "\t\tEvent status %x, rem len: %d, running_ts: %llu\n", status, len, running_ts);
+	/* fprintf(stderr, "\t\tEvent status %x, rem len: %d, running_ts: %llu\n", status, len, running_ts); */
 	uint8_t channel = status & 0x0F;
 	if (status == 0xFF) { /* META EVENT */
 	    uint8_t type = fgetc(f);
@@ -347,19 +349,18 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 	    switch (type) {
 	    case 0x00: {
 		uint16_t sequence_number = get_16(f);
-		fprintf(stderr, "Sequence number: %d\n", sequence_number);
+		log_tmp(LOG_ERROR, "MIDI file Sequence number: %d\n", sequence_number);
 	    }
-		break;
 	    case 0x01:		
 		fread(buf, 1, length, f);
 		buf[length] = '\0';
-		fprintf(stderr, "Text event: \"%s\"\n", buf);
+		/* fprintf(stderr, "Text event: \"%s\"\n", buf); */
 		if (channel_name_index >= num_clips) break;
 		strncpy(mclips[channel_name_index]->name, buf, length + 1);
 		channel_name_index++;
 		break;
 	    case 0x02:
-		fprintf(stderr, "Copyright notice\n");
+		/* fprintf(stderr, "Copyright notice\n"); */
 		break;
 	    case 0x03:
 		fread(buf, 1, length, f);
@@ -367,13 +368,13 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 		uint8_t clip_index = file_info.format == 0 ? channel : track_index - 1;
 		if (clip_index > 0 && clip_index < num_clips) {
 		    mclips[clip_index]->midi_track_name = strndup(buf, MAX_NAMELENGTH);
-		    fprintf(stderr, "ASSIGNING Track name to clip index %d: \"%s\"\n", clip_index, buf);
+		    /* fprintf(stderr, "ASSIGNING Track name to clip index %d: \"%s\"\n", clip_index, buf); */
 		}
 		break;
 	    case 0x04: {
 		fread(buf, 1, length, f);
 		buf[length] = '\0';
-		fprintf(stderr, "Instrument name: \"%s\"\n", buf);
+		/* fprintf(stderr, "Instrument name: \"%s\"\n", buf); */
 		/* char buf2[length + 3]; */
 		/* memcpy(buf2, buf + 3, length); */
 		/* buf2[0] = ' '; */
@@ -383,19 +384,19 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 	    }
 		break;
 	    case 0x20: {
-		uint16_t channel_prefix = get_16(f);
-		fprintf(stderr, "Channel prefix: %d\n", channel_prefix);
+               uint16_t channel_prefix = get_16(f);
+               log_tmp(LOG_DEBUG, "MIDI file: Channel prefix: %d\n", channel_prefix);
 	    }
 		break;
 	    case 0x2F: {
-		fprintf(stderr, "END OF TRACK\n");
+		/* fprintf(stderr, "END OF TRACK\n"); */
 		track_ended = true;
 	    }
 		break;
 	    case 0x51: {
 		uint32_t tempo_us_per_quarter = get_24(f);
 		double bpm = 1000000.0 * 60.0 / (double)tempo_us_per_quarter;
-		fprintf(stderr, "BPM: %f\n", bpm);
+		/* fprintf(stderr, "BPM: %f\n", bpm); */
 		ClickSegment *cs = click_track_cut_at(click_track, e.timestamp + tl_start_pos);
 		if (!cs) cs = click_track_get_segment_at_pos(click_track, e.timestamp + tl_start_pos);
 		uint8_t subdivs[4] = {4, 4, 4, 4};
@@ -404,7 +405,7 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 		double us_per_tick = (double)tempo_us_per_quarter / (double)file_info.division_fmt.ticks_per_quarter;
 		double frames_per_tic = us_per_tick * session_get_sample_rate() / 1000000.0;
 		file_info.division_fmt.sample_frames_per_division = frames_per_tic;
-		fprintf(stderr, "US_PER_QUARTER: %u, FRAMES PER TICK: %f\n", tempo_us_per_quarter, frames_per_tic);
+		/* fprintf(stderr, "US_PER_QUARTER: %u, FRAMES PER TICK: %f\n", tempo_us_per_quarter, frames_per_tic); */
 		/* exit(0); */
 	    }
 		break;
@@ -413,13 +414,13 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 		uint8_t denom = fgetc(f);
 		uint8_t midi_clocks_per_click = fgetc(f);
 		uint8_t thirty_second_notes_per_clock = fgetc(f);
-		fprintf(stderr, "TIME SIG: %d/%d, %d; %d\n", num, denom, midi_clocks_per_click, thirty_second_notes_per_clock);
+		log_tmp(LOG_DEBUG, "MIDI file time sig: %d/%d, %d; %d\n", num, denom, midi_clocks_per_click, thirty_second_notes_per_clock);
 	    }
 		break;
 	    case 0x59: {
 		int8_t sf = fgetc(f);
 		uint8_t mi = fgetc(f);
-		fprintf(stderr, "KEY SIG: %d %s, %s\n ", abs(sf), sf < 0 ? "flats" : "sharps", mi ? "(minor)" : "(major)");			
+		log_tmp(LOG_DEBUG, "MIDI file key sig: %d %s, %s\n ", abs(sf), sf < 0 ? "flats" : "sharps", mi ? "(minor)" : "(major)");
 	    }
 		break;
 	    default:
@@ -433,7 +434,7 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 	    uint8_t note = fgetc(f);
 	    uint8_t velocity = fgetc(f);
 	    if (channel == 3) {
-		fprintf(stderr, "(%d) NOTE OFF (%d, vel %d)\n", e.timestamp, note, velocity);
+		/* fprintf(stderr, "(%d) NOTE OFF (%d, vel %d)\n", e.timestamp, note, velocity); */
 	    }
 	    num_note_offs[channel]++;
 	    uint8_t clip_index = file_info.format == 0 ? channel : track_index - 1;
@@ -459,9 +460,9 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 	    uint8_t note = fgetc(f);
 	    uint8_t velocity = fgetc(f);
 	    if (channel == 3) {
-		fprintf(stderr, "(%d) NOTE ON (%d)\n", e.timestamp, note);
+		/* fprintf(stderr, "(%d) NOTE ON (%d)\n", e.timestamp, note); */
 		if (velocity == 0) {
-		    fprintf(stderr, "\t\t(go note off)\n");
+		    /* fprintf(stderr, "\t\t(go note off)\n"); */
 		}
 	    }
 	    if (velocity == 0) { /* Actually a note off */
@@ -519,7 +520,7 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 		uint8_t data1 = fgetc(f);
 		uint8_t data2 = fgetc(f);
 		if (data1 == 0) {
-		    fprintf(stderr, "(%llu) BANK SELECT channel %d DATA: %d\n", running_ts, channel, data2);
+		    log_tmp(LOG_DEBUG, "MIDI file: (%llu) BANK SELECT channel %d DATA: %d\n", running_ts, channel, data2);
 		}
 		len -= 2;
 	    }
@@ -557,10 +558,10 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 			/* if (channel_instruments_index < 16) { */
 			channel_instruments[channel] = pc_data;
 			    /* channel;_instruments_index++; */
-			fprintf(stderr, "\tPRGRM CHNGE channel %d, data %d, instrument %s\n", channel, pc_data, MIDI_PC_INSTRUMENT_NAMES[pc_data]);
+			/* fprintf(stderr, "\tPRGRM CHNGE channel %d, data %d, instrument %s\n", channel, pc_data, MIDI_PC_INSTRUMENT_NAMES[pc_data]); */
 		    }
 		} else {
-		    fprintf(stderr, "UNKNOWN PROGRAM CHANGE: %d\n", pc_data);
+		    /* fprintf(stderr, "UNKNOWN PROGRAM CHANGE: %d\n", pc_data); */
 		}
 		len--;
 	    }
@@ -577,7 +578,7 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 		sysex_text[length] = '\0';
 		/* fseek(f, length, SEEK_CUR); */
 		len -= (length + num_bytes);
-		fprintf(stderr, "\t\tSYSEX HANDLED, length? %d; message: \"%s\"\n", length, sysex_text);
+		/* fprintf(stderr, "\t\tSYSEX HANDLED, length? %d; message: \"%s\"\n", length, sysex_text); */
 		free(sysex_text);
 	    }
 		break;
@@ -590,7 +591,7 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 		    goto done_get_status;
 		    continue;
 		} else {
-		    fprintf(stderr, "UNHANDLED status byte %x\n", status & 0xF);
+		    /* fprintf(stderr, "UNHANDLED status byte %x\n", status & 0xF); */
 		}
 		break;
 	    }
@@ -599,12 +600,12 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 	prev_status = status;
     }
     if (len != 0) {
-	fprintf(stderr, "Error: an unknown error occurred parsing the MIDI file.\n");
+	log_tmp(LOG_ERROR, "MIDI file: unknown parsing error.\n");
     }
-    fprintf(stderr, "TRACK index %d summary:\n", track_index);
-    for (int i=0; i<16; i++) {
-	fprintf(stderr, "\tchannel %d (%s) ON: %d OFF: %d\n", i, MIDI_PC_INSTRUMENT_NAMES[channel_instruments[i]], num_note_ons[i], num_note_offs[i]);
-    }
+    log_tmp(LOG_DEBUG, "MIDI file: track index %d summary:\n", track_index);
+     for (int i=0; i<16; i++) {
+	 log_tmp(LOG_DEBUG, "\tchannel %d (%s) ON: %d OFF: %d\n", i, MIDI_PC_INSTRUMENT_NAMES[channel_instruments[i]], num_note_ons[i], num_note_offs[i]);
+     }
 }
 
 int midi_file_open(const char *filepath, bool automatically_add_tracks)//, MIDIClip **mclips)
@@ -712,7 +713,7 @@ int midi_file_open(const char *filepath, bool automatically_add_tracks)//, MIDIC
     
     do {
 	t = get_chunk_data(f, &len);
-	fprintf(stderr, "Chunk of type %d, len %d\n", t, len);
+	/* fprintf(stderr, "Chunk of type %d, len %d\n", t, len); */
 	if (t == MIDI_CHUNK_HDR) {
 	    fprintf(stderr, "Error: unable to parse MIDI file \"%s\": multiple heaader chunks present\n", filepath);
 	    free(v_device);

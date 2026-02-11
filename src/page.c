@@ -574,6 +574,7 @@ PageEl *page_add_el(
     const char *layout_name)
 {
     PageEl *el = calloc(1, sizeof(PageEl));
+    el->page = page;
     el->id = strdup(id);
     el->type = type;
     if (layout_name) {
@@ -665,11 +666,23 @@ static bool page_element_mouse_motion(PageEl *el, Window *win)
     return true;
 }
 
+static void page_select_el(Page *page, PageEl *el)
+{
+    for (int i=0; i<page->num_selectable; i++) {
+	PageEl *test = page->selectable_els[i];
+	if (test == el) {
+	    page->selected_i = i;
+	}
+    }
+}
+
 static bool page_element_mouse_click(PageEl *el, Window *win)
 {
     if (!SDL_PointInRect(&win->mousep, &el->layout->rect)) {
 	return false;
     }
+    page_select_el(el->page, el);
+		
     switch (el->type) {
     case EL_TEXTAREA:
 	break;
@@ -963,7 +976,7 @@ void page_draw(Page *page)
 	if (page->selected_i >= 0 && page->elements[i] == page->selectable_els[page->selected_i]) {
 	    SDL_SetRenderDrawColor(page->win->rend, 255, 200, 10, 255);
 	    SDL_Rect r = page->elements[i]->layout->rect;
-	    geom_draw_rect_thick(page->win->rend, &r, 2 * page->win->dpi_scale_factor);
+	    geom_draw_rect_thick(page->win->rend, &r, 1 * page->win->dpi_scale_factor);
 	}
     }
     /* if (strcmp(page->title, "Oscillators") == 0) { */

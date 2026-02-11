@@ -67,6 +67,7 @@ typedef struct page_element {
     PageElType type;
     void *component;
     Layout *layout;
+    Page *page;
 } PageEl;
 
 typedef struct page {

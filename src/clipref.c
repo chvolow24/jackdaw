@@ -13,6 +13,7 @@
 #include "color.h"
 #include "consts.h"
 #include "endpoint.h"
+#include "input.h"
 #include "label.h"
 #include "midi_clip.h"
 /* #include "project.h" */
@@ -811,6 +812,11 @@ void clipref_rename(ClipRef *cr)
 
 void clipref_gain_drag(ClipRef *cr, Window *win)
 {
-    float new_gain = endpoint_safe_read(&cr->gain_ep, NULL).float_v - (float)win->current_event->motion.yrel * CLIPREF_GAIN_ADJ_SCALAR;
+    float new_gain;
+    if (win->i_state & I_STATE_CMDCTRL) {
+	new_gain = 1.0f;
+    } else {
+	new_gain = endpoint_safe_read(&cr->gain_ep, NULL).float_v - (float)win->current_event->motion.yrel * CLIPREF_GAIN_ADJ_SCALAR;
+    }
     endpoint_write(&cr->gain_ep, (Value){.float_v = new_gain}, true, true, true, false);
 }

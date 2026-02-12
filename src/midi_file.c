@@ -619,6 +619,9 @@ int midi_file_open(const char *filepath, bool automatically_add_tracks)//, MIDIC
 	return -1;
     }
 
+    int ret = 0;
+    user_event_pause();
+    
     click_track = timeline_add_click_track(tl);
     click_track->muted = true;
    
@@ -717,8 +720,8 @@ int midi_file_open(const char *filepath, bool automatically_add_tracks)//, MIDIC
 	if (t == MIDI_CHUNK_HDR) {
 	    fprintf(stderr, "Error: unable to parse MIDI file \"%s\": multiple heaader chunks present\n", filepath);
 	    free(v_device);
-	    fclose(f);
-	    return -1;	    
+	    ret = -1;
+	    goto close_file_unpause_user_event;
 	    /* get_midi_hdr(f); */
 	} else if (t == MIDI_CHUNK_TRCK) {
 	    get_midi_trck(f, len, track_index, mclips, num_clips, tl->play_pos_sframes);
@@ -774,8 +777,10 @@ int midi_file_open(const char *filepath, bool automatically_add_tracks)//, MIDIC
     }
     session->proj.active_midi_clip_index += num_clips;
     free(v_device);
+close_file_unpause_user_event:
     fclose(f);
-    return 0;    
+    user_event_unpause();
+    return ret;    
 }
 
 

@@ -15,6 +15,7 @@
 #include "input.h"
 #include "input_mode.h"
 #include "layout.h"
+#include "log.h"
 #include "menu.h"
 
 #define not_whitespace_char(c) (c != ' ' && c != '\n' && c != '\t')
@@ -323,8 +324,12 @@ void input_bind_fn(UserFn *fn, uint16_t i_state, SDL_Keycode keycode, InputMode 
     kb->keycode = keycode;
     kb->hash = hash;
     kb->keycmd_str = input_get_keycmd_str(i_state, keycode);
-    fn->key_bindings[fn->num_keybindings] = kb;
-    fn->num_keybindings++;
+    if (fn->num_keybindings == MAX_FN_KEYBS) {
+	log_tmp(LOG_ERROR, "Max num keybindings reached for %s\n", kb->keycmd_str);
+    } else {
+	fn->key_bindings[fn->num_keybindings] = kb;
+	fn->num_keybindings++;
+    }
     if (fn->annotation[0] == '\0') {
 	strcat(fn->annotation, kb->keycmd_str);
     } else {

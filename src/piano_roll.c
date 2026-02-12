@@ -25,7 +25,7 @@ extern Symbol *SYMBOL_TABLE[];
 #define PIANO_BOTTOM_NOTE 21
 #define MAX_GRABBED_NOTES 256
 #define MAX_QUEUED_EVENTS 64
-#define CHORD_THRESHOLD_MSEC 40
+#define CHORD_THRESHOLD_MSEC 60
 /* #define MAX_TIED_NOTES 24 */
 
 enum note_dur {

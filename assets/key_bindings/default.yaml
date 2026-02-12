@@ -344,3 +344,10 @@
   - S-h		: piano_roll_toggle_chord_mode
   - A-q		: piano_roll_quantize
   - A-S-q	: piano_roll_adj_quantize_amt
+  - C-r		: null
+  - C-t		: null
+  - C-S-t	: null
+  - C-S-r	: null
+  - C-c		: null
+  - C-a		: null
+  - S-e		: null

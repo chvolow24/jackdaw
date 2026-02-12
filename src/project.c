@@ -1786,14 +1786,12 @@ bool timeline_check_set_midi_monitoring()
 	/* Clear notes in synth if present */
 	Synth *synth = session->midi_io.monitor_synth;
 	if (!was_monitoring || old_synth != synth) {
-	    fprintf(stderr, "Clearing current synth...\n");
 	    pthread_mutex_lock(&synth->audio_proc_lock);
 	    synth_close_all_notes(synth);
 	    api_node_set_owner(&track->synth->api_node, JDAW_THREAD_PLAYBACK);
 	    pthread_mutex_unlock(&synth->audio_proc_lock);
 	}
 	if (was_monitoring && old_synth && old_synth != synth) {
-	    fprintf(stderr, "Clearing OLD synth...\n");
 	    pthread_mutex_lock(&old_synth->audio_proc_lock);
 	    synth_close_all_notes(old_synth);
 	    api_node_set_owner(&old_synth->api_node, JDAW_THREAD_PLAYBACK);

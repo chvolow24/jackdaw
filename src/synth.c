@@ -1597,6 +1597,8 @@ static void synth_voice_assign_note(SynthVoice *v, double note, int velocity, in
 	    
 	    if (synth->sync_phase && !portamento) {
 		osc->phase = 0.0;
+	    } else if (!portamento) {
+		osc->phase = (double)(rand() % 100) / 100.0;
 	    }
 	}
     }

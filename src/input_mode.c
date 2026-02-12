@@ -1650,7 +1650,7 @@ void mode_load_piano_roll()
 
     fn = create_user_fn(
 	"piano_roll_delete",
-	"Undo last insertion or delete grabbed notes",
+	"Backspace / delete grabbed notes",
 	user_piano_roll_delete);
     mode_subcat_add_fn(sc, fn);
 

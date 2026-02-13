@@ -2031,10 +2031,16 @@ void synth_add_buf(Synth *s, float *restrict buf, int channel, int32_t len, floa
     /* if (channel != 0) return; */
     if (s->mono_mode) has_timeout = false;
     if (step < 0.0) step *= -1;
-    if (step > 5.0 || s->cpu_stress > 1.5) {
+    if (step > 5.0) {
 	synth_silence(s);
 	memset(buf, '\0', len * sizeof(float));
 	return;
+    } else if (s->cpu_stress > 1.5) {
+	s->cpu_stress = 1.0;
+	synth_close_all_notes(s);
+	memset(buf, '\0', len * sizeof(float));
+	return;
+
     }
     if (pthread_mutex_trylock(&s->audio_proc_lock) != 0) {
 	memset(buf, '\0', len * sizeof(float));
@@ -2198,6 +2204,7 @@ int32_t synth_make_notes(Synth *s, int *pitches, int *velocities, int num_pitche
 
     return len;
 }
+
 
 
 void synth_close_all_notes(Synth *s)

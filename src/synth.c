@@ -2031,7 +2031,7 @@ void synth_add_buf(Synth *s, float *restrict buf, int channel, int32_t len, floa
     /* if (channel != 0) return; */
     if (s->mono_mode) has_timeout = false;
     if (step < 0.0) step *= -1;
-    if (step > 5.0) {
+    if (step > 5.0 || s->cpu_stress > 1.5) {
 	synth_silence(s);
 	memset(buf, '\0', len * sizeof(float));
 	return;
@@ -2076,6 +2076,8 @@ void synth_add_buf(Synth *s, float *restrict buf, int channel, int32_t len, floa
 	double elapsed_msec = timespec_elapsed_ms(&start, &end);
 	if (elapsed_msec > timeout_after_msec) {
 	    double time_per_voice = elapsed_msec / active_voices;
+	    s->cpu_stress = 0.5 * s->cpu_stress + 0.5 * (double)elapsed_msec / timeout_after_msec;
+	    fprintf(stderr, "CPU STRESS: %f\n", s->cpu_stress);
 	    int allowed_voices = timeout_after_msec / time_per_voice;
 	    if (allowed_voices >= s->timeout_num_voices) {
 		allowed_voices = s->timeout_num_voices - 1;
@@ -2089,9 +2091,11 @@ void synth_add_buf(Synth *s, float *restrict buf, int channel, int32_t len, floa
 		s->timeout_num_voices++;
 		if (s->timeout_num_voices == s->num_voices) {
 		    s->timed_out = false;
+		    s->cpu_stress = 0.0;
 		}
 	    } else {
 		s->timed_out = false;
+		s->cpu_stress = 0.0;
 	    }
 	    if (s->timeout_num_voices >= s->num_voices) {
 		s->timeout_num_voices = s->num_voices;

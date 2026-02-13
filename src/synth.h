@@ -241,6 +241,7 @@ typedef struct synth {
     /* Performance internals */
     bool timed_out;
     int timeout_num_voices; /* Must be less than num_voices */
+    double cpu_stress;
     /* int timeout_strikes; */
     /* int timeout_passes; */
 

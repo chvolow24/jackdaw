@@ -311,8 +311,8 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 	d->num_unconsumed_events = 0;
 	if (fabs(playspeed) < 1e-6 || !session->playback.playing) playspeed = 1.0f;
 
-	/* Why so long?? */
-	double alloced_msec = 0.5 * 1000.0 * session->proj.chunk_size_sframes / session->proj.sample_rate;
+	/* Allocate half of chunk time to synth */
+	double alloced_msec = 0.25 * 1000.0 * session->proj.chunk_size_sframes / session->proj.sample_rate;
 	synth_add_buf(s, chunk_L, 0, len_sframes, playspeed, true, alloced_msec); /* TL Pos ignored */
 	synth_add_buf(s, chunk_R, 1, len_sframes, playspeed, true, alloced_msec); /* TL Pos ignored */
     }

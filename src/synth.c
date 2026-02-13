@@ -2037,7 +2037,8 @@ void synth_add_buf(Synth *s, float *restrict buf, int channel, int32_t len, floa
 	return;
     } else if (s->cpu_stress > 1.5) {
 	s->cpu_stress = 1.0;
-	synth_close_all_notes(s);
+	synth_silence(s);
+	/* synth_close_all_notes(s); */
 	memset(buf, '\0', len * sizeof(float));
 	return;
 

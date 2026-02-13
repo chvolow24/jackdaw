@@ -41,7 +41,7 @@ typedef struct project Project;
 typedef struct effect {
     void *obj;
     EffectType type;
-    float (*buf_apply)(void *effect, float *input, int len, int channel, float input_amp);
+    float (*buf_apply)(void *effect, float *restrict input, int len, int channel, float input_amp);
     bool operate_on_empty_buf;
     Page *page;
     EffectChain *effect_chain;
@@ -79,7 +79,7 @@ Effect *track_add_effect(Track *t, EffectType type);
 /* Creates modal to select effect type before adding. obj_name used in modal header */
 void effect_add(EffectChain *ec, const char *obj_name);
 
-float effect_chain_buf_apply(EffectChain *ec, float *buf, int len, int channel, float input_amp);
+float effect_chain_buf_apply(EffectChain *ec, float *restrict buf, int len, int channel, float input_amp);
 void effect_chain_silence(EffectChain *ec);
 void effect_delete(Effect *e, bool from_undo);
 void effect_destroy(Effect *e);

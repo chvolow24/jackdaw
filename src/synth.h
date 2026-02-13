@@ -230,15 +230,20 @@ typedef struct synth {
     Endpoint num_voices_ep;
     bool allow_voice_stealing;
     Endpoint allow_voice_stealing_ep;
-
     bool poly_portamento_mode;
-    Endpoint poly_portamento_mode_ep;
-    
+    Endpoint poly_portamento_mode_ep;    
     bool mono_mode;
     Endpoint mono_mode_ep;
     int portamento_len_unscaled;
     int portamento_len_msec;
     Endpoint portamento_len_msec_ep;
+
+    /* Performance internals */
+    bool timed_out;
+    int timeout_num_voices; /* Must be less than num_voices */
+    /* int timeout_strikes; */
+    /* int timeout_passes; */
+
 
     EffectChain effect_chain;
     
@@ -281,7 +286,8 @@ Synth *synth_create(Track *track);
 /* void synth_feed_note(Synth *s, int pitch, int velocity, int32_t dur); */
 void synth_feed_midi(Synth *s, PmEvent *events, int num_events, int32_t tl_start, bool send_immediate);
 /* void synth_add_buf(Synth *s, float *buf, int channel, int32_t len, float step); */
-void synth_add_buf(Synth *s, float *buf, int channel, int32_t len, float step, bool has_timeout, double timeout_after_msec);
+void synth_add_buf(Synth *s, float *restrict buf, int channel, int32_t len, float step, bool has_timeout, double timeout_after_msec);
+/* void synth_add_buf(Synth *s, float *buf, int channel, int32_t len, float step, bool has_timeout, double timeout_after_msec); */
 void synth_close_all_notes(Synth *s);
 void synth_clear_all(Synth *s);
 

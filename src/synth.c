@@ -324,6 +324,13 @@ static void portamento_len_dsp_cb(Endpoint *ep)
     synth->portamento_len_msec = portamento_scale(unscaled);
 }
 
+static void num_voices_dsp_cb(Endpoint *ep)
+{
+    Synth *synth = ep->xarg1;
+    synth->timeout_num_voices = synth->num_voices;
+}
+
+
 Synth *synth_create(Track *track)
 {
     Synth *s = calloc(1, sizeof(Synth));
@@ -638,6 +645,7 @@ Synth *synth_create(Track *track)
 
 
     s->num_voices = SYNTH_NUM_VOICES;
+    s->timeout_num_voices = SYNTH_NUM_VOICES;
     endpoint_init(
 	&s->num_voices_ep,
 	&s->num_voices,
@@ -645,8 +653,8 @@ Synth *synth_create(Track *track)
 	"num_voices",
 	"Num voices",
 	JDAW_THREAD_DSP,
-	page_el_gui_cb, NULL, NULL,
-	NULL, NULL, &s->polyphony_page, "num_voices_slider");
+	page_el_gui_cb, NULL, num_voices_dsp_cb,
+	s, NULL, &s->polyphony_page, "num_voices_slider");
     endpoint_set_default_value(&s->num_voices_ep, (Value){.int_v = SYNTH_NUM_VOICES});
     endpoint_set_allowed_range(&s->num_voices_ep, (Value){.int_v = 2}, (Value){.int_v = SYNTH_NUM_VOICES});
     api_endpoint_register(&s->num_voices_ep, &s->api_node);
@@ -1342,10 +1350,10 @@ static void osc_get_buf_preamp(Osc *osc, float step, int len, int after)
 /*     return bottom_sample * osc->amp * pan_scale(osc->pan, channel); */
 /* } */
 
-static void synth_voice_add_buf(SynthVoice *v, float *buf, int32_t len, int channel, float step)
+static void synth_voice_add_buf(SynthVoice *v, float *restrict buf, int32_t len, int channel, float step)
 {
     /* if (v->available && !(v->synth->mono_mode && v == v->synth->voices)) return; */
-    if (v->available) return;
+    /* if (v->available) return; */
     float osc_buf[len];
     memset(osc_buf, '\0', len * sizeof(float));
     for (int i=0; i<SYNTHVOICE_NUM_OSCS; i++) {
@@ -1855,7 +1863,7 @@ void synth_feed_midi(
 	} else if (msg_type == 9) { /* Handle note on */
 	    /* fprintf(stderr, "NOTE ON val: %d pos %d\n", note_val, e.timestamp); */
 	    bool note_assigned = false;
-	    for (int i=0; i<s->num_voices; i++) {
+	    for (int i=0; i<s->timeout_num_voices; i++) {
 		SynthVoice *v = s->voices + i;
 		if (v->available || s->mono_mode) {
 		    /* fprintf(stderr, "\t=>assigned to voice %d\n", i); */
@@ -1870,7 +1878,7 @@ void synth_feed_midi(
 		    if (!s->poly_portamento_mode) {
 			int32_t oldest_dur = 0;
 			SynthVoice *oldest = NULL;
-			for (int i=0; i<s->num_voices; i++) {
+			for (int i=0; i<s->timeout_num_voices; i++) {
 			    SynthVoice *v = s->voices + i;
 			    if (!v->available) {
 				int32_t dur = adsr_query_position(v->amp_env);
@@ -1889,7 +1897,7 @@ void synth_feed_midi(
 			SynthVoice *nearest = NULL;
 			int dist = 127;
 			/* First try to get nearest voice that is in release stage */
-			for (int i=0; i<s->num_voices; i++) {
+			for (int i=0; i<s->timeout_num_voices; i++) {
 			    SynthVoice *v = s->voices + i;
 			    if (!v->available && v->amp_env->current_stage >= ADSR_R) {
 				int vdist = abs((int)v->note_val - note_val);
@@ -1901,7 +1909,7 @@ void synth_feed_midi(
 			}
 			/* Next just get nearest voice (even if in earlier ADSR stage) */
 			if (!nearest) {
-			    for (int i=0; i<s->num_voices; i++) {
+			    for (int i=0; i<s->timeout_num_voices; i++) {
 				SynthVoice *v = s->voices + i;
 				if (!v->available) {
 				    int vdist = abs((int)v->note_val - note_val);
@@ -2016,11 +2024,12 @@ void synth_debug_summary(Synth *s, int channel, int32_t len, float step)
 
 double timespec_elapsed_ms(const struct timespec *start, const struct timespec *end);
 
-void synth_add_buf(Synth *s, float *buf, int channel, int32_t len, float step, bool has_timeout, double timeout_after_msec)
+void synth_add_buf(Synth *s, float *restrict buf, int channel, int32_t len, float step, bool has_timeout, double timeout_after_msec)
 {
     /* synth_debug_summary(s, channel, len, step); */
     /* fprintf(stderr, "PED? %d\n", s->pedal_depressed); */
     /* if (channel != 0) return; */
+    if (s->mono_mode) has_timeout = false;
     if (step < 0.0) step *= -1;
     if (step > 5.0) {
 	synth_silence(s);
@@ -2034,31 +2043,74 @@ void synth_add_buf(Synth *s, float *buf, int channel, int32_t len, float step, b
     float internal_buf[len];
     memset(internal_buf, 0, sizeof(internal_buf));
 
-    bool timed_out = false;
+    /* bool timed_out = false; */
     struct timespec start, end;
     if (has_timeout) {
 	clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start);
     }
-    
+
+    static int pr=0;
+    if (has_timeout) {
+	pr++;
+	if (pr % 20 == 0) {
+	    pr = 0;
+	    fprintf(stderr, "SYNTH %d / %d%s\n", s->timeout_num_voices, s->num_voices, s->timed_out ? " TIMED OUT":"");
+	}
+    }
+    int active_voices = 0;
     for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 	SynthVoice *v = s->voices + i;
-	if (!timed_out) {
+	if (!v->available) {
+	    active_voices++;
 	    synth_voice_add_buf(v, internal_buf, len, channel, step);
-	} else { /* silence voice */
-	    v->available = true;
-	    v->amp_env->current_stage = ADSR_OVERRUN;
 	}
-	if (has_timeout && !timed_out) {
-	    clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end);
-	    double elapsed_msec = timespec_elapsed_ms(&start, &end);
-	    if (elapsed_msec > timeout_after_msec) {
-		log_tmp(LOG_WARN, "Synth timed out on voice %d (%f/%f ms)\n", i, elapsed_msec, timeout_after_msec);
-		timed_out = true;
+	/* if (!timed_out || v->amp_env->current_stage < ADSR_R) { */
+	/* } else if (timed_out) { /\* silence voice *\/ */
+	/*     v->available = true; */
+	/*     v->amp_env->current_stage = ADSR_OVERRUN; */
+	/*     log_tmp(LOG_DEBUG, "Silenced voice %d\n", i); */
+	/* } */
+    }
+    if (has_timeout) {
+	clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end);
+	double elapsed_msec = timespec_elapsed_ms(&start, &end);
+	if (elapsed_msec > timeout_after_msec) {
+	    double time_per_voice = elapsed_msec / active_voices;
+	    int allowed_voices = timeout_after_msec / time_per_voice;
+	    if (allowed_voices >= s->timeout_num_voices) {
+		allowed_voices = s->timeout_num_voices - 1;
+	    }
+	    if (allowed_voices < 1)
+		allowed_voices = 1;
+	    s->timed_out = true;
+	    s->timeout_num_voices = allowed_voices;
+	} else if (s->timed_out) { /* Did not timeout this round */
+	    if (s->timeout_num_voices < s->num_voices) {
+		s->timeout_num_voices++;
+		if (s->timeout_num_voices == s->num_voices) {
+		    s->timed_out = false;
+		}
+	    } else {
+		s->timed_out = false;
+	    }
+	    if (s->timeout_num_voices >= s->num_voices) {
+		s->timeout_num_voices = s->num_voices;
+
 	    }
 	}
     }
+    /* if (has_timeout && !s->timed_out) { */
+    /* 	    s->timeout_strikes++; */
+    /* 	    if (s->timeout_strikes > 3) { */
+    /* 		s-> */
+    /* 		    } */
+    /* 	    log_tmp(LOG_WARN, "Synth timed out on voice %d (%f/%f ms)\n", i, elapsed_msec, timeout_after_msec); */
+    /* 	    timed_out = true; */
+    /* 	} */
+    /* } */
+
     /* if (!timed_out) { */
-	effect_chain_buf_apply(&s->effect_chain, internal_buf, len, channel, 1.0);
+    effect_chain_buf_apply(&s->effect_chain, internal_buf, len, channel, 1.0);
     /* } else { */
 	/* effect_chain_silence(&s->effect_chain); */
     /* } */

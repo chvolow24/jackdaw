@@ -276,7 +276,7 @@ void make_ramp(double *restrict buf, int32_t len, double start, double end)
     }
 }
 
-void make_rampf(float *buf, int32_t len, float start, float end)
+void make_rampf(float *restrict buf, int32_t len, float start, float end)
 {
     float diff = end - start;
     for (int32_t i=0; i<len; i++) {

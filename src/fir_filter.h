@@ -96,4 +96,4 @@ void filter_deinit(FIRFilter *filter);
 /* void apply_track_filter(Track *track, uint8_t channel, uint16_t chunk_size, float *sample_array); */
 /* void apply_filter(FIRFilter *filter, Track *track, uint8_t channel, uint16_t chunk_size, float *sample_array); */
 /* void filter_buf_apply(FIRFilter *f, float *buf, int len, int channel); */
-float filter_buf_apply(void *f_v, float *buf, int len, int channel, float input_amp);
+float filter_buf_apply(void *f_v, float *restrict buf, int len, int channel, float input_amp);

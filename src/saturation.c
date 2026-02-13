@@ -158,7 +158,7 @@ static double saturation_sample(Saturation *s, double in)
     /* return tanh(in * s->amp); */
 }
 
-float saturation_buf_apply(void *saturation_v, float *buf, int len, int channel_unused, float input_amp)
+float saturation_buf_apply(void *saturation_v, float *restrict buf, int len, int channel_unused, float input_amp)
 {
     Saturation *s = saturation_v;
     /* if (!s->active) return input_amp; */

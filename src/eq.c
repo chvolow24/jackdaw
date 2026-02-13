@@ -596,7 +596,7 @@ static double eq_sample(EQ *eq, double in, int channel)
     return in;
 }
 
-float eq_buf_apply(void *eq_v, float *buf, int len, int channel, float input_amp)
+float eq_buf_apply(void *eq_v, float *restrict buf, int len, int channel, float input_amp)
 {
     
     static float amp_epsilon = 1e-7f;

@@ -406,13 +406,13 @@ static int add_effect_form(void *mod_v, void *nullarg)
     return 0;
 }
 
-static float effect_buf_apply(Effect *e, float *buf, int len, int channel, float input_amp)
+static float effect_buf_apply(Effect *e, float *restrict buf, int len, int channel, float input_amp)
 {
     /* if (!e->active) return input_amp; */
     return e->buf_apply(e->obj, buf, len, channel, input_amp);
 }
 
-float effect_chain_buf_apply(EffectChain *ec, float *buf, int len, int channel, float input_amp)
+float effect_chain_buf_apply(EffectChain *ec, float *restrict buf, int len, int channel, float input_amp)
 {
     static float amp_epsilon = 1e-7f;
     float output = input_amp;

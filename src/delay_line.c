@@ -152,7 +152,7 @@ void delay_line_set_params(DelayLine *dl, double amp, int32_t len)
     /* pthread_mutex_unlock(&dl->lock); */
 }
 
-float delay_line_buf_apply(void *dl_v, float *buf, int len, int channel, float input_amp)
+float delay_line_buf_apply(void *dl_v, float *restrict buf, int len, int channel, float input_amp)
 {
     DelayLine *dl = dl_v;
     float output_amp = 0.0f;

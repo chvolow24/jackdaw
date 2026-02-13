@@ -664,7 +664,11 @@ void transport_stop_playback()
     if (!session->playback.playing) return;
     Timeline *tl = ACTIVE_TL;
     if (!tl) return;
-    audioconn_stop_playback(session->audio_io.playback_conn);
+    if (!session->midi_io.monitoring) {
+	audioconn_stop_playback(session->audio_io.playback_conn);
+    } else {
+	midi_monitor_clear();
+    }
 
     /* Busy waiting */
     /* uint32_t test = 0; */

@@ -27,6 +27,7 @@
 #include "project.h"
 #include "session_endpoint_ops.h"
 #include "session.h"
+#include "synth.h"
 #include "tempo.h"
 #include "thread_safety.h"
 #include "timeline.h"
@@ -224,7 +225,6 @@ void timeline_set_timecode(Timeline *tl)
     }
 }
 
-void synth_silence(Synth *s);
 static void track_handle_playhead_jump(Track *track)
 {
     for (uint8_t i =0; i<track->num_automations; i++) {

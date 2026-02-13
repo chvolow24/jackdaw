@@ -38,6 +38,7 @@
 #include "project.h"
 #include "session.h"
 #include "status.h"
+#include "synth.h"
 #include "text.h"
 #include "textbox.h"
 #include "timeline.h"
@@ -1725,6 +1726,14 @@ void timeline_force_stop_midi_monitoring()
     pthread_mutex_unlock(&synth->audio_proc_lock);
 
     session->midi_io.monitoring = false;
+}
+
+void midi_monitor_clear()
+{
+    Session *session = session_get();
+    if (session->midi_io.monitoring && session->midi_io.monitor_synth) {
+	synth_silence(session->midi_io.monitor_synth);
+    }
 }
 
 /* Use on the selected track to set session monitoring info */

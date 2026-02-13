@@ -291,6 +291,7 @@ void synth_add_buf(Synth *s, float *restrict buf, int channel, int32_t len, floa
 /* void synth_add_buf(Synth *s, float *buf, int channel, int32_t len, float step, bool has_timeout, double timeout_after_msec); */
 void synth_close_all_notes(Synth *s);
 void synth_clear_all(Synth *s);
+void synth_silence(Synth *s);
 
 /* Return 0 for success, 1 for unset (carrier NULL), < 0 for error */
 int synth_set_freq_mod_pair(Synth *s, OscCfg *carrier_cfg, OscCfg *modulator_cfg);

@@ -2036,6 +2036,7 @@ void synth_add_buf(Synth *s, float *restrict buf, int channel, int32_t len, floa
 	memset(buf, '\0', len * sizeof(float));
 	return;
     } else if (s->cpu_stress > 1.5) {
+	log_tmp(LOG_WARN, "Synth silenced due to CPU stress\n");
 	s->cpu_stress = 1.0;
 	synth_silence(s);
 	/* synth_close_all_notes(s); */
@@ -2056,14 +2057,14 @@ void synth_add_buf(Synth *s, float *restrict buf, int channel, int32_t len, floa
 	clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start);
     }
 
-    static int pr=0;
-    if (has_timeout) {
-	pr++;
-	if (pr % 20 == 0) {
-	    pr = 0;
-	    fprintf(stderr, "SYNTH %d / %d%s\n", s->timeout_num_voices, s->num_voices, s->timed_out ? " TIMED OUT":"");
-	}
-    }
+    /* static int pr=0; */
+    /* if (has_timeout) { */
+    /* 	pr++; */
+    /* 	if (pr % 20 == 0) { */
+    /* 	    pr = 0; */
+    /* 	    fprintf(stderr, "SYNTH %d / %d%s\n", s->timeout_num_voices, s->num_voices, s->timed_out ? " TIMED OUT":""); */
+    /* 	} */
+    /* } */
     int active_voices = 0;
     for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 	SynthVoice *v = s->voices + i;
@@ -2084,7 +2085,6 @@ void synth_add_buf(Synth *s, float *restrict buf, int channel, int32_t len, floa
 	if (elapsed_msec > timeout_after_msec) {
 	    double time_per_voice = elapsed_msec / active_voices;
 	    s->cpu_stress = 0.5 * s->cpu_stress + 0.5 * (double)elapsed_msec / timeout_after_msec;
-	    fprintf(stderr, "CPU STRESS: %f\n", s->cpu_stress);
 	    int allowed_voices = timeout_after_msec / time_per_voice;
 	    if (allowed_voices >= s->timeout_num_voices) {
 		allowed_voices = s->timeout_num_voices - 1;

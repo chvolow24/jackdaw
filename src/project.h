@@ -517,4 +517,6 @@ ClickTrack *track_governing_click_track(Track *t);
 /* Completion function for renameable proj objects */
 int project_obj_name_completion(Text *txt, void *obj);
 
+/* Clear synth if monitoring */
+void midi_monitor_clear();
 #endif

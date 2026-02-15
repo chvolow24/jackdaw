@@ -2100,30 +2100,27 @@ void synth_add_buf(Synth *s, float *restrict buf, int channel, int32_t len, floa
     pthread_t threads[SYNTH_NUM_VOICES];
     bool thread_exists[SYNTH_NUM_VOICES] = {0};
     int active_voices = 0;
+    int occupied_cpu_cores = 1;
+    Session *session = session_get();
     for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 	SynthVoice *v = s->voices + i;
-	if (synth_parallelism && !v->available) {
+	if (!v->available) {
 	    active_voices++;
-	    args[i].v = v;
-	    args[i].buf = bufs[i];
-	    args[i].len = len;
-	    args[i].channel = channel;
-	    args[i].step = step;
-	    pthread_create(threads + i, NULL, synth_voice_add_buf_threadfn, args + i);
-	    thread_exists[i] = true;
-	} else {
-	    if (!v->available) {
-		active_voices++;
+	    if (synth_parallelism && occupied_cpu_cores < session->sys.cores) {
+		occupied_cpu_cores++;
+		args[i].v = v;
+		args[i].buf = bufs[i];
+		args[i].len = len;
+		args[i].channel = channel;
+		args[i].step = step;
+		pthread_create(threads + i, NULL, synth_voice_add_buf_threadfn, args + i);
+		thread_exists[i] = true;
+	    } else {
 		synth_voice_add_buf(v, internal_buf, len, channel, step, false);
 	    }
 	}
-	/* if (!timed_out || v->amp_env->current_stage < ADSR_R) { */
-	/* } else if (timed_out) { /\* silence voice *\/ */
-	/*     v->available = true; */
-	/*     v->amp_env->current_stage = ADSR_OVERRUN; */
-	/*     log_tmp(LOG_DEBUG, "Silenced voice %d\n", i); */
-	/* } */
     }
+    /* fprintf(stderr, "Cores used: %d (voices %d)\n", occupied_cpu_cores, active_voices); */
     if (synth_parallelism) {
 	for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 	    if (thread_exists[i]) {

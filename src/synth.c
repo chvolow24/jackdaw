@@ -1356,7 +1356,7 @@ void toggle_synth_parallelism()
     synth_parallelism = !synth_parallelism;
     fprintf(stderr, "Synth parallellism %s\n", synth_parallelism ? "ON" : "OFF");
 }
-static void synth_voice_add_buf(SynthVoice *v, float *restrict buf, int32_t len, int channel, float step);
+static void synth_voice_add_buf(SynthVoice *v, float *restrict buf, int32_t len, int channel, float step, bool set_not_add);
 struct synthvoice_arg {
     SynthVoice *v;
     float *buf;
@@ -1368,12 +1368,12 @@ static void *synth_voice_add_buf_threadfn(void *userdata)
 {
     struct synthvoice_arg *arg = userdata;
     /* fprintf(stderr, "Adding buf %p...\n", arg->buf); */
-    synth_voice_add_buf(arg->v, arg->buf, arg->len, arg->channel, arg->step);
+    synth_voice_add_buf(arg->v, arg->buf, arg->len, arg->channel, arg->step, true);
     /* fprintf(stderr, "\tbuf %p done...\n", arg->buf); */
     return NULL;
 }
 
-static void synth_voice_add_buf(SynthVoice *v, float *restrict buf, int32_t len, int channel, float step)
+static void synth_voice_add_buf(SynthVoice *v, float *restrict buf, int32_t len, int channel, float step, bool set_not_add)
 {
     /* if (v->available && !(v->synth->mono_mode && v == v->synth->voices)) return; */
     /* if (v->available) return; */
@@ -1528,8 +1528,11 @@ static void synth_voice_add_buf(SynthVoice *v, float *restrict buf, int32_t len,
 	    v->portamento_elapsed_sframes = v->portamento_len_sframes;
     }
 
-
-    float_buf_add(buf, osc_buf, len);
+    if (set_not_add) {
+	memcpy(buf, osc_buf, len * sizeof(float));	
+    } else {
+	float_buf_add(buf, osc_buf, len);
+    }
 }
 
 static void osc_set_freq(Osc *osc, double freq_hz)
@@ -2037,11 +2040,13 @@ void synth_silence(Synth *s);
 void synth_debug_summary(Synth *s, int channel, int32_t len, float step)
 {
     fprintf(stderr, "Synth debug summary channel %d, len %d step %f:\n", channel, len, step);
+    fprintf(stderr, "\t%d / %d voices available (discrep due to timeout)\n", s->timeout_num_voices, s->num_voices);
+    fprintf(stderr, "\tCPU stress: %f\n", s->cpu_stress);
     for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 	SynthVoice *v = s->voices + i;
 	if (v->available) continue;
-	fprintf(stderr, "\tVoice %d: note %d, vel %d\n", i, v->note_val, v->velocity);
-	fprintf(stderr, "\t\tAMP ENV stage %d, rem %d, start release after %d\n", s->amp_env.followers[0]->current_stage, s->amp_env.followers[0]->env_remaining, s->amp_env.followers[0]->start_release_after);
+	fprintf(stderr, "\t\tVoice %d: note %d, vel %d\n", i, v->note_val, v->velocity);
+	fprintf(stderr, "\t\t\tAMP ENV stage %d, rem %d, start release after %d\n", s->amp_env.followers[0]->current_stage, s->amp_env.followers[0]->env_remaining, s->amp_env.followers[0]->start_release_after);
     }
 }
 
@@ -2052,6 +2057,7 @@ void synth_add_buf(Synth *s, float *restrict buf, int channel, int32_t len, floa
     /* synth_debug_summary(s, channel, len, step); */
     /* fprintf(stderr, "PED? %d\n", s->pedal_depressed); */
     /* if (channel != 0) return; */
+    
     if (s->mono_mode) has_timeout = false;
     if (step < 0.0) step *= -1;
     if (step > 5.0) {
@@ -2089,7 +2095,7 @@ void synth_add_buf(Synth *s, float *restrict buf, int channel, int32_t len, floa
     /* 	} */
     /* } */
     float bufs[SYNTH_NUM_VOICES][len];
-    memset(bufs, 0, sizeof(bufs));
+    /* memset(bufs, 0, sizeof(bufs)); */
     struct synthvoice_arg args[SYNTH_NUM_VOICES];
     pthread_t threads[SYNTH_NUM_VOICES];
     bool thread_exists[SYNTH_NUM_VOICES] = {0};
@@ -2108,7 +2114,7 @@ void synth_add_buf(Synth *s, float *restrict buf, int channel, int32_t len, floa
 	} else {
 	    if (!v->available) {
 		active_voices++;
-		synth_voice_add_buf(v, internal_buf, len, channel, step);
+		synth_voice_add_buf(v, internal_buf, len, channel, step, false);
 	    }
 	}
 	/* if (!timed_out || v->amp_env->current_stage < ADSR_R) { */

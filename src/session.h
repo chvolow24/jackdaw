@@ -194,8 +194,13 @@ struct playback {
 /*     uint16_t fourier_len_sframes; */
 /* }; */
 
+struct system {
+    int cores;
+};
+
 /* All persistent "global" data not related to a Project or Window */
 typedef struct session {
+    struct system sys;
     struct audio_io audio_io;
     struct midi_io midi_io;
     /* pthread_t main_thread; */

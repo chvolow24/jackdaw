@@ -18,6 +18,7 @@
 #include "label.h"
 #include "layout.h"
 #include "layout_xml.h"
+#include "log.h"
 #include "session.h"
 #include "timeline.h"
 #include "transport.h"
@@ -43,6 +44,10 @@ static void session_init_source_mode(Session *session);
 Session *session_create()
 {
     session = calloc(1, sizeof(Session));
+
+    session->sys.cores = SDL_GetCPUCount();
+    log_tmp(LOG_INFO, "System has %d cores\n", session->sys.cores);
+    
     window_set_layout(main_win, layout_create_from_window(main_win));
     layout_read_xml_to_lt(main_win->layout, MAIN_LT_PATH);
 

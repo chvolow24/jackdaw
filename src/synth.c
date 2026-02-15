@@ -1350,6 +1350,29 @@ static void osc_get_buf_preamp(Osc *osc, float step, int len, int after)
 /*     return bottom_sample * osc->amp * pan_scale(osc->pan, channel); */
 /* } */
 
+static bool synth_parallelism = false;
+void toggle_synth_parallelism()
+{
+    synth_parallelism = !synth_parallelism;
+    fprintf(stderr, "Synth parallellism %s\n", synth_parallelism ? "ON" : "OFF");
+}
+static void synth_voice_add_buf(SynthVoice *v, float *restrict buf, int32_t len, int channel, float step);
+struct synthvoice_arg {
+    SynthVoice *v;
+    float *buf;
+    int32_t len;
+    int channel;
+    float step;
+};
+static void *synth_voice_add_buf_threadfn(void *userdata)
+{
+    struct synthvoice_arg *arg = userdata;
+    /* fprintf(stderr, "Adding buf %p...\n", arg->buf); */
+    synth_voice_add_buf(arg->v, arg->buf, arg->len, arg->channel, arg->step);
+    /* fprintf(stderr, "\tbuf %p done...\n", arg->buf); */
+    return NULL;
+}
+
 static void synth_voice_add_buf(SynthVoice *v, float *restrict buf, int32_t len, int channel, float step)
 {
     /* if (v->available && !(v->synth->mono_mode && v == v->synth->voices)) return; */
@@ -2065,12 +2088,28 @@ void synth_add_buf(Synth *s, float *restrict buf, int channel, int32_t len, floa
     /* 	    fprintf(stderr, "SYNTH %d / %d%s\n", s->timeout_num_voices, s->num_voices, s->timed_out ? " TIMED OUT":""); */
     /* 	} */
     /* } */
+    float bufs[SYNTH_NUM_VOICES][len];
+    memset(bufs, 0, sizeof(bufs));
+    struct synthvoice_arg args[SYNTH_NUM_VOICES];
+    pthread_t threads[SYNTH_NUM_VOICES];
+    bool thread_exists[SYNTH_NUM_VOICES] = {0};
     int active_voices = 0;
     for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 	SynthVoice *v = s->voices + i;
-	if (!v->available) {
+	if (synth_parallelism && !v->available) {
 	    active_voices++;
-	    synth_voice_add_buf(v, internal_buf, len, channel, step);
+	    args[i].v = v;
+	    args[i].buf = bufs[i];
+	    args[i].len = len;
+	    args[i].channel = channel;
+	    args[i].step = step;
+	    pthread_create(threads + i, NULL, synth_voice_add_buf_threadfn, args + i);
+	    thread_exists[i] = true;
+	} else {
+	    if (!v->available) {
+		active_voices++;
+		synth_voice_add_buf(v, internal_buf, len, channel, step);
+	    }
 	}
 	/* if (!timed_out || v->amp_env->current_stage < ADSR_R) { */
 	/* } else if (timed_out) { /\* silence voice *\/ */
@@ -2078,6 +2117,14 @@ void synth_add_buf(Synth *s, float *restrict buf, int channel, int32_t len, floa
 	/*     v->amp_env->current_stage = ADSR_OVERRUN; */
 	/*     log_tmp(LOG_DEBUG, "Silenced voice %d\n", i); */
 	/* } */
+    }
+    if (synth_parallelism) {
+	for (int i=0; i<SYNTH_NUM_VOICES; i++) {
+	    if (thread_exists[i]) {
+		pthread_join(threads[i], NULL);
+		float_buf_add(internal_buf, bufs[i], len);
+	    }
+	}
     }
     if (has_timeout) {
 	clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end);

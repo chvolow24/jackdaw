@@ -59,6 +59,20 @@ typedef struct osc_cfg OscCfg;
 typedef struct synth_voice SynthVoice;
 typedef struct osc {
     float buf[MAX_OSC_BUF_LEN];
+    
+    float cache[9600]; /* Down to 10hz */
+    double cache_start_phase;
+    /* double cache_phase_error; */
+
+    double cache_wavelength;
+    int cache_phase_divider; /* Number of wavelengths in cache */
+    double cache_index;
+    double cache_true_len;
+    int cache_len; /* Integer length of cache in sample */
+    /* double cache_wrap_error; /\* Measured in samples *\/ */
+    int cache_filled;
+    int cache_last_read_i;
+    
     bool active;
     OscCfg *cfg;
     SynthVoice *voice;

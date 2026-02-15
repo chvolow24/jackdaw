@@ -76,6 +76,9 @@ extern void open_file(const char *filepath);
 void user_piano_roll_quantize(void *nullarg);
 
 void effect_chain_open_tabview(EffectChain *ec);
+
+void synth_osc_toggle_cacheing();
+
 void loop_project_main()
 {
     Session *session = session_get();
@@ -227,6 +230,9 @@ void loop_project_main()
 		/* } */
 
 		switch (e.key.keysym.scancode) {
+		case SDL_SCANCODE_6:
+		    synth_osc_toggle_cacheing();
+		    break;
  		/* case SDL_SCANCODE_6: { */
 		/*     Track *track = ACTIVE_TL->tracks[0]; */
 		/*     Effect *e = effect_chain_add_effect(&track->synth->effect_chain, EFFECT_DELAY); */

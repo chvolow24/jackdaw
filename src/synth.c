@@ -1113,7 +1113,23 @@ static void osc_reset_params(Osc *osc, int32_t chunk_len)
     }
 }
 
-static void osc_get_buf_preamp(Osc *osc, float step, int len, int after)
+static bool osc_do_cacheing = true;
+void synth_osc_toggle_cacheing()
+{
+    osc_do_cacheing = !osc_do_cacheing;
+    fprintf(stderr, "Osc cacheing %s\n", osc_do_cacheing ? "ON" : "OFF");
+}
+
+static inline double normalize_phase(double phase)
+{
+    while (phase >= 1.0) phase -= 1.0;
+    while (phase < 0.0) phase += 1.0;
+    return phase;
+}
+
+static int cache_hits = 0;
+static int cache_misses = 0;
+static void osc_get_buf_preamp(Osc *restrict osc, float step, int len, int after)
 {
     if (len > MAX_OSC_BUF_LEN) {
 	fprintf(stderr, "Error: Synth Oscs cannot support buf size > %d (req size %d)\n", MAX_OSC_BUF_LEN, len);
@@ -1139,7 +1155,13 @@ static void osc_get_buf_preamp(Osc *osc, float step, int len, int after)
 	
     }
     double phase_incr = osc->sample_phase_incr + osc->sample_phase_incr_addtl;
+    if (phase_incr > 0.4) { /* Nearing nyquist */
+	memset(osc->buf, '\0', sizeof(float) * len);
+	return;
+    }
+
     double phase = osc->phase;
+    double start_phase = phase;
     /* int unison_i = (long)((osc - osc->voice->oscs) - (osc->cfg - osc->voice->synth->base_oscs)) / SYNTH_NUM_BASE_OSCS; */
     size_t zeroset_len = after > len ? len * sizeof(int) : after * sizeof(int);
     memset(osc->buf, '\0', zeroset_len);
@@ -1150,85 +1172,185 @@ static void osc_get_buf_preamp(Osc *osc, float step, int len, int after)
 	do_unison_compensation = true;
     }
 
-    if (phase_incr > 0.4) { /* Nearing nyquist */
-	memset(osc->buf, '\0', sizeof(float) * len);
-    } else {
-	for (int i=after; i<len; i++) {
-	    float sample;
-	    if (osc->cfg->fix_freq && i % 93 == 0) {
-		/* fprintf(stderr, "resetting %d\n", i); */
-		osc_reset_params(osc, 0);
-	    }
-	    /* double phase_incr = osc->sample_phase_incr + osc->sample_phase_incr_addtl; */
-	    switch(osc->type) {
-	    case WS_SINE:
-		sample = sinf(TAU * phase);
-		break;
-	    case WS_SQUARE:
+    if (osc_do_cacheing && !osc->freq_modulator && osc->cache_len != 0 && osc->cache_len < 9600 && osc->cache_filled == osc->cache_len) {
+	/* double cache_start; */
+	/* int cache_start_i, cache_end_i; */
+	/* cache_hits++; */
+	/* double start_phase_in_cache = osc->phase - osc->cache_start_phase; */
+
+	/* /\* Account for last round's error *\/ */
+	/* /\* start_phase_in_cache -= osc->cache_phase_error; *\/ */
+
+	/* /\* Start phase in first wavelength *\/ */
+	/* start_phase_in_cache = normalize_phase(start_phase_in_cache); */
+
+	/* /\* Calculate index in cache array *\/ */
+	/* cache_start = start_phase_in_cache * osc->cache_true_len / osc->cache_phase_divider; */
+
+	/* fprintf(stderr, "Osc phase %f - %f (cache indices: %f - %f / %d)\n", osc->phase, normalize_phase(osc->phase + phase_incr * len * step), cache_start, cache_start + len, osc->cache_len); */
+	/* /\* Start at integral index, but store error *\/ */
+	/* cache_start_i = (int)round(cache_start); */
+	/* osc->cache_phase_error = (cache_start_i - cache_start) / osc->cache_len * osc->cache_phase_divider; */
+	
+	/* if (cache_start_i >= osc->cache_len) { */
+	/*     fprintf(stderr, "\t\tError: cache start i %d, len %d\n", cache_start_i, osc->cache_len); */
+	/*     cache_start_i -= osc->cache_len; */
+	/*     cache_start -= osc->cache_len; */
+	/* } */
+
+	/* cache_end_i = cache_start_i + len; */
+	/* /\* fprintf(stderr, "BEFORE start, end %d %d (%f, %f)\n", cache_start_i, cache_end_i, cache_start, cache_start + len); *\/ */
+	/* if (cache_end_i >= osc->cache_len) { */
+	/*     int copy_1_len = osc->cache_len - cache_start_i; */
+	/*     int copy_2_len = cache_end_i - osc->cache_len; */
+	/*     after = copy_1_len; */
+	/*     osc->phase += phase_incr * copy_1_len * step; */
+	/*     memcpy(osc->buf, osc->cache + cache_start_i, copy_1_len * sizeof(float)); */
+	/*     goto no_cache; */
+	/*     /\* memcpy(osc->buf, osc->cache, copy_2_len * sizeof(float)); *\/ */
+	    
+	/*     osc->cache_last_read_i = copy_2_len - 1; */
+	/* } else { */
+	/*     memcpy(osc->buf, osc->cache + cache_start_i, len * sizeof(float)); */
+	/*     osc->cache_last_read_i = cache_start_i + len - 1; */
+	/*     /\* fprintf(stderr, "Single copy from cache %d-%d\n", cache_start_i, cache_start_i + len); *\/ */
+	/* } */
+	double start_phase_in_cache = normalize_phase(osc->phase - osc->cache_start_phase);
+	fprintf(stderr, "OSC phase %f - %f\n\tstart phase in cache: %f (arr starts at phase %f)\n", osc->phase, normalize_phase(osc->phase + phase_incr * len * step), start_phase_in_cache, osc->cache_start_phase);
+	double cache_start = start_phase_in_cache * osc->cache_wavelength;
+	int cache_start_i = round(cache_start);
+	int cache_end_i = cache_start + len;
+	fprintf(stderr, "\tCache indices: %d - %d (/%d)\n", cache_start_i, cache_end_i, osc->cache_len);
+	if (cache_end_i < osc->cache_len) {
+	    memcpy(osc->buf, osc->cache + cache_start_i, len * sizeof(float));
+	    cache_hits++;
+	} else {
+	    goto no_cache;
+	}
+	osc->phase += phase_incr * len * step;
+	osc->phase = normalize_phase(osc->phase);
+	memset(osc->buf, '\0', len * sizeof(float));
+	return;
+    }
+
+    /* The old-fashioned way */
+no_cache:
+    cache_misses++;
+    for (int i=after; i<len; i++) {
+	float sample;
+	if (osc->cfg->fix_freq && i % 93 == 0) {
+	    /* fprintf(stderr, "resetting %d\n", i); */
+	    osc_reset_params(osc, 0);
+	}
+	/* double phase_incr = osc->sample_phase_incr + osc->sample_phase_incr_addtl; */
+	switch(osc->type) {
+	case WS_SINE:
+	    sample = sinf(TAU * phase);
+	    break;
+	case WS_SQUARE:
+	    sample = phase < 0.5 ? 1.0 : -1.0;
+	    sample += polyblep(phase_incr, phase);
+	    sample -= polyblep(phase_incr, fmod(phase + 0.5, 1.0)); 
+	    break;
+	case WS_TRI:
+	    if (do_blep) {
 		sample = phase < 0.5 ? 1.0 : -1.0;
 		sample += polyblep(phase_incr, phase);
 		sample -= polyblep(phase_incr, fmod(phase + 0.5, 1.0)); 
-		break;
-	    case WS_TRI:
-		if (do_blep) {
-		    sample = phase < 0.5 ? 1.0 : -1.0;
-		    sample += polyblep(phase_incr, phase);
-		    sample -= polyblep(phase_incr, fmod(phase + 0.5, 1.0)); 
 
-		    sample *= 4.0 * phase_incr;
-		    sample += osc->last_out_tri;
-		    osc->last_out_tri = sample;
-		    sample = iir_sample(&osc->tri_dc_blocker, sample, 0);
-		} else {
-		    sample =
-			phase <= 0.25 ?
-			phase * 4.0f :
-			phase <= 0.5f ?
-			(0.5f - phase) * 4.0 :
-			phase <= 0.75f ?
-			(phase - 0.5f) * -4.0 :
-			(1.0f - phase) * -4.0;
-		}
-
-		break;
-	    case WS_SAW:
-		sample = 2.0f * phase - 1.0;
-		if (do_blep) {
-		    /* BLEP */
-		    sample -= polyblep(phase_incr, phase);
-		}
-		break;
-	    default:
-		sample = 0.0;
-	    }
-	    if (osc->freq_modulator) {
-		/* Raise fmod sample to 3 to get fmod values in more useful range */
-		/* float fmod_sample = pow(osc_sample(osc->freq_modulator, channel, num_channels, step, chunk_index), 3.0); */
-		/* fprintf(stderr, "fmod sample in osc %p: %f\n", osc, fmod_sample); */
-		phase += phase_incr * step * (1.0 - fmod_samples[i]);
+		sample *= 4.0 * phase_incr;
+		sample += osc->last_out_tri;
+		osc->last_out_tri = sample;
+		sample = iir_sample(&osc->tri_dc_blocker, sample, 0);
 	    } else {
-		phase += phase_incr * step;
+		sample =
+		    phase <= 0.25 ?
+		    phase * 4.0f :
+		    phase <= 0.5f ?
+		    (0.5f - phase) * 4.0 :
+		    phase <= 0.75f ?
+		    (phase - 0.5f) * -4.0 :
+		    (1.0f - phase) * -4.0;
 	    }
-	    if (osc->amp_modulator) {
-		sample *= 1.0 + amod_samples[i];
-		/* sample *= 1.0 + osc_sample(osc->amp_modulator, channel, num_channels, step, chunk_index); */
+
+	    break;
+	case WS_SAW:
+	    sample = 2.0f * phase - 1.0;
+	    if (do_blep) {
+		/* BLEP */
+		sample -= polyblep(phase_incr, phase);
 	    }
-	    if (phase > 1.0) {
-		phase = phase - floor(phase);
-	    } else if (phase < 0.0) {
-		phase = 1.0 + phase + ceil(phase);
-	    }
-	    /* Reverse polarity on some voices:
-	       ignore for now */
-	    /* if (!osc->cfg->mod_freq_of && !osc->cfg->mod_amp_of && unison_i != 0 && unison_i % 3 == 0) { */
-		/* sample *= -1; */
-	    /* } */
-	    osc->buf[i] = sample;
+	    break;
+	default:
+	    sample = 0.0;
 	}
-	if (do_unison_compensation) {
-	    float_buf_mult_const(osc->buf + after, unison_compensation, len - after);
+	if (osc->freq_modulator) {
+	    /* Raise fmod sample to 3 to get fmod values in more useful range */
+	    /* float fmod_sample = pow(osc_sample(osc->freq_modulator, channel, num_channels, step, chunk_index), 3.0); */
+	    /* fprintf(stderr, "fmod sample in osc %p: %f\n", osc, fmod_sample); */
+	    phase += phase_incr * step * (1.0 - fmod_samples[i]);
+	} else {
+	    phase += phase_incr * step;
 	}
-	osc->phase = phase;
+	if (osc->amp_modulator) {
+	    sample *= 1.0 + amod_samples[i];
+	    /* sample *= 1.0 + osc_sample(osc->amp_modulator, channel, num_channels, step, chunk_index); */
+	}
+	if (phase > 1.0) {
+	    phase = phase - floor(phase);
+	} else if (phase < 0.0) {
+	    phase = 1.0 + phase + ceil(phase);
+	}
+	/* Reverse polarity on some voices:
+	   ignore for now */
+	/* if (!osc->cfg->mod_freq_of && !osc->cfg->mod_amp_of && unison_i != 0 && unison_i % 3 == 0) { */
+	/* sample *= -1; */
+	/* } */
+	osc->buf[i] = sample;
+    }
+    if (do_unison_compensation) {
+	float_buf_mult_const(osc->buf + after, unison_compensation, len - after);
+    }
+    osc->phase = phase;
+
+    /* Fill osc cache */
+    if (osc_do_cacheing && !osc->freq_modulator && (osc->cache_filled < osc->cache_len || osc->cache_len == 0) && osc->cache_len < 9600) {
+	int cache_start_i;
+	if (osc->cache_filled == 0) {
+	    osc->cache_start_phase = start_phase;
+	    double wavelength = session_get_sample_rate() / (osc->freq * step);
+	    osc->cache_wavelength = wavelength;
+	    double cache_len_total = wavelength;
+	    /* fprintf(stderr, "WAVELENGTH: %f (len %d)\n", wavelength, len); */
+	    osc->cache_phase_divider = 1;
+	    while (cache_len_total + wavelength < len) {
+		osc->cache_phase_divider++;
+		cache_len_total += wavelength;
+	    }
+	    fprintf(stderr, "CACHE LEN TOTAL: %f (len %d)\n", cache_len_total, osc->cache_phase_divider);
+	   
+	    osc->cache_true_len = cache_len_total;
+	    osc->cache_len = ceil(cache_len_total);
+	    /* osc->cache_wrap_error = osc->cache_len - cache_len_total; */
+	    /* fprintf(stderr, "Set cache len: %d\n", osc->cache_len); */
+
+	    cache_start_i = 0;
+	} else {
+	    cache_start_i = osc->cache_filled;
+	}
+	int fill_len = osc->cache_len - osc->cache_filled;
+	if (fill_len > len) fill_len = len;
+	memcpy(osc->cache + cache_start_i, osc->buf, fill_len * sizeof(float));
+	osc->cache_filled += fill_len;
+	/* fprintf(stderr, "FILL cache %d-%d (/%d)\n", cache_start_i, cache_start_i + fill_len, osc->cache_len); */
+	/* if (osc->cache_filled == osc->cache_len) { */
+	/*     FILE *f = fopen("osc_test.txt", "w"); */
+	/*     for (int i=0; i<osc->cache_len; i++) { */
+	/* 	fprintf(f, "%f\n", osc->cache[i]); */
+	/*     } */
+	/*     fclose(f); */
+	/* } */
+
     }
     /* osc->phase_incr =  */
     /* apply_amp_and_pan: */
@@ -1511,6 +1633,13 @@ static void synth_voice_add_buf(SynthVoice *v, float *restrict buf, int32_t len,
 
 static void osc_set_freq(Osc *osc, double freq_hz)
 {
+    if (osc->freq == freq_hz) {
+	return;
+    }
+    osc->cache_filled = 0;
+    osc->cache_start_phase = 0.0;
+    osc->cache_len = 0;
+
     osc->freq = freq_hz;
     osc->sample_phase_incr = freq_hz / session_get_sample_rate();
     #ifdef TESTBUILD
@@ -2029,6 +2158,11 @@ void synth_add_buf(Synth *s, float *restrict buf, int channel, int32_t len, floa
     /* synth_debug_summary(s, channel, len, step); */
     /* fprintf(stderr, "PED? %d\n", s->pedal_depressed); */
     /* if (channel != 0) return; */
+    if (cache_misses > 10000) {
+	fprintf(stderr, "Hits: %d Misses: %d\n", cache_hits, cache_misses);
+	cache_misses = 0;
+	cache_hits = 0;
+    }
     if (s->mono_mode) has_timeout = false;
     if (step < 0.0) step *= -1;
     if (step > 5.0) {

@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include "SDL_rect.h"
 #include "color.h"
 #include "dsp_utils.h"

@@ -7,7 +7,7 @@
   Jackdaw is licensed under the GNU General Public License.
 
 *****************************************************************************************************************/
-
+#include <stdlib.h>
 #include "audio_clip.h"
 #include "clipref.h"
 #include "color.h"

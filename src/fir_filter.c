@@ -15,6 +15,7 @@
     the frequency response of the filters.
  *****************************************************************************************************************/
 
+#include <stdlib.h>
 #include "consts.h"
 #include "dsp_utils.h"
 #include "endpoint_callbacks.h"

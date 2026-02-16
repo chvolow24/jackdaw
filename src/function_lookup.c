@@ -8,6 +8,8 @@
 
 *****************************************************************************************************************/
 
+#include <stdlib.h>
+#include <string.h>
 #include "function_lookup.h"
 #include "components.h"
 #include "input.h"

@@ -36,6 +36,7 @@
 #ifndef JDAW_AUTOMATION_H
 #define JDAW_AUTOMATION_H
 
+#include <pthread.h>
 #include "components.h"
 #include "layout.h"
 #include "test.h"

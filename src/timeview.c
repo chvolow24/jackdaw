@@ -1,3 +1,6 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
 #include "timeview.h"
 
 int32_t timeview_get_pos_sframes(TimeView *tv, int draw_x)

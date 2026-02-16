@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include "assets.h"
 #include "clipref.h"
 #include "color.h"

@@ -9,6 +9,7 @@
 *****************************************************************************************************************/
 
 #include <pthread.h>
+#include <stdlib.h>
 #include <sys/errno.h>
 /* #include <semaphore.h> */
 #include "audio_connection.h"

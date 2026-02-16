@@ -23,6 +23,7 @@
 #include <semaphore.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include "api.h"
 #include "automation.h"
 #include "components.h"

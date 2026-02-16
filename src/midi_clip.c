@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include "clipref.h"
 #include "color.h"
 #include "midi_clip.h"

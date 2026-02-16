@@ -9,6 +9,7 @@
 *****************************************************************************************************************/
 
 #include <errno.h>
+#include <stdlib.h>
 #include "api.h"
 #include "endpoint.h"
 #include "session.h"

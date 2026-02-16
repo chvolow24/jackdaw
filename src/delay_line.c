@@ -8,6 +8,7 @@
 
 *****************************************************************************************************************/
 
+#include <stdlib.h>
 #include "consts.h"
 #include "delay_line.h"
 #include "endpoint_callbacks.h"

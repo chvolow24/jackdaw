@@ -20,6 +20,7 @@
 #ifndef JDAW_AUDIO_CLIP_H
 #define JDAW_AUDIO_CLIP_H
 
+#include <pthread.h>
 #include "textbox.h"
 
 typedef struct clip_ref ClipRef;

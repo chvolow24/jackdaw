@@ -1,4 +1,5 @@
 #include <execinfo.h>
+#include <stdlib.h>
 #include "input.h"
 #include "test.h"
 

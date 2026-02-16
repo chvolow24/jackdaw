@@ -7,6 +7,7 @@
 #define INSTALL_DIR "."
 #endif
 
+
 #define LAYOUT_PATH "layouts/"
 #define MAIN_LT_PATH LAYOUT_PATH "jackdaw_main_layout.xml"
 #define TRACK_LT_PATH LAYOUT_PATH "track_template.xml"

@@ -55,6 +55,7 @@ CFLAGS := -Wall -Wno-unused-command-line-argument -Wno-format-truncation -I$(SRC
 	-Iportmidi/porttime \
 	-Iportmidi/pm_common \
 	-ISDL_ttf \
+	-DINSTALL_DIR="\"$(PWD)\"" \
 	$(SDL_FLAGS)
 
 CFLAGS_JDAW_ONLY := -DLT_DEV_MODE=0

@@ -76,7 +76,7 @@ char *asset_get_abs_path(const char *relative_path)
 
 dev_build:
     (void)0;
-    const char *head = "./assets/";
+    const char *head = INSTALL_DIR "/assets/";
     int len = strlen(relative_path) + strlen(head) + 1;
     char path[len];
     snprintf(path, len, "%s%s", head, relative_path);

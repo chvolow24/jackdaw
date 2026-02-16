@@ -2100,14 +2100,12 @@ void synth_add_buf(Synth *s, float *restrict buf, int channel, int32_t len, floa
     pthread_t threads[SYNTH_NUM_VOICES];
     bool thread_exists[SYNTH_NUM_VOICES] = {0};
     int active_voices = 0;
-    int occupied_cpu_cores = 1;
     Session *session = session_get();
-    for (int i=0; i<SYNTH_NUM_VOICES; i++) {
-	SynthVoice *v = s->voices + i;
-	if (!v->available) {
-	    active_voices++;
-	    if (synth_parallelism && occupied_cpu_cores < session->sys.cores) {
-		occupied_cpu_cores++;
+    if (synth_parallelism) {
+	for (int i=0; i<SYNTH_NUM_VOICES; i++) {
+	    SynthVoice *v = s->voices + i;
+	    if (!v->available) {
+		active_voices++;
 		args[i].v = v;
 		args[i].buf = bufs[i];
 		args[i].len = len;
@@ -2115,12 +2113,16 @@ void synth_add_buf(Synth *s, float *restrict buf, int channel, int32_t len, floa
 		args[i].step = step;
 		pthread_create(threads + i, NULL, synth_voice_add_buf_threadfn, args + i);
 		thread_exists[i] = true;
-	    } else {
+	    }
+	}
+    } else {
+    	for (int i=0; i<SYNTH_NUM_VOICES; i++) {
+	    SynthVoice *v = s->voices + i;
+	    if (!v->available) {
 		synth_voice_add_buf(v, internal_buf, len, channel, step, false);
 	    }
 	}
     }
-    /* fprintf(stderr, "Cores used: %d (voices %d)\n", occupied_cpu_cores, active_voices); */
     if (synth_parallelism) {
 	for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 	    if (thread_exists[i]) {

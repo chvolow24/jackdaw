@@ -84,77 +84,39 @@ Jackdaw currently depends on POSIX system APIs for threading and synchronization
 
 ## Dependencies
 
-Jackdaw depends on the [SDL2](https://libsdl.org/) library, and related [SDL2_ttf](https://wiki.libsdl.org/SDL2_ttf/FrontPage) library.
+Jackdaw depends on the following libraries:
+- [SDL2](https://libsdl.org/) for:
+  - graphics and window management
+  - event handling
+  - audio I/O
+  - misc other platform abstractions
+- [SDL2_ttf](https://wiki.libsdl.org/SDL2_ttf/FrontPage) for text rendering
+- [PortMidi](https://github.com/PortMidi/portmidi) for MIDI I/O
+
+Each dependency is included as a submodule.
 
 ## Installation
 
-Currently, the only way to install Jackdaw is to build it from the source code. The first step is to clone the repository:
+Currently, the only way to install Jackdaw is to build it from the source code:
 
 ```console
-$ git clone https://github.com/chvolow24/jackdaw.git
-
-```
-
-### The easy way: bash scripts
-
-Two scripts are provided in this repository to make installation and updating easier: `install.sh` and `update.sh`.
-
-Executing `install.sh` will attempt to install Jackdaw's dependencies ([SDL2](https://www.libsdl.org/) and [SDL2_ttf](https://wiki.libsdl.org/SDL2_ttf/FrontPage)) on your system. In order to do so, it will also install homebrew on macos if not already installed. It will then build the `jackdaw` executable, and move it to `/usr/local/bin`, so that you can run it from the command line in any directory.
-
-`update.sh` pulls any available updates from the remote repository, re-executes itself*, and then moves the executable to `/usr/local/bin`.
-
-*This is so that you don't have to `git pull` in order to run the latest version of `update.sh`. But it would also be a great way for me to run malicious code on your computer! Proceed with caution (or trust). 
-
-Once `install.sh` completes execution, you can launch jackdaw on the command line:
-
-```console
-$ jackdaw
-```
-
-### Manual installation
-
-If you prefer not to run my bash scripts, you'll need to manually install the dependencies, build the project, and then do whatever you want with the executable.
-
-#### Installing dependencies (SDL2 and SDL2_ttf)
-
-Detailed instructions for installing SDL can be found [on their wiki](https://wiki.libsdl.org/SDL2/Installation), but here's a summary:
-
-##### macOS
-
-[Homebrew](https://brew.sh/) should work just fine: 
-```console
-$ brew install sdl2
-$ brew install sdl2_ttf
-```
-
-##### linux
-
-You may want to build SDL from source by default (again, see [wiki](https://wiki.libsdl.org/SDL2/Installation)) instead of using `apt-get`; I found that the version of SDL provided by `apt-get` on ubuntu was too old.
-
-SDL2_ttf can be installed with the package manager, though:
-
-```console
-$ sudo apt-get install libsdl2-ttf-2.0-0
-$ sudo apt-get install libsdl2-ttf-dev
-```
-
-#### Build the project
-
-Navigate to the main jackdaw directory (where you cloned this repository) and run `make`:
-
-```console
+$ git clone --recurse-submodules https://github.com/chvolow24/jackdaw.git
+$ cd jackdaw
 $ make
 ```
 
-If there are errors, please feel free to create an issue on this repository; I'd be happy to look into it. 
+`make` will first attempt to build each of the (included) dependencies, and will then compile jackdaw's source code and construct the `jackdaw` binary in the root directory of the project.
 
-#### Run the executable
+The dependencies are built locally (i.e., nothing will be installed on your system) and statically linked.
 
-If `make` executed successfully, there should be an executable named `jackdaw` in the current directory.
+`make clean` cleans all of Jackdaw's build objects, but leaves the dependencies in place.
 
-```console
-$ ./jackdaw
-```
+`make cleanall` cleans all of the dependency build objects.
+
+`make debug` builds a debug version of Jackdaw.
+
+Currently, the `jackdaw` binary will not run correctly if moved, because it retrieves files relative to the source directory. 
+
 
 ## Keyboard command shorthand
 

@@ -227,6 +227,20 @@ static void mode_load_global()
 	"Dump exec logs to stderr",
 	user_global_dump_logs);
     mode_subcat_add_fn(mc, fn);
+
+    fn = create_user_fn(
+	"disable_synth_parallelism",
+	"Disable synth parallelism",
+	user_global_disable_synth_parallelism);
+    mode_subcat_add_fn(mc, fn);
+
+    fn = create_user_fn(
+	"enable_synth_parallelism",
+	"Enable synth parallelism",
+	user_global_enable_synth_parallelism);
+    mode_subcat_add_fn(mc, fn);
+
+    
     /* fn = create_user_fn( */
     /* 	"start_or_stop_screenrecording", */
     /* 	"Start or stop screenrecording", */

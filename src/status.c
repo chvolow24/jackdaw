@@ -80,6 +80,30 @@ void status_set_errstr(const char *fmt, ...)
     session->status_bar.error->text->color.a = 255;
 }
 
+void status_set_alertstr(const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    Session *session = session_get();
+    if (!on_thread(JDAW_THREAD_MAIN)) {
+	/* pthread_mutex_lock(&session->status_bar.errstr_lock); */
+	/* queued_errstr = errstr; */
+	/* pthread_mutex_unlock(&session->status_bar.errstr_lock); */
+	return;
+    }
+    vsnprintf(session->status_bar.errstr, MAX_STATUS_STRLEN, fmt, ap);
+    /* strcpy(session->status_bar.errstr, errstr); */
+    /* textbox_set_text_color(session->status_bar.error, &colors.red); */
+    textbox_size_to_fit(session->status_bar.error, 0, 0);
+    textbox_set_text_color(session->status_bar.error, &colors.cerulean);
+    layout_center_agnostic(session->status_bar.error->layout, false, true);
+
+    textbox_reset_full(session->status_bar.error);
+    session->status_bar.err_timer = ERR_TIMER_MAX;
+    session->status_bar.error->text->color.a = 255;
+}
+
+
 void status_set_undostr(const char *undostr)
 {
     Session *session = session_get();
@@ -106,8 +130,6 @@ void status_set_statstr(const char *fmt, ...)
     textbox_reset_full(session->status_bar.call);
     session->status_bar.stat_timer = STAT_TIMER_MAX;
     session->status_bar.call->text->color.a = 255;
-
-
 }
 
 void status_set_callstr(const char *callstr)
@@ -160,7 +182,7 @@ static void status_set_dragstr(char *dragstr)
     /* fprintf(stdout, "w: %d\n", session->status_bar.dragstat->layout->rect.w); */
 }
 
-void status_set_alert_str(const char *fmt, ...)
+void status_set_sticky_alert_str(const char *fmt, ...)
 {
     Session *session = session_get();
     if (!fmt) {

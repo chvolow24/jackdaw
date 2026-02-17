@@ -312,4 +312,7 @@ void synth_read_preset_file(const char *filepath, Synth *s);
 /* int32_t synth_make_note(Synth *s, int pitch, int velocity, float **buf_L_dst, float **buf_R_dst); */
 int32_t synth_make_notes(Synth *s, int *pitches, int *velocities, int num_pitches, float **buf_L_dst, float **buf_R_dst);
 
+void synth_parallelism_disable();
+void synth_parallelism_enable();
+
 #endif

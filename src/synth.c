@@ -15,6 +15,7 @@
 #include "input.h"
 #include "label.h"
 #include "log.h"
+#include "status.h"
 #include "synth.h"
 #include "session.h"
 #include "time.h"
@@ -330,9 +331,39 @@ static void num_voices_dsp_cb(Endpoint *ep)
     synth->timeout_num_voices = synth->num_voices;
 }
 
+static bool synth_parallelism_allowed = true;
+void synth_parallelism_disable()
+{
+    if (!synth_parallelism_allowed) {
+	status_set_errstr("Synth parallelism already disabled.\n");
+    } else {
+	transport_stop_playback();
+	timeline_play_speed_set(0.0);
+	synth_parallelism_allowed = false;
+	status_set_alertstr("Synth parallelism disabled.\n");
+    }
+}
+
+void synth_parallelism_enable()
+{
+    if (synth_parallelism_allowed) {
+	status_set_errstr("Synth parallelism already enabled.\n");
+    } else {
+	transport_stop_playback();
+	timeline_play_speed_set(0.0);
+	synth_parallelism_allowed = true;
+	status_set_alertstr("Synth parallelism enabled.\n");
+    }
+}
+static bool parallelism_initialized = false;
 
 Synth *synth_create(Track *track)
 {
+    if (!parallelism_initialized) {
+	if (session_get()->sys.cores < 4) {
+	    synth_parallelism_allowed = false;
+	}
+    }
     Synth *s = calloc(1, sizeof(Synth));
     
     snprintf(s->preset_name, MAX_NAMELENGTH, "preset.jsynth");
@@ -1350,12 +1381,11 @@ static void osc_get_buf_preamp(Osc *osc, float step, int len, int after)
 /*     return bottom_sample * osc->amp * pan_scale(osc->pan, channel); */
 /* } */
 
-static bool synth_parallelism = false;
-void toggle_synth_parallelism()
-{
-    synth_parallelism = !synth_parallelism;
-    fprintf(stderr, "Synth parallellism %s\n", synth_parallelism ? "ON" : "OFF");
-}
+/* void toggle_synth_parallelism() */
+/* { */
+/*     synth_parallelism = !synth_parallelism; */
+/*     fprintf(stderr, "Synth parallellism %s\n", synth_parallelism ? "ON" : "OFF"); */
+/* } */
 static void synth_voice_add_buf(SynthVoice *v, float *restrict buf, int32_t len, int channel, float step, bool set_not_add);
 struct synthvoice_arg {
     SynthVoice *v;
@@ -2100,7 +2130,9 @@ void synth_add_buf(Synth *s, float *restrict buf, int channel, int32_t len, floa
     pthread_t threads[SYNTH_NUM_VOICES];
     bool thread_exists[SYNTH_NUM_VOICES] = {0};
     int active_voices = 0;
-    Session *session = session_get();
+    bool synth_parallelism =
+	!on_thread(JDAW_THREAD_PLAYBACK)
+	&& synth_parallelism_allowed;
     if (synth_parallelism) {
 	for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 	    SynthVoice *v = s->voices + i;

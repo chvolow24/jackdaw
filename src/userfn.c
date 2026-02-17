@@ -579,6 +579,17 @@ void user_global_dump_logs(void *nullarg)
     log_printall();
 }
 
+void user_global_enable_synth_parallelism()
+{
+    synth_parallelism_enable();
+}
+
+void user_global_disable_synth_parallelism()
+{
+    synth_parallelism_disable();
+}
+
+
 
 static void menu_nav_mode_error()
 {

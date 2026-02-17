@@ -69,14 +69,14 @@ extern Project *proj;
 /*     return 0; */
 /* } */
 
-TabView *synth_tabview_create(Track *track);
-void user_global_quit(void *);
+/* TabView *synth_tabviewc_create(Track *track); */
 
+extern void user_global_quit(void *);
 extern void open_file(const char *filepath);
-void user_piano_roll_quantize(void *nullarg);
-void toggle_synth_parallelism();
 
-void effect_chain_open_tabview(EffectChain *ec);
+/* void user_piano_roll_quantize(void *nullarg); */
+
+/* void effect_chain_open_tabview(EffectChain *ec); */
 void loop_project_main()
 {
     Session *session = session_get();
@@ -228,9 +228,6 @@ void loop_project_main()
 		/* } */
 
 		switch (e.key.keysym.scancode) {
-		case SDL_SCANCODE_6:
-		    toggle_synth_parallelism();
-		    break;
  		/* case SDL_SCANCODE_6: { */
 		/*     Track *track = ACTIVE_TL->tracks[0]; */
 		/*     Effect *e = effect_chain_add_effect(&track->synth->effect_chain, EFFECT_DELAY); */

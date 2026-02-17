@@ -554,7 +554,7 @@ static void session_set_out_conn(Session *session, AudioConn *conn, bool from_re
 void audioconn_handle_connection_event(int index, int iscapture, int event_type)
 {
     AudioDevice *dev = add_device_and_conns(session_get(), index, iscapture);
-    status_set_statstr("Added %s device \"%s\"\n", iscapture ? "record" : "playback", dev->name);
+    status_set_alertstr("Added %s device \"%s\"\n", iscapture ? "record" : "playback", dev->name);
     /* status_set_ */
     /* AudioDevice *dev = calloc(1, sizeof(AudioDevice)); */
     /* SDL_GetAudioDeviceName(index, iscapture); */

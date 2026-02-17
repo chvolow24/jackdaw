@@ -143,14 +143,14 @@ void mqwert_activate()
 	/* mqwert_deactivate(); */
 	/* return; */
     }
-    status_set_alert_str("QWERTY Piano active; ESC to exit");
+    status_set_sticky_alert_str("QWERTY Piano active; ESC to exit");
     panel_page_refocus(session->gui.panels, "QWERTY piano", 1);
     ACTIVE_TL->needs_redraw = true;
 }
 
 void mqwert_deactivate()
 {
-    status_set_alert_str(NULL);
+    status_set_sticky_alert_str(NULL);
     state.active = false;
     window_extract_mode(main_win, MODE_MIDI_QWERTY);
     Session *session = session_get();

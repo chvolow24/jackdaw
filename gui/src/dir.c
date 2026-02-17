@@ -388,24 +388,28 @@ DirNav *dirnav_create(
     textbox_reset_full(sel->tb);
 
     Layout *pathname_lt = layout_add_child(dn->layout);
+
+    pathname_lt->x.value = 5;
+    pathname_lt->y.type = STACK;
+    pathname_lt->y.value = 5;
+    pathname_lt->w.type = PAD;
+    pathname_lt->w.value = DIRNAV_LINE_SPACING;
+    layout_reset(pathname_lt);
+
+    /* fprintf(stderr, "DIR NAME: %s\n", dir_name); */
     dn->current_path_tb = textbox_create_from_str((char *)dir_name, pathname_lt, main_win->bold_font, 12, main_win);
     textbox_set_align(dn->current_path_tb, CENTER_LEFT);
     textbox_set_background_color(dn->current_path_tb, &colors.clear);
     textbox_set_text_color(dn->current_path_tb, &colors.white);
     textbox_size_to_fit_v(dn->current_path_tb, 0);
+    textbox_reset_full(dn->current_path_tb);
     /* lt->h.value += pathname_lt->h.value; */
-    pathname_lt->x.value = 5;
-    /* pathname_lt->rect.y = dn->layout->rect.y + dn->layout->rect.y - inner->rect.h - inner->rect.y; */
-    pathname_lt->y.type = STACK;
-    pathname_lt->y.value = 5;
-    pathname_lt->w.type = PAD;
-    /* pathname_lt->rect.h = dn->layout->rect.h - inner->rect.h - inner->rect.y; */
-    pathname_lt->w.value = DIRNAV_LINE_SPACING;
     /* laoyut */
     /* pathname_lt->rect.y = dn->layout->rect.y + dn->layout->rect.h - pathname_lt->rect.h; */
     /* layout_set_values_from_rect(pathname_lt); */
-    textbox_reset_full(dn->current_path_tb);
-    layout_size_to_fit_children(dn->layout, true, 30);
+    /* textbox_reset_full(dn->current_path_tb); */
+    layout_size_to_fit_children_h(dn->layout, true, 30);
+    layout_size_to_fit_children_v(dn->layout, true, 20);
     layout_reset(dn->layout);
     /* layout_write(stdout, pathname_lt, 0); */
     /* layout_reset(dn->layout); */

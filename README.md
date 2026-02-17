@@ -111,16 +111,15 @@ The dependencies are built locally (i.e., nothing will be installed on your syst
 
 `make clean` cleans all of Jackdaw's build objects, but leaves the dependencies in place.
 
-`make cleanall` cleans all of the dependency build objects.
+`make cleanall` cleans all of the dependency build objects as well.
 
 `make debug` builds a debug version of Jackdaw.
 
-Currently, the `jackdaw` binary will not run correctly if moved, because it retrieves files relative to the source directory. 
-
+PortMidi uses CMake for its build process, and SDL and SDL_ttf use GNU Autotools, so both are required for `make` to execute successfully. For its part, Jackdaw just uses GNU Make.
 
 ## Keyboard command shorthand
 
-Although the mouse can be used for almost everything, Jackdaw is fundamentally a keyboard-driven application. Here are some examples of keyboard commands you'll see written in the application and in this documentation:
+Although the mouse can be used for almost everything, Jackdaw is built around keyboard commands. Here are some examples of keyboard commands you'll see written in the application and in this documentation: 
 
 <kbd>n</kbd>......................................press the 'n' key<br>
 <kbd>p</kbd>......................................press the 'p' key<br>
@@ -152,16 +151,9 @@ This will all be familiar to emacs users, and hopefully not too painful for ever
 
 This section is a brief tutorial meant to familiarize you with the most basic and frequently-used operations in jackdaw. From there, you can reference the [user manual](#user-manual) to learn about the other things you can do in the program.
 
-### 1. Adding tracks and setting input
+### 1. Setting the track input
 
-The first thing you'll probably want to do upon opening jackdaw is to **add a track** or two. You can do this with<br>
-<kbd>C-t</kbd>
-
-(Hold down <kbd>cmd</kbd> or <kbd>ctrl</kbd> and hit <kbd>t</kbd>).
-<!-- ![add_track.gif](readme_imgs/add_track.gif) -->
-<img src="readme_imgs/add_track2.gif" width="75%" />
-
-The track input will be set to the default system audio input device, but you can **change the current track input** if you like with <kbd>C-S-i</kbd> (ctrl-shift-i or cmd-shift-i). A list of available input devices will appear. Use <kbd>n</kbd> (for 'next') to go to the next item in the list, and <kbd>p</kbd> (for 'previous') to go to the previous. (These keys will be used a lot). Hit <kbd>\<ret\></kbd> to choose the currently-highlighted device.
+When you open a fresh Jackdaw session, one track is created automatically. The track input will be set to the default system audio input device, but you can **change the current track input** if you like with <kbd>C-S-i</kbd> (ctrl-shift-i or cmd-shift-i). A list of available input devices will appear. Use <kbd>n</kbd> (for 'next') to go to the next item in the list, and <kbd>p</kbd> (for 'previous') to go to the previous. (These keys will be used a lot). Hit <kbd>\<ret\></kbd> to choose the currently-highlighted device.
 
 
 > [!TIP]
@@ -187,7 +179,12 @@ If you tap <kbd>l</kbd> or <kbd>j</kbd> multiple times, the playback speed will 
 
 ### 4. Multi-track audio
 
-The clip you recorded landed on the first track by default. You can again use the <kbd>n</kbd> and <kbd>p</kbd> keys to **move the track selector** up and down. Try rewinding back to the beginning of the recording you made, selecting a different track, and recording some new audio.
+Let's **add a track** or two. You can do this with<br>
+<kbd>C-t</kbd>
+
+(Hold down <kbd>cmd</kbd> or <kbd>ctrl</kbd> and hit <kbd>t</kbd>).
+
+You can again use the <kbd>n</kbd> and <kbd>p</kbd> keys to **move the track selector** up and down. Try rewinding back to the beginning of the recording you made, selecting a different track, and recording some new audio.
 
 <img src="readme_imgs/record_other_track2.gif" width="75%" />
 
@@ -211,7 +208,7 @@ You will be prompted to enter a project name (which must include the `.jdaw` ext
 
 ## Function lookup
 
-Jackdaw's user interface is built around keyboard commands, but you don't need to memorize them. Hit the spacebar (<kbd>\<spc\></kbd>) to open an autocomplete dropdown list of available commands. You can start typing one or more keywords to see a list of matching commands. Use <kbd>\<tab\></kbd> to navigate down through the list, <kbd>S-\<tab\></kbd> to navigate up, <kbd>\<ret\></kbd> to select an item, and <kbd>\<esc\></kbd> to escape without selecting an item.
+Jackdaw's user interface is built around keyboard commands, but you don't need to memorize them. Hit the slash key (<kbd>/</kbd>) to open an autocomplete dropdown list of available commands. You can start typing one or more keywords to see a list of matching commands. Use <kbd>\<tab\></kbd> to navigate down through the list, <kbd>S-\<tab\></kbd> to navigate up, <kbd>\<ret\></kbd> to select an item, and <kbd>\<esc\></kbd> to escape without selecting an item.
 
 Each entry in the list includes the display name of the command on the left, and the bound keyboard command on the right. (See "[Keyboard command shorthand](#keyboard-command-shorthand)" above if these confuse you.)
 
@@ -286,7 +283,7 @@ Keystrokes that move the track selector or move the playhead can therefore also 
 <kbd>j</kbd> : **cursor left**<br>
 <kbd>l</kbd> : **cursor right**</br>
 
-The cursor concept is one of jackdaw's unique strengths.
+The cursor concept is critical to how you interact with Jackdaw.
 
 ### Marks and jump-to
 

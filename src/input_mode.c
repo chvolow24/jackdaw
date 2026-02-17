@@ -769,7 +769,7 @@ static void mode_load_timeline()
     
     fn = create_user_fn(
 	"tl_track_open_settings",
-	"Open track settings",
+	"Open track effects (or click track settings)",
 	user_tl_track_open_settings);
     mode_subcat_add_fn(sc, fn);
 

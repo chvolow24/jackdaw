@@ -77,10 +77,18 @@ static MetronomeBuffer *session_add_metronome(const char *filepath)
 
 void session_init_metronomes(Session *session)
 {
-    session_add_metronome(asset_get_abs_path(METRONOME_STD_HIGH_PATH));
-    session_add_metronome(asset_get_abs_path(METRONOME_STD_LOW_PATH));
-    session_add_metronome(asset_get_abs_path(METRONOME_SNAP_PATH));
-    session_add_metronome(asset_get_abs_path(METRONOME_SNAP_CLOSE_PATH));    
+    char *path = asset_get_abs_path(METRONOME_STD_HIGH_PATH);
+    session_add_metronome(path);
+    free(path);
+    path = asset_get_abs_path(METRONOME_STD_LOW_PATH);
+    session_add_metronome(path);
+    free(path);
+    path = asset_get_abs_path(METRONOME_SNAP_PATH);
+    session_add_metronome(path);
+    free(path);    
+    path = asset_get_abs_path(METRONOME_SNAP_CLOSE_PATH);
+    session_add_metronome(path);
+    free(path);    
 }
 
 void session_destroy_metronomes(Session *session)

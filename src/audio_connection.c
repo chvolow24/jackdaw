@@ -67,6 +67,9 @@ static AudioDevice *add_device_and_conns(Session *session, int index, int iscapt
     if (SDL_GetAudioDeviceSpec(index, iscapture, &spec) != 0) {
 	error_exit("Unable to get %s audio device spec at index %d\n", iscapture ? "record" : "playback", index);
     }
+    if (spec.channels == 0) spec.channels = 2;
+    if (spec.freq == 0) spec.freq = session->proj.sample_rate;
+    if (spec.format == 0) spec.format = AUDIO_S16SYS;
     snprintf(dev->name, MAX_DEV_NAMELENGTH, "%s", name);
     dev->index = index;
     dev->spec = spec;

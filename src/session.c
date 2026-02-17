@@ -281,7 +281,8 @@ void session_destroy()
     if (session->proj_initialized) {
 	project_deinit(&session->proj);
     }
-    
+
+    free(session);
     session = NULL;
 
 }

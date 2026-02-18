@@ -2,7 +2,8 @@
 A free, open-source, keyboard-focused digital audio workstation (DAW). Written in C, using SDL (https://libsdl.org/).
 
 <!-- <img src="readme_imgs/main_new_short.gif" width="80%" /> -->
-<img src="https://jackdaw-audio.net/static/sync_gifs/fir_filter.gif" width="80%" />
+![main](https://charlie-volow.com/assets/random_inputs.gif)
+*Jackdaw handling random user inputs*
 <!-- ![main_gif](https://jackdaw-audio.net/static/readme_imgs/main_new_short.gif) -->
 
 
@@ -22,7 +23,7 @@ Jackdaw is a work in progress and has not been officially "released." What's ava
 
 ### Privacy
 
-Jackdaw collects no data. Usage logs are stored in temporary files on disk, but these are not visible to anyone unless you choose to share them.
+Jackdaw collects no data and does not connect to the internet. Session logs are stored in temporary files on disk, but these are not visible to anyone unless you choose to share them.
 
 ### Use of AI
 

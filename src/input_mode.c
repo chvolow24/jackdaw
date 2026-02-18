@@ -197,8 +197,8 @@ static void mode_load_global()
     mode_subcat_add_fn(mc, fn);
 
     fn = create_user_fn(
-	"function_lookup",
-	"Function lookup",
+	"command_lookup",
+	"Command lookup",
 	user_global_function_lookup);
     mode_subcat_add_fn(mc, fn);
 

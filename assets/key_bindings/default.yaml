@@ -33,7 +33,7 @@
   - C-o		: open_file
   - A-S-<del>	: chaotic_user_test
   - C-S-p	: start_api_server
-  - /		: function_lookup
+  - /		: command_lookup
 - menu_nav:
   - n		: menu_next_item
   - p		: menu_previous_item

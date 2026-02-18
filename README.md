@@ -5,13 +5,12 @@ A free, open-source, keyboard-focused digital audio workstation (DAW). Written i
 <img src="https://jackdaw-audio.net/static/sync_gifs/fir_filter.gif" width="75%" />
 <!-- ![main_gif](https://jackdaw-audio.net/static/readme_imgs/main_new_short.gif) -->
 
+
 ## Table of Contents
 1. [Disclaimer](#disclaimer)
 2. [Compatibility](#os-compatibility)
 3. [Dependencies](#dependencies)
 4. [Installation](#installation)
-  1. [The easy way: bash scripts](#the-easy-way-bash-scripts)
-  2. [Manual installation](#manual-installation)
 5. [Keyboard command shorthand](#keyboard-command-shorthand)
 6. [Quickstart (getting comfortable)](#quickstart-getting-comfortable) 
 7. [User manual](#user-manual)
@@ -20,6 +19,10 @@ A free, open-source, keyboard-focused digital audio workstation (DAW). Written i
 ## Disclaimer
 
 Jackdaw is a work in progress and has not been officially "released." What's available here is surprisingly powerful, fun to use, and can definitely be used to make music, but I do not guarantee that everything will work perfectly or as expected.
+
+### Privacy
+
+Jackdaw collects no data. Usage logs are stored in temporary files on disk, but these are not visible to anyone unless you choose to share them.
 
 ### Use of AI
 
@@ -165,58 +168,58 @@ You will be prompted to enter a project name (which must include the `.jdaw` ext
 1. [Command lookup](#command-lookup)
 2. [Menus](#menus)
 3. [Timeline navigation and playback](#timeline-navigation-and-playback)
-  1. [Playback](#playback)
-  2. [Scrubbing / play speed](#scrubbing--play-speed)
-  3. [Translate / zoom](#translate--zoom)
-  4. [Move playhead](#move-playhead)
-  5. [Track selector](#track-selector)
-  6. ["Cursor"](#cursor)
-  7. [Marks and jump-to](#marks-and-jump-to)
-  8. [Scrolling](#scrolling)
-  9. [Loop playback](#loop-playback)
+    1. [Playback](#playback)
+    2. [Scrubbing / play speed](#scrubbing--play-speed)
+	3. [Translate / zoom](#translate--zoom)
+	4. [Move playhead](#move-playhead)
+	5. [Track selector](#track-selector)
+	6. ["Cursor"](#cursor)
+	7. [Marks and jump-to](#marks-and-jump-to)
+	8. [Scrolling](#scrolling)
+	9. [Loop playback](#loop-playback)
 4. [Recording](#recording)
 5. [Tracks](#tracks)
-  1. [Activating / deactivating tracks](#activating--deactivating-tracks)
-  2. [Muting / soloing](#muting--soloing)
-  3. [Adjusting volume / pan](#adjusting-volume--pan)
-  4. [Setting track input](#setting-track-input)
-  5. [Reordering tracks](#reordering-tracks)
-  6. [Minimizing tracks](#minimizing-tracks)
-  6. [Renaming tracks](#renaming-tracks)
-    1. [Editing text](#editing-text)
+    1. [Activating / deactivating tracks](#activating--deactivating-tracks)
+	2. [Muting / soloing](#muting--soloing)
+	3. [Adjusting volume / pan](#adjusting-volume--pan)
+	4. [Setting track input](#setting-track-input)
+	5. [Reordering tracks](#reordering-tracks)
+	6. [Minimizing tracks](#minimizing-tracks)
+	7. [Renaming tracks](#renaming-tracks)
+        1. [Editing text](#editing-text)
 6. [Clips](#clips)
-  1. ["Clips" vs "Clip references"](#technical-note-clips-vs-clip-references)
-  2. ["Grabbing" and moving clips](#grabbing-and-moving-clips)
-  3. [Clip overlap](#clip-overlap)
-  4. [Cutting clips](#cutting-clips)
-  5. [Renaming clips](#renaming-clips)
+    1. ["Clips" vs "Clip references"](#technical-note-clips-vs-clip-references)
+	2. ["Grabbing" and moving clips](#grabbing-and-moving-clips)
+	3. [Clip overlap](#clip-overlap)
+	4. [Cutting clips](#cutting-clips)
+	5. [Renaming clips](#renaming-clips)
 7. [Click tracks](#click-tracks)
-  1. [Time signatures](#time-signatures)
-  2. [Click track segments](#click-track-segments)
-  3. [Metronome](#metronome)
-  4. [Set tempo](#set-tempo)
-  5. [Grid navigation](#grid-navigation)
-8. [Sample mode / Source mode](#sample-mode--source-mode)
+    1. [Time signatures](#time-signatures)
+	2. [Click track segments](#click-track-segments)
+	3. [Metronome](#metronome)
+	4. [Set tempo](#set-tempo)
+	5. [Grid navigation](#grid-navigation)
+8. [Source mode](#sample-mode--source-mode)
 9. [Project navigation / multiple timelines](#project-navigation--multiple-timelines)
 10. [Opening and saving files](#opening-and-saving-files)
 11. [Track effects](#track-effects)
-  1. [Adding, ordering, and removing effects](#adding-ordering-and-removing-effects)
-  2. [EQ](#eq)
-  3. [FIR Filter](#fir-filter)
-  4. [Delay line](#delay-line)
-  5. [Saturation](#saturation)
-  6. [Compressor](#compressor)
+    1. [Adding, ordering, and removing effects](#adding-ordering-and-removing-effects)
+	2. [EQ](#eq)
+	3. [FIR Filter](#fir-filter)
+	4. [Delay line](#delay-line)
+	5. [Saturation](#saturation)
+	6. [Compressor](#compressor)
 12. [Automation](#automation)
-  1. [Adding keyframes with the mouse](#adding-keyframes-with-the-mouse)
-  2. [Writing (adding keyframes automatically)](#writing-adding-keyframes-automatically)
-  3. [Deleting keyframes](#deleting-keyframes)
+    1. [Adding keyframes with the mouse](#adding-keyframes-with-the-mouse)
+	2. [Writing (adding keyframes automatically)](#writing-adding-keyframes-automatically)
+	3. [Deleting keyframes](#deleting-keyframes)
 13. [Undo / redo](#undo--redo)
 14. [Special audio inputs](#special-audio-inputs)
-  1. [Jackdaw out](#jackdaw-out)
-  2. [Pure data](#pure-data)
+    1. [Jackdaw out](#jackdaw-out)
+	2. [Pure data](#pure-data)
 15. [API](#api)
-  1. [Starting the server](#starting-the-server)
-  2. [Request syntax](#request-syntax)
+    1. [Starting the server](#starting-the-server)
+	2. [Request syntax](#request-syntax)
 
 ## Command lookup
 
@@ -423,7 +426,7 @@ There are some very limited additional text editing commands that can be used wh
 
 ## Clips
 
-A clip is a chunk of audio data represented on the timeline.
+A clip is a chunk of audio or MIDI data represented on the timeline.
 
 ### Technical note: "Clips" vs. "Clip references"
 
@@ -434,13 +437,6 @@ The audio data itself does live in a object called a [`Clip`](https://github.com
 A clip can have many clip reference. The audio data associated with the clip is not duplicated; therefore, when copying clips or portions of clips using Source Mode, you are not actually copying any audio data; you are merely creating additional references to the clip.
 
 The blue or green color of any given clip reference on the timeline is not particularly meaningful in this version of jackdaw (0.4) and can be safely ignored.
-<!-- In general, this document and the application itself merely refer to any chunks of audio data present on the timeline as "clips." You may, however, notice that some clips are green, while others are blue. Why? -->
-
-<!-- Under the hood, a "clip" is a chunk of audio data that is associated with a project, but is not directly associated with a timeline or track. A "clip reference" (or "clipref") is the data object that represents that association. It specifies which track it appears on, which clip it references, and the start and end positions within that clip that describe the boundaries as represented on the timeline. -->
-
-<!-- A given clip can have many clip references. The actual audio data associated with the clip is not duplicated; therefore, when copying clips or portions of clips using Source Mode, you are not actually copying any audio data; you are merely creating additional references to the clip. -->
-
-<!-- Clip references that appear blue in the timeline are "anchored" to the clip itself; if you delete a blue clip reference, the source *clip* and all of its associated references will be deleted as well. Green clip references are *just references*, and deleting them will not delete any associated audio data. -->
 
 ### "Grabbing" and moving clips
 
@@ -454,11 +450,27 @@ A clip can also be "grabbed" with <kbd>C-\<click\></kbd>.
 
 <kbd>C-k</kbd> : **Toggle drag clips**<br>
 
-If clip dragging is enabled, an indication will appear in the status bar at the bottom of the screen indicating how many clips are currently grabbed.
+If clip dragging is enabled, the clips will gently flash, and an indication will appear in the status bar at the bottom of the screen indicating how many clips are currently grabbed.
 
 <img src="https://jackdaw-audio.net/static/sync_gifs/drag_clips.gif" width="75%" />
 
 Moving the track selector will pull all currently-dragging clips along with it.
+
+### Adjusting clip edges
+
+In addition to grabbing and moving clips themselves, you can also grab and move clip edges.
+
+The keyboard commands use `g` (which is bound to `Grab clip at cursor`) as a modifier key, and `j` and `l` for "left" and "right", respectively (analogous to `j` = rewind and `l` = play).
+
+So to grab the left edge, position the cursor over the clip and do `g-j`. To grab the right edge, `g-l`. If dragging is active (`C-k`), moving the playhead will also move the grabbed edges.
+
+<img src="https://jackdaw-audio.net/static/sync_gifs/grab_edge_move.gif" width="75%" />
+
+Arrows are displayed when there's "room" on either side of the clip, i.e. there's audio data beyond the current window.
+
+You can cut a clip and automatically grab both edges of the cut to move the cut position with `g-c` (`Cut clip at cursor and grab edges`):
+
+<img src="https://jackdaw-audio.net/static/sync_gifs/grab_cut_and_drag.gif" width="75%" />
 
 ### Clip overlap
 
@@ -502,7 +514,7 @@ Then, <kbd>\<tab\></kbd> through the fields to modify any of the track parameter
 
 ### Time signatures
 
-Jackdaw doesn't use conventional time signatures because they're confusing and limited. Instead, you specify first the number of "beats" (coarse divisions of a measure) and then the number of subdivisions in each of those beats. So a 4/4 time signature, which has 4 beats, could be defined as 4 + 4 + 4 + 4 if you want sixteenth-note resolution, or 2 + 2 + 2 + 2 if you only want eighth-note resolution. 6/8 typically has *two* beats, and would be defined as 3 + 3.
+Jackdaw doesn't use conventional time signatures because they're confusing and limited. Instead, you specify first the number of "beats" (coarse divisions of a measure) and then the number of subdivisions in each of those beats. So a 4/4 time signature, which has 4 beats, could be defined as 4 + 4 + 4 + 4, or 2 + 2 + 2 + 2. 6/8 typically has *two* beats, and would be defined as 3 + 3.
 
 It is therefore very easy to define additive meters, like the Bulgarian Gankino horo (4 + 3 + 4):
 
@@ -525,15 +537,33 @@ You can click and drag the boundaries between click track segments to reposition
 
 While dragging, the segment boundary will automatically snap to the previous segment's subdivisions. Hold <kbd>\<shift\></kbd> to disable the snapping.
 
+#### "Freeze" click track
+
+Jackdaw provides a lot of flexibility that you'll almost never need with respect to click track placement; you can create a bunch of click tracks and move them up and down the timeline to your heart's content. Placement is not strictly cosmetic: each Track is "governed" by the click track positioned nearest above it on the timeline, so when you need to do grid-related things on a track (e.g. jumping to the next beat position with `C-l`, or adding notes in the piano roll), you can control *which* grid you're using.
+
+The downside of this design is that if you have a bunch of tracks and scroll down, the click track you're using may no longer be visible.
+
+To solve this, you can now "freeze" a click track at the top of the timeline view, and it will remain fixed there regardless of how you scroll. You do this simply by moving (`S-p`) the click track "all the way up":
+
+<img src="https://jackdaw-audio.net/static/sync_gifs//freeze_click_track.gif" width="75%">
+
+(Note that the frozen click track covers over the timecode view.)
+
+You "unfreeze" the click track by selecting it (repeat `p` or `d` until you're "all the way up") and moving it down (`S-n`):
+
+
 ### Metronome
 
 Each click track has a metronome which is on by default. You can mute the click track exactly as you would an audio track (select the track and then <kbd>m</kbd>, and adjust the volume of the metronome exactly as you would adjust the volume of an audio track (<kbd>S--</kbd> and <kbd>S-=</kbd>).
 
-### Set tempo
+You can also lightly customize the metronome by setting which sound plays on each of the following:
 
-You can quickly set the tempo of the click segment at cursor with <kbd>t</kbd>
+1. measure boundaries
+2. beat boundaries
+3. even beats (2 & 4 in 4/4) only
+4. subdivisions (e.g. eighths)
 
-<img src="https://jackdaw-audio.net/static/sync_gifs/set_tempo.gif" width="75%" />
+These options can be found in the second tab of the click track settings tab view (select a click track (`n` and `p`) and then `S-t` to open the tabview, and `S-l` to tab right).
 
 ### Grid navigation
 
@@ -552,8 +582,19 @@ All of the audio tracks directly *below* a given click track are governed by tha
 
 <img src="https://jackdaw-audio.net/static/sync_gifs/click_track_navigation.gif" width="75%" />
 
+### Set tempo
 
-## Sample mode / Source mode
+You can quickly set the tempo of the click segment at cursor with <kbd>t</kbd>
+
+You can also Ctrl- or Cmd- click the click track segment and drag it to set the tempo.
+
+Changing the tempo of click track segment moves clips, notes, and automation keyframes for all tracks using that click track.
+
+<img src="https://jackdaw-audio.net/static/sync_gifs/click_track_tempo_change.gif" width="75%">
+
+If you want to edit a click track without moving these objects, you can first move the click track to the bottom of the timeline, or temporarily insert another click track below the one you wish to edit. I recognize this may not be ideal, and may refine the feature later.
+
+## Source mode
 
 Jackdaw provides an interface for extracting samples from an audio clip, and dropping [references](#technical-note-clips-vs-clip-references) to those samples in your timeline.
 
@@ -563,7 +604,9 @@ If there is a clip at cursor, this command will load that clip to the source are
 
 <kbd>S-1</kbd> : **Activate or deactivate source mode**<br>
 
-In source, you can play back, scrub through, and set marks in the clip that has been loaded into the source area. The marks you set here will determine which portion of the clip is dropped into your timeline when you:
+In source, you can play back, scrub through, and set marks in the clip that has been loaded into the source area. The controls -- including zooming in and out, or moving the display window -- are identical as in timeline mode.
+
+The marks you set in source mode will determine which portion of the clip is dropped into your timeline when you:
 
 <kbd>b</kbd> : **Drop clip from source**<br>
 
@@ -594,7 +637,7 @@ When creating a new timeline, you will be prompted to enter a name. Type the nam
 
 ### Opening files
 
-Jackdaw is capable of opening two types of files: `.wav` and `.jdaw` (project) files. This can be done at launch time on the command line:
+Jackdaw knows how to open `.wav`, `.jdaw` (project), `.jsynth` (synth preset), and `.mid` (MIDI) files.
 
 ```console
 $ jackdaw PATH_TO_FILE

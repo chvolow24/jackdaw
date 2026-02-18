@@ -40,9 +40,12 @@
 #include "pure_data.h"
 #include "session.h"
 #include "symbol.h"
+#include "synth.h"
+#include "synth_page.h"
 #include "tempo.h"
 #include "text.h"
 #include "transport.h"
+#include "userfn.h"
 #include "wav.h"
 #include "window.h"
 
@@ -176,6 +179,7 @@ int main(int argc, char **argv)
     bool invoke_open_wav_file = false;
     bool invoke_open_jdaw_file = false;
     bool invoke_open_midi_file = false;
+    bool invoke_open_jsynth_file = false;
     if (argc > 2) {
 	fprintf(stderr, "Usage: jackdaw [file_to_open]");
         exit(1);
@@ -209,9 +213,12 @@ int main(int argc, char **argv)
 	} else if (
 	    strncmp("mid", ext, 3) * strncmp("MID", ext, 3) == 0) {
 	    invoke_open_midi_file = true;
+	} else if (
+	    strncmp("jsynth", ext, 6) * strncmp("JSYNTH", ext, 6) == 0) {
+	    invoke_open_jsynth_file = true;
 	} else {
 	unrecognized_arg:
-	    fprintf(stderr, "Error: argument \"%s\" not recognized. Pass a .jdaw or .wav file to open that file.\n", argv[1]);
+	    fprintf(stderr, "Error: argument \"%s\" not recognized. Pass a .jdaw, .wav, .mid, or .jsynth file to open that file.\n", argv[1]);
 	    exit(1);
 	}
     }
@@ -318,6 +325,18 @@ int main(int argc, char **argv)
 	    }
 	    free(filepath);
 	}
+    } else if (invoke_open_jsynth_file) {
+	char *filepath = realpath(file_to_open, NULL);
+	if (!filepath) {
+	    perror("Error in realpath");
+	} else {
+	    Track *track = session->proj.timelines[0]->tracks[0];
+	    track->synth = synth_create(track);
+	    track->midi_out = track->synth;
+	    synth_read_preset_file(filepath, track->synth);
+	    user_tl_track_open_synth(NULL);
+	}
+	
     }
 
     loop_project_main();

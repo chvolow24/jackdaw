@@ -971,9 +971,9 @@ static void mode_load_timeline()
 	user_tl_adj_quantize_amt);
     mode_subcat_add_fn(sc, fn);    
 
-    /* Sample mode */
+    /* Source mode */
 
-    sc = mode_add_subcat(mode, "Sample mode");
+    sc = mode_add_subcat(mode, "Source mode");
     fn = create_user_fn(
 	"tl_load_clip_at_cursor_to_source",
 	"Load clip at cursor to source",

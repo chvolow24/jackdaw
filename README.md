@@ -5,7 +5,7 @@ A free, open-source, keyboard-focused digital audio workstation (DAW). Written i
 <!-- ![main](https://charlie-volow.com/assets/random_inputs.gif) -->
 <!-- *Jackdaw handling random user inputs* -->
 <!-- ![main_gif](https://jackdaw-audio.net/static/readme_imgs/main_new_short.gif) -->
-<img src="https://jackdaw-audio.net/static/sync_gifs/random_inputs_smaller.gif" width="50%">
+<img src="https://jackdaw-audio.net/static/sync_gifs/main.gif" width="75%">
 
 
 ## Table of Contents

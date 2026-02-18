@@ -197,8 +197,8 @@ You will be prompted to enter a project name (which must include the `.jdaw` ext
     1. [Time signatures](#time-signatures)
 	2. [Click track segments](#click-track-segments)
 	3. [Metronome](#metronome)
-	4. [Set tempo](#set-tempo)
-	5. [Grid navigation](#grid-navigation)
+	4. [Grid navigation](#grid-navigation)
+	5. [Set tempo](#set-tempo)
 8. [Source mode](#sample-mode--source-mode)
 9. [Project navigation / multiple timelines](#project-navigation--multiple-timelines)
 10. [Opening and saving files](#opening-and-saving-files)
@@ -213,6 +213,14 @@ You will be prompted to enter a project name (which must include the `.jdaw` ext
     1. [Adding keyframes with the mouse](#adding-keyframes-with-the-mouse)
 	2. [Writing (adding keyframes automatically)](#writing-adding-keyframes-automatically)
 	3. [Deleting keyframes](#deleting-keyframes)
+13. [MIDI](#midi)
+    1.  [Basics (I/O, MIDI Clips)](#basics-io-midi-clips)
+    2.  [Synthesizer](#synthesizer)
+    3.  [QWERTY piano emulator](#qwerty-piano-emulator)
+    4.  [Piano roll](#piano-roll)
+    5.  [MIDI controllers](#midi-controllers)
+    6.  [MIDI files](#midi-files)
+    7.  [JLily (LilyPond)](#jlily-lilypond)
 13. [Undo / redo](#undo--redo)
 14. [Special audio inputs](#special-audio-inputs)
     1. [Jackdaw out](#jackdaw-out)
@@ -949,13 +957,13 @@ If you want to un-bind the controller, you can do so by holding down the `Alt` o
 
 This is a brand new feature and has not been thoroughly tested.
 
-### Extras
+### MIDI files
 
-#### MIDI files
+> [!NOTE] This feature is a bit of a mess and has not been thoroughly tested. Use with caution.
 
-Jackdaw can read MIDI files (`.mid` or `.midi`). This feature is filed under "extra" because, as far as I know, people don't use MIDI files much anymore, and also because it's quite bad. But I've tested it with a number of free MIDI files I found online and it mostly works. 
+Jackdaw can read MIDI files (`.mid` or `.midi`). 
 
-You can open a MIDI file exactly like you would a .wav or .jdaw file (<kbd>C-o</kbd>, on the command line at start time, or drag-and-drop). If the number of tracks in the file exceeds what you have on your timeline, Jackdaw will ask if you want to add more tracks. The click track part of this is one of the things that works quite badly -- sorry about that.
+You can open a MIDI file exactly like you would a .wav or .jdaw file (<kbd>C-o</kbd>, on the command line at start time, or drag-and-drop). If the number of tracks in the file exceeds what you have on your timeline, Jackdaw will ask if you want to add more tracks.
 
 #### JLily (LilyPond)
 

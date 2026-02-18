@@ -1,8 +1,8 @@
 # Jackdaw (WIP)
 A free, open-source, keyboard-focused digital audio workstation (DAW). Written in C, using SDL (https://libsdl.org/).
 
-<!-- <img src="readme_imgs/main_new_short.gif" width="75%" /> -->
-<img src="https://jackdaw-audio.net/static/sync_gifs/fir_filter.gif" width="75%" />
+<!-- <img src="readme_imgs/main_new_short.gif" width="80%" /> -->
+<img src="https://jackdaw-audio.net/static/sync_gifs/fir_filter.gif" width="80%" />
 <!-- ![main_gif](https://jackdaw-audio.net/static/readme_imgs/main_new_short.gif) -->
 
 
@@ -116,7 +116,7 @@ When you open a fresh Jackdaw session, one track is created automatically. The t
 
 Once you have selected an appropriate audio input device, you can **start recording audio** into jackdaw with <kbd>r</kbd>. After making some noise at your computer or microphone, **stop recording** with <kbd>r</kbd>.
 
-<img src="https://jackdaw-audio.net/static/sync_gifs/record2.gif" width="75%" />
+<img src="https://jackdaw-audio.net/static/sync_gifs/record2.gif" width="80%" />
 
 
 ### 3. Playback
@@ -145,7 +145,7 @@ Now that you know the keyboard command, try that instead.
 
 You can again use the <kbd>n</kbd> and <kbd>p</kbd> keys to **move the track selector** up and down. Try rewinding back to the beginning of the recording you made (<kbd>j</kbd> to rewind, <kbd>k</kbd> to pause), selecting a different track, and recording some new audio.
 
-<img src="https://jackdaw-audio.net/static/sync_gifs/record_other_track2.gif" width="75%" />
+<img src="https://jackdaw-audio.net/static/sync_gifs/record_other_track2.gif" width="80%" />
 
 ### 5. Exporting a .wav file
 
@@ -155,7 +155,7 @@ First you'll need to place "in" and "out" marks on your timeline with <kbd>i</kb
 
 You will be prompted to type a file name. Hit <kbd>tab</kbd> or <kbd>\<ret\></kbd> to apply the current name, and move down to the directory navigation pane. Then, use <kbd>n</kbd> and <kbd>p</kbd> to navigate through the filesystem to the directory where you want to save the file. Subdirectories are displayed in green. The double dots ("..") will bring you up one directory. Finally, use <kbd>\<tab\></kbd> to move down to the "Save" button, and then <kbd>\<ret\></kbd> to save the file with the current name, in the currently open directory. (Or, use <kbd>C-\<ret\></kbd> to "submit the form" and save the file.)
 
-<img src="https://jackdaw-audio.net/static/sync_gifs/export_wav2.gif" width="75%" />
+<img src="https://jackdaw-audio.net/static/sync_gifs/export_wav2.gif" width="80%" />
 
 ### 6. Saving your project
 
@@ -173,7 +173,7 @@ You will be prompted to enter a project name (which must include the `.jdaw` ext
 	3. [Translate / zoom](#translate--zoom)
 	4. [Move playhead](#move-playhead)
 	5. [Track selector](#track-selector)
-	6. ["Cursor"](#cursor)
+	6. [Cursor](#cursor)
 	7. [Marks and jump-to](#marks-and-jump-to)
 	8. [Scrolling](#scrolling)
 	9. [Loop playback](#loop-playback)
@@ -227,7 +227,7 @@ Jackdaw's user interface is built around keyboard commands, but you don't need t
 
 Each entry in the list includes the display name of the command on the left, and the bound keyboard command on the right. (See "[Keyboard command shorthand](#keyboard-command-shorthand)" above if these confuse you.)
 
-<img src="https://jackdaw-audio.net/static/sync_gifs/function_lookup.gif" width="75%" />
+<img src="https://jackdaw-audio.net/static/sync_gifs/function_lookup.gif" width="80%" />
 
 ## Menus
 
@@ -287,7 +287,7 @@ The *track selector* is how you indicate which track you are doing things to. Th
 
 <!-- **Activating** tracks (as opposed to merely *selecting* them) is a way to do things that might normally be done to only one track to multiple tracks at once. For example, if you activate tracks 1, 2, and 3, and then hit <kbd>r</kbd> to record, you will wind up with *three* clips (more accurately, clip references) -- one on each track -- instead of one. The numerical keys (<kbd>1</kbd>, <kbd>2</kbd>, <kbd>3</kbd> etc.) can be used to quickly activate or deactivate tracks 1-9 without using the track selector. -->
 
-### "Cursor"
+### Cursor
 
 The "cursor" (as in "[do thing] at cursor") is the location on the currently selected track under the current playhead position. So, *"grab clip at cursor"* means "grab the top clip on the currently selected track that intersects with the current playhead position."
 
@@ -327,7 +327,7 @@ You can play back a marked section of the timelines (see [section](#marks-and-ju
 
 <kbd>C-8</kbd> : **Enable / disable loop playback**<br>
 
-<img src="https://jackdaw-audio.net/static/sync_gifs/loop_playback.gif" width="75%" />
+<img src="https://jackdaw-audio.net/static/sync_gifs/loop_playback.gif" width="80%" />
 
 Future versions of jackdaw will include more sophisticated looping mechanisms.
 
@@ -395,7 +395,7 @@ If you hold down shift while moving the track selector up or down, the selected 
 <kbd>S-n</kbd> : **Move selected track down**<br>
 <kbd>S-p</kbd> : **Move selected track up**<br>
 
-<img src="https://jackdaw-audio.net/static/sync_gifs/move_track.gif" width="75%" />
+<img src="https://jackdaw-audio.net/static/sync_gifs/move_track.gif" width="80%" />
 
 ### Minimizing tracks
 
@@ -452,7 +452,7 @@ A clip can also be "grabbed" with <kbd>C-\<click\></kbd>.
 
 If clip dragging is enabled, the clips will gently flash, and an indication will appear in the status bar at the bottom of the screen indicating how many clips are currently grabbed.
 
-<img src="https://jackdaw-audio.net/static/sync_gifs/drag_clips.gif" width="75%" />
+<img src="https://jackdaw-audio.net/static/sync_gifs/drag_clips.gif" width="80%" />
 
 Moving the track selector will pull all currently-dragging clips along with it.
 
@@ -464,13 +464,13 @@ The keyboard commands use `g` (which is bound to `Grab clip at cursor`) as a mod
 
 So to grab the left edge, position the cursor over the clip and do `g-j`. To grab the right edge, `g-l`. If dragging is active (`C-k`), moving the playhead will also move the grabbed edges.
 
-<img src="https://jackdaw-audio.net/static/sync_gifs/grab_edge_move.gif" width="75%" />
+<img src="https://jackdaw-audio.net/static/sync_gifs/grab_edge_move.gif" width="80%" />
 
 Arrows are displayed when there's "room" on either side of the clip, i.e. there's audio data beyond the current window.
 
 You can cut a clip and automatically grab both edges of the cut to move the cut position with `g-c` (`Cut clip at cursor and grab edges`):
 
-<img src="https://jackdaw-audio.net/static/sync_gifs/grab_cut_and_drag.gif" width="75%" />
+<img src="https://jackdaw-audio.net/static/sync_gifs/grab_cut_and_drag.gif" width="80%" />
 
 ### Clip overlap
 
@@ -480,7 +480,7 @@ If you need to grab or otherwise alter a clip that is buried under an overlappin
 
 <kbd>S-z</kbd> : **Bring rear clip at cursor to front**<br>
 
-<img src="https://jackdaw-audio.net/static/sync_gifs/bring_clip_to_front.gif" width="75%" />
+<img src="https://jackdaw-audio.net/static/sync_gifs/bring_clip_to_front.gif" width="80%" />
 
 ### Cutting clips
 
@@ -488,7 +488,7 @@ If you need to grab or otherwise alter a clip that is buried under an overlappin
 
 This will cut any clips on the currently selected track at the current playhead position in two, so that you can independently move or otherwise modify each part.
 
-<img src="https://jackdaw-audio.net/static/sync_gifs/cut_clip.gif" width="75%" />
+<img src="https://jackdaw-audio.net/static/sync_gifs/cut_clip.gif" width="80%" />
 
 ### Renaming clips
 
@@ -508,7 +508,7 @@ Click tracks fundamentally comprise a series of one or more *segments*, each of 
 
 Edit the click track and segment at cursor with <kbd>S-t</kbd>, or by clicking the pencil icon on the left of the track.
 
-<img src="https://jackdaw-audio.net/static/sync_gifs/click_track_add.gif" width="75%" />
+<img src="https://jackdaw-audio.net/static/sync_gifs/click_track_add.gif" width="80%" />
 
 Then, <kbd>\<tab\></kbd> through the fields to modify any of the track parameters and "Submit" to confirm your changes to the time signature and tempo. (Changes to the track name do not need to be submitted.
 
@@ -518,7 +518,7 @@ Jackdaw doesn't use conventional time signatures because they're confusing and l
 
 It is therefore very easy to define additive meters, like the Bulgarian Gankino horo (4 + 3 + 4):
 
-<img src="https://jackdaw-audio.net/static/sync_gifs/additive_meter.gif" width="75%" />
+<img src="https://jackdaw-audio.net/static/sync_gifs/additive_meter.gif" width="80%" />
 
 
 ### Click track segments
@@ -527,13 +527,13 @@ If you need to change tempo or time signature partway through a song, you can do
 
 To do so, **cut** the click track with <kbd>S-c</kbd>. (Note that this is the same command you would use to cut a clip, but if a click track is selected, it will cut the click track instead.
 
-<img src="https://jackdaw-audio.net/static/sync_gifs/cut_click_track.gif" width="75%" />
+<img src="https://jackdaw-audio.net/static/sync_gifs/cut_click_track.gif" width="80%" />
 
 Now, you can modify each of the segments individually. When editing a segment, you can specify whether you want the end position to remain fixed, or the number of measures. If the number of measures is fixed, the end position of the segment may move, and all the segments to the right will move with it.
 
 You can click and drag the boundaries between click track segments to reposition them, and you can delete a segment with <kbd>\<del\></kbd>
 
-<img src="https://jackdaw-audio.net/static/sync_gifs/edit_segment_bounds.gif" width="75%" />
+<img src="https://jackdaw-audio.net/static/sync_gifs/edit_segment_bounds.gif" width="80%" />
 
 While dragging, the segment boundary will automatically snap to the previous segment's subdivisions. Hold <kbd>\<shift\></kbd> to disable the snapping.
 
@@ -545,7 +545,7 @@ The downside of this design is that if you have a bunch of tracks and scroll dow
 
 To solve this, you can now "freeze" a click track at the top of the timeline view, and it will remain fixed there regardless of how you scroll. You do this simply by moving (`S-p`) the click track "all the way up":
 
-<img src="https://jackdaw-audio.net/static/sync_gifs//freeze_click_track.gif" width="75%">
+<img src="https://jackdaw-audio.net/static/sync_gifs//freeze_click_track.gif" width="80%">
 
 (Note that the frozen click track covers over the timecode view.)
 
@@ -580,7 +580,7 @@ All of the audio tracks directly *below* a given click track are governed by tha
 <kbd>A-S-j</kbd> : **Go to previous measure**<br>
 <kbd>A-S-k</kbd> : **Go to next measure**<br>
 
-<img src="https://jackdaw-audio.net/static/sync_gifs/click_track_navigation.gif" width="75%" />
+<img src="https://jackdaw-audio.net/static/sync_gifs/click_track_navigation.gif" width="80%" />
 
 ### Set tempo
 
@@ -590,7 +590,7 @@ You can also Ctrl- or Cmd- click the click track segment and drag it to set the 
 
 Changing the tempo of click track segment moves clips, notes, and automation keyframes for all tracks using that click track.
 
-<img src="https://jackdaw-audio.net/static/sync_gifs/click_track_tempo_change.gif" width="75%">
+<img src="https://jackdaw-audio.net/static/sync_gifs/click_track_tempo_change.gif" width="80%">
 
 If you want to edit a click track without moving these objects, you can first move the click track to the bottom of the timeline, or temporarily insert another click track below the one you wish to edit. I recognize this may not be ideal, and may refine the feature later.
 
@@ -612,7 +612,7 @@ The marks you set in source mode will determine which portion of the clip is dro
 
 This creates a new clip reference on your timeline, at the current playhead position, on the currently-selected track.
 
-<img src="https://jackdaw-audio.net/static/sync_gifs/source_mode.gif" width="75%" />
+<img src="https://jackdaw-audio.net/static/sync_gifs/source_mode.gif" width="80%" />
 
 Every time you drop a clip into a timeline from the source area, jackdaw will save information about that drop. If you then drop something else into your timeline (either a different clip or the same clip with different marks) with <kbd>b</kbd>, you will be able to once again drop the previously-dropped clip with <kbd>v</kbd>. Another new drop will move the clip stored at <kbd>v</kbd> to <kbd>c</kbd>, so that you have unique clips that you can drop into your timeline with any of those three keys. Etc. for subsequent drops and <kbd>x</kbd> and <kbd>z</kbd>.
 
@@ -637,19 +637,23 @@ When creating a new timeline, you will be prompted to enter a name. Type the nam
 
 ### Opening files
 
-Jackdaw knows how to open `.wav`, `.jdaw` (project), `.jsynth` (synth preset), and `.mid` (MIDI) files.
+Jackdaw knows how to open `.wav`, `.jdaw` (project), `.jsynth` (synth preset), and `.mid` (MIDI) files. You can open files in one of three ways:
+
+1. with <kbd>C-o</kbd> (`Open file`)
+2. drag-and-drop a file onto the Jackdaw window
+3. on the command line
+
+<kbd>C-o</kbd> : **Open a file**<br>
+
+<img src="https://jackdaw-audio.net/static/sync_gifs/openwav.gif" width="80%" />
+
+If a `.wav` file is opened, it will be loaded as a clip to the currently-selected track, starting at the current playhead position. If a `.jdaw` file is opened, the current project will be closed and replaced with the project saved in the `.jdaw` file (this action cannot be undone, so be careful). Synth presets (`.jsynth`) are loaded to the currently-selected track's synth (this action *can* be undone).
+
+To open a file on the command line, simply pass the filepath to the program:
 
 ```console
 $ jackdaw PATH_TO_FILE
 ```
-
-It can also be done during runtime.
-
-<kbd>C-o</kbd> : **Open a file**<br>
-
-If a `.wav` file is opened, it will be loaded as a clip to the currently-selected track, starting at the current playhead position. If a `.jdaw` file is opened, the current project will be closed and replaced with the project saved in the `.jdaw` file.
-
-<img src="https://jackdaw-audio.net/static/sync_gifs/openwav.gif" width="75%" />
 
 ### Saving a project
 
@@ -659,9 +663,9 @@ A `.jdaw` file stores a jackdaw project, including all of its timelines, tracks,
 
 You will be prompted first to edit the current project file name. The file extension **must** be `.jdaw` or `.JDAW`; the program will encourage you to fix this if you make a mistake. Hit <kbd>\<tab\></kbd> or <kbd>\<ret\></kbd> to finish editing the name. Now, the directory navigation pane will be active, and you can use <kbd>n</kbd>, <kbd>p</kbd>, and <kbd>\<ret\></kbd> to navigate through the filesystem to the directory where you would like to save the file. When satisfied, type <kbd>\<tab\></kbd> and then <kbd>\<ret\></kbd> (or just <kbd>C-\<ret\></kbd> to save.)
 
-Like everything else about jackdaw, the `.jdaw` file format is open and is described in the `jdaw_filespec` directory. (The current version as of writing is described in `jdaw_filespec/00.13`). 
+The `.jdaw` file format is described in the `jdaw_filespec` directory.
 
-<img src="https://jackdaw-audio.net/static/sync_gifs/save_project.gif" width="75%" />
+<img src="https://jackdaw-audio.net/static/sync_gifs/save_project.gif" width="80%" />
 
 ## Track effects
 
@@ -694,7 +698,7 @@ And reorder the tabs:
 <kbd>C-S-j</kbd> : **Move current tab left**<br>
 <kbd>C-S-l</kbd> : **Move current tab right**<br>
 
-<img src="https://jackdaw-audio.net/static/sync_gifs/add_reorder_effects.gif" width="75%" />
+<img src="https://jackdaw-audio.net/static/sync_gifs/add_reorder_effects.gif" width="80%" />
 
 You can also click the tabs, and click and drag to reorder them.
 
@@ -712,7 +716,7 @@ The leftmost filter is low-shelf by default, the rightmost is high-shelf, and th
 
 The filter frequencies and amplitudes are modified by clicking and dragging the nodes on the spectral display:
 
-<img src="https://jackdaw-audio.net/static/sync_gifs/eq_adj_filters.gif" width="75%" />
+<img src="https://jackdaw-audio.net/static/sync_gifs/eq_adj_filters.gif" width="80%" />
 
 The bandwidth of a peak-notch filter can be adjusted by holding down `cmd` or `ctrl` and dragging the mouse up or down.
 
@@ -729,7 +733,7 @@ The FIR ("finite impulse response") filter is an FFT-based "[windowed-sinc](http
 
 The frequency response of the filter is shown. When the filter is active, and playback is occurring, the frequency domain of the filtered audio track is also shown.
 
-<img src="https://jackdaw-audio.net/static/sync_gifs/fir_filter.gif" width="75%" />
+<img src="https://jackdaw-audio.net/static/sync_gifs/fir_filter.gif" width="80%" />
 
 
 ### Delay line
@@ -740,7 +744,7 @@ The delay line has three parameters: time, amplitude, and "stereo offset." The d
 
 The saturation effect does simple sample-wise wave shaping. There are two types available: the common `tanh` function, and and exponential function that behaves similarly. Though often indistinguishable, the exponential function produces more high-frequency content than `tanh`, which is a noticeable difference when the input signal is low-passed.
 
-The gain parameter simply adjust the gain of the input signal (resulting in more wave shaping), and "gain compensation" will attenuate the output to more closely approximate the input.
+The `gain` parameter simply adjust the gain of the input signal (resulting in more wave shaping), and `gain compensation` will attenuate the output to more closely approximate the input. The `symmetry` parameter can be adjusted to get brighter-sounding distortion.
 
 An active saturation effect with zero gain placed at the end of a track's effect chain is a good way to prevent digital clipping.
 
@@ -750,16 +754,16 @@ A standard digital peak-sensing compressor. Details of dynamic range compression
 
 In the visualization, the x position of the blue dot represents the current amplitude envelope value, and the y position represents the corresponding output amplitude (before make-up gain is applied). The color gradient reflects the amount of gain reduction currently applied by the compressor.
 
-<img src="https://jackdaw-audio.net/static/sync_gifs/comp.gif" width="75%" />
+<img src="https://jackdaw-audio.net/static/sync_gifs/comp.gif" width="80%" />
 
 ## Automation
 
-Mix automation is available for the track volume and pan, as well as most parameters related to any effects currently applied to the track.
+Mix automation is available for the track volume and pan, as well as most parameters related to any effects currently applied to the track, and all synth parameters (if a synth has been opened on the track).
 
 <kbd>C-a</kbd> : **Add automation to track**<br>
 <kbd>a</kbd> : **Show / hide track automations**<br>
 
-<img src="https://jackdaw-audio.net/static/sync_gifs/add_automation.gif" width="75%" />
+<img src="https://jackdaw-audio.net/static/sync_gifs/add_automation.gif" width="80%" />
 
 (Note that <kbd>n</kbd> and <kbd>p</kbd> (or <kbd>f</kbd> and <kbd>d</kbd>) can be used to cycle through the radio button options, and <kbd>\<tab\></kbd> and <kbd>S-\<tab\></kbd> can be used to move between the selector and the "add" button. The mouse is available but optional.)
 
@@ -767,7 +771,7 @@ Mix automation is available for the track volume and pan, as well as most parame
 
 Use <kbd>C-\<click\></kbd> to add a keyframe to an automation track. You can then drag the keyframe to the desired position. If you release cmd/ctrl and hold shift, the keyframe will will snap to the same vertical position as the previous keyframe, creating a flat segment. If you hold cmd or ctrl AND shift, the keyframe will snap to the position immediately after the previous keyframe, creating a near-vertical segment.
 
-<img src="https://jackdaw-audio.net/static/sync_gifs/insert_keyframes.gif" width="75%" />
+<img src="https://jackdaw-audio.net/static/sync_gifs/insert_keyframes.gif" width="80%" />
 
 ### Writing (adding keyframes automatically)
 
@@ -777,7 +781,7 @@ The easiest way to accomplish this is to "record" on the automation track exactl
 
 <kbd>r</kbd> : **Start / stop recording automation** (when automation track selected)<br>
 
-<img src="https://jackdaw-audio.net/static/sync_gifs/automation_write.gif" width="75%" />
+<img src="https://jackdaw-audio.net/static/sync_gifs/automation_write.gif" width="80%" />
 
 ### Deleting keyframes
 
@@ -785,7 +789,213 @@ When an automation track is selected, you can delete a range of keyframes by mar
 
 <kbd>del</kbd> : **Delete keyframes in->out** (when automation track selected)<br>
 
-<img src="https://jackdaw-audio.net/static/sync_gifs/delete_keyframes.gif" width="75%" />
+<img src="https://jackdaw-audio.net/static/sync_gifs/delete_keyframes.gif" width="80%" />
+
+## MIDI
+
+So far, the MIDI functionality in Jackdaw can only be used to control the builtin synthesizer. But it'll do more in the future, and the builtin synth is more powerful than you might expect. With the QWERTY piano emulator, you can start making your own sounds in Jackdaw immediately, without an external device.
+
+### Basics (I/O, MIDI Clips)
+
+Tracks in Jackdaw are not "audio tracks" or "MIDI tracks" -- they are just Tracks. You can record MIDI data onto a track exactly like you would record audio: first, select one of the MIDI devices from list of available inputs (`C-S-i`, or click the track input box); then, hit `r` to start recording. A pink MIDI clip will appear on the track, and any notes you play on the MIDI device will be recorded to that clip. Hit `r` again to stop recording.
+
+<img src="https://jackdaw-audio.net/static/sync_gifs/record_midi.gif" width="80%">
+
+### Synthesizer
+
+Each Track has its own synth, and MIDI is played back through the synth by default. The synth is opened with `S-s`. 
+
+(There's a `Track set MIDI out` command, which could be used for other instruments or external devices in the future; for now it's useless.)
+
+#### Oscillators
+
+Jackdaw's synthesizer has four "base oscillators" with selectable waveform types (sine, triangle, square, saw). Each of the base oscillators can be replicated in up to 7 unison voices, which can be detuned and spread across the stereo field. The base oscillators can be tuned (octave, coarse, and fine tuning) individually, or set to a fixed frequency.
+
+By default, the four base oscillators are added together. However, you can also set one oscillator to modulate the frequency or amplitude of another. Modulation can be used to create new timbres or, when the modulator is set to a low frequency, to create vibrato (frequency) or tremolo (amplitude). When a given base oscillator is being modulated by another, the appropriate `Is carrier` red status light will be lit.
+
+<img width="80%" src="https://jackdaw-audio.net/static/sync_gifs/synth_mod.gif">
+
+By default, the phase of all oscillators (i.e. all of the base oscillators and their unison voices) will be reset when a new note is triggered. You can turn this off by unchecking the `Sync phase` toggle. In general, *not* syncing phase is preferable for more heterogenous sounds, like orchestral strings. It introduces an element of chaos into the sound, and is often undesirable for things like bass instruments, where phase differences can unexpectedly and dramatically mute or amplify a sound.
+
+
+#### Amplitude envelope
+
+The synth uses a conventional ADSR envelope. The `Ramp exponent` parameter sets an exponent value for each ramp; as that value increases past 1.0, the shape of the decay and release ramps change gradually from something that looks like "\\" to something that looks closer to "L". In other words, a ramp exponent of 1.0 gives a linear decay, 2.0 gives quadratic decay, etc. 
+
+#### Noise
+
+White noise can be introduced into the sound and controlled by its own amplitude envelope. Even if the noise envelope is enabled, the noise sound still passes through the main amplitude envelope and the filter.
+
+#### Filter
+
+The filter is a one-pole resonant lowpass Chebyshev filter. The `Base cutoff` parameter sets a *lower bound* for the filter cutoff frequency. The `Key tracking` parameter adds a multiple of the current note frequency to the base cutoff. `Velocity tracking` *attenuates* (brings down) the cutoff frequency when the note has less-than-full velocity, more so for higher values of the parameter. (So, bring this slider all the way up if you want maximum expressivity). `Env amount` *adds* to the cutoff frequency an amount that changes dynamically with the filter's envelope.
+
+The filter cutoff tracks the amplitude envelope by default, but can be given its own ADSR shape when `Use amp env` is unchecked. The effect is most obvious when the amp envelope has a short attack, and the filter envelope is given a longer attack, producing a "wah" sound.
+
+#### Effects
+
+When effects are added directly to the synth (instead of to its parent Track), they are heard even when the synth is being monitored directly, i.e., while you are playing. Delay lines and saturation sound excellent on a synth.
+
+The effects can be re-ordered, deleted, and undeleted exactly like track effects. They are included when a synth preset is saved. Unlike track effects, you can't apply automation to synth effect parameters.
+
+#### Polyphony
+
+The synth can be used polyphonically with up to 24 voices (the default), or in mono mode. When voice-stealing is enabled, the oldest (longest-held) voice is stolen first. 
+
+Portamento applies to pitch and velocity in mono mode, but also polyphonically when the special `Poly portamento mode` is enabled.
+
+##### Poly portamento mode
+
+Enable voice sliding in a polyphonic context by:
+
+1. Enabling `Poly portamento mode` (make sure `Mono mode` is off), and
+2. Reducing the number of voices.
+
+When a voice is stolen (and only then), the stolen voice slides to the destination note instead of being silenced.
+
+Poly portamento mode implements heuristic voice-leading, so the rules for voice stealing are slightly different. When a new note occurs and all available voices are in use, those that have been released (finger no longer on key, but note amp envelope still in release) are checked first, and the *nearest one* in terms of pitch is used. If all of the voices in use are still being held, then the nearest one of *those* is used.
+
+#### Presets
+
+Synth settings can be saved in a preset file, which has the `.jsynth` file extension. You can open a preset in two ways:
+
+1. With <kbd>C-o</kbd> (standard `Open file`)
+2. By opening the synth with <kbd>S-s</kbd>, navigating to the `Presets` tab, and selecting `Open preset`
+
+When you open a new preset, it will override all of the current synth settings -- but you can undo and redo this action, so nothing will be lost.
+
+  You can save the current preset by navigating to the `Presets` tab and selecting `Save preset as...`
+  
+### QWERTY piano emulator
+
+Jackdaw provides the QWERTY piano emulator as a way for you to play the synth or otherwise record MIDI without an external MIDI controller. You can activate it with the `Activate QWERTY piano` command, which is bound to <kbd>S-q</kbd>. Deactivate with the same (<kbd>S-q</kbd>) or with <kbd>\<esc\></kbd>.
+
+If you want to record MIDI data using the QWERTY piano, set the track input accordingly, and then hit <kbd>r</kbd> to record. You cannot stop recording with <kbd>r</kbd> like usual (it is too easy to do this accidentally), but escaping with <kbd>S-q</kbd> or <kbd>\<esc\></kbd> does the job.
+
+### Piano roll
+
+The piano roll view can be used to edit or create new MIDI clips.
+
+To enter the view, use `Edit clip at cursor / open piano roll`, which is bound to <kbd>C-S-e</kbd>. If the [cursor](#cursor) is over a MIDI clip, that clip is opened in the piano roll; otherwise, a new clip is created.
+
+The piano roll controls are designed to be analogous or identical to timeline controls. Notes in the piano roll view are analogous to clips in the timeline view. 
+
+#### Navigation
+
+All of these are exactly the same as in the timeline view: <kbd>j</kbd>, <kbd>k</kbd>, <kbd>l</kbd> for rewind/pause/play, <kbd>,</kbd> and <kbd>.</kbd> to zoom, <kbd>h</kbd> and <kbd>;</kbd> to move the view left and right, <kbd>[</kbd> and <kbd>]</kbd> to move the playhead (without playback), etc. 
+
+If there is a grid enabled (a click track is positioned somewhere above the current track), then all of the bars/beats navigation commands work the same as well: <kbd>C-j</kbd> and <kbd>C-l</kbd> to go to the previous/next beat, <kbd>C-S-j</kbd> and <kbd>C-S-l</kbd> to go the the previous/next subdivision, and <kbd>A-S-j</kbd> and <kbd>A-S-l</kbd> to move to the previous/next measure.
+
+In timeline view, <kbd>S-j</kbd> and <kbd>S-l</kbd> move the cursor to the previous/next *clip* boundary; in piano roll view, these commands (`Go to previous note`, `Go to next note`) move the cursor to the previous/next *note* boundary.
+
+<img width="80%" src="https://jackdaw-audio.net/static/sync_gifs/piano_roll_nav.gif">
+
+#### Note insertion (manual)
+
+(NOTE: It is usually much faster to [insert notes with a MIDI device](#note-insertion-with-midi-device), including the builtin QWERTY piano emulator).
+
+The "note selector" can be moved up and down with <kbd>n</kbd> and <kbd>p</kbd> (or <kbd>d</kbd> and <kbd>f</kbd>) just like the track selector. 
+
+Hit <kbd>\<ret\></kbd> to insert a note at the current position. You will hear the note played back (at an arbitrary short duration) through the track's synth.
+
+Hit <kbd>\<spc\></kbd> to insert a rest.
+
+If you make a mistake, hit <kbd>\<del\></kbd> (or the backspace key) to "undo" it.
+
+The duration of the next note (or rest) to be inserted is adjusted with `1` and `2`; velocity with `c` and `v`.
+
+By default, the cursor (playhead) jumps the right edge of the inserted note. You can prevent this by enabling "chord mode" (<kbd>S-h</kbd>). Disabling chord mode then moves the cursor forward to the end of the chord (or the shortest note in the chord, if they have different durations).
+
+"Tie mode" extends the last-inserted note instead of inserting a new one, provided that the playhead is still positioned at the of the last note, and the new insertion is on the same actual note (pitch) or notes (chord). So you can achieve, e.g., a dotted quarter by setting an eighth note duration, enabling tie mode, and hitting <kbd>\<ret\></kbd> three times.
+
+(The only time you would *not* want tie mode is enabled is if you want to restrike notes immediately upon release.)
+
+
+#### Note insertion (with MIDI device)
+
+When the track input is set to a connected MIDI device OR when the QWERTY piano emulator is active, notes can be inserted simply by striking the keys of the device. Velocity and pitch are determined by the note you play, not by the piano roll input controls. Chords are detected (keystrokes occur within ~60ms of one another) and inserted as such.
+
+Duration is still set with `1` and `2`, and rests are still inserted with <kbd>\<spc\></kbd>. <kbd>\<del\></kbd> (backspace) is the same.
+
+"Tie mode" works exactly the same. (So does "Chord mode," though I can think of no reason to use it here.)
+
+<img width="80%" src="https://jackdaw-audio.net/static/sync_gifs/piano_roll_insertion.gif">
+
+#### Grabbing and moving notes
+
+**Notes can be grabbed, moved, truncated, and extended exactly like clips**. That means all of the edge grabbing behavior described above for clips applies here as well.
+
+<img width="80%" src="https://jackdaw-audio.net/static/sync_gifs/drag_note.gif">
+
+You can also grab notes with the mouse by Cmd- or Ctrl- clicking the screen and dragging a box around the notes:
+
+<img width="80%" src="https://jackdaw-audio.net/static/sync_gifs/piano_roll_grab_with_mouse.gif">
+
+### Quantization
+
+In the piano roll view, or timeline view with a MIDI clip under the cursor, use `Quantize notes (clip at cursor)` -- <kbd>A-q</kbd> -- to quantize the notes. You can set an `Amount`; an amount of 1.0 places the affected notes exactly on the gridlines (fully quantized), whereas an amount <1.0 will simply move them closer to those gridlines. This can serve as a quick and dirty way to clean up a performance without making it sound completely robotic. When `Quantize note offs` is unchecked, each note retains its original duration.
+
+When notes have been quantized, their original positions will be shown by an empty grey box in the piano roll view. 
+
+You can adjust the quantization amount after the notes have been quantized with `Adjust quantize amount`, <kbd>A-S-q</kbd>. This will only apply to notes that have already been quantized.
+
+> [!NOTE] If you move a note or clip after it has been quantized, and then adjust the quantization amount without re-quantizing, information about the note or clip move will be lost. Adjusting the quantize amount always refers back to the position the notes were in when they were originally quantized.
+
+### MIDI controllers
+
+You can use the physical controllers (knobs, sliders) on your MIDI controller to control synth parameters. With the synth tabview open, simply select a slider (<kbd>\<tab\></kbd> to move the selection forward, <kbd>S-\<tab\></kbd> to move back, or just click the slider), and then turn the knob on your keyboard. This will automatically bind that physical controller to that slider in Jackdaw.
+
+If you want to un-bind the controller, you can do so by holding down the `Alt` or `Option` key (<kbd>A-</kbd>)and turning the physical knob again.
+
+This is a brand new feature and has not been thoroughly tested.
+
+### Extras
+
+#### MIDI files
+
+Jackdaw can read MIDI files (`.mid` or `.midi`). This feature is filed under "extra" because, as far as I know, people don't use MIDI files much anymore, and also because it's quite bad. But I've tested it with a number of free MIDI files I found online and it mostly works. 
+
+You can open a MIDI file exactly like you would a .wav or .jdaw file (<kbd>C-o</kbd>, on the command line at start time, or drag-and-drop). If the number of tracks in the file exceeds what you have on your timeline, Jackdaw will ask if you want to add more tracks. The click track part of this is one of the things that works quite badly -- sorry about that.
+
+#### JLily (LilyPond)
+
+[LilyPond](https://lilypond.org/) is a fantastic music engraving software and markup language. Jackdaw can parse a very limited (and slightly altered) subset of the language as a way to create new MIDI clips, called JLily.
+
+JLily uses relative mode by default, with middle C as the starting reference pitch.
+
+This feature actually has a short [video demo](https://www.youtube.com/watch?v=Zp8o8q8fw9o).
+
+Supported syntax:
+<pre>
+   - note names
+       e.g.        "c g g a g"
+	   
+   - duration
+       e.g.        "c4 g8 g a g"
+	   
+   - dotted duration
+       e.g.        "c4 g8. g16 a4 g"
+	   
+   - accidentals
+       e.g.        "c4 g8. g16 aes4 g"
+	   
+   - rests
+       e.g.        "c4 g8. g16 aes4 g r b c"
+	   
+   - octave indicators
+       e.g.        "c4 g8. g16 aes4 g r b c c,"
+	   
+   - repeats
+       e.g.        "\repeat 4 { c16, c' }"
+                    (repeat ^ times)
+					
+   - nested repeats
+       e.g.        "\repeat 16 { \repeat 4 {c, c'} \repeat 4 {g, g'} }"
+	   
+   - set velocity (JLILY ONLY, not standard lilypond)
+       e.g.        "\velocity 100 c c e g \velocity 90 g e c"
+	   
+</pre>
 
 ## Undo / redo
 

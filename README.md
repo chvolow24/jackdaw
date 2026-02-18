@@ -2,9 +2,10 @@
 A free, open-source, keyboard-focused digital audio workstation (DAW). Written in C, using SDL (https://libsdl.org/).
 
 <!-- <img src="readme_imgs/main_new_short.gif" width="80%" /> -->
-![main](https://charlie-volow.com/assets/random_inputs.gif)
-*Jackdaw handling random user inputs*
+<!-- ![main](https://charlie-volow.com/assets/random_inputs.gif) -->
+<!-- *Jackdaw handling random user inputs* -->
 <!-- ![main_gif](https://jackdaw-audio.net/static/readme_imgs/main_new_short.gif) -->
+<img src="https://charlie-volow.com/assets/random_inputs.gif" width="50%">
 
 
 ## Table of Contents
@@ -197,6 +198,7 @@ You will be prompted to enter a project name (which must include the `.jdaw` ext
 7. [Click tracks](#click-tracks)
     1. [Time signatures](#time-signatures)
 	2. [Click track segments](#click-track-segments)
+	3. ["Freeze" click track](#freeze-click-track)
 	3. [Metronome](#metronome)
 	4. [Grid navigation](#grid-navigation)
 	5. [Set tempo](#set-tempo)
@@ -546,7 +548,7 @@ You can click and drag the boundaries between click track segments to reposition
 
 While dragging, the segment boundary will automatically snap to the previous segment's subdivisions. Hold <kbd>\<shift\></kbd> to disable the snapping.
 
-#### "Freeze" click track
+### "Freeze" click track
 
 Jackdaw provides a lot of flexibility that you'll almost never need with respect to click track placement; you can create a bunch of click tracks and move them up and down the timeline to your heart's content. Placement is not strictly cosmetic: each Track is "governed" by the click track positioned nearest above it on the timeline, so when you need to do grid-related things on a track (e.g. jumping to the next beat position with `C-l`, or adding notes in the piano roll), you can control *which* grid you're using.
 

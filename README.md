@@ -5,7 +5,7 @@ A free, open-source, keyboard-focused digital audio workstation (DAW). Written i
 <!-- ![main](https://charlie-volow.com/assets/random_inputs.gif) -->
 <!-- *Jackdaw handling random user inputs* -->
 <!-- ![main_gif](https://jackdaw-audio.net/static/readme_imgs/main_new_short.gif) -->
-<img src="https://jackdaw-audio.net/static/sync_gifs/random_inputs.gif" width="50%">
+<img src="https://jackdaw-audio.net/static/sync_gifs/random_inputs_smaller.gif" width="50%">
 
 
 ## Table of Contents
@@ -903,7 +903,8 @@ In timeline view, <kbd>S-j</kbd> and <kbd>S-l</kbd> move the cursor to the previ
 
 #### Note insertion (manual)
 
-(NOTE: It is usually much faster to [insert notes with a MIDI device](#note-insertion-with-midi-device), including the builtin QWERTY piano emulator).
+> ![TIP]
+> It is usually much faster to [insert notes with a MIDI device](#note-insertion-with-midi-device), including the builtin QWERTY piano emulator).
 
 The "note selector" can be moved up and down with <kbd>n</kbd> and <kbd>p</kbd> (or <kbd>d</kbd> and <kbd>f</kbd>) just like the track selector. 
 
@@ -950,7 +951,8 @@ When notes have been quantized, their original positions will be shown by an emp
 
 You can adjust the quantization amount after the notes have been quantized with `Adjust quantize amount`, <kbd>A-S-q</kbd>. This will only apply to notes that have already been quantized.
 
-> [!NOTE] If you move a note or clip after it has been quantized, and then adjust the quantization amount without re-quantizing, information about the note or clip move will be lost. Adjusting the quantize amount always refers back to the position the notes were in when they were originally quantized.
+> [!NOTE] 
+> If you move a note or clip after it has been quantized, and then adjust the quantization amount without re-quantizing, information about the note or clip move will be lost. Adjusting the quantize amount always refers back to the position the notes were in when they were originally quantized.
 
 ### MIDI controllers
 
@@ -962,7 +964,8 @@ This is a brand new feature and has not been thoroughly tested.
 
 ### MIDI files
 
-> [!NOTE] This feature is a bit of a mess and has not been thoroughly tested. Use with caution.
+> [!NOTE] 
+> This feature is a bit of a mess and has not been thoroughly tested. Use with caution.
 
 Jackdaw can read MIDI files (`.mid` or `.midi`). 
 

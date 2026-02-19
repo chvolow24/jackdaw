@@ -23,5 +23,7 @@ void log_quit();
 
 void log_print_last_session();
 
+void log_disable();
+
 
 #endif

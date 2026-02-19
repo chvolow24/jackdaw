@@ -13,6 +13,12 @@ static FILE *logfile[NUM_JDAW_THREADS] = {0};
 static char logfile_path[NUM_JDAW_THREADS][1024];
 /* pthread_mutex_t log_mutex; */
 
+static bool log_disabled = false;
+
+void log_disable()
+{
+    log_disabled = true;
+}
 
 const char *log_level_str(enum log_level level)
 {
@@ -72,6 +78,7 @@ const char *timestamp()
 
 void log_tmp(enum log_level level, char *fmt, ...)
 {
+    if (log_disabled) return;
     #ifndef TESTBUILD
     if (level == LOG_DEBUG) return;
     #endif

@@ -193,8 +193,10 @@ int main(int argc, char **argv)
 	    /* /\* pd_jackdaw_record_get_block(); *\/ */
 	    exit(0);
 	} else if (strcmp(argv[1], "fn_ref") == 0) {
+	    log_disable();
 	    input_init();
 	    input_create_function_reference();
+	    input_quit();
 	    exit(0);
 	} else if (strcmp(argv[1], "log") == 0) {
 	    log_print_last_session();

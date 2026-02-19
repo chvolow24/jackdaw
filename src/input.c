@@ -715,11 +715,11 @@ void input_create_function_reference()
     }
     for (uint8_t i=0; i<NUM_INPUT_MODES; i++) {
 	Mode *mode = MODES[i];
-	fprintf(f, "### %s mode\n", mode->name);
+	fprintf(f, "\n### %s mode\n\n", mode->name);
 	for (uint8_t j=0; j<mode->num_subcats; j++) {
 	    ModeSubcat *sc = mode->subcats[j];
 	    if (mode->num_subcats > 1) {
-		fprintf(f, "#### %s\n", sc->name);
+		fprintf(f, "\n#### %s\n\n", sc->name);
 	    }
 	    for (uint8_t k=0; k<sc->num_fns; k++) {
 		UserFn *fn = sc->fns[k];

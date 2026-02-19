@@ -27,9 +27,10 @@
 /* #define EVENT_FN_DECL(name) void name(UserEvent *, void *, void *, Value, Value); */
 #define NEW_EVENT_FN(name, statstr)	\
     void name(UserEvent *self, void *obj1, void *obj2, Value val1, Value val2, ValType type1, ValType type2) { \
+    Session *session = session_get(); \
     if (strlen(statstr) > 0) { \
         char statstr_fmt[255];						\
-        snprintf(statstr_fmt, 255, "(%d/%d) %s", proj->history.len - self->index, proj->history.len, statstr); \
+        snprintf(statstr_fmt, 255, "(%d/%d) %s", session->history.len - self->index, session->history.len, statstr); \
         status_set_undostr(statstr_fmt); \
     } \
 
@@ -72,6 +73,7 @@ typedef struct user_event {
 
 typedef struct user_event_history {
     /* UserEvent *most_recent; */
+    bool pause; /* New push requests will be ignored */
     UserEvent *oldest;
     UserEvent *next_undo;
     int len;
@@ -81,8 +83,10 @@ typedef struct user_event_history {
 int user_event_do_undo(UserEventHistory *history);
 int user_event_do_redo(UserEventHistory *history);
 
+void user_event_pause();
+void user_event_unpause();
+
 UserEvent *user_event_push(
-    UserEventHistory *history,
     EventFn undo_fn,
     EventFn redo_fn,
     EventFn dispose_fn,
@@ -110,6 +114,7 @@ void user_event_redo_set_value(
     Value new_value,
     ValType type);
 
-void user_event_history_destroy(UserEventHistory *history);
+void user_event_history_clear(UserEventHistory *history);
+void user_event_do_undo_selective(EventFn options[], int num_options);
 
 #endif

@@ -8,13 +8,6 @@
 
 *****************************************************************************************************************/
 
-/*****************************************************************************************************************
-    compressor.c
-
-    * basic dynamic range compression
- *****************************************************************************************************************/
-
-
 #include <stdio.h>
 #include "compressor.h"
 #include "consts.h"
@@ -22,6 +15,7 @@
 #include "endpoint_callbacks.h"
 #include "geometry.h"
 #include "project.h"
+#include "session.h"
 #include "window.h"
 
 #define COMP_GRAPH_R 4
@@ -56,7 +50,7 @@ float compressor_buf_apply(void *compressor_v, float *buf, int len, int channel,
     Compressor *c = compressor_v;
     /* if (!c->active) return input_amp; */
     float amp_scalar;
-    float env;
+    float env = 0.0f;
     float output_amp = 0.0f;
     for (int i=0; i<len; i++) {
 	env = envelope_follower_sample(&c->ef[channel], buf[i]);
@@ -180,7 +174,7 @@ extern Project *proj;
 void comp_times_dsp_cb(Endpoint *ep)
 {
     Compressor *c = ep->xarg1;
-    compressor_set_times_msec(c, c->attack_time, c->release_time, proj->sample_rate);
+    compressor_set_times_msec(c, c->attack_time, c->release_time, session_get_sample_rate());
 }
 
 void comp_ratio_dsp_cb(Endpoint *ep)
@@ -201,10 +195,11 @@ static void ratio_labelfn(char *dst, size_t dstsize, Value v, ValType type)
 
 void compressor_init(Compressor *c)
 {
+    Session *session = session_get();
     c->attack_time = COMP_DEFAULT_ATTACK;
     c->release_time = COMP_DEFAULT_RELEASE;
-    if (proj) {
-	compressor_set_times_msec(c, c->attack_time, c->release_time, proj->sample_rate);
+    if (session->proj_initialized) {
+	compressor_set_times_msec(c, c->attack_time, c->release_time, session_get_sample_rate());
     } else {
 	compressor_set_times_msec(c, c->attack_time, c->release_time, DEFAULT_SAMPLE_RATE);
     }
@@ -220,7 +215,7 @@ void compressor_init(Compressor *c)
     /* 	"compressor_active", */
     /* 	"Compressor active", */
     /* 	JDAW_THREAD_DSP, */
-    /* 	track_settings_page_el_gui_cb, NULL, NULL, */
+    /* 	page_el_gui_cb, NULL, NULL, */
     /* 	c, NULL, &c->effect->page, "track_settings_comp_active_toggle"); */
     /* endpoint_set_default_value(&c->attack_time_ep, (Value){.float_v=}); */
     /* endpoint_set_label_fn(&c->attack_time_ep, label_msec); */
@@ -234,7 +229,7 @@ void compressor_init(Compressor *c)
 	"attack_time",
 	"Attack time",
 	JDAW_THREAD_DSP,
-	track_settings_page_el_gui_cb, NULL, comp_times_dsp_cb,
+	page_el_gui_cb, NULL, comp_times_dsp_cb,
 	c, NULL, &c->effect->page, "track_settings_comp_attack_slider");
 
     endpoint_set_allowed_range(&c->attack_time_ep, (Value){.float_v=0.0f}, (Value){.float_v=200.0f});
@@ -249,7 +244,7 @@ void compressor_init(Compressor *c)
 	"release_time",
 	"Release time",
 	JDAW_THREAD_DSP,
-	track_settings_page_el_gui_cb, NULL, comp_times_dsp_cb,
+	page_el_gui_cb, NULL, comp_times_dsp_cb,
 	c, NULL, &c->effect->page, "track_settings_comp_release_slider");
     endpoint_set_allowed_range(&c->release_time_ep, (Value){.float_v=0.0f}, (Value){.float_v=2000.0f});
     endpoint_set_default_value(&c->release_time_ep, (Value){.float_v=COMP_DEFAULT_RELEASE});
@@ -264,7 +259,7 @@ void compressor_init(Compressor *c)
 	"threshold",
 	"Threshold",
 	JDAW_THREAD_DSP,
-	track_settings_page_el_gui_cb, NULL, NULL,
+	page_el_gui_cb, NULL, NULL,
 	NULL, NULL, &c->effect->page, "track_settings_comp_threshold_slider");
     endpoint_set_allowed_range(&c->threshold_ep, (Value){.float_v=0.0f}, (Value){.float_v=1.0f});
     endpoint_set_default_value(&c->threshold_ep, (Value){.float_v=COMP_DEFAULT_THRESHOLD});
@@ -279,7 +274,7 @@ void compressor_init(Compressor *c)
 	"ratio",
 	"Ratio",
 	JDAW_THREAD_DSP,
-	track_settings_page_el_gui_cb, NULL, comp_ratio_dsp_cb,
+	page_el_gui_cb, NULL, comp_ratio_dsp_cb,
         c, NULL, &c->effect->page, "track_settings_comp_ratio_slider");
     endpoint_set_allowed_range(&c->ratio_ep, (Value){.float_v=0.0f}, (Value){.float_v=1.0f});
     endpoint_set_default_value(&c->ratio_ep, (Value){.float_v=COMP_DEFAULT_RATIO});
@@ -293,7 +288,7 @@ void compressor_init(Compressor *c)
 	"makeup_gain",
 	"Make-up gain",
 	JDAW_THREAD_DSP,
-	track_settings_page_el_gui_cb, NULL, NULL,
+	page_el_gui_cb, NULL, NULL,
 	NULL, NULL, &c->effect->page, "track_settings_makeup_gain_slider");
     endpoint_set_allowed_range(&c->makeup_gain_ep, (Value){.float_v=1.0f}, (Value){.float_v=COMP_MAX_MAKEUP_GAIN});
     endpoint_set_default_value(&c->makeup_gain_ep, (Value){.float_v=1.0f});
@@ -303,4 +298,4 @@ void compressor_init(Compressor *c)
 }
 
 
-/* envelope_follower_set_times_msec(&ef, 10.0, 200.0, proj->sample_rate); */
+/* envelope_follower_set_times_msec(&ef, 10.0, 200.0, session_get_sample_rate()); */

@@ -1,6 +1,5 @@
 #include "color.h"
 #include "geometry.h"
-#include "draw.h"
 #include "menu.h"
 #include "text.h"
 #include "textbox.h"
@@ -15,7 +14,7 @@
 
 #define MENU_STD_CORNER_RAD STD_CORNER_RAD
 
-extern SDL_Color color_global_clear;
+
 extern Window *main_win;
 
 SDL_Color menu_std_clr_inner_border = (SDL_Color) {200, 200, 200, 200};
@@ -28,6 +27,7 @@ SDL_Color menu_std_clr_sctn_div = (SDL_Color) {200, 200, 200, 250};
 
 SDL_Color color_clear = (SDL_Color) {0, 0, 0, 0};
 
+extern struct colors colors;
 /* int menu_std_border_rad = 24; */
 
 	
@@ -206,7 +206,6 @@ MenuItem *menu_item_add(
     void *target
 )
 {
-    /* fprintf(stdout, "ADD item label: \"%s\", annot: \"%s\"\n", label, annotation); */
     MenuItem *item = malloc(sizeof(MenuItem));
     item->annot_tb = NULL;
     item->label = label;
@@ -249,8 +248,8 @@ MenuItem *menu_item_add(
     item->tb->text->align = CENTER_LEFT;
     textbox_set_trunc(item->tb, false);
     textbox_set_text_color(item->tb, &menu_std_clr_txt);
-    textbox_set_background_color(item->tb, &color_global_clear);
-    textbox_set_border_color(item->tb, &color_global_clear);
+    textbox_set_background_color(item->tb, &colors.clear);
+    textbox_set_border_color(item->tb, &colors.clear);
     
 
     /* Create and initialize annotation tb */
@@ -266,8 +265,8 @@ MenuItem *menu_item_add(
 	item->annot_tb->text->align = CENTER_RIGHT;
 	textbox_set_trunc(item->annot_tb, false);
 	textbox_set_text_color(item->annot_tb, &menu_std_clr_annot_txt);
-	textbox_set_background_color(item->annot_tb, &color_global_clear);
-	textbox_set_border_color(item->annot_tb, &color_global_clear);
+	textbox_set_background_color(item->annot_tb, &colors.clear);
+	textbox_set_border_color(item->annot_tb, &colors.clear);
     }
 
 
@@ -298,21 +297,18 @@ MenuItem *menu_item_add(
     sctn->layout->h.value += h_logical + MENU_STD_ITEM_V_SPACING;
     
     if (w_logical > col->layout->w.value) {
-	/* fprintf(stdout, "Setting col w to %d\n", w_logical); */
 	col->layout->w.value = w_logical;
     }
     col->layout->h.value += h_logical + MENU_STD_ITEM_V_SPACING;
     menu_column_rectify_sections(col);
-    /* fprintf(stderr, "Height before: %d\n", col->menu->layout->h.value); */
     menu_rectify_columns(col->menu);
 
-    /* fprintf(stderr, "Height after: %d\n", col->menu->layout->h.value); */
     txt_reset_display_value(item->tb->text);
     if (annotation) {
 	txt_reset_display_value(item->annot_tb->text);
     }
 
-    menu_reset_layout(col->menu);
+    /* menu_reset_layout(col->menu); */
     return item;
 }
 
@@ -328,16 +324,6 @@ void menu_item_destroy(MenuItem *item)
 
 void menu_destroy(Menu *menu)
 {
-    /* fprintf(stdout, "\t->menu destroy\n"); */
-    /* if (menu->title) { */
-    /* 	free(menu->title); */
-    /* } */
-    /* fprintf(stdout, "\t->successfully destroyed the title\n"); */
-    /* if (menu->description) { */
-    /* 	free(menu->description); */
-    /* } */
-    /* fprintf(stdout, "\t->successfully destroyed the desc\n"); */
-    /* fprintf(stdout, "\t->prelim destroy\n"); */
     for (int c=0; c<menu->num_columns; c++) {
 	MenuColumn *column = menu->columns[c];
 	for (int s=0; s < column->num_sections; s++) {
@@ -390,7 +376,6 @@ bool menu_triage_mouse(Menu *menu, SDL_Point *mousep, bool click)
 		MenuItem *item = sctn->items[i];
 		if (SDL_PointInRect(mousep, &item->layout->rect)) {
 		    /* Layout *lt = layout_deepest_at_point(mmenu->layout, mousep); */
-		    /* fprintf(stdout, "Deepest at point: %s\n", lt->name); */
 		    menu->selected = item; /* TODO: eliminate */
 		    item->selected = true;
 		    

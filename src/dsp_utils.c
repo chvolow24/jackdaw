@@ -8,26 +8,15 @@
 
 *****************************************************************************************************************/
 
-/*****************************************************************************************************************
-    dsp_utils.h
-
-    * Fast Fourier Transform (FFT) implementation for float and double
-    * Buffer-wise arithmetic
-    * Window function(s)
-*****************************************************************************************************************/
-
-
+#include <stdlib.h>
+#include "consts.h"
 #include "dsp_utils.h"
 /* #include "endpoint_callbacks.h" */
-#include "project.h"
+#include "session.h"
 
 
 #define ROU_MAX_DEGREE 14
 double complex *roots_of_unity[ROU_MAX_DEGREE];
-
-
-
-
 
 
 /*****************************************************************************************************************
@@ -68,6 +57,12 @@ void float_buf_mult_to(float *restrict a, float *restrict b, float *restrict pro
     for (int i=0; i<len; i++) {
 	product[i] = a[i] * b[i];
     }        
+}
+void float_buf_mult_const(float *restrict a, float by, int len)
+{
+    for (int i=0; i<len; i++) {
+	a[i] *= by;
+    }
 }
 
 
@@ -227,10 +222,66 @@ double hamming(int x, int lenw)
     return 0.54 - 0.46 * cos(TAU * x / lenw);
 }
 
-extern Project *proj;
+double dsp_scale_freq(double freq_unscaled)
+{
+    double sample_rate = session_get_sample_rate();
+    return pow((sample_rate / 2.0), freq_unscaled - 1.0f);
+}
 double dsp_scale_freq_to_hz(double freq_unscaled)
 {
-    double sample_rate = proj ? proj->sample_rate : DEFAULT_SAMPLE_RATE;
-    return pow(10.0, log10(sample_rate / 2.0) * freq_unscaled);
+    double sample_rate = session_get_sample_rate();
+    /* return pow(10.0, log10(sample_rate / 2.0) * freq_unscaled); */
+    return  pow((sample_rate / 2.0), freq_unscaled);
+}
+double dsp_unscale_freq_from_hz(double freq_hz)
+{
+    double sample_rate = session_get_sample_rate();
+    return log2(freq_hz) / log2(sample_rate / 2.0);
+}
+
+
+
+inline float pan_scale(float pan, int channel)
+{
+    return
+	channel == 0 ?
+	pan <= 0.5 ? 1.0f : (1.0f - pan) * 2.0f :
+	pan >= 0.5 ? 1.0 : pan * 2.0f;    
+}
+
+
+float amp_to_db(float amp)
+{
+    return 20.0f * log10(amp);
+}
+
+float db_to_amp(float db)
+{
+    return powf(10.0f, db / 20.0f);
+}
+
+
+float clip_float_sample(float f)
+{
+    if (f > 1.0) return 1.0;
+    if (f < -1.0) return -1.0;
+    return f;
+}
+
+
+void make_ramp(double *restrict buf, int32_t len, double start, double end)
+{
+    double diff = end - start;
+    for (int32_t i=0; i<len; i++) {
+	buf[i] = start + ((double)i / len) * diff;
+    }
+}
+
+void make_rampf(float *restrict buf, int32_t len, float start, float end)
+{
+    float diff = end - start;
+    for (int32_t i=0; i<len; i++) {
+	buf[i] = start + ((float)i / len) * diff;
+    }
 }
 

@@ -14,6 +14,7 @@
 #define WINDOW_MAX_MODALS 8
 #define WINDOW_MAX_DEFERRED_DRAW_OPS 64
 
+
 typedef struct menu Menu;
 typedef struct modal Modal;
 typedef struct page Page;
@@ -40,6 +41,7 @@ typedef struct window {
     Font *mono_bold_font;
     Font *symbolic_font;
     Font *mathematical_font;
+    Font *music_font;
     Layout *layout;
 
     uint16_t i_state;
@@ -83,7 +85,13 @@ void window_check_monitor_dpi(Window *win);
 void window_destroy(Window *win);
 
 /* Create a Font object, open TTF Fonts, and assign to window */
-void window_assign_font(Window *win, const char *font_path, FontType type);
+/* void window_assign_font(Window *win, const char *font_path, FontType type); */
+
+/* Allocate/assign all standard fonts to the window */
+void window_assign_fonts(Window *win);
+
+/* Free all fonts assigned to a window, either on shutdown or when re-assigning (as when switching to a new monitor with a different DPI) */
+void window_destroy_fonts(Window *win);
 
 /* Reset the values of the w and h members of a Window struct based on current window dimensions */
 void window_auto_resize(Window *window);
@@ -120,7 +128,13 @@ Menu *window_top_menu(Window *win);
 void window_draw_menus(Window *win);
 
 void window_push_mode(Window *win, InputMode im);
-void window_pop_mode(Window *win);
+
+/* Safe alternative to window_pop_mode. Removed the designated mode from the stack */
+void window_extract_mode(Window *win, InputMode mode);
+/* InputMode window_pop_mode(Window *win); */
+
+/* Clear out everything over timeline mode, taking care to avoid recursion */
+void window_clear_higher_modes(Window *win, InputMode called_from_mode);
 
 void window_push_modal(Window *win, Modal *modal);
 void window_pop_modal(Window *win);

@@ -8,29 +8,19 @@
 
 *****************************************************************************************************************/
 
-
-/*****************************************************************************************************************
-    iir.c
-
-    * Set IIR filter coefficients
-    * Sample- or buffer-wise application
- *****************************************************************************************************************/
-
 #include <complex.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "consts.h"
 #include "dsp_utils.h"
-#include "page.h"
-#include "project.h"
 #include "iir.h"
+#include "logscale.h"
 #include "waveform.h"
 
-extern SDL_Color color_global_white;
+
 extern Window *main_win;
-extern SDL_Color freq_L_color;
-extern SDL_Color freq_R_color;
 
 void iir_init(IIRFilter *f, int degree, int num_channels)
 {
@@ -39,15 +29,25 @@ void iir_init(IIRFilter *f, int degree, int num_channels)
     f->A = calloc(degree + 1, sizeof(double));
     f->B = calloc(degree, sizeof(double));
     f->normalization_constant = 1.0;
-    f->memIn = calloc(num_channels, sizeof(double *));
-    f->memOut = calloc(num_channels, sizeof(double *));
+    f->mem_in = calloc(num_channels, sizeof(double *));
+    f->mem_out = calloc(num_channels, sizeof(double *));
+    f->mem_index[0] = 0;
+    f->mem_index[1] = 0;
     f->type = IIR_PEAKNOTCH;
     /* f->pole_zero = calloc(degree, sizeof(double complex)); */
     for (int i=0; i<num_channels; i++) {	    
-	f->memIn[i] = calloc(degree, sizeof(double));
-	f->memOut[i] = calloc(degree, sizeof(double));
+	f->mem_in[i] = calloc(degree, sizeof(double));
+	f->mem_out[i] = calloc(degree, sizeof(double));
     }
     f->A[0] = 1;
+}
+
+void iir_add_freqplot(IIRFilter *f, struct freq_plot *fp)
+{
+    f->fp = fp;
+    if (f->freq_resp) free(f->freq_resp);
+    f->freq_resp = malloc(sizeof(double) * IIR_FREQPLOT_RESOLUTION);
+    f->freq_resp_stale = true;
     for (int i=0; i<IIR_FREQPLOT_RESOLUTION; i++) {
 	f->freq_resp[i] = 1.0;
     }
@@ -63,15 +63,18 @@ void iir_deinit(IIRFilter *f)
 	free(f->B);
 	f->B = NULL;
     }
-    if (f->memIn && f->memOut) {
+    if (f->mem_in && f->mem_out) {
 	for (int i=0; i<f->num_channels; i++) {
-	    free(f->memIn[i]);
-	    free(f->memOut[i]);
+	    free(f->mem_in[i]);
+	    free(f->mem_out[i]);
 	}
-	free(f->memIn);
-	free(f->memOut);
-	f->memIn = NULL;
-	f->memOut = NULL;
+	free(f->mem_in);
+	free(f->mem_out);
+	f->mem_in = NULL;
+	f->mem_out = NULL;
+    }
+    if (f->freq_resp) {
+	free(f->freq_resp);
     }
 }
 
@@ -83,20 +86,36 @@ void iir_set_coeffs(IIRFilter *f, double *A_in, double *B_in)
 
 
 /* Apply the filter */
+void breakfn();
 double iir_sample(IIRFilter *f, double in, int channel)
 {
     double out = in * f->A[0];
     for (int i=0; i<f->degree; i++) {
-	out += f->A[i + 1] * f->memIn[channel][i];
-	out += f->B[i] * f->memOut[channel][i];
-	
+	int mem_index = (f->mem_index[channel] + i) % f->degree;
+	out += f->A[i + 1] * f->mem_in[channel][mem_index];
+	out += f->B[i] * f->mem_out[channel][mem_index];
+	/* #ifdef TESTBUILD */
+	int fc = -1;
+	if (fabs(out) > 5000.0 || ((fc = fpclassify(out)) != FP_ZERO && fc != FP_NORMAL && fc != FP_SUBNORMAL)) {
+	    iir_clear(f);
+	    breakfn();
+	    fprintf(stderr, "IIR cleared! outsample: %f; fc: %d\n", out, fc);
+	    return 0.0;
+	}
+	/* #endif	 */
     }
 
-    memmove(f->memIn[channel] + 1, f->memIn[channel], sizeof(double) * (f->degree - 1));
-    memmove(f->memOut[channel] + 1, f->memOut[channel], sizeof(double) * (f->degree - 1));
-				    
-    f->memIn[channel][0] = in;
-    f->memOut[channel][0] = out;
+    /* memmove(f->mem_in[channel] + 1, f->mem_in[channel], sizeof(double) * (f->degree - 1)); */
+    /* memmove(f->mem_out[channel] + 1, f->mem_out[channel], sizeof(double) * (f->degree - 1)); */
+    /* f->mem_index++; */
+    f->mem_index[channel]--;
+    if (f->mem_index[channel] < 0) f->mem_index[channel] += f->degree;
+
+    f->mem_in[channel][f->mem_index[channel]] = in;
+    f->mem_out[channel][f->mem_index[channel]] = out;
+    /* f->mem_index %= f->degree; */
+    /* f->mem_in[channel][0] = in; */
+    /* f->mem_out[channel][0] = out; */
     
     return out;
 }
@@ -110,17 +129,18 @@ void iir_buf_apply(IIRFilter *f, float *buf, int len, int channel)
 
 void iir_advance(IIRFilter *f, int channel)
 {
-    memmove(f->memIn[channel] + 1, f->memIn[channel], sizeof(double) * (f->degree - 1));
-    memmove(f->memOut[channel] + 1, f->memOut[channel], sizeof(double) * (f->degree - 1));
-    f->memIn[channel][0] = 0.0;
-    f->memOut[channel][0] = 0.0;
+    iir_sample(f, 0, channel);
+    /* memmove(f->mem_in[channel] + 1, f->mem_in[channel], sizeof(double) * (f->degree - 1)); */
+    /* memmove(f->mem_out[channel] + 1, f->mem_out[channel], sizeof(double) * (f->degree - 1)); */
+    /* f->mem_in[channel][0] = 0.0; */
+    /* f->mem_out[channel][0] = 0.0; */
 }
 
 void iir_clear(IIRFilter *f)
 {
     for (int i=0; i<f->num_channels; i++) {
-	memset(f->memIn[i], '\0', f->degree * sizeof(double));
-	memset(f->memOut[i], '\0', f->degree * sizeof(double));
+	memset(f->mem_in[i], '\0', f->degree * sizeof(double));
+	memset(f->mem_out[i], '\0', f->degree * sizeof(double));
     }
 }
 
@@ -219,19 +239,26 @@ static double double_biquad_amp_from_freq(double freq_raw, double complex *pole,
 
 static void iir_reset_freq_resp(IIRFilter *iir)
 {
+    if (!iir->fp) return;
     if (iir->num_poles == 1) {
 	for (int i=0; i<IIR_FREQPLOT_RESOLUTION; i++) {
 	    double prop = (double) i / IIR_FREQPLOT_RESOLUTION;
-	    int nsub1 = iir->fp->num_items - 1;
-	    double input = pow(nsub1, prop) / nsub1;
+	    double freq_hz = logscale_from_linear(&iir->fp->x_axis, prop);
+	    double input = freq_hz / iir->fp->x_axis.max_scaled;
+	    /* int nsub1 = iir->fp->num_items - 1; */
+	    /* double input = pow(nsub1, prop) / nsub1; */
 	    iir->freq_resp[i] = biquad_amp_from_freq(input, iir->poles, iir->zeros, &iir->normalization_constant);
 	    iir->freq_resp_stale = false;
 	}
     } else if (iir->num_poles == 2) {
 	for (int i=0; i<IIR_FREQPLOT_RESOLUTION; i++) {
 	    double prop = (double) i / IIR_FREQPLOT_RESOLUTION;
-	    int nsub1 = iir->fp->num_items - 1;
-	    double input = pow(nsub1, prop) / nsub1;
+	    double freq_hz = logscale_from_linear(&iir->fp->x_axis, prop);
+	    double input = freq_hz / iir->fp->x_axis.max_scaled;
+
+	    /* double input = dsp_scale_freq(prop); */
+	    /* int nsub1 = iir->fp->num_items - 1; */
+	    /* double input = pow(nsub1, prop) / nsub1; */
 	    iir->freq_resp[i] = double_biquad_amp_from_freq(input, iir->poles, iir->zeros, &iir->normalization_constant);
 	    iir->freq_resp_stale = false;
 	}
@@ -663,11 +690,19 @@ double iir_group_sample(IIRGroup *group, double in, int channel)
     return in;
 }
 
+void iir_group_add_freqplot(IIRGroup *group, struct freq_plot *fp)
+{
+    for (int i=0; i<group->num_filters; i++) {
+	IIRFilter *f = group->filters + i;
+        iir_add_freqplot(f, fp);
+    }
+}
+
 void iir_group_update_freq_resp(IIRGroup *group)
 {
     if (!group->fp) return;
     for (int i=0; i<group->num_filters; i++) {
-	if (group->filters[i].freq_resp_stale) {
+	if (!group->filters[i].bypass && group->filters[i].freq_resp_stale) {
 	    iir_reset_freq_resp(group->filters + i);
 	}
     }

@@ -1,3 +1,17 @@
+/*****************************************************************************************************************
+  Jackdaw | https://jackdaw-audio.net/ | a free, keyboard-focused DAW | built on SDL (https://libsdl.org/)
+******************************************************************************************************************
+
+  Copyright (C) 2023-2025 Charlie Volow
+  
+  Jackdaw is licensed under the GNU General Public License.
+
+*****************************************************************************************************************/
+
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include "input_mode.h"
 #include "function_lookup.h"
 #include "userfn.h"
@@ -12,7 +26,9 @@ static const char *input_mode_strs[] = {
     "modal",
     "text_edit",
     "tabview",
-    "autocomplete_list"
+    "autocomplete_list",
+    "midi_qwerty",
+    "piano_roll"
 };
 
 const char *input_mode_str(InputMode im)
@@ -27,21 +43,25 @@ const char *input_mode_str(InputMode im)
 InputMode input_mode_from_str(char *str)
 {
     if (strcmp(str, "global") == 0) {
-	return GLOBAL;
+	return MODE_GLOBAL;
     } else if (strcmp(str, "menu_nav") == 0) {
-	return MENU_NAV;
+	return MODE_MENU_NAV;
     } else if (strcmp(str, "timeline") == 0) {
-	return TIMELINE;
+	return MODE_TIMELINE;
     } else if (strcmp(str, "source") == 0) {
-	return SOURCE;
+	return MODE_SOURCE;
     } else if (strcmp(str, "modal") == 0) {
-	return MODAL;
+	return MODE_MODAL;
     } else if (strcmp(str, "text_edit") == 0) {
-	return TEXT_EDIT;
+	return MODE_TEXT_EDIT;
     } else if (strcmp(str, "tabview") == 0) {
-	return TABVIEW;
+	return MODE_TABVIEW;
     } else if (strcmp(str, "autocomplete_list") == 0) {
-	return AUTOCOMPLETE_LIST;
+	return MODE_AUTOCOMPLETE_LIST;
+    } else if (strcmp(str, "midi_qwerty") == 0) {
+	return MODE_MIDI_QWERTY;
+    } else if (strcmp(str, "piano_roll") == 0) {
+	return MODE_PIANO_ROLL;
     } else {
 	return -1;
     }
@@ -112,7 +132,7 @@ static UserFn *create_user_fn(
 
 static void mode_load_global()
 {
-    Mode *mode = mode_create(GLOBAL);
+    Mode *mode = mode_create(MODE_GLOBAL);
     ModeSubcat *mc = mode_add_subcat(mode, "");
     if (!mc) {
 	return;
@@ -177,11 +197,12 @@ static void mode_load_global()
     mode_subcat_add_fn(mc, fn);
 
     fn = create_user_fn(
-	"function_lookup",
-	"Function lookup",
+	"command_lookup",
+	"Command lookup",
 	user_global_function_lookup);
     mode_subcat_add_fn(mc, fn);
 
+    #ifdef TESTBUILD
     fn = create_user_fn(
 	"chaotic_user_test",
 	"Chaotic user test (debug only)",
@@ -189,10 +210,37 @@ static void mode_load_global()
     mode_subcat_add_fn(mc, fn);
 
     fn = create_user_fn(
+	"toggle_transport_logging",
+	"Toggle tranpsort performance logging (debug only)",
+	user_global_debug_toggle_transport_performance_logging);
+    mode_subcat_add_fn(mc, fn);
+    #endif
+
+    fn = create_user_fn(
 	"api_print_all_routes",
 	"Print all API routes",
 	user_global_api_print_all_routes);
     mode_subcat_add_fn(mc, fn);
+
+    fn = create_user_fn(
+	"dump_logs_to_stderr",
+	"Dump exec logs to stderr",
+	user_global_dump_logs);
+    mode_subcat_add_fn(mc, fn);
+
+    fn = create_user_fn(
+	"disable_synth_parallelism",
+	"Disable synth parallelism",
+	user_global_disable_synth_parallelism);
+    mode_subcat_add_fn(mc, fn);
+
+    fn = create_user_fn(
+	"enable_synth_parallelism",
+	"Enable synth parallelism",
+	user_global_enable_synth_parallelism);
+    mode_subcat_add_fn(mc, fn);
+
+    
     /* fn = create_user_fn( */
     /* 	"start_or_stop_screenrecording", */
     /* 	"Start or stop screenrecording", */
@@ -204,7 +252,7 @@ static void mode_load_global()
 static void mode_load_menu_nav()
 {
     
-    Mode *mode = mode_create(MENU_NAV);
+    Mode *mode = mode_create(MODE_MENU_NAV);
     ModeSubcat *mc = mode_add_subcat(mode, "");
     UserFn *fn;
     fn = create_user_fn(
@@ -284,7 +332,7 @@ static void mode_load_menu_nav()
 
 static void mode_load_timeline()
 {
-    Mode *mode = mode_create(TIMELINE);
+    Mode *mode = mode_create(MODE_TIMELINE);
     /* ModeSubcat *sc= mode_add_subcat(mode, "Timeline Navigation"); */
     UserFn *fn;
 
@@ -298,15 +346,23 @@ static void mode_load_timeline()
 	"Play",
 	user_tl_play);
     mode_subcat_add_fn(sc, fn);
+    
     fn = create_user_fn(
 	"tl_pause",
 	"Pause",
 	user_tl_pause);
     mode_subcat_add_fn(sc, fn);
+    
     fn = create_user_fn(
 	"tl_rewind",
 	"Rewind",
 	user_tl_rewind);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_play_pause",
+	"Play/pause",
+	user_tl_play_pause);
     mode_subcat_add_fn(sc, fn);
 
     fn=create_user_fn(
@@ -320,6 +376,18 @@ static void mode_load_timeline()
 	"Rewind slow",
 	user_tl_rewind_slow);
     mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_halve_playspeed",
+	"Halve playspeed",
+	user_tl_halve_playspeed);
+    mode_subcat_add_fn(sc, fn);
+
+    /* fn = create_user_fn( */
+    /* 	"tl_halve_playspeed", */
+    /* 	"Halve playspeed (rewind)", */
+    /* 	user_tl_halve_playspeed_rewind); */
+    /* mode_subcat_add_fn(sc, fn); */
 
     fn = create_user_fn(
 	"tl_move_playhead_left",
@@ -450,6 +518,12 @@ static void mode_load_timeline()
 	"tl_zoom_in",
 	"Zoom in",
 	user_tl_zoom_in);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_lock_view_to_playhead",
+	"Lock view to playhead",
+	user_tl_lock_view_to_playhead);
     mode_subcat_add_fn(sc, fn);
 
     /* fn = create_user_fn( */
@@ -695,8 +769,14 @@ static void mode_load_timeline()
     
     fn = create_user_fn(
 	"tl_track_open_settings",
-	"Open track settings",
+	"Open track effects (or click track settings)",
 	user_tl_track_open_settings);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_track_open_synth",
+	"Open synth",
+	user_tl_track_open_synth);
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
@@ -784,9 +864,40 @@ static void mode_load_timeline()
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
+	"tl_grab_clips_left_edge",
+	"Grab left edge of clips",
+	user_tl_clipref_grab_left_edge);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_grab_clips_right_edge",
+	"Grab right edge of clips",
+	user_tl_clipref_grab_right_edge);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_ungrab_clip_edge",
+	"Ungrab clip edge",
+	user_tl_clipref_ungrab_edge);
+    mode_subcat_add_fn(sc, fn);
+
+
+    fn = create_user_fn(
 	"tl_grab_marked_range",
 	"Grab clips in marked range",
 	user_tl_grab_marked_range);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_grab_marked_range_left_edge",
+	"Grab left edge of clips in marked range",
+	user_tl_grab_marked_range_left_edge);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_grab_marked_range_right_edge",
+	"Grab right edge of clips in marked range",
+	user_tl_grab_marked_range_right_edge);
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
@@ -809,9 +920,16 @@ static void mode_load_timeline()
 
     fn = create_user_fn(
 	"tl_cut_clipref",
-	"Cut",
+	"Cut at cursor (clip or click track)",
 	user_tl_cut_clipref);
     mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_cut_clipref_and_grab_edges",
+	"Cut clip at cursor and grab edges",
+	user_tl_cut_clipref_and_grab_edges);
+    mode_subcat_add_fn(sc, fn);
+
 
     fn = create_user_fn(
 	"tl_split_stereo_clipref",
@@ -830,11 +948,32 @@ static void mode_load_timeline()
 	"Delete",
 	user_tl_delete_generic);
     mode_subcat_add_fn(sc, fn);
+
+
+    /* Piano roll / MIDI */
+
+    sc = mode_add_subcat(mode, "MIDI / piano roll");
+    fn = create_user_fn(
+	"tl_edit_clip_at_cursor",
+	"Edit clip at cursor / open piano roll",
+	user_tl_edit_clip_at_cursor);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_quantize_notes",
+	"Quantize notes (clip at cursor)",
+	user_tl_quantize_notes);
+    mode_subcat_add_fn(sc, fn);
     
+    fn = create_user_fn(
+	"tl_adj_quantize_amt",
+	"Adjust quantize amount",
+	user_tl_adj_quantize_amt);
+    mode_subcat_add_fn(sc, fn);    
 
-    /* Sample mode */
+    /* Source mode */
 
-    sc = mode_add_subcat(mode, "Sample mode");
+    sc = mode_add_subcat(mode, "Source mode");
     fn = create_user_fn(
 	"tl_load_clip_at_cursor_to_source",
 	"Load clip at cursor to source",
@@ -916,6 +1055,26 @@ static void mode_load_timeline()
 	user_tl_write_mixdown_to_wav);
     mode_subcat_add_fn(sc, fn);
 
+    
+    sc = mode_add_subcat(mode, "MIDI I/O");
+    fn = create_user_fn(
+	"tl_track_set_midi_out",
+	"Set track MIDI out",
+	user_tl_track_set_midi_out);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_activate_qwerty_piano",
+	"Activate QWERTY piano",
+	user_tl_activate_mqwert);
+    mode_subcat_add_fn(sc, fn);
+    fn = create_user_fn(
+	"tl_insert_jlily",
+	"Insert Jlily (LilyPond) notes",
+	user_tl_insert_jlily);
+    mode_subcat_add_fn(sc, fn);
+
+
     /* fn = create_user_fn( */
     /* 	"tl_cliprefs_destroy", */
     /* 	"Delete selected clip(s)", */
@@ -926,7 +1085,7 @@ static void mode_load_timeline()
 
 static void mode_load_source()
 {
-    Mode *mode = mode_create(SOURCE);
+    Mode *mode = mode_create(MODE_SOURCE);
     ModeSubcat *sc= mode_add_subcat(mode, "");
     UserFn *fn;
 
@@ -970,15 +1129,38 @@ static void mode_load_source()
     fn = create_user_fn(
 	"source_set_out_mark",
 	"Set Out Mark (source)",
-        user_source_set_out_mark
-	);
+        user_source_set_out_mark);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"source_zoom_in",
+	"Zoom in (source)",
+	user_source_zoom_in);
+    mode_subcat_add_fn(sc, fn);
+    
+    fn = create_user_fn(
+	"source_zoom_out",
+	"Zoom out (source)",
+	user_source_zoom_out);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"source_move_left",
+	"Move left (source)",
+	user_source_move_left);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"source_move_right",
+	"Move right (source)",
+	user_source_move_right);
     mode_subcat_add_fn(sc, fn);
 
 }
 
 static void mode_load_modal()
 {
-    Mode *mode = mode_create(MODAL);
+    Mode *mode = mode_create(MODE_MODAL);
     ModeSubcat *sc= mode_add_subcat(mode, "");
     UserFn *fn;   
 
@@ -1014,6 +1196,19 @@ static void mode_load_modal()
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
+	"modal_left",
+	"Modal left (nudge slider)",
+	user_modal_left);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"modal_right",
+	"Modal right (nudge slider)",
+	user_modal_right);
+    mode_subcat_add_fn(sc, fn);
+
+
+    fn = create_user_fn(
 	"modal_dismiss",
 	"Dismiss modal window",
 	user_modal_dismiss);
@@ -1028,7 +1223,7 @@ static void mode_load_modal()
 
 static void mode_load_text_edit()
 {
-    Mode *mode = mode_create(TEXT_EDIT);
+    Mode *mode = mode_create(MODE_TEXT_EDIT);
     /* MODES[TEXT_EDIT] = mode; */
 
     ModeSubcat *sc = mode_add_subcat(mode, "");
@@ -1067,12 +1262,13 @@ static void mode_load_text_edit()
 	"Select all",
 	user_text_edit_select_all);
     mode_subcat_add_fn(sc, fn);
+
 }
 
 
 static void mode_load_tabview()
 {
-    Mode *mode = mode_create(TABVIEW);
+    Mode *mode = mode_create(MODE_TABVIEW);
     /* modes[TABVIEW] = mode; */
 
     ModeSubcat *sc = mode_add_subcat(mode, "");
@@ -1144,7 +1340,7 @@ static void mode_load_tabview()
 
 static void mode_load_autocomplete_list()
 {
-    Mode *mode = mode_create(AUTOCOMPLETE_LIST);
+    Mode *mode = mode_create(MODE_AUTOCOMPLETE_LIST);
     ModeSubcat *sc = mode_add_subcat(mode, "");
 
     UserFn *fn = create_user_fn(
@@ -1172,6 +1368,338 @@ static void mode_load_autocomplete_list()
     mode_subcat_add_fn(sc, fn);
 }
 
+static void mode_load_midi_qwerty()
+{
+    Mode *mode = mode_create(MODE_MIDI_QWERTY);
+    ModeSubcat *sc = mode_add_subcat(mode, "");
+
+    UserFn *fn = create_user_fn(
+	"midi_qwerty_escape",
+	"Escape MIDI QWERTY",
+	user_midi_qwerty_escape);
+    mode_subcat_add_fn(sc, fn);
+    fn = create_user_fn(
+	"midi_qwerty_octave_up",
+	"Octave up",
+	user_midi_qwerty_octave_up);
+    mode_subcat_add_fn(sc, fn);
+    fn = create_user_fn(
+	"midi_qwerty_octave_down",
+	"Octave down",
+	user_midi_qwerty_octave_down);
+    mode_subcat_add_fn(sc, fn);
+    fn = create_user_fn(
+	"midi_qwerty_transpose_up",
+	"Transpose up",
+	user_midi_qwerty_transpose_up);
+    mode_subcat_add_fn(sc, fn);
+    fn = create_user_fn(
+	"midi_qwerty_transpose_down",
+	"Transpose down",
+	user_midi_qwerty_transpose_down);
+    mode_subcat_add_fn(sc, fn);
+    fn = create_user_fn(
+	"midi_qwerty_velocity_up",
+	"Velocity up",
+	user_midi_qwerty_velocity_up);
+    mode_subcat_add_fn(sc, fn);
+    fn = create_user_fn(
+	"midi_qwerty_velocity_down",
+	"Velocity down",
+	user_midi_qwerty_velocity_down);
+    mode_subcat_add_fn(sc, fn);
+
+
+
+    
+    fn = create_user_fn(
+	"midi_qwerty_c1",
+	"midi qwerty c1",
+	user_midi_qwerty_c1);
+    mode_subcat_add_fn(sc, fn);
+    fn = create_user_fn(
+	"midi_qwerty_cis1",
+	"midi qwerty cis1",
+	user_midi_qwerty_cis1);
+    mode_subcat_add_fn(sc, fn);
+    fn = create_user_fn(
+	"midi_qwerty_d1",
+	"midi qwerty d1",
+	user_midi_qwerty_d1);
+    mode_subcat_add_fn(sc, fn);
+    fn = create_user_fn(
+	"midi_qwerty_dis",
+	"midi qwerty dis",
+	user_midi_qwerty_dis);
+    mode_subcat_add_fn(sc, fn);
+    fn = create_user_fn(
+	"midi_qwerty_e",
+	"midi qwerty e",
+	user_midi_qwerty_e);
+    mode_subcat_add_fn(sc, fn);
+    fn = create_user_fn(
+	"midi_qwerty_f",
+	"midi qwerty f",
+	user_midi_qwerty_f);
+    mode_subcat_add_fn(sc, fn);
+    fn = create_user_fn(
+	"midi_qwerty_fis",
+	"midi qwerty fis",
+	user_midi_qwerty_fis);
+    mode_subcat_add_fn(sc, fn);
+    fn = create_user_fn(
+	"midi_qwerty_g",
+	"midi qwerty g",
+	user_midi_qwerty_g);
+    mode_subcat_add_fn(sc, fn);
+    fn = create_user_fn(
+	"midi_qwerty_gis",
+	"midi qwerty gis",
+	user_midi_qwerty_gis);
+    mode_subcat_add_fn(sc, fn);
+    fn = create_user_fn(
+	"midi_qwerty_a",
+	"midi qwerty a",
+	user_midi_qwerty_a);
+    mode_subcat_add_fn(sc, fn);
+    fn = create_user_fn(
+	"midi_qwerty_ais",
+	"midi qwerty ais",
+	user_midi_qwerty_ais);
+    mode_subcat_add_fn(sc, fn);
+    fn = create_user_fn(
+	"midi_qwerty_b",
+	"midi qwerty b",
+	user_midi_qwerty_b);
+    mode_subcat_add_fn(sc, fn);
+    fn = create_user_fn(
+	"midi_qwerty_c2",
+	"midi qwerty c2",
+	user_midi_qwerty_c2);
+    mode_subcat_add_fn(sc, fn);
+    fn = create_user_fn(
+	"midi_qwerty_cis2",
+	"midi qwerty cis2",
+	user_midi_qwerty_cis2);
+    mode_subcat_add_fn(sc, fn);
+    fn = create_user_fn(
+	"midi_qwerty_d2",
+	"midi qwerty d2",
+	user_midi_qwerty_d2);
+    mode_subcat_add_fn(sc, fn);
+    fn = create_user_fn(
+	"midi_qwerty_dis2",
+	"midi qwerty dis2",
+	user_midi_qwerty_dis2);
+    mode_subcat_add_fn(sc, fn);
+    fn = create_user_fn(
+	"midi_qwerty_e2",
+	"midi qwerty e2",
+	user_midi_qwerty_e2);
+    mode_subcat_add_fn(sc, fn);
+    fn = create_user_fn(
+	"midi_qwerty_f2",
+	"midi qwerty f2",
+	user_midi_qwerty_f2);
+    mode_subcat_add_fn(sc, fn);
+}
+
+void mode_load_piano_roll()
+{
+    Mode *mode = mode_create(MODE_PIANO_ROLL);
+    ModeSubcat *sc = mode_add_subcat(mode, "");
+
+    UserFn *fn = create_user_fn(
+	"piano_roll_escape",
+	"Escape / exit piano roll",
+
+	user_piano_roll_escape);
+
+    mode_subcat_add_fn(sc, fn);
+
+
+    fn = create_user_fn(
+	"piano_roll_zoom_in",
+	"Zoom in (piano roll)",
+	user_piano_roll_zoom_in);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"piano_roll_zoom_out",
+	"Zoom out (piano roll)",
+	user_piano_roll_zoom_out);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"piano_roll_move_left",
+	"Move view left (piano roll)",
+	user_piano_roll_move_left);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"piano_roll_move_right",
+	"Move view right (piano roll)",
+	user_piano_roll_move_right);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"piano_roll_note_down",
+	"Note selector down",
+	user_piano_roll_note_down);
+    mode_subcat_add_fn(sc, fn);
+    
+    fn = create_user_fn(
+	"piano_roll_note_up",
+	"Note selector up",
+	user_piano_roll_note_up);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"piano_roll_note_down_octave",
+	"Note selector down octave",
+	user_piano_roll_note_down_octave);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"piano_roll_note_up_octave",
+	"Note selector up octave",
+	user_piano_roll_note_up_octave);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"piano_roll_vel_down",
+	"Velocity down",
+	user_piano_roll_vel_down);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"piano_roll_vel_up",
+	"Velocity down",
+	user_piano_roll_vel_up);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"piano_roll_forward_dur",
+	"Move forward by current dur",
+	user_piano_roll_forward_dur);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"piano_roll_back_dur",
+	"Move back by current dur",
+	user_piano_roll_back_dur);
+    mode_subcat_add_fn(sc, fn);    
+
+    fn = create_user_fn(
+	"piano_roll_next_note",
+	"Go to next note boundary",
+	user_piano_roll_next_note);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"piano_roll_prev_note",
+	"Go to previous note boundary",
+	user_piano_roll_prev_note);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"piano_roll_up_note",
+	"Go to next note up",
+	user_piano_roll_up_note);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"piano_roll_down_note",
+	"Go to next note down",
+	user_piano_roll_down_note);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"piano_roll_dur_longer",
+	"Longer note duration",
+	user_piano_roll_dur_longer);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"piano_roll_dur_shorter",
+	"Shorter note duration",
+	user_piano_roll_dur_shorter);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"piano_roll_insert_note",
+	"Insert note at current position",
+	user_piano_roll_insert_note);
+    mode_subcat_add_fn(sc, fn);
+    
+    fn = create_user_fn(
+	"piano_roll_insert_rest",
+	"Insert rest at current position",
+	user_piano_roll_insert_rest);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"piano_roll_grab_ungrab",
+	"Grab/ungrab notes",
+	user_piano_roll_grab_ungrab);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"piano_roll_grab_note_left_edge",
+	"Grab left edge of note",
+	user_piano_roll_grab_note_left_edge);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"piano_roll_grab_note_right_edge",
+	"Grab right edge of note",
+	user_piano_roll_grab_note_right_edge);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"piano_roll_grab_marked_range",
+	"Grab notes in marked range",
+	user_piano_roll_grab_marked_range);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"piano_roll_delete",
+	"Backspace / delete grabbed notes",
+	user_piano_roll_delete);
+    mode_subcat_add_fn(sc, fn);
+
+    
+    fn = create_user_fn(
+	"piano_roll_play_grabbed_notes",
+	"Play grabbed notes",
+	user_piano_roll_play_grabbed_notes);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"piano_roll_toggle_tie",
+	"Toggle tie mode",
+	user_piano_roll_toggle_tie);
+    mode_subcat_add_fn(sc, fn);
+    
+    fn = create_user_fn(
+	"piano_roll_toggle_chord_mode",
+	"Toggle chord mode",
+	user_piano_roll_toggle_chord_mode);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"piano_roll_quantize",
+	"Quantize notes",
+	user_piano_roll_quantize);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"piano_roll_adj_quantize_amt",
+	"Adjust quantize amount",
+	user_piano_roll_adj_quantize_amt);
+    mode_subcat_add_fn(sc, fn);
+
+}
 
 void mode_load_all()
 {
@@ -1183,4 +1711,6 @@ void mode_load_all()
     mode_load_text_edit();
     mode_load_tabview();
     mode_load_autocomplete_list();
+    mode_load_midi_qwerty();
+    mode_load_piano_roll();
 }

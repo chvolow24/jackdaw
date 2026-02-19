@@ -1,26 +1,38 @@
+/*****************************************************************************************************************
+  Jackdaw | https://jackdaw-audio.net/ | a free, keyboard-focused DAW | built on SDL (https://libsdl.org/)
+******************************************************************************************************************
+
+  Copyright (C) 2023-2025 Charlie Volow
+  
+  Jackdaw is licensed under the GNU General Public License.
+
+*****************************************************************************************************************/
+
+#include <stdlib.h>
+#include "consts.h"
 #include "delay_line.h"
 #include "endpoint_callbacks.h"
+#include "session.h"
 
 void delay_line_set_params(DelayLine *dl, double amp, int32_t len);
 
-extern Project *proj;
 void delay_line_len_dsp_cb(Endpoint *ep)
 {
-    double sample_rate = proj ? proj->sample_rate : DEFAULT_SAMPLE_RATE;
+    Session *session = session_get();
+    double sample_rate = session->proj_initialized ? session_get_sample_rate() : DEFAULT_SAMPLE_RATE;
     DelayLine *dl = (DelayLine *)ep->xarg1;
     int16_t val_msec = endpoint_safe_read(ep, NULL).int16_v;
     int32_t len_sframes = (int32_t)((double)val_msec * sample_rate / 1000.0);
     delay_line_set_params(dl, dl->amp, len_sframes);
-    /* project_queue_callback(proj, ep, secondary_delay_line_gui_cb, JDAW_THREAD_MAIN); */
+    /* session_queue_callback(proj, ep, secondary_delay_line_gui_cb, JDAW_THREAD_MAIN); */
 }
 
-void delay_line_init(DelayLine *dl, Track *track, uint32_t sample_rate)
+void delay_line_init(DelayLine *dl, uint32_t sample_rate)
 {
     if (dl->buf_L) {
 	fprintf(stderr, "ERROR: attempt to reinitialize delay line.\n");
 	return;
     }
-    dl->track = track;
     dl->pos_L = 0;
     dl->pos_R = 0;
     dl->amp = 0.0;
@@ -40,7 +52,7 @@ void delay_line_init(DelayLine *dl, Track *track, uint32_t sample_rate)
 	"len",
 	"Time (ms)",
 	JDAW_THREAD_DSP,
-	track_settings_page_el_gui_cb, NULL, delay_line_len_dsp_cb,
+	page_el_gui_cb, NULL, delay_line_len_dsp_cb,
 	/* NULL, NULL, delay_line_len_dsp_cb, */
 	(void *)dl, NULL, &dl->effect->page, "track_settings_delay_time_slider");
     endpoint_set_allowed_range(&dl->len_ep, (Value){.int16_v=0}, (Value){.int16_v=1000});
@@ -55,7 +67,7 @@ void delay_line_init(DelayLine *dl, Track *track, uint32_t sample_rate)
 	"Amp",
 	JDAW_THREAD_DSP,
 	/* delay_line_amp_gui_cb, NULL, NULL, */
-	track_settings_page_el_gui_cb, NULL, NULL,
+	page_el_gui_cb, NULL, NULL,
 	/* delay_line_amp_gui_cb, NULL, NULL, */
 	(void *)dl, NULL, &dl->effect->page, "track_settings_delay_amp_slider");
     endpoint_set_allowed_range(&dl->amp_ep, (Value){.double_v=0.0}, (Value){.double_v=0.99});
@@ -69,7 +81,7 @@ void delay_line_init(DelayLine *dl, Track *track, uint32_t sample_rate)
 	"stereo_offset",
 	"Stereo offset",
 	JDAW_THREAD_DSP,
-	track_settings_page_el_gui_cb, NULL, NULL,
+	page_el_gui_cb, NULL, NULL,
 	/* delay_line_stereo_offset_gui_cb, NULL, NULL, */
 	NULL, NULL, &dl->effect->page, "track_settings_delay_stereo_offset_slider");
     endpoint_set_allowed_range(&dl->stereo_offset_ep, (Value){.double_v=0.0}, (Value){.double_v=1.0});
@@ -90,14 +102,30 @@ void delay_line_init(DelayLine *dl, Track *track, uint32_t sample_rate)
     - read every <1 sample
  */
 
+
+static inline double linear_interp(double *buf, double index)
+{
+    int32_t i_left = floor(index);
+    double diff_left = index - i_left;
+    return buf[i_left] + diff_left * (buf[i_left + 1] - buf[i_left]);    
+}
+
+
 static inline void del_read_into_buffer_resize(DelayLine *dl, double *read_from, double *read_to, int32_t *read_pos, int32_t len)
 {
     for (int32_t i=0; i<len; i++) {
 	/* double read_pos_d = (double)*read_pos; */
 	double read_pos_d = dl->len * ((double)i / len);
-	int32_t read_i = (int32_t)(round(read_pos_d));
-	if (read_i < 0) read_i = 0;
-	read_to[i] = read_from[read_i];
+	/* int32_t read_i = (int32_t)(round(read_pos_d)); */
+	/* if (read_i < 0) read_i = 0; */
+	/* read_to[i] = read_from[read_i]; */
+	if (read_pos_d <= 0.0) {
+	    read_to[i] = read_from[0];
+	} else if (read_pos_d >= dl->len) {
+	    read_to[i] = read_from[dl->len - 1];
+	} else {
+	    read_to[i] = linear_interp(read_from, read_pos_d);
+	}
 	/* read_pos_d += read_step; */
 	if (read_pos_d > dl->len) {
 	    read_pos_d -= dl->len;
@@ -107,21 +135,8 @@ static inline void del_read_into_buffer_resize(DelayLine *dl, double *read_from,
 
 void delay_line_set_params(DelayLine *dl, double amp, int32_t len)
 {
-    /* fprintf(stderr, "Set line len: %d\n", len); */
-    /* if (!dl->buf_L) { */
-    /* 	delay_line_init(dl, sample_rate); */
-    /* } */
-    /* pthread_mutex_lock(&dl->lock); */
-    /* if (len > proj->sample_rate) { */
-    /* 	fprintf(stderr, "UH OH: len = %d\n", len); */
-    /* 	exit(1); */
-    /* 	return; */
-    /* } */
     if (dl->len != len) {
-	/* double new_buf[len]; */
 	double *new_buf = dl->cpy_buf;
-	/* double read_step = (double)dl->len / len; */
-	/* double read_step = 1.0; */
 	del_read_into_buffer_resize(dl, dl->buf_L, new_buf,  &dl->pos_L, len);
 	memcpy(dl->buf_L, new_buf, len * sizeof(double));
 	del_read_into_buffer_resize(dl, dl->buf_R, new_buf, &dl->pos_R, len);
@@ -138,7 +153,7 @@ void delay_line_set_params(DelayLine *dl, double amp, int32_t len)
     /* pthread_mutex_unlock(&dl->lock); */
 }
 
-float delay_line_buf_apply(void *dl_v, float *buf, int len, int channel, float input_amp)
+float delay_line_buf_apply(void *dl_v, float *restrict buf, int len, int channel, float input_amp)
 {
     DelayLine *dl = dl_v;
     float output_amp = 0.0f;

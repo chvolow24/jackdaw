@@ -17,7 +17,6 @@
 
 #include "project.h"
 #include "endpoint.h"
-#include "modal.h"
 
 void play_speed_gui_cb(Endpoint *ep);
 void track_slider_cb(Endpoint *ep);
@@ -45,4 +44,4 @@ void click_segment_bound_gui_cb(Endpoint *ep);
 /* void saturation_gain_gui_cb(Endpoint *ep); */
 /* void saturation_type_gui_cb(Endpoint *ep); */
 
-void track_settings_page_el_gui_cb(Endpoint *ep);
+void page_el_gui_cb(Endpoint *ep);

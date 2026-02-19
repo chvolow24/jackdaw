@@ -34,17 +34,17 @@
 /*      0 ) */
 
 typedef enum value_type {
-    JDAW_FLOAT = 0,
-    JDAW_DOUBLE = 1,
-    JDAW_INT = 2,
-    JDAW_UINT8 = 3,
-    JDAW_UINT16 = 4,
-    JDAW_UINT32 = 5,
-    JDAW_INT8 = 6,
-    JDAW_INT16 = 7,
-    JDAW_INT32 = 8,
-    JDAW_BOOL = 9,
-    JDAW_DOUBLE_PAIR = 10
+    JDAW_FLOAT,
+    JDAW_DOUBLE,
+    JDAW_INT,
+    JDAW_UINT8,
+    JDAW_UINT16,
+    JDAW_UINT32,
+    JDAW_INT8,
+    JDAW_INT16,
+    JDAW_INT32,
+    JDAW_BOOL,
+    JDAW_DOUBLE_PAIR
 } ValType;
 
 typedef union value {
@@ -74,7 +74,8 @@ Value jdaw_val_div(Value a, Value b, ValType vt);
 Value jdaw_val_scale(Value a, double scalar, ValType vt);
 double jdaw_val_div_double(Value a, Value b, ValType vt);
 void jdaw_valptr_to_str(char *dst, size_t dstsize, void *value, ValType type, int decimal_places);
-void jdaw_val_to_str(char *dst, size_t dstsize, Value value, ValType type, int decimal_places);
+/* void jdaw_val_to_str(char *dst, size_t dstsize, Value value, ValType type, int decimal_places); */
+int jdaw_val_to_str(char *dst, size_t dstsize, Value v, ValType type, int decimal_places);
 bool jdaw_val_less_than(Value a, Value b, ValType type);
 bool jdaw_val_is_zero(Value a, ValType type);
 bool jdaw_val_equal(Value a, Value b, ValType type);
@@ -87,11 +88,15 @@ Value jdaw_val_negate(Value a, ValType vt);
 
 
 void jdaw_val_serialize(FILE *f, Value v, ValType type);
-Value jdaw_val_deserialize(FILE *f);
+/* Value jdaw_val_deserialize(FILE *f); */
+Value jdaw_val_deserialize(FILE *f, ValType *type_dst);
 
 /* Backwards compatibility; .jdaw v < 00.15 */
 void jdaw_val_serialize_OLD(Value v, ValType type, FILE *f, uint8_t dstsize);
 Value jdaw_val_deserialize_OLD(FILE *f, uint8_t size, ValType type);
 
 size_t jdaw_val_type_size(ValType type);
+
+/* Set integer values to 1, floats to 0.01 */
+void jdaw_val_set_default_incr(Value *vp, ValType vt);
 #endif

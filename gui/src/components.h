@@ -9,7 +9,6 @@
 #include "value.h"
 
 #define SLIDER_LABEL_STRBUFLEN 20
-#define BUTTON_CORNER_RADIUS 6
 #define RADIO_BUTTON_MAX_ITEMS 64
 #define RADIO_BUTTON_ITEM_H 24
 #define RADIO_BUTTON_LEFT_W 24
@@ -17,6 +16,8 @@
 
 #define SLIDER_LABEL_H_PAD 4
 #define SLIDER_LABEL_V_PAD 2
+
+#define SLIDER_MAX_POINTS_OF_INTEREST 8
 
 /*****************************************/
 /************ Definitions ****************/
@@ -30,10 +31,15 @@ typedef struct button {
     ComponentFn action;
     void *target;
     Animation *animation;
+
+    SDL_Color *pressed_color;
+    SDL_Color *return_color;
+    UserFn *bound_userfn;
 } Button;
 
 typedef struct symbol_button {
-    Symbol *symbol;
+    /* Symbol *symbol; */
+    int symbol_index;
     ComponentFn action;
     void *target;
     Layout *layout;
@@ -74,7 +80,9 @@ enum drag_comp_type {
     DRAG_SLIDER,
     DRAG_CLICK_SEG_BOUND,
     DRAG_EQ_FILTER_NODE,
-    DRAG_TABVIEW_TAB
+    DRAG_TABVIEW_TAB,
+    DRAG_CLIPREF_GAIN,
+    DRAG_CLICK_TRACK_POS
 };
 
 typedef struct draggable {
@@ -95,6 +103,17 @@ typedef struct radio_button {
     char *dynamic_text;
 } RadioButton;
 
+typedef struct symbol_radio {
+    Layout *layout;
+    int symbol_indices[RADIO_BUTTON_MAX_ITEMS];
+    /* Symbol *symbols[RADIO_BUTTON_MAX_ITEMS]; */
+    Endpoint *ep;
+    uint8_t num_items;
+    uint8_t selected_item;
+    SDL_Color *sel_color;
+    SDL_Color *unsel_color;
+} SymbolRadio;
+
 typedef struct waveform {
     Layout *layout;
     void **channels;
@@ -111,6 +130,9 @@ typedef struct slider {
     /* ValType val_type; */
     /* void *value; */
     Value min, max;
+    Value points_of_interest[SLIDER_MAX_POINTS_OF_INTEREST];
+    int points_of_interest_draw_locs_pix[SLIDER_MAX_POINTS_OF_INTEREST];
+    uint8_t num_points_of_interest;
     enum slider_orientation orientation;
     enum slider_style style;
     Layout *bar_layout;
@@ -136,6 +158,28 @@ typedef struct canvas {
     void *draw_arg1, *draw_arg2;
     bool (*on_click)(SDL_Point mousep, Canvas *self, void *xarg1, void *xarg2);
 } Canvas;
+
+typedef struct dropdown Dropdown;
+typedef struct dropdown {
+    Layout *layout;
+    Textbox *tb;
+    const char *header;
+    const char *description;
+    char **item_names;
+    char **item_annotations;
+    void **item_args;
+    uint8_t num_items;
+    uint8_t selected_item;
+    int *reset_from;
+    /* bool free_args_on_destroy; */
+    int (*selection_fn)(Dropdown *self, void *arg);
+} Dropdown;
+
+typedef struct status_light {
+    Layout *layout;
+    void *value;
+    size_t val_size;
+} StatusLight;
 
 
 
@@ -180,6 +224,7 @@ void slider_draw(Slider *s);
 bool slider_mouse_click(Slider *slider, Window *win);
 bool slider_mouse_motion(Slider *slider, Window *win);
 void slider_destroy(Slider *s);
+void slider_add_point_of_interest(Slider *s, Value p);
 
 
 void slider_std_labelmaker(char *dst, size_t dstsize, void *value, ValType type);
@@ -202,23 +247,22 @@ Button *button_create(
     Font *font,
     int text_size,
     SDL_Color *text_color,
-    SDL_Color *background_color);
+    SDL_Color *background_color,
+    bool size_to_fit);
 void button_draw(Button *button);
 void button_destroy(Button *button);
 void button_press_color_change(
     Button *button,
     SDL_Color *temp_color,
-    SDL_Color *return_color,
-    ComponentFn callback,
-    void *callback_target);
-
+    SDL_Color *return_color);
 
 /* Symbol button */
 
 
 SymbolButton *symbol_button_create(
     Layout *lt,
-    Symbol *symbol,
+    int symbol_index,
+    /* Symbol *symbol, */
     ComponentFn action,
     void *target,
     SDL_Color *background_color);
@@ -228,6 +272,14 @@ void button_draw(Button *button);
 void symbol_button_draw(SymbolButton *sbutton);
 void symbol_button_destroy(SymbolButton *sbutton);
 bool symbol_button_click(SymbolButton *sbutton, Window *win);
+
+/* Button animation will run whenever userfn triggered */
+void button_bind_userfn(
+    Button *button,
+    char *fn_id,
+    InputMode im,
+    SDL_Color *pressed_color,
+    SDL_Color *bckgrnd_color);
 
 /* Textentry */
 
@@ -267,7 +319,27 @@ void radio_destroy(RadioButton *rb);
 void radio_cycle(RadioButton *rb);
 void radio_cycle_back(RadioButton *rb);
 
+void radio_grey_item(RadioButton *rb, int index);
 
+
+/* Symbol radio */
+
+SymbolRadio *symbol_radio_create(
+    Layout *lt,
+    int *symbol_indices,
+    uint8_t num_items,
+    Endpoint *ep,
+    bool align_horizontal,
+    int padding,
+    SDL_Color *sel_color,
+    SDL_Color *unsel_color);
+
+void symbol_radio_reset_from_endpoint(SymbolRadio *sr);
+void symbol_radio_draw(SymbolRadio *sr);
+void symbol_radio_cycle_back(SymbolRadio *sr);
+void symbol_radio_cycle(SymbolRadio *sr);
+bool symbol_radio_click(SymbolRadio *sr, Window *Win);
+void symbol_radio_destroy(SymbolRadio *sr);
 
 /* Waveform */
 
@@ -296,7 +368,7 @@ bool toggle_click(Toggle *toggle, Window *win);
 
 /* Mouse functions */
 bool draggable_mouse_motion(Draggable *draggable, Window *win);
-bool toggle_mouse_click(Toggle *toggle, Window *win);
+/* bool toggle_mouse_click(Toggle *toggle, Window *win); */
 bool button_click(Button *button, Window *win);
 
 
@@ -310,5 +382,29 @@ Canvas *canvas_create(
     );
 void canvas_draw(Canvas *canvas);
 void canvas_destroy(Canvas *canvas);
+
+/* Dropdown */
+
+Dropdown *dropdown_create(
+    Layout *lt,
+    const char *header,
+    char **item_names,
+    char **item_annotations,
+    void **item_args,
+    uint8_t num_items,
+    int *reset_from,
+    /* bool free_args_on_destroy, */
+    int (*selection_fn)(Dropdown *self, void *arg));
+void dropdown_reset(Dropdown *d);
+void dropdown_draw(Dropdown *d);
+void dropdown_destroy(Dropdown *d);
+void dropdown_create_menu(Dropdown *d);
+bool dropdown_click(Dropdown *d, Window *win);
+
+/* Status light */
+
+StatusLight *status_light_create(Layout *lt, void *value, size_t val_size);
+void status_light_draw(StatusLight *sl);
+void status_light_destroy(StatusLight *sl);
 
 #endif

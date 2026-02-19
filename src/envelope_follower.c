@@ -1,3 +1,13 @@
+/*****************************************************************************************************************
+  Jackdaw | https://jackdaw-audio.net/ | a free, keyboard-focused DAW | built on SDL (https://libsdl.org/)
+******************************************************************************************************************
+
+  Copyright (C) 2023-2025 Charlie Volow
+  
+  Jackdaw is licensed under the GNU General Public License.
+
+*****************************************************************************************************************/
+
 #include "envelope_follower.h"
 
 void envelope_follower_set_times(EnvelopeFollower *e, int32_t attack_sframes, int32_t decay_sframes)
@@ -15,10 +25,11 @@ void envelope_follower_set_times_msec(EnvelopeFollower *e, double attack_msec, d
 float envelope_follower_sample(EnvelopeFollower *e, float in)
 {
     float out;
+    in = fabs(in);
     if (in > e->prev_out) {
-	out =  fabs(in) * e->attack_coeff + (1 - e->attack_coeff) * e->prev_out;
+	out =  in * e->attack_coeff + (1 - e->attack_coeff) * e->prev_out;
     } else {
-	out =  fabs(in) * e->release_coeff + (1 - e->release_coeff) * e->prev_out;
+	out =  in * e->release_coeff + (1 - e->release_coeff) * e->prev_out;
     }    
     e->prev_out = out;
     return out;

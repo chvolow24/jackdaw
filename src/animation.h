@@ -11,17 +11,19 @@
 /*****************************************************************************************************************
     animation.h
 
-    * Typedefs related to "animations"
- *****************************************************************************************************************/
+    * GUI-related operations that must occur every frame
+    * each animation has a timer that is decremented every frame
+*****************************************************************************************************************/
 
 #ifndef JDAW_ANIMATION_H
 #define JDAW_ANIMATION_H
 
-typedef struct project Project;
+typedef struct session Session;
 
 typedef void (*FrameOp)(void *arg1, void *arg2);
 typedef void (*EndOp)(void *arg, void *arg2);
 typedef struct animation Animation;
+typedef struct label Label;
 
 typedef struct animation {
     FrameOp frame_op;
@@ -33,16 +35,18 @@ typedef struct animation {
     /* Linked list */
     Animation *next;
     Animation *prev;
+
+    Label *label; /* non-null when label->animation_running */
 } Animation;
 
-Animation *project_queue_animation(
+Animation *session_queue_animation(
     FrameOp frame,
     EndOp end,
     void *arg1,
     void *arg2,
     int ctr_init);
 
-void project_animations_do_frame();
-void project_dequeue_animation(Animation *a);
-void project_destroy_animations(Project *proj);
+void session_animations_do_frame();
+void session_dequeue_animation(Animation *a);
+void session_destroy_animations(Session *session);
 #endif

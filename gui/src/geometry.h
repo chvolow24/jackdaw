@@ -3,6 +3,7 @@
 
 
 #include "SDL.h"
+#include <stdbool.h>
 
 #define STD_CORNER_RAD (10 * main_win->dpi_scale_factor)
 
@@ -14,10 +15,12 @@ void geom_draw_rounded_rect(SDL_Renderer *rend, SDL_Rect *rect, int r);
 
 void geom_fill_rounded_rect(SDL_Renderer *rend, SDL_Rect *rect, int r);
 
-void geom_draw_rect_thick(SDL_Renderer *rend, SDL_Rect *rect, int r, double dpi_scale_factor);
-void geom_draw_rounded_rect_thick(SDL_Renderer *rend, SDL_Rect *rect, int thickness, int r, double dpi_scale_factor);
+void geom_draw_rect_thick(SDL_Renderer *rend, SDL_Rect *rect, int r);
+void geom_draw_rounded_rect_thick(SDL_Renderer *rend, SDL_Rect *rect, int thickness, int r);
 
-void geom_draw_tab(SDL_Renderer *rend, SDL_Rect *rect, int r, double dpi_scale_factor);
-void geom_fill_tab(SDL_Renderer *rend, SDL_Rect *rect, int r, double dpi_scale_factor);
+void geom_draw_tab(SDL_Renderer *rend, SDL_Rect *rect, int r);
+void geom_fill_tab(SDL_Renderer *rend, SDL_Rect *rect, int r);
+
+bool geom_x_in_rect(int x, SDL_Rect *rect, int *x_ptr);
 
 #endif

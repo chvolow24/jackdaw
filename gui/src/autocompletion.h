@@ -30,6 +30,7 @@
 void autocompletion_init(
     AutoCompletion *ac,
     Layout *layout,
+    const char *label,
     int update_records(AutoCompletion *self, struct autocompletion_item **dst_loc),
     TlinesFilter filter);
     /* TLinesItem *(create_tline)(void ***, Layout *, void *, int (*filter)(void *item, void *arg)), */

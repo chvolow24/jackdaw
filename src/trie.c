@@ -31,9 +31,9 @@ static char lower_validate_char(char c)
     if (c >= 'A' && c <= 'Z') {
 	return c - 'A' + 'a';
     } else if (c < 'a' || c > 'z') {
-	#ifdef TESTBUILD
-	fprintf(stderr, "Error in trie: alpha characters only. Pased '%c' (%d)\n", c, c);
-	#endif
+	/* #ifdef TESTBUILD */
+	/* fprintf(stderr, "Error in trie: alpha characters only. Pased '%c' (%d)\n", c, c); */
+	/* #endif */
 	return '\0';
     }
     return c;

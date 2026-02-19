@@ -8,14 +8,8 @@
 
 *****************************************************************************************************************/
 
-/*****************************************************************************************************************
-    function_lookup.c
-
-    * record all available user function names in a trie
-    * lookup functions by name
- *****************************************************************************************************************/
-
-
+#include <stdlib.h>
+#include <string.h>
 #include "function_lookup.h"
 #include "components.h"
 #include "input.h"
@@ -54,12 +48,19 @@ static void add_fn_to_list(FnList *fnl, UserFn *fn)
     }
     fnl->fns[fnl->num_fns] = fn;
     fnl->num_fns++;
+    /* fprintf(stderr, "List len %d\n", fnl->num_fns); */
+    /* for (int i=0; i<fnl->num_fns; i++) { */
+    /* 	fprintf(stderr, "\t%d: %s\n", i, fnl->fns[i]->fn_display_name); */
+    /* } */
 }
 
 
 void fn_lookup_index_fn(UserFn *fn)
 {
+    if (is_null_userfn(fn)) return;
     char *to_free = strdup(fn->fn_display_name);
+    
+    /* fprintf(stderr, "Indexfn: %s\n", to_free); */
     char *word = to_free;
     char *cursor = word;
     char c;
@@ -70,12 +71,11 @@ void fn_lookup_index_fn(UserFn *fn)
 	    void *obj = trie_lookup_word(&FN_TRIE, word);
 	    if (obj) {
 		FnList *fnl = (FnList *)obj;
-		/* fprintf(stderr, "ADDING WORD TO LIST: %s\n", word); */
 		add_fn_to_list(fnl, fn);
 	    } else {
 		FnList *fnl = create_fn_list();
 		add_fn_to_list(fnl, fn);
-		/* fprintf(stderr, "INSERTING WORD: %s\n", word); */
+		/* fprintf(stderr, "\tADD Word: %s\n", word); */
 		if (!trie_insert_word(&FN_TRIE, word, fnl)) {
 		    free(fnl->fns);
 		    free(fnl);
@@ -145,7 +145,6 @@ static int update_records_fn(AutoCompletion *ac, struct autocompletion_item **it
 		    items_loc[num_fns] = item;
 		    /* fnlist[num_fns] = fnl->fns[i]; */
 		    num_fns++;
-		    /* fprintf(stderr, "FN: %s\n", fnl->fns[i]->fn_display_name); */
 		}
 
 	    }
@@ -197,8 +196,8 @@ int fn_lookup_filter(void *current_item, void *x_arg)
 {
     struct autocompletion_item *item = (struct autocompletion_item *)current_item;
     UserFn *fn = item->obj;
-    if (fn->mode->im == AUTOCOMPLETE_LIST) return 0;
-    if (fn->mode->im == TEXT_EDIT) return 0;
+    if (fn->mode->im == MODE_AUTOCOMPLETE_LIST) return 0;
+    if (fn->mode->im == MODE_TEXT_EDIT) return 0;
     if (input_function_is_accessible(fn, main_win)) {
 	return 1;
     }
@@ -213,21 +212,26 @@ int fn_lookup_filter(void *current_item, void *x_arg)
 
 void function_lookup()
 {
-    Layout *ac_lt = layout_add_child(main_win->layout);
-    layout_set_default_dims(ac_lt);
-    ac_lt->h.value = 60.0;
-    layout_force_reset(ac_lt);
     if (!main_win->ac.outer_layout) {
+	Layout *ac_lt = layout_add_child(main_win->layout);
+	layout_set_default_dims(ac_lt);
+	ac_lt->h.value = 60.0;
+	/* ac_lt->y.value -= 10.0; */
+	layout_force_reset(ac_lt);
 	autocompletion_init(
 	    &main_win->ac,
 	    ac_lt,
+	    "Command lookup",
 	    update_records_fn,
 	    fn_lookup_filter);
+    } else {
+	layout_set_default_dims(main_win->ac.outer_layout);
+	layout_force_reset(main_win->ac.outer_layout);
+	layout_size_to_fit_children_v(main_win->ac.outer_layout, true, 20);
     }
     textentry_edit(main_win->ac.entry);
-    window_push_mode(main_win, AUTOCOMPLETE_LIST);
+    window_push_mode(main_win, MODE_AUTOCOMPLETE_LIST);
     main_win->ac_active = true;
-
 }
 /* UserFn *fn_lookup_search_fn() */
 /* { */

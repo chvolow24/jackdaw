@@ -12,7 +12,8 @@
 /*****************************************************************************************************************
     input.h
 
-    * Define types related to user input, keybindings, and input modes
+    * bind UserFn objects (input_mode.h) to key bindings at start time
+    * hash user inputs to find related functions
  *****************************************************************************************************************/
 
 
@@ -20,7 +21,6 @@
 #define JDAW_GUI_INPUT_STATE_H
 
 #include <stdint.h>
-#include "SDL.h"
 
 #include "menu.h"
 #include "input_mode.h"
@@ -29,15 +29,16 @@
 #define INPUT_KEYUP_HASH_SIZE 128
 
 /* Input state bitmasks */
-#define I_STATE_QUIT 0x01
-#define I_STATE_SHIFT 0x02
-#define I_STATE_CMDCTRL 0x04
-#define I_STATE_META 0x08
+#define I_STATE_QUIT 0x1
+#define I_STATE_SHIFT 0x2
+#define I_STATE_CMDCTRL 0x4
+#define I_STATE_META 0x8
 #define I_STATE_MOUSE_L 0x10
 #define I_STATE_MOUSE_R 0x20
 #define I_STATE_MOUSE_M 0x40
 #define I_STATE_C_X 0x80
 #define I_STATE_K 0x100
+#define I_STATE_G 0x200
 
 
 
@@ -74,7 +75,7 @@ void input_bind_fn(UserFn *fn, uint16_t i_state, SDL_Keycode keycode, InputMode 
 UserFn *input_get_fn_by_id(char *id, InputMode im);
 
 /* Load a keybinding config file and assign keybindings accordingly */
-void input_load_keybinding_config(const char *filepath);
+void input_load_keybinding_config(const char *asset_path);
 
 /* Must be run at start time to initialize all modes and user fns */
 void input_init_mode_load_all();
@@ -94,6 +95,7 @@ void input_quit();
 void input_create_function_reference();
 
 bool input_function_is_accessible(UserFn *fn, Window *win);
+bool is_null_userfn(UserFn *fn);
 
 #endif
 

@@ -1,8 +1,9 @@
-#include "type_serialize.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "consts.h"
+#include "type_serialize.h"
 #include "value.h"
 
 /* Set the value pointed to by vp based on the current value stored at valptr */
@@ -344,7 +345,7 @@ Value jdaw_val_mult(Value a, Value b, ValType vt)
 	ret.int32_v = a.int32_v * b.int32_v;
 	break;
     case JDAW_BOOL:
-	ret.bool_v = a.bool_v * b.bool_v;
+	ret.bool_v = a.bool_v && b.bool_v;
 	break;
     case JDAW_DOUBLE_PAIR:
 	ret.double_pair_v[0] = a.double_pair_v[0] * b.double_pair_v[0];
@@ -534,9 +535,6 @@ double jdaw_val_div_double(Value a, Value b, ValType vt)
 	/* ret.double_pair_v[0] = a.double_pair_v[0] * -1; */
 	/* ret.double_pair_v[1] = a.double_pair_v[1] * -1; */
 	break;
-
-    default:
-	break;
     }
     return ret;
 }
@@ -585,7 +583,7 @@ double jdaw_val_div_double(Value a, Value b, ValType vt)
 /*     dst[dstsize - 1] = '\0'; */
 /* } */
 
-void jdaw_val_to_str(char *dst, size_t dstsize, Value v, ValType type, int decimal_places);
+int jdaw_val_to_str(char *dst, size_t dstsize, Value v, ValType type, int decimal_places);
 void jdaw_valptr_to_str(char *dst, size_t dstsize, void *value, ValType type, int decimal_places)
 {
 
@@ -637,9 +635,11 @@ bool jdaw_val_less_than(Value a, Value b, ValType type)
 {
     switch (type) {
     case JDAW_FLOAT:
-	return a.float_v < b.float_v;
+	return b.float_v - a.float_v > CMP_EPSILON_FLOAT;
+	/* return a.float_v < b.float_v; */
     case JDAW_DOUBLE:
-	return a.double_v < b.double_v;
+	return b.double_v - a.double_v > CMP_EPSILON_DOUBLE;
+	/* return a.double_v < b.double_v; */
     case JDAW_INT:
 	return a.int_v < b.int_v;
     case JDAW_UINT8:
@@ -666,12 +666,11 @@ bool jdaw_val_less_than(Value a, Value b, ValType type)
 
 bool jdaw_val_is_zero(Value a, ValType type)
 {
-    double epsilon = 1e-9;
     switch (type) {
     case JDAW_FLOAT:
-	return fabs(a.float_v) < epsilon;
+	return fabs(a.float_v) < CMP_EPSILON_FLOAT;
     case JDAW_DOUBLE:
-	return fabs(a.double_v) < epsilon;
+	return fabs(a.double_v) < CMP_EPSILON_DOUBLE;
     case JDAW_INT:
 	return a.int_v == 0;
     case JDAW_UINT8:
@@ -690,8 +689,8 @@ bool jdaw_val_is_zero(Value a, ValType type)
 	return a.bool_v == false;
     case JDAW_DOUBLE_PAIR:
 	return
-	    fabs(a.double_pair_v[0]) < epsilon &&
-	    fabs(a.double_pair_v[1]) < epsilon;
+	    fabs(a.double_pair_v[0]) < CMP_EPSILON_DOUBLE &&
+	    fabs(a.double_pair_v[1]) < CMP_EPSILON_FLOAT;
     default:
 	return 0;
 	break;
@@ -700,12 +699,11 @@ bool jdaw_val_is_zero(Value a, ValType type)
 
 bool jdaw_val_equal(Value a, Value b, ValType type)
 {
-    double epsilon = 1e-9;
     switch (type) {
     case JDAW_FLOAT:
-	return fabs(a.float_v - b.float_v) < epsilon;
+	return fabs(a.float_v - b.float_v) < CMP_EPSILON_FLOAT;
     case JDAW_DOUBLE:
-	return fabs(a.double_v - b.double_v) < epsilon;
+	return fabs(a.double_v - b.double_v) < CMP_EPSILON_DOUBLE;
     case JDAW_INT:
 	return a.int_v == b.int_v;
     case JDAW_UINT8:
@@ -724,8 +722,8 @@ bool jdaw_val_equal(Value a, Value b, ValType type)
 	return a.bool_v == b.bool_v;
     case JDAW_DOUBLE_PAIR:
         return
-	    fabs(a.double_pair_v[0] - b.double_pair_v[1]) < epsilon &&
-	    fabs(a.double_pair_v[1] - b.double_pair_v[1]) < epsilon;
+	    fabs(a.double_pair_v[0] - b.double_pair_v[1]) < CMP_EPSILON_DOUBLE &&
+	    fabs(a.double_pair_v[1] - b.double_pair_v[1]) < CMP_EPSILON_DOUBLE;
 	break;
     default:
 	return 0;
@@ -814,11 +812,12 @@ void jdaw_val_serialize(FILE *f, Value v, ValType type)
     }
 }
 
-Value jdaw_val_deserialize(FILE *f)
+Value jdaw_val_deserialize(FILE *f, ValType *type_dst)
 {
     uint8_t type_byte;
     fread(&type_byte, 1, 1, f);
     ValType type = (ValType)((int)type_byte);
+    if (type_dst) *type_dst = type;
     Value ret = {0};
     switch (type) {
     case JDAW_FLOAT:
@@ -905,46 +904,49 @@ void jdaw_val_serialize_OLD(Value v, ValType type, FILE *f, uint8_t dstsize)
     fwrite(dst, 1, dstsize, f);
 }
 
-
-void jdaw_val_to_str(char *dst, size_t dstsize, Value v, ValType type, int decimal_places)
+/* Returns number of characters written (from snprintf) */
+int jdaw_val_to_str(char *dst, size_t dstsize, Value v, ValType type, int decimal_places)
 {
+    int ret;
     switch (type) {
     case JDAW_FLOAT:
-	snprintf(dst, dstsize, "%.*f", decimal_places, v.float_v);
+	ret = snprintf(dst, dstsize, "%.*f", decimal_places, v.float_v);
 	break;
     case JDAW_DOUBLE:
-	snprintf(dst, dstsize, "%.*f", decimal_places, v.double_v);
+	ret = snprintf(dst, dstsize, "%.*f", decimal_places, v.double_v);
 	break;
     case JDAW_INT:
-	snprintf(dst, dstsize, "%d", v.int_v);
+	ret = snprintf(dst, dstsize, "%d", v.int_v);
 	break;
     case JDAW_UINT8:
-	snprintf(dst, dstsize, "%d", v.uint8_v);
+	ret = snprintf(dst, dstsize, "%d", v.uint8_v);
 	break;
     case JDAW_UINT16:
-	snprintf(dst, dstsize, "%d", v.uint16_v);
+	ret = snprintf(dst, dstsize, "%d", v.uint16_v);
 	break;
     case JDAW_UINT32:
-	snprintf(dst, dstsize, "%d", v.uint32_v);
+	ret = snprintf(dst, dstsize, "%d", v.uint32_v);
 	break;
     case JDAW_INT8:
-	snprintf(dst, dstsize, "%d", v.int8_v);
+	ret = snprintf(dst, dstsize, "%d", v.int8_v);
 	break;
     case JDAW_INT16:
-	snprintf(dst, dstsize, "%d", v.int16_v);
+	ret = snprintf(dst, dstsize, "%d", v.int16_v);
 	break;
     case JDAW_INT32:
-	snprintf(dst, dstsize, "%d", v.int32_v);
+	ret = snprintf(dst, dstsize, "%d", v.int32_v);
 	break;
     case JDAW_BOOL:
-	snprintf(dst, dstsize, "%d", v.bool_v);
+	ret = snprintf(dst, dstsize, "%d", v.bool_v);
 	break;
     case JDAW_DOUBLE_PAIR:
-	snprintf(dst, dstsize, "[%f,%f]", v.double_pair_v[0], v.double_pair_v[1]);
+	ret = snprintf(dst, dstsize, "[%f,%f]", v.double_pair_v[0], v.double_pair_v[1]);
 	break;
     default:
+	ret = 0;
 	break;
     }
+    return ret;
 }
 
 Value jdaw_val_from_str(const char *str, ValType type)
@@ -1122,3 +1124,47 @@ size_t jdaw_val_type_size(ValType type)
 	break;
     }
 }
+
+void jdaw_val_set_default_incr(Value *vp, ValType vt)
+{
+    switch (vt) {
+    case JDAW_FLOAT:
+	vp->float_v = 0.01;
+	break;
+    case JDAW_DOUBLE:
+	vp->double_v = 0.01;
+	break;
+    case JDAW_INT:
+	vp->int_v = 1;
+	break;
+    case JDAW_UINT8:
+	vp->uint8_v = 1;
+	break;
+    case JDAW_UINT16:
+	vp->uint16_v = 1;
+	break;
+    case JDAW_UINT32:
+	vp->uint32_v = 1;
+	break;
+    case JDAW_INT8:
+	vp->int8_v = 1;
+	break;
+    case JDAW_INT16:
+	vp->int16_v = 1;
+	break;
+    case JDAW_INT32:
+	vp->int32_v = 1;
+	break;
+    case JDAW_BOOL:
+	vp->int32_v = true;
+	break;
+    case JDAW_DOUBLE_PAIR: {
+	vp->double_pair_v[0] = 0.01;
+	vp->double_pair_v[1] = 0.01;
+    }
+	break;
+    default:
+	break;
+    }
+}
+

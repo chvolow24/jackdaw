@@ -76,12 +76,15 @@ typedef struct endpoint {
     
     void *val;
     ValType val_type;
-    Value last_write_val;
+    Value current_write_val; /* Set at start of write operation */
+    Value last_write_val; /* Set at end of write operation */
+    Value overwrite_val; /* Set at start of write operation */
     bool write_has_occurred;
-    Value cached_val;
+    Value cached_val; /* For undo */
     bool restrict_range;
     Value min;
     Value max;
+    bool has_default_val;
     Value default_val;
     /* struct endpt_cb callbacks[MAX_ENDPOINT_CALLBACKS]; */
     /* uint8_t num_callbacks; */
@@ -89,6 +92,8 @@ typedef struct endpoint {
     EndptCb proj_callback; /* Main thread -- update project state outside target parameter */
     EndptCb gui_callback; /* Main thread -- update GUI state */
     EndptCb dsp_callback; /* DSP thread */
+
+    bool display_label; /* Set in endpoint write based on "undoable" -- used in gui cbs */
     
     pthread_mutex_t val_lock;
     pthread_mutex_t owner_lock;
@@ -112,8 +117,11 @@ typedef struct endpoint {
     bool changing;
 
     /* Bindings */
+    bool automatable;
     Automation *automation;
     LabelStrFn label_fn;
+
+    bool do_not_serialize;
 
     /* API */
     APINode *parent;
@@ -170,5 +178,6 @@ void endpoint_stop_continuous_change(Endpoint *ep);
 
 void endpoint_bind_automation(Endpoint *ep, Automation *a);
 void endpoint_set_label_fn(Endpoint *ep, LabelStrFn fn);
+void api_node_set_owner(APINode *node, enum jdaw_thread thread);
 
 #endif

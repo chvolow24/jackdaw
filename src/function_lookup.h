@@ -11,7 +11,8 @@
 /*****************************************************************************************************************
     function_lookup.h
 
-    * variable len struct for functions by word
+    * store all user-accessible functions in a trie
+    * provide an autocomplete GUI for access
  *****************************************************************************************************************/
 
 

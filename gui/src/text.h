@@ -42,9 +42,7 @@
 		err = true;						\
 	    }								\
 	    if (err) {							\
-	        char buf[255];						\
-		snprintf(buf, 255, "Allowed range: %d - %d", minval, maxval); \
-		status_set_errstr(buf);					\
+		status_set_errstr("Allowed range: %d - %d", minval, maxval);\
 		return 1;						\
 	    }							        \
 	     return 0;							\
@@ -87,12 +85,13 @@ typedef enum textalign {
 } TextAlign;
 
 typedef enum font_type {
-    REG,
-    BOLD,
-    MONO,
-    MONO_BOLD,
-    SYMBOLIC,
-    MATHEMATICAL
+    FONT_REG,
+    FONT_BOLD,
+    FONT_MONO,
+    FONT_MONO_BOLD,
+    FONT_SYMBOLIC,
+    FONT_MATHEMATICAL,
+    FONT_MUSIC
 } FontType;
 
 
@@ -153,7 +152,6 @@ typedef struct text {
     /* int (*submit_validation)(Text *self); */
     /* pthread_mutex_t draw_lock; */
 } Text;
-
 
 typedef struct font {
     const char *path;
@@ -236,13 +234,22 @@ Font *ttf_init_font(const char *path, Window *win, int style);
 void ttf_reset_dpi_scale_factor(Font *font);
 
 /* Given an existing Font object, get the actual TTF_Font at a given size */
-TTF_Font *ttf_get_font_at_size(Font *font, int size);
+TTF_Font *ttf_get_font_at_size(const Font *font, int size);
 
 /* Set a text color and refresh the drawable elements */
-void txt_set_color(Text *txt, SDL_Color *clr);
+void txt_set_color(Text *txt, const SDL_Color *clr);
+
+/* Set color, but do not redraw; for use in textbox */
+void txt_set_color_no_reset(Text *txt, const SDL_Color *clr);
 
 /* Set text pad values and refresh drawable elements */
 void txt_set_pad(Text *txt, int h_pad, int v_pad);
+
+/*
+  All Texts are stored in a hash table; this resets all drawables.
+  For use when Window DPI has changed, e.g.
+*/
+void txt_reset_all();
 
 
 TextArea *txt_area_create(
@@ -265,5 +272,11 @@ void ttf_destroy_font(Font *font);
 
 int txt_name_validation(Text *txt, char input);
 int txt_integer_validation(Text *txt, char input);
+int txt_float_validation(Text *txt, char input);
+
+/* No input error handling; use AFTER txt_float_validation */
+double txt_float_from_str(char *str);
+
+SDL_Texture *txt_create_texture(const char *str, SDL_Color color, const Font *font, int font_size, int *w, int *h);
 
 #endif

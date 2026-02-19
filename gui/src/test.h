@@ -3,4 +3,13 @@
 
 void run_tests();
 
+void breakfn();
+
+#ifdef TESTBUILD
+#define TESTBREAK breakfn();
+#else
+#define TESTBREAK
+#endif
+
+
 #endif

@@ -8,14 +8,7 @@
 
 *****************************************************************************************************************/
 
-
-/*****************************************************************************************************************
-    page.c
-
-    * Implementation of "Page" and "TabView" objects, for GUI unrelated to the timeline
- *****************************************************************************************************************/
-
-
+#include <stdlib.h>
 #include "color.h"
 #include "geometry.h"
 #include "input.h"
@@ -23,17 +16,14 @@
 #include "project.h"
 #include "layout.h"
 #include "layout_xml.h"
+#include "piano.h"
+#include "session.h"
 #include "textbox.h"
 #include "value.h"
 #include "waveform.h"
 
-
-extern SDL_Color color_global_clear;
-extern SDL_Color color_global_white;
-extern SDL_Color color_global_black;
-
 extern Window *main_win;
-extern Project *proj;
+extern struct colors colors;
 
 TabView *tabview_create(const char *title, Layout *parent_lt, Window *win)
 {
@@ -74,8 +64,8 @@ TabView *tabview_create(const char *title, Layout *parent_lt, Window *win)
     layout_reset(tv->layout);
     
     Textbox *ellipsis_left = textbox_create_from_str("...", ellipsis_left_lt, tv->win->mono_bold_font, 14, tv->win);
-    textbox_set_background_color(ellipsis_left, &color_global_clear);
-    textbox_set_text_color(ellipsis_left, &color_global_white);
+    textbox_set_background_color(ellipsis_left, &colors.clear);
+    textbox_set_text_color(ellipsis_left, &colors.white);
     textbox_size_to_fit_h(ellipsis_left, 20);
     textbox_reset_full(ellipsis_left);
     tv->ellipsis_left = ellipsis_left;
@@ -91,8 +81,8 @@ TabView *tabview_create(const char *title, Layout *parent_lt, Window *win)
     layout_reset(tv->layout);
     
     Textbox *ellipsis_right = textbox_create_from_str("...", ellipsis_right_lt, tv->win->mono_bold_font, 14, tv->win);
-    textbox_set_background_color(ellipsis_right, &color_global_clear);
-    textbox_set_text_color(ellipsis_right, &color_global_white);
+    textbox_set_background_color(ellipsis_right, &colors.clear);
+    textbox_set_text_color(ellipsis_right, &colors.white);
     textbox_size_to_fit_h(ellipsis_right, 20);
     textbox_reset_full(ellipsis_right);
     tv->ellipsis_right = ellipsis_right;
@@ -143,7 +133,7 @@ Page *tabview_add_page(
     layout_reset(tv->layout);
     
     Textbox *tab_tb = textbox_create_from_str((char *)page_title, tab_lt, tv->win->mono_bold_font, 14, tv->win);
-    textbox_set_background_color(tab_tb, &color_global_clear);
+    textbox_set_background_color(tab_tb, &colors.clear);
     textbox_set_text_color(tab_tb, text_color);
     textbox_size_to_fit_h(tab_tb, 20);
     textbox_reset_full(tab_tb);
@@ -168,7 +158,7 @@ Page *tabview_select_tab(TabView *tv, int i)
     tv->current_tab = i;
     Page *p = tv->tabs[i];
     p->onscreen = true;
-    tabview_select_el(tv);
+    /* tabview_select_el(tv); */
     if (tv->ellipsis_right_inserted && i > tv->rightmost_index) {
 	tabview_reset(tv, tv->rightmost_index + 1);
     } else if (tv->ellipsis_left_inserted && i < tv->leftmost_index) {
@@ -188,12 +178,43 @@ Page *tabview_select_tab(TabView *tv, int i)
     return p;    
 }
 
+
+static PageEl *tabview_selected_el(TabView *tv)
+{
+    Page *sel_page = tv->tabs[tv->current_tab];
+    if (sel_page && sel_page->num_selectable > 0) {
+	return sel_page->selectable_els[sel_page->selected_i];
+    }
+    return NULL;
+}
+Endpoint *tabview_selected_endpoint()
+{
+    if (main_win->active_tabview) {
+	PageEl *el = tabview_selected_el(main_win->active_tabview);
+	switch (el->type) {
+	case EL_SLIDER:
+	    return ((Slider *)el->component)->ep;
+	default:
+	    break;
+	}
+    }
+    return NULL;
+}
+
 void tabview_destroy(TabView *tv)
 {
     for (uint8_t i=0; i<tv->num_tabs; i++) {
 	page_destroy(tv->tabs[i]);
 	textbox_destroy(tv->labels[i]);
     }
+    if (tv->ellipsis_left) {
+	textbox_destroy(tv->ellipsis_left);
+    }
+    if (tv->ellipsis_right) {
+	textbox_destroy(tv->ellipsis_right);
+    }
+    textbox_destroy(tv->label);
+    free(tv->label_str);
     free(tv);
 }
 /* void layout_write(FILE *f, Layout *lt); */
@@ -268,9 +289,22 @@ static void page_el_destroy(PageEl *el)
     case EL_SYMBOL_BUTTON:
 	symbol_button_destroy((SymbolButton *)el->component);
 	break;
-    default:
+    case EL_SYMBOL_RADIO:
+	symbol_radio_destroy((SymbolRadio *)el->component);
+	break;
+    case EL_DROPDOWN:
+	dropdown_destroy((Dropdown *)el->component);
+	break;
+    case EL_STATUS_LIGHT:
+	status_light_destroy(el->component);
+	break;
+    case EL_PIANO:
+	piano_destroy(el->component);
+	break;
+    case EL_DIVIDER:
 	break;
     }
+    free(el->id);
     free(el);
 }
 void page_destroy(Page *page)
@@ -319,6 +353,15 @@ void page_el_reset(PageEl *el)
     case EL_BUTTON:
 	textbox_reset_full(((Button *)el->component)->tb);
 	break;
+    case EL_SYMBOL_RADIO:
+	symbol_radio_reset_from_endpoint(el->component);
+	break;
+    case EL_DROPDOWN:
+	dropdown_reset(el->component);
+	break;
+    case EL_PIANO:
+	piano_reset(el->component);
+	break;
     default:
 	break;
     }
@@ -333,6 +376,8 @@ static inline bool el_is_selectable(PageElType type)
     case EL_TEXTENTRY:
     case EL_TOGGLE:
     case EL_SYMBOL_BUTTON:
+    case EL_SYMBOL_RADIO:
+    case EL_DROPDOWN:
 	return true;
     default:
 	return false;
@@ -342,6 +387,7 @@ static inline bool el_is_selectable(PageElType type)
 
 void page_el_set_params(PageEl *el, PageElParams params, Page *page)
 {
+    Session *session = session_get();
     if (el->component) {
 	free(el->component);
     }
@@ -364,6 +410,9 @@ void page_el_set_params(PageEl *el, PageElParams params, Page *page)
 	    params.textbox_p.win);
 	textbox_set_background_color(tb, NULL);
 	textbox_set_text_color(tb, page->text_color);
+	textbox_set_trunc(tb, false);
+	textbox_set_align(tb, CENTER_LEFT);
+	textbox_reset_full(tb);
 	el->component = (void *)tb;
 	    }
 	break;
@@ -397,7 +446,8 @@ void page_el_set_params(PageEl *el, PageElParams params, Page *page)
 	    /* params.slider_p.create_label_fn, */
 	    /* params.slider_p.action, */
 	    /* params.slider_p.target, */
-	    &proj->dragged_component);
+	    &session->dragged_component);
+	/* slider_reset(el->component); */
 	break;
     case EL_RADIO:
 	el->component = (void *)radio_button_create(
@@ -430,11 +480,16 @@ void page_el_set_params(PageEl *el, PageElParams params, Page *page)
 	break;
     case EL_FREQ_PLOT:
 	el->component = (void *)waveform_create_freq_plot(
-	    params.freqplot_p.arrays,
-	    params.freqplot_p.num_arrays,
-	    params.freqplot_p.colors,
-	    params.freqplot_p.steps,
-	    params.freqplot_p.num_items,
+	    params.freqplot_p.darrays,
+	    params.freqplot_p.darray_lens,
+	    params.freqplot_p.num_darrays,
+	    params.freqplot_p.farrays,
+	    params.freqplot_p.farray_lens,
+	    params.freqplot_p.num_farrays,
+	    params.freqplot_p.darray_colors,
+	    params.freqplot_p.farray_colors,
+	    params.freqplot_p.min_freq_hz,
+	    params.freqplot_p.max_freq_hz,
 	    el->layout);
 	break;
     case EL_BUTTON:
@@ -446,7 +501,8 @@ void page_el_set_params(PageEl *el, PageElParams params, Page *page)
 	    params.button_p.font,
 	    params.button_p.text_size,
 	    params.button_p.text_color,
-	    params.button_p.background_color);
+	    params.button_p.background_color,
+	    true);
 	break;
     case EL_CANVAS:
 	el->component = (void *)canvas_create(
@@ -466,10 +522,44 @@ void page_el_set_params(PageEl *el, PageElParams params, Page *page)
     case EL_SYMBOL_BUTTON:
 	el->component = (void *)symbol_button_create(
 	    el->layout,
-	    params.sbutton_p.s,
+	    params.sbutton_p.symbol_index,
 	    params.sbutton_p.action,
 	    params.sbutton_p.target,
 	    params.sbutton_p.background_color);
+	break;
+    case EL_SYMBOL_RADIO:
+	el->component = symbol_radio_create(
+	    el->layout,
+	    params.sradio_p.symbol_indices,
+	    params.sradio_p.num_items,
+	    params.sradio_p.ep,
+	    params.sradio_p.align_horizontal,
+	    params.sradio_p.padding,
+	    params.sradio_p.sel_color,
+	    params.sradio_p.unsel_color);
+	break;
+    case EL_DROPDOWN:
+	el->component = dropdown_create(
+	    el->layout,
+	    params.dropdown_p.header,
+	    params.dropdown_p.item_names,
+	    params.dropdown_p.item_annotations,
+	    params.dropdown_p.item_args,
+	    params.dropdown_p.num_items,
+	    params.dropdown_p.reset_from,
+	    params.dropdown_p.selection_fn);	    
+	break;
+    case EL_STATUS_LIGHT:
+	el->component = status_light_create(
+	    el->layout,
+	    params.slight_p.value,
+	    params.slight_p.val_size);
+	break;
+    case EL_PIANO:
+	el->component = piano_create(el->layout);
+	break;
+    case EL_DIVIDER: 
+	el->component = params.divider_p.color; /* no component -- just use color */
 	break;
     default:
 	break;
@@ -485,12 +575,14 @@ PageEl *page_add_el(
     const char *layout_name)
 {
     PageEl *el = calloc(1, sizeof(PageEl));
-    el->id = id;
+    el->page = page;
+    el->id = strdup(id);
     el->type = type;
     if (layout_name) {
 	el->layout = layout_get_child_by_name_recursive(page->layout, layout_name);
 	if (!el->layout) {
 	    fprintf(stdout, "Error in layout at %s; unable to find child named %s\n", page->layout->name, layout_name);
+	    exit(1);
 	}
     } else {
 	el->layout = layout_add_child(page->layout);
@@ -524,7 +616,6 @@ PageEl *page_add_el_custom_layout(
 	id,
 	new_layout_name);
 }
-
 
 void page_reset(Page *page)
 {
@@ -576,11 +667,23 @@ static bool page_element_mouse_motion(PageEl *el, Window *win)
     return true;
 }
 
+static void page_select_el(Page *page, PageEl *el)
+{
+    for (int i=0; i<page->num_selectable; i++) {
+	PageEl *test = page->selectable_els[i];
+	if (test == el) {
+	    page->selected_i = i;
+	}
+    }
+}
+
 static bool page_element_mouse_click(PageEl *el, Window *win)
 {
     if (!SDL_PointInRect(&win->mousep, &el->layout->rect)) {
 	return false;
     }
+    page_select_el(el->page, el);
+		
     switch (el->type) {
     case EL_TEXTAREA:
 	break;
@@ -610,10 +713,8 @@ static bool page_element_mouse_click(PageEl *el, Window *win)
     case EL_BUTTON:
 	return button_click((Button *)el->component, win);
 	break;
-    case EL_EQ_PLOT: {
-	EQ *eq = el->component;
-	return eq_mouse_click(eq, win->mousep);
-	}
+    case EL_EQ_PLOT:
+	return eq_mouse_click(el->component, win->mousep);
 	break;
     case EL_CANVAS: {
 	Canvas *c = (Canvas *)el->component;
@@ -621,11 +722,15 @@ static bool page_element_mouse_click(PageEl *el, Window *win)
 	    return c->on_click(win->mousep, c, c->draw_arg1, c->draw_arg2);
     }
 	break;
-    case EL_SYMBOL_BUTTON: {
-	SymbolButton *sb = (SymbolButton *)el->component;
-	return symbol_button_click(sb, main_win);
-    }
+    case EL_SYMBOL_BUTTON:
+	return symbol_button_click(el->component, main_win);
+    case EL_SYMBOL_RADIO:
+	return symbol_radio_click(el->component, main_win);
 	break;
+    case EL_DROPDOWN:
+	return dropdown_click(el->component, main_win);
+	break;
+
     default:
 	break;
     }
@@ -667,6 +772,7 @@ static inline bool label_overflows(TabView *tv, uint8_t index)
 /* Check for visual overflow and add ellipsis tabs if necessary */
 void tabview_reset(TabView *tv, uint8_t leftmost_index)
 {
+    Session *session = session_get();
     /* fprintf(stderr, "\nParent layout w: %d; this w: %d\n", tv->layout->parent->rect.w, tv->layout->rect.w); */
     /* layout_reset(tv->layout); */
     /* fprintf(stderr, "Parent layout w: %d; this w: %d\n", tv->layout->parent->rect.w, tv->layout->rect.w); */
@@ -726,11 +832,12 @@ void tabview_reset(TabView *tv, uint8_t leftmost_index)
 
     /* Page *page = tv->tabs[tv->current_tab]; */
     /* page_reset(page); */
-    proj->timelines[proj->active_tl_index]->needs_redraw = true;
+    ACTIVE_TL->needs_redraw = true;
 }
 
 bool tabview_mouse_click(TabView *tv)
 {
+    Session *session = session_get();
     if (SDL_PointInRect(&tv->win->mousep, &tv->layout->children[0]->rect)) {
 	if (tv->ellipsis_left_inserted && SDL_PointInRect(&tv->win->mousep, &tv->ellipsis_left->layout->rect)) {
 	    tabview_select_tab(tv, tv->leftmost_index - 1);
@@ -747,8 +854,8 @@ bool tabview_mouse_click(TabView *tv)
 	    Textbox *tb = tv->labels[i];
 	    if (SDL_PointInRect(&tv->win->mousep, &tb->layout->rect)) {
 		tabview_select_tab(tv, i);
-		proj->dragged_component.component = tv;
-		proj->dragged_component.type = DRAG_TABVIEW_TAB;
+		session->dragged_component.component = tv;
+		session->dragged_component.type = DRAG_TABVIEW_TAB;
 
 		/* tv->tabs[tv->current_tab]->onscreen = false; */
 		/* tv->current_tab = i; */
@@ -784,6 +891,7 @@ static void page_el_draw(PageEl *el)
 	break;
     case EL_TEXTBOX:
 	textbox_draw((Textbox *)el->component);
+	/* layout_draw(main_win, el->layout); */
 	break;
     case EL_TEXTENTRY:
 	textentry_draw((TextEntry *)el->component);
@@ -805,6 +913,7 @@ static void page_el_draw(PageEl *el)
 	break;
     case EL_BUTTON:
 	button_draw((Button *)el->component);
+	/* layout_draw(main_win, el->layout); */
 	break;
     case EL_CANVAS:
 	canvas_draw((Canvas *)el->component);
@@ -814,6 +923,28 @@ static void page_el_draw(PageEl *el)
 	break;
     case EL_SYMBOL_BUTTON:
 	symbol_button_draw((SymbolButton *)el->component);
+	break;
+    case EL_SYMBOL_RADIO:
+	symbol_radio_draw(el->component);
+	break;
+    case EL_DROPDOWN:
+	dropdown_draw(el->component);
+	break;
+    case EL_STATUS_LIGHT:
+	status_light_draw(el->component);
+	break;
+    case EL_PIANO:
+	piano_draw(el->component);
+	break;
+    case EL_DIVIDER: {
+	SDL_Color *color = el->component;
+	SDL_SetRenderDrawColor(main_win->rend, sdl_colorp_expand(color));
+	if (el->layout->rect.w != 0) { /* horizontal divider */
+	    SDL_RenderDrawLine(main_win->rend, el->layout->rect.x, el->layout->rect.y, el->layout->rect.x + el->layout->rect.w, el->layout->rect.y);
+	} else if (el->layout->rect.h != 0) { /* vertical divider */
+	    SDL_RenderDrawLine(main_win->rend, el->layout->rect.x, el->layout->rect.y, el->layout->rect.x, el->layout->rect.y + el->layout->rect.h);
+	}
+    }
 	break;
     default:
 	break;
@@ -838,23 +969,25 @@ void page_draw(Page *page)
 	temp.h -= brdrtt;
 	/* static SDL_Color brdrclr = {25, 25, 25, 255}; */
 
-	SDL_SetRenderDrawColor(page->win->rend, sdl_color_expand(color_global_black));
-	geom_draw_rounded_rect_thick(page->win->rend, &temp, 7, TAB_R * page->win->dpi_scale_factor, page->win->dpi_scale_factor);
+	SDL_SetRenderDrawColor(page->win->rend, sdl_color_expand(colors.black));
+	geom_draw_rounded_rect_thick(page->win->rend, &temp, 7, TAB_R * page->win->dpi_scale_factor);
     }
     for (uint8_t i=0; i<page->num_elements; i++) {
 	page_el_draw(page->elements[i]);
 	if (page->selected_i >= 0 && page->elements[i] == page->selectable_els[page->selected_i]) {
 	    SDL_SetRenderDrawColor(page->win->rend, 255, 200, 10, 255);
 	    SDL_Rect r = page->elements[i]->layout->rect;
-	    geom_draw_rect_thick(page->win->rend, &r, 2, 2);
+	    geom_draw_rect_thick(page->win->rend, &r, 1 * page->win->dpi_scale_factor);
 	}
     }
-    /* static bool sf = false; */
+    /* if (strcmp(page->title, "Oscillators") == 0) { */
+    /* 	FILE *f = fopen("t.xml", "w"); */
+	
     /* layout_draw(page->win, page->layout); */
-    /* if (!sf) { */
-    /* 	FILE *f = fopen("test.xml", "w"); */
     /* 	layout_write(f, page->layout, 0); */
+    /* 	exit(1); */
     /* } */
+    
 }
 
 static inline void tabview_draw_inner(TabView *tv, uint8_t i)
@@ -862,16 +995,16 @@ static inline void tabview_draw_inner(TabView *tv, uint8_t i)
     Page *page = tv->tabs[i];
     Textbox *tb = tv->labels[i];
     SDL_SetRenderDrawColor(tv->win->rend, sdl_colorp_expand(page->background_color));
-    geom_fill_tab(tv->win->rend, &tb->layout->rect, TAB_R, tv->win->dpi_scale_factor);
+    geom_fill_tab(tv->win->rend, &tb->layout->rect, TAB_R * tv->win->dpi_scale_factor);
     textbox_draw(tb);
     if (i != tv->current_tab) {
 	SDL_SetRenderDrawColor(tv->win->rend, 50, 50, 50, 120);
-	geom_fill_tab(tv->win->rend, &tb->layout->rect, TAB_R, tv->win->dpi_scale_factor);
+	geom_fill_tab(tv->win->rend, &tb->layout->rect, TAB_R * tv->win->dpi_scale_factor);
     }
 
     SDL_SetRenderDrawColor(tv->win->rend, 160, 160, 160, 255);
     geom_draw_rounded_rect(tv->win->rend, &page->layout->rect, TAB_R * tv->win->dpi_scale_factor);
-    geom_draw_tab(tv->win->rend, &tb->layout->rect, TAB_R, tv->win->dpi_scale_factor);
+    geom_draw_tab(tv->win->rend, &tb->layout->rect, TAB_R * tv->win->dpi_scale_factor);
     SDL_SetRenderDrawColor(tv->win->rend, sdl_colorp_expand(page->background_color));
     int left_x = tb->layout->rect.x - TAB_R * tv->win->dpi_scale_factor;
     int right_x = left_x + tb->layout->rect.w + 2 * TAB_R * tv->win->dpi_scale_factor;
@@ -883,11 +1016,11 @@ static inline void draw_ellipsis_tab(TabView *tv, Textbox *tb)
 {
     static SDL_Color ellipsis_bckgrnd = {50, 50, 50, 255};
     SDL_SetRenderDrawColor(tv->win->rend, sdl_color_expand(ellipsis_bckgrnd));
-    geom_fill_tab(tv->win->rend, &tb->layout->rect, TAB_R, tv->win->dpi_scale_factor);
+    geom_fill_tab(tv->win->rend, &tb->layout->rect, TAB_R * tv->win->dpi_scale_factor);
     textbox_draw(tb);
     SDL_SetRenderDrawColor(tv->win->rend, 160, 160, 160, 255);
     /* geom_draw_rounded_rect(tv->win->rend, &page->layout->rect, TAB_R * tv->win->dpi_scale_factor); */
-    geom_draw_tab(tv->win->rend, &tb->layout->rect, TAB_R, tv->win->dpi_scale_factor);
+    geom_draw_tab(tv->win->rend, &tb->layout->rect, TAB_R * tv->win->dpi_scale_factor);
     /* SDL_SetRenderDrawColor(tv->win->rend, sdl_colorp_expand(page->background_color)); */
     SDL_SetRenderDrawColor(tv->win->rend, sdl_color_expand(ellipsis_bckgrnd));
     int left_x = tb->layout->rect.x - TAB_R * tv->win->dpi_scale_factor;
@@ -917,7 +1050,7 @@ void tabview_draw(TabView *tv)
 	}
 	tabview_draw_inner(tv, i);
     }
-    /* layout_draw(main_win, tv->layout); */
+    textbox_draw(tv->label);
 
     /* page = tv->tabs[tv->current_tab]; */
     /* tb = tv->labels[tv->current_tab]; */
@@ -967,8 +1100,10 @@ void page_activate(Page *page)
     win->active_page = page;
 }
 
-void tabview_activate(TabView *tv)
+void tabview_activate(TabView *tv, void *connected_obj, const char *connected_obj_name)
 {
+    tv->connected_obj = connected_obj;
+    tv->connected_obj_name = connected_obj_name;
     Window *win = tv->win;
     if (win->num_modals  > 0) {
 	window_pop_modal(win);
@@ -979,11 +1114,45 @@ void tabview_activate(TabView *tv)
     if (win->active_tabview) {
 	tabview_destroy(win->active_tabview);
     }
+
+    /* Session *session = session_get(); */
+    /* Timeline *tl = ACTIVE_TL; */
+    /* Track *track = timeline_selected_track(tl); */
+    /* if (track) { */
+    /* 	track_name = track->name; */
+    /* } else { */
+    /* 	track_name = timeline_selected_click_track(tl)->name; */
+    /* } */
+    /* ClickTrack *ct; */
+    int label_str_len = strlen(tv->title) + strlen(tv->connected_obj_name) + 4;
+    tv->label_str = malloc(label_str_len);
+    snprintf(tv->label_str, label_str_len, "%s - %s", tv->title, tv->connected_obj_name);
+    Layout *label_lt = layout_add_child(main_win->layout);
+    label_lt->x.type = REVREL;
+    label_lt->x.value = 4.0;
+    label_lt->y.type = ABS;
+    label_lt->y.value = 4.0;
+    label_lt->h.value = 30.0;
+    label_lt->w.value = 400.0;
+    layout_reset(main_win->layout);
+    tv->label = textbox_create_from_str(
+	tv->label_str,
+	label_lt,
+	main_win->mono_bold_font,
+	18,
+	main_win);
+    /* fprintf(stderr, "LABEL STR: %s\n", tv->label_str); */
+    textbox_set_background_color(tv->label, NULL);
+    textbox_set_text_color(tv->label, &colors.white);
+    textbox_reset_full(tv->label);
+    layout_size_to_fit_children_h(label_lt, false, 0);
     
     win->active_tabview = tv;
-    window_push_mode(tv->win, TABVIEW);
+    /* layout_write(stderr, tv->label->layout, 0); */
+    window_push_mode(tv->win, MODE_TABVIEW);
     tv->tabs[tv->current_tab]->onscreen = true;
-    tabview_select_el(tv);
+    /* tabview_select_el(tv); */
+    
     /* Page *current = tv->tabs[tv->current_tab]; */
     /* page_el_select(current->selectable_els[current->selected_i]); */
 }
@@ -999,7 +1168,8 @@ void tabview_close(TabView *tv)
     while (tv->win->num_menus > 0) {
 	window_pop_menu(tv->win);
     }
-    window_pop_mode(tv->win);
+    window_extract_mode(tv->win, MODE_TABVIEW);
+    /* window_pop_mode(tv->win); */
     tv->win->active_tabview = NULL;
     tabview_destroy(tv);
 }
@@ -1031,6 +1201,7 @@ void tabview_previous_tab(TabView *tv)
 
 void tabview_swap_adjacent_tabs(TabView *tv, int current, int new, bool apply_swapfn)
 {
+    Session *session = session_get();
     Textbox *displaced_label = tv->labels[new];
     Textbox *current_label = tv->labels[current];
     layout_swap_children(displaced_label->layout, current_label->layout);
@@ -1041,7 +1212,7 @@ void tabview_swap_adjacent_tabs(TabView *tv, int current, int new, bool apply_sw
     tv->labels[current] = displaced_label;
     tv->tabs[current] = displaced_page;
     layout_reset(tv->layout);
-    proj->timelines[proj->active_tl_index]->needs_redraw = true;
+    ACTIVE_TL->needs_redraw = true;
 
     if (apply_swapfn && tv->swap_fn) {
 	tv->swap_fn(tv->swap_fn_target, current, new);
@@ -1108,19 +1279,20 @@ const char *tabview_active_tab_title(TabView *tv)
 
 void tabview_tab_drag(TabView *tv)
 {
+    Session *session = session_get();
     int mousex = main_win->mousep.x;
     if (tv->ellipsis_left_inserted && mousex > tv->ellipsis_left->layout->rect.x
 	&& mousex < tv->ellipsis_left->layout->rect.x + tv->ellipsis_left->layout->rect.w) {
 	tabview_swap_adjacent_tabs(tv, tv->current_tab, tv->current_tab - 1, true);
 	tabview_select_tab(tv, tv->current_tab - 1);
-	proj->dragged_component.component = NULL;
+	session->dragged_component.component = NULL;
 	return;
     }
     if (tv->ellipsis_right_inserted && mousex > tv->ellipsis_right->layout->rect.x
 	&& mousex < tv->ellipsis_right->layout->rect.x + tv->ellipsis_right->layout->rect.w) {
 	tabview_swap_adjacent_tabs(tv, tv->current_tab, tv->current_tab + 1, true);
 	tabview_select_tab(tv, tv->current_tab + 1);
-	proj->dragged_component.component = NULL;
+	session->dragged_component.component = NULL;
 	return;
     }
 
@@ -1163,6 +1335,7 @@ void page_next_escape(Page *page)
     if (page->selected_i < page->num_selectable - 1)
 	page->selected_i++;
     else page->selected_i = 0;
+
     page_el_select(page->selectable_els[page->selected_i]);
 }
 
@@ -1193,11 +1366,20 @@ void page_enter(Page *page)
 	break;
     }
     case EL_TEXTENTRY:
+	if (!page->win->txt_editing) {
+	    textentry_edit(el->component);
+	}
 	break;
     case EL_SYMBOL_BUTTON: {
 	SymbolButton *sb = (SymbolButton *)el->component;
 	sb->action(sb, sb->target);
     }
+	break;
+    case EL_SYMBOL_RADIO:
+	symbol_radio_cycle(el->component);
+	break;
+    case EL_DROPDOWN:
+	dropdown_create_menu(el->component);
 	break;
     default:
 	break;
@@ -1243,10 +1425,28 @@ PageEl *page_get_el_by_id(Page *page, const char *id)
     PageEl *el = NULL;
     for (uint8_t i=0; i<page->num_elements; i++) {
 	el = page->elements[i];
+	/* fprintf(stderr, "\t->cmp %s %s\n", el->id, id); */
 	if (strcmp(el->id, id) == 0) break;
 	else if (i == page->num_elements - 1) el = NULL;
     }
     return el;
+}
+
+PageEl *tabview_get_el_by_id(TabView *tv, const char *page_title, const char *id)
+{
+    PageEl *el = NULL;
+    for (uint8_t i=0; i<tv->num_tabs; i++) {
+	Page *page = tv->tabs[i];
+	/* fprintf(stderr, "CMP page \"%s\" == \"%s\"?\n", page->title, page_title); */
+	if (page_title && strcmp(page_title, page->title) == 0) {
+	    return page_get_el_by_id(page, id);
+	} else if (!page_title) {
+	    el = page_get_el_by_id(page, id);
+	    if (el) return el;
+	}
+    }
+    return el;
+    
 }
 
 void page_select_el_by_id(Page *page, const char *id)
@@ -1259,6 +1459,37 @@ void page_select_el_by_id(Page *page, const char *id)
 	    break;
 	}
     }
+}
+
+void page_el_params_slider_from_ep(union page_el_params *p, Endpoint *ep)
+{
+    p->slider_p.ep = ep;
+    p->slider_p.min = ep->min;
+    p->slider_p.max = ep->max;
+    p->slider_p.create_label_fn = ep->label_fn;
+}
+
+void page_center_contents(Page *page)
+{
+    /* Layout *inner = layout_add_child(page->layout); */
+    Layout *inner = layout_create();
+    inner->x.type = SCALE;
+    inner->y.type = SCALE;
+    inner->w.type = SCALE;
+    inner->h.type = SCALE;
+    inner->w.value = 1.0;
+    inner->h.value = 1.0;
+
+    layout_reparent_all(page->layout, inner);
+    layout_reparent(inner, page->layout);
+    /* layout_write(stderr, page->layout, 0); */
+    /* for (int i=0; i<page->layout->num_children; i++) { */
+    /* 	layout_reparent(page->layout->children[i], inner); */
+    /* } */
+
+    layout_size_to_fit_children(inner, false, 0);
+    layout_center_agnostic(inner, true, true);
+    layout_force_reset(inner);
 }
 
 

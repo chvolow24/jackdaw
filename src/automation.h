@@ -36,6 +36,7 @@
 #ifndef JDAW_AUTOMATION_H
 #define JDAW_AUTOMATION_H
 
+#include <pthread.h>
 #include "components.h"
 #include "layout.h"
 #include "test.h"
@@ -204,6 +205,8 @@ void automation_destroy(Automation *a);
 /*     int32_t pos, */
 /*     int32_t chunk_end_pos, */
 /*     float direction); */
+/* void automation_keyframe_move(Keyframe *k, int32_t new_pos, Value new_value); */
+void automation_keyframe_reset_pos(Keyframe *k, int32_t new_pos);
 void automation_do_write(Automation *a, Value v, int32_t pos, int32_t end_pos, float step);
 void automation_reset_keyframe_x(Automation *a);
 /* Keyframe *automation_get_segment(Automation *a, int32_t at); */

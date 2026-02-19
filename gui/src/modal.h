@@ -13,7 +13,9 @@ enum mod_s_type {
     MODAL_EL_TEXT,
     MODAL_EL_DIRNAV,
     MODAL_EL_BUTTON,
-    MODAL_EL_RADIO
+    MODAL_EL_RADIO,
+    MODAL_EL_SLIDER,
+    MODAL_EL_TOGGLE
 };
 
 typedef struct ModalEl {
@@ -38,6 +40,7 @@ Modal *modal_create(Layout *lt);
 void modal_destroy(Modal *modal);
 ModalEl *modal_add_header(Modal *modal, const char *text, SDL_Color *color, int level);
 ModalEl *modal_add_p(Modal *modal, const char *text, SDL_Color *color);
+ModalEl *modal_add_p_custom_fontsize(Modal *modal, const char *text, SDL_Color *color, int fontsize);
 ModalEl *modal_add_dirnav(Modal *modal, const char *dirpath, int (*dir_to_tline_filter)(void *dp_v, void *dn_v));
 ModalEl *modal_add_textentry(
     Modal *modal,
@@ -67,6 +70,17 @@ ModalEl *modal_add_radio(
     const char **item_names,
     uint8_t num_items);
 
+ModalEl *modal_add_slider(
+    Modal *modal,
+    Endpoint *ep,
+    enum slider_orientation orientation,
+    enum slider_style style);
+
+ModalEl *modal_add_toggle(
+    Modal *modal,
+    Endpoint *ep);
+
+
 void modal_reset(Modal *modal);
 void modal_draw(Modal *modal);
 
@@ -75,6 +89,8 @@ void modal_previous(Modal *modal);
 void modal_next_escape(Modal *modal);
 void modal_previous_escape(Modal *modal);
 void modal_select(Modal *modal);
+void modal_left(Modal *modal);
+void modal_right(Modal *modal);
 void modal_move_onto(Modal *modal);
 void modal_submit_form(Modal *modal);
 bool modal_triage_mouse(Modal *modal, SDL_Point *mousep, bool click);

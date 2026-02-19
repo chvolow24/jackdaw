@@ -8,19 +8,16 @@
 
 *****************************************************************************************************************/
 
-/*****************************************************************************************************************
-    mouse.c
-
-    * Functions related to mouse clicks
- *****************************************************************************************************************/
-
 #include "autocompletion.h"
+#include "clipref.h"
 #include "input.h"
 #include "menu.h"
 #include "modal.h"
 #include "page.h"
 #include "panel.h"
+#include "piano_roll.h"
 #include "project.h"
+#include "session.h"
 #include "timeline.h"
 #include "userfn.h"
 
@@ -82,19 +79,44 @@ static bool mouse_triage_click_track(uint8_t button, Track *track)
     return false;
 }
 
-static void mouse_triage_click_audiorect(Timeline *tl, uint8_t button)
+static bool mouse_triage_click_audiorect(Timeline *tl, uint8_t button)
 {
+    bool ret = false;
     switch (button) {
     case SDL_BUTTON_LEFT: {
+	for (int i=0; i<tl->num_tracks; i++) {
+	    Track *track = tl->tracks[i];
+	    if (SDL_PointInRect(&main_win->mousep, &track->layout->rect)) {
+		timeline_select_track(track);
+		ret = true;
+		break;
+	    }
+	}
 	int32_t abs_pos = timeline_get_abspos_sframes(tl, main_win->mousep.x);
-	timeline_set_play_position(tl, abs_pos);
+	if (!session_get()->playback.lock_view_to_playhead) {
+	    timeline_set_play_position(tl, abs_pos, true);
+	    ret = true;
+	}
 	break;
     }
 	break;
     default:
 	break;
     }
-    if (main_win->i_state & I_STATE_CMDCTRL) {
+    if (main_win->i_state & I_STATE_SHIFT) {
+	for (uint8_t i=0; i<tl->num_tracks; i++) {
+	    Track *track = tl->tracks[i];
+	    if (SDL_PointInRect(&main_win->mousep, &track->inner_layout->rect)) {
+		ClipRef *cr = clipref_at_cursor_in_track(track);
+		if (cr && cr->type == CLIP_AUDIO) {
+		    session_get()->dragged_component.component = cr;
+		    session_get()->dragged_component.type = DRAG_CLIPREF_GAIN;
+		    endpoint_start_continuous_change(&cr->gain_ep, false, (Value){0}, JDAW_THREAD_DSP, endpoint_safe_read(&cr->gain_ep, NULL));
+		    ret = true;
+		}
+	    }
+	}
+    } else if (main_win->i_state & I_STATE_CMDCTRL) {
 	for (uint8_t i=0; i<tl->num_tracks; i++) {
 	    Track *track = tl->tracks[i];
 	    if (SDL_PointInRect(&main_win->mousep, &track->inner_layout->rect)) {
@@ -102,80 +124,101 @@ static void mouse_triage_click_audiorect(Timeline *tl, uint8_t button)
 		if (cr) {
 		    if (cr->grabbed) {
 			timeline_ungrab_all_cliprefs(tl);
+			ret = true;
 		    } else {
-			clipref_grab(cr);
+			timeline_clipref_grab(cr, CLIPREF_EDGE_NONE);
+			ret = true;
+			/* clipref_grab(cr); */
 		    }
 		}
 	    }
 	}
     }
+    return ret;
 }
 
-static void mouse_triage_motion_audiorect(Timeline *tl)
+static bool mouse_triage_motion_audiorect(Timeline *tl)
 {
+    bool ret = false;
     if (main_win->i_state & I_STATE_MOUSE_L) {
-	int32_t abs_pos = timeline_get_abspos_sframes(tl, main_win->mousep.x);
-	timeline_set_play_position(tl, abs_pos);
+	if (!session_get()->playback.lock_view_to_playhead) {
+	    int32_t abs_pos = timeline_get_abspos_sframes(tl, main_win->mousep.x);
+	    timeline_set_play_position(tl, abs_pos, true);
+	    ret = true;
+	}
     }
+    return ret;
 }
 
 
-static void mouse_triage_click_timeline(uint8_t button)
+static bool mouse_triage_click_timeline(uint8_t button)
 {
-    Timeline *tl = proj->timelines[proj->active_tl_index];
+    Session *session = session_get();
+    Timeline *tl = ACTIVE_TL;
 
+    bool ret = false;
     for (uint8_t i=0; i<tl->num_tracks; i++) {
 	Track *track = tl->tracks[i];
 	if (mouse_triage_click_track(button, track)) {
+	    return true;
 	    break;
 	}
 	for (uint8_t i = 0; i<track->num_automations; i++) {
 	    if (automation_triage_click(button, track->automations[i])) {
-		return;
+		timeline_select_track(track);
+		return true;
 	    }
 	}
     }
     for (uint8_t i=0; i<tl->num_click_tracks; i++) {
 	ClickTrack *tt = tl->click_tracks[i];
-	if (click_track_triage_click(button, tt)) return;
+	if (click_track_triage_click(button, tt)) {
+	    return true;
+	}
     }
-    if (SDL_PointInRect(&main_win->mousep, proj->audio_rect)) {
-	mouse_triage_click_audiorect(tl, button);
+    if (SDL_PointInRect(&main_win->mousep, session->gui.audio_rect)) {
+	ret =  mouse_triage_click_audiorect(tl, button);
 	/* return; */
     }
+    return ret;
 }
 
-static void mouse_triage_click_control_bar(uint8_t button)
+static bool mouse_triage_click_control_bar(uint8_t button)
 {
-    /* if (SDL_PointInRect(&main_win->mousep, &proj->tb_out_value->layout->rect)) { */
-	/* user_tl_set_default_out(NULL); */
-    if (SDL_PointInRect(&main_win->mousep, proj->hamburger)) {
+    Session *session = session_get();
+    bool ret = false;
+    if (SDL_PointInRect(&main_win->mousep, session->gui.hamburger)) {
 	user_global_menu(NULL);
-	return;
-    } else if (SDL_PointInRect(&main_win->mousep, &proj->panels->layout->rect)) {
-	panel_area_mouse_click(proj->panels);
+	return true;
+    } else if (SDL_PointInRect(&main_win->mousep, &session->gui.panels->layout->rect)) {
+	ret = panel_area_mouse_click(session->gui.panels);
     }
+    return ret;
 }
 
-void mouse_triage_click_project(uint8_t button)
+bool mouse_triage_click_project(uint8_t button)
 {
-    Layout *tl_lt = layout_get_child_by_name_recursive(proj->layout, "timeline");
+    Session *session = session_get();
+    Layout *tl_lt = layout_get_child_by_name_recursive(session->gui.layout, "timeline");
+    bool ret = false;
     if (SDL_PointInRect(&main_win->mousep, &tl_lt->rect)) {
-	mouse_triage_click_timeline(button);
-    } else if (SDL_PointInRect(&main_win->mousep, proj->control_bar_rect)) {
-	mouse_triage_click_control_bar(button);
+	ret = mouse_triage_click_timeline(button);
+    } else if (SDL_PointInRect(&main_win->mousep, session->gui.control_bar_rect)) {
+	ret = mouse_triage_click_control_bar(button);
     }
+    return ret;
 }
 
 void mouse_triage_motion_timeline(int xrel, int yrel)
 {
-    if (proj->dragged_component.component) {
-	draggable_mouse_motion(&proj->dragged_component, main_win);
-	return;
-    }
-    Timeline *tl = proj->timelines[proj->active_tl_index];
+    Session *session = session_get();
+    /* if (session->dragged_component.component) { */
+    /* 	draggable_mouse_motion(&session->dragged_component, main_win); */
+    /* 	return; */
+    /* } */
+    Timeline *tl = ACTIVE_TL;
     if (automations_triage_motion(tl, xrel, yrel)) return;
-    if (SDL_PointInRect(&main_win->mousep, proj->audio_rect)) {
+    if (SDL_PointInRect(&main_win->mousep, session->gui.audio_rect)) {
 	mouse_triage_motion_audiorect(tl);
 	return;
     }
@@ -186,7 +229,6 @@ void mouse_triage_motion_timeline(int xrel, int yrel)
 	}
     }
 }
-
 
 void mouse_triage_motion_menu()
 {
@@ -207,24 +249,29 @@ void mouse_triage_motion_modal()
 
 }
 
-void mouse_triage_click_menu(uint8_t button)
+bool mouse_triage_click_menu(uint8_t button)
 {
-    if (main_win->num_menus == 0) return;
+    Session *session = session_get();
+    if (main_win->num_menus == 0) return false;
     Menu *top_menu = main_win->menus[main_win->num_menus -1];
     if (top_menu) {
-	if (!menu_triage_mouse(top_menu, &main_win->mousep, true))
-	    proj->timelines[proj->active_tl_index]->needs_redraw = true;
+	if (!menu_triage_mouse(top_menu, &main_win->mousep, true)) {
+	    ACTIVE_TL->needs_redraw = true;
+	}
     }
+    return true;
 }
 
-void mouse_triage_click_modal(uint8_t button)
+bool mouse_triage_click_modal(uint8_t button)
 {
-    if (main_win->num_modals == 0) return;
+    Session *session = session_get();
+    if (main_win->num_modals == 0) return false;
     Modal *top_modal = main_win->modals[main_win->num_modals -1];
     if (top_modal) {
 	if (!modal_triage_mouse(top_modal, &main_win->mousep, true))
-	    proj->timelines[proj->active_tl_index]->needs_redraw = true;
+	    ACTIVE_TL->needs_redraw = true;
     }
+    return true;
 }
 
 void mouse_triage_motion_autocompletion()
@@ -233,10 +280,11 @@ void mouse_triage_motion_autocompletion()
     autocompletion_triage_mouse_motion(&main_win->ac);
 }
 
-void mouse_triage_click_autocompletion()
+bool mouse_triage_click_autocompletion()
 {
-    if (!main_win->ac_active) return;
+    if (!main_win->ac_active) return false;
     autocompletion_triage_mouse_click(&main_win->ac);
+    return true;
 }
 
 Layout *mouse_triage_wheel(int x, int y, bool dynamic)
@@ -267,10 +315,10 @@ bool mouse_triage_click_text_edit(uint8_t button)
 bool mouse_triage_motion_page()
 {
     Page *page;
-    if (proj->dragged_component.component) {
-	draggable_mouse_motion(&proj->dragged_component, main_win);
-	return true;
-    }
+    /* if (session->dragged_component.component) { */
+    /* 	draggable_mouse_motion(&session->dragged_component, main_win); */
+    /* 	return true; */
+    /* } */
     if ((page = main_win->active_page)) {
 	return page_mouse_motion(page, main_win);
     }
@@ -299,13 +347,66 @@ bool mouse_triage_click_tabview()
 }
 bool mouse_triage_motion_tabview()
 {
+    /* Session *session = session_get(); */
     TabView *tv;
-    if (proj->dragged_component.component) {
-	draggable_mouse_motion(&proj->dragged_component, main_win);
-	return true;
-    }
+    /* if (session->dragged_component.component) { */
+    /* 	draggable_mouse_motion(&session->dragged_component, main_win); */
+    /* 	return true; */
+    /* } */
     if ((tv = main_win->active_tabview)) {
 	return tabview_mouse_motion(tv);
     }
     return false;
+}
+
+int mouse_triage_click(SDL_Event e)
+{
+escaped_text_edit:
+    for (int i=main_win->num_modes-1; i>=0; i--) {
+	switch (main_win->modes[i]) {
+	case MODE_MENU_NAV:
+	    if (mouse_triage_click_menu(e.button.button)) {
+		return 1;
+	    }
+	    break;
+	case MODE_MODAL:
+	    if (mouse_triage_click_modal(e.button.button)) {
+		return 1;
+	    }
+	    break;
+	case MODE_AUTOCOMPLETE_LIST:
+	    if (mouse_triage_click_autocompletion()) {
+		return 1;
+	    };
+	    break;
+	case MODE_TEXT_EDIT:
+	    if (!mouse_triage_click_text_edit(e.button.button)) {
+		if (TOP_MODE == MODE_TEXT_EDIT) {
+		    fprintf(stderr, "Error: text edit escaped improperly");
+		    window_clear_higher_modes(main_win, MODE_GLOBAL);
+		    /* window_pop_mode(main_win); */
+		}
+		goto escaped_text_edit;
+	    }
+	    break;
+	case MODE_TABVIEW:
+	    if (!mouse_triage_click_tabview()) {
+		mouse_triage_click_page();
+	    }
+	    return 1;
+	    break;
+	case MODE_PIANO_ROLL:
+	    piano_roll_mouse_click(main_win->mousep);
+	    return 1;
+	    break;
+	case MODE_TIMELINE:
+	    /* if (!mouse_triage_click_page() && !mouse_triage_click_tabview()) */
+	    if (mouse_triage_click_project(e.button.button)) {
+		return 1;
+	    }
+	    break;
+	default: break;
+	}	    
+    }
+    return 0;
 }

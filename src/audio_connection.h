@@ -12,36 +12,53 @@
 /*****************************************************************************************************************
     audio_connection.h
 
-    * Typedef structs for audio connections (e.g. devices)
+    * Query for available audio connections
+    * Open and close individual audio connections
  *****************************************************************************************************************/
 
 
 #ifndef JDAW_AUDIO_DEVICE_H
 #define JDAW_AUDIO_DEVICE_H
 
+
+#include "SDL.h"
+#include <semaphore.h>
 #include <stdbool.h>
 #include <time.h>
-#include "SDL.h"
-
-
-#define MAX_CONN_NAMELENGTH 64
+#define MAX_CONN_NAMELENGTH 128
+#define MAX_DEV_NAMELENGTH MAX_CONN_NAMELENGTH
+#define MAX_INPUT_CHANNELS 16
 /* #include "project.h" */
 
-typedef struct project Project;
+/* typedef struct project Project; */
 typedef struct clip Clip;
 typedef struct audio_device AudioDevice;
 
+typedef struct audio_conn AudioConn;
+
+struct channel_dst {
+    AudioConn *conn;
+    int channel;
+};
+
+
 /* Struct to contain information related to an audio device, including the SDL_AudioDeviceID. */
 typedef struct audio_device{
-    /* int index; /\* index in the list created by query_audio_devices *\/ */
-    /* const char *name; */
-    /* bool open; /\* true if the device has been opened (SDL_OpenAudioDevice) *\/ */
-    /* bool iscapture; /\* true if device is a recording device, not a playback device *\/ */
-    SDL_AudioDeviceID id;
+    char name[MAX_CONN_NAMELENGTH];
     SDL_AudioSpec spec;
+    int index; /* Valid only between calls to SDL_GetNumAudioDevices */
+    SDL_AudioDeviceID id;
     int16_t *rec_buffer;
     uint32_t rec_buf_len_samples;
     int32_t write_bufpos_samples;
+    bool open;
+    _Atomic bool playing; /* i.e., "unpaused," has callback running */
+    /* bool request_close; */
+    /* sem_t *request_close; */
+
+    bool is_default;
+    bool has_channel_cfg;
+    struct channel_dst channel_dsts[MAX_INPUT_CHANNELS];
     /* bool active; */
 } AudioDevice;
 
@@ -66,17 +83,22 @@ enum audio_conn_type {
     JACKDAW
 };
 
-union audio_conn_substruct {
-    AudioDevice device;
-    PdConn pd;
-    JDAWConn jdaw;
-    
-};
+/* union audio_conn_substruct { */
+/*     AudioDevice device; */
+/*     PdConn pd; */
+/*     JDAWConn jdaw;    */
+/* }; */
 
 struct realtime_tick {
     struct timespec ts;
     int32_t timeline_pos;
 };
+
+struct conn_channel_cfg {
+    int L_src; /* Identifies channel in source device */
+    int R_src; /* -1 if mono */
+};
+
 typedef struct audio_conn {
     bool iscapture;
     int index;
@@ -85,36 +107,46 @@ typedef struct audio_conn {
     bool open;
     bool active;
     bool available;
+    bool playing;
     Clip *current_clip; /* The clip currently being recorded, if applicable */
     bool current_clip_repositioned;
-    struct realtime_tick callback_time;
+    /* struct realtime_tick callback_time; */ /* Deprecated (for now) 2026-01-21 */
     enum audio_conn_type type;
-    union audio_conn_substruct c;
+    void *obj; /* AudioDevice, PdConn, or JDAWConn */    
+    struct conn_channel_cfg channel_cfg;
+    bool is_default;
+    
+    bool request_playhead_reset;
+    int32_t request_playhead_pos;
 } AudioConn;
 
 
 /* int query_audio_conns(Project *proj, int iscapture); */
-int query_audio_connections(Project *proj, int iscapture);
-int audioconn_open(Project *proj, AudioConn *conn);
+typedef struct session Session;
+int audio_io_get_connections(Session *session, int iscapture);
+int audioconn_open(Session *session, AudioConn *conn);
 void audioconn_close(AudioConn *conn);
-void audioconn_start_playback(AudioConn *conn);
+/* Returns 0 on success; 1 on harmless error (redundancy); -1 on fatal error (device not open) */
+int audioconn_start_playback(AudioConn *conn);
 void audioconn_stop_playback(AudioConn *conn);
 void audioconn_start_recording(AudioConn *conn);
 void audioconn_stop_recording(AudioConn *conn);
 
 void audioconn_handle_connection_event(int index, int iscapture, int event_type);
+void audioconn_handle_disconnection_event(int id, int iscapture, int event_type);
 
+/* Remove and audio connection from the list */
+void audioconn_remove(AudioConn *conn);
+
+/* Free audio connection, not including linked device(s). List invalidated. */
 void audioconn_destroy(AudioConn *conn);
+/* Free audio device, not including linked conn(s). List invalidated. */
+void audio_device_destroy(AudioDevice *dev);
 
 void audioconn_reset_chunk_size(AudioConn *conn, uint16_t new_chunk_size);
 
-void copy_conn_buf_to_clip(Clip *clip, enum audio_conn_type type);
-/* int query_audio_devices(Project *proj, int iscapture); */
-/* int device_open(Project *proj, AudioDevice *device); */
-/* void device_start_playback(AudioDevice *dev); */
-/* void device_stop_playback(AudioDevice *dev); */
-/* /\* Pause the device, and then close it. Record devices remain closed. *\/ */
-/* void device_stop_recording(AudioDevice *dev); */
-/* void device_start_recording(AudioDevice *dev); */
+typedef struct session Session;
+void session_init_audio_conns(Session *session);
+void session_set_default_out(void *nullarg);
 
 #endif

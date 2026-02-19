@@ -12,7 +12,8 @@
 /*****************************************************************************************************************
     input_mode.h
 
-    * Define input mode enum, listing available input modes
+    * define input mode enum, listing available input modes
+    * create all user function objects at start time (mode_load_all())
  *****************************************************************************************************************/
 
 
@@ -21,7 +22,6 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "SDL.h"
 
 #define MAX_ANNOT_STRLEN 255
 #define MAX_MODE_SUBCATS 16
@@ -31,22 +31,26 @@
 
 typedef enum input_mode {
 /* typedef enum input_mode : uint8_t { */
-    GLOBAL=0,
-    MENU_NAV=1,
-    TIMELINE=2,
-    SOURCE=3,
-    MODAL=4,
-    TEXT_EDIT=5,
-    TABVIEW=6,
-    AUTOCOMPLETE_LIST=7
+    MODE_GLOBAL,
+    MODE_MENU_NAV,
+    MODE_TIMELINE,
+    MODE_SOURCE,
+    MODE_MODAL,
+    MODE_TEXT_EDIT,
+    MODE_TABVIEW,
+    MODE_AUTOCOMPLETE_LIST,
+    MODE_MIDI_QWERTY,
+    MODE_PIANO_ROLL,
+    NUM_INPUT_MODES
 } InputMode;
 
-#define NUM_INPUT_MODES 8
+/* #define NUM_INPUT_MODES 8 */
 
 #define TOP_MODE (main_win->modes[main_win->num_modes - 1])
 
 typedef struct mode Mode;
 typedef struct keybinding Keybinding;
+typedef struct button Button;
 typedef struct user_fn {
     const char *fn_id;
     const char *fn_display_name;
@@ -62,6 +66,7 @@ typedef struct user_fn {
     /* uint16_t i_states[MAX_FN_KEYBS]; */
     /* SDL_Keycode keycodes[MAX_FN_KEYBS]; */
     /* int num_hashes; */
+    Button *bound_button;
 } UserFn;
 
 typedef struct mode_subcat {

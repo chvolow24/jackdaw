@@ -12,8 +12,9 @@
 /*****************************************************************************************************************
     page.h
 
-    * Define Page and TabView structs
-    * Interface for creation of dynamic GUIs with accompanying Layout files
+    * Page and TabView GUI objects
+    * TabView is a collection of Pages accessible via tabs
+    * Pages created from stored layout xml files (assets/layouts)
  *****************************************************************************************************************/
 
 
@@ -26,7 +27,8 @@
 #include "textbox.h"
 #include "value.h"
 
-#define MAX_ELEMENTS 64
+#define MAX_ELEMENTS 256
+#define MAX_SELECTABLE 64
 #define MAX_TABS 16
 
 #define TAB_H 32
@@ -47,7 +49,12 @@ typedef enum page_el_type {
     EL_BUTTON,
     EL_CANVAS,
     EL_EQ_PLOT,
-    EL_SYMBOL_BUTTON
+    EL_SYMBOL_BUTTON,
+    EL_SYMBOL_RADIO,
+    EL_DROPDOWN,
+    EL_STATUS_LIGHT,
+    EL_PIANO,
+    EL_DIVIDER
     /* EL_TOGGLE_EP */
 } PageElType;
 
@@ -56,16 +63,17 @@ enum linked_obj_type {
 };
 
 typedef struct page_element {
-    const char *id;
+    char *id; /* strdup the ID */
     PageElType type;
     void *component;
     Layout *layout;
+    Page *page;
 } PageEl;
 
 typedef struct page {
     const char *title;
     PageEl *elements[MAX_ELEMENTS];
-    PageEl *selectable_els[MAX_ELEMENTS];
+    PageEl *selectable_els[MAX_SELECTABLE];
     uint8_t num_elements;
     uint8_t num_selectable;
     int selected_i;
@@ -81,6 +89,7 @@ typedef struct page {
 
 typedef struct tab_view {
     const char *title;
+    const char *connected_obj_name;
     Page *tabs[MAX_TABS];
     Textbox *labels[MAX_TABS + 2]; /* add space for ellipsis tabs */
     Textbox *ellipsis_left;
@@ -101,6 +110,10 @@ typedef struct tab_view {
     void (*swap_fn)(void *array, int swap_i, int swap_j);
     void *swap_fn_target;
     /* size_t related_array_el_size; */
+    void *connected_obj; /* When the obj is freed, tabview will be closed */
+
+    char *label_str;
+    Textbox *label; /* Upper-right corner of screen */
 } TabView;
 
 struct slider_params {
@@ -143,11 +156,16 @@ struct textentry_params {
 };
 
 struct freqplot_params {
-    double **arrays;
-    int num_arrays;
-    SDL_Color **colors;
-    int *steps;
-    int num_items;
+    double **darrays;
+    int *darray_lens;
+    int num_darrays;
+    float **farrays;
+    int *farray_lens;
+    int num_farrays;
+    SDL_Color **darray_colors;
+    SDL_Color **farray_colors;
+    double min_freq_hz;
+    double max_freq_hz;
 };
 
 struct button_params {
@@ -202,10 +220,41 @@ struct eq_plot_params {
 };
 
 struct symbol_button_params {
-    Symbol *s;
+    int symbol_index;
+    /* Symbol *s; */
     ComponentFn action;
     void *target;
     SDL_Color *background_color;
+};
+
+struct symbol_radio_params {
+    int *symbol_indices;
+    /* Symbol **symbols; */
+    uint8_t num_items;
+    Endpoint *ep;
+    bool align_horizontal;
+    int padding;
+    SDL_Color *sel_color;
+    SDL_Color *unsel_color;
+};
+
+struct dropdown_params {
+    const char *header;
+    char **item_names;
+    char **item_annotations;
+    void **item_args;
+    uint8_t num_items;
+    int *reset_from;
+    int (*selection_fn)(Dropdown *, void *);
+};
+
+struct status_light_params {
+    void *value;
+    size_t val_size;
+};
+
+struct divider_params {
+    SDL_Color *color;
 };
 
 typedef union page_el_params {
@@ -222,6 +271,10 @@ typedef union page_el_params {
     struct eq_plot_params eq_plot_p;
     struct symbol_button_params sbutton_p;
     struct toggle_ep_params toggle_ep_p;
+    struct symbol_radio_params sradio_p;
+    struct dropdown_params dropdown_p;
+    struct status_light_params slight_p;
+    struct divider_params divider_p;
 } PageElParams;
 
 
@@ -230,7 +283,10 @@ typedef union page_el_params {
 
 TabView *tabview_create(const char *title, Layout *parent_lt, Window *win);
 void tabview_destroy(TabView *tv);
-void tabview_activate(TabView *tv);
+void tabview_activate(
+    TabView *tv,
+    void *connected_obj,
+    const char *connected_obj_name);
 void tabview_close(TabView *tv);
 Page *tabview_add_page(
     TabView *tv,
@@ -256,6 +312,8 @@ const char *tabview_active_tab_title(TabView *tv);
 void tabview_tab_drag(TabView *tv);
 Page *tabview_select_tab(TabView *tv, int i);
 
+/* Checks main_win->active_tabview for selected slider, and returns bound endpoint */
+Endpoint *tabview_selected_endpoint();
 
 /* Page methods */
 
@@ -312,8 +370,12 @@ void page_left(Page *page);
 void page_enter(Page *page);
 
 PageEl *page_get_el_by_id(Page *page, const char *id);
+PageEl *tabview_get_el_by_id(TabView *tv, const char *page_title, const char *id);
+
 void page_select_el_by_id(Page *page, const char *id);
 
 void page_el_reset(PageEl *el);
+void page_el_params_slider_from_ep(union page_el_params *p, Endpoint *ep);
+void page_center_contents(Page *page);
 
 #endif

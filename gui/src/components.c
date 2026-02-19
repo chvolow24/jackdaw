@@ -4,7 +4,9 @@
 #include "eq.h"
 #include "geometry.h"
 #include "input.h"
+#include "input_mode.h"
 #include "layout.h"
+#include "menu.h"
 #include "status.h"
 #include "symbol.h"
 #include "text.h"
@@ -13,13 +15,14 @@
 #include "waveform.h"
 
 extern Window *main_win;
+extern Symbol *SYMBOL_TABLE[];
 #define SLIDER_INNER_PAD 2
 #define SLIDER_TICK_W 2
 
 #define RADIO_BUTTON_LEFT_COL_W 10
 #define SLIDER_MAX_LABEL_COUNTDOWN 80
 #define SLIDER_NUDGE_PROP 0.01
-#define BUTTON_COLOR_CHANGE_STD_DELAY 20
+#define BUTTON_COLOR_CHANGE_STD_DELAY 8
 
 #define TEXTENTRY_V_PAD 4
 #define TEXTENTRY_H_PAD 8
@@ -28,6 +31,7 @@ extern Window *main_win;
 /* SDL_Color fslider_bckgrnd = {60, 60, 60, 255}; */
 /* SDL_Color fslider_bar_container_bckgrnd =  {190, 190, 190, 255}; */
 /* SDL_Color fslider_bar_color = {20, 20, 120, 255}; */
+extern struct colors colors;
 
 SDL_Color slider_bckgrnd = {60, 60, 60, 255};
 SDL_Color slider_bar_container_bckgrnd =  {40, 40, 40, 248};
@@ -36,12 +40,10 @@ SDL_Color slider_bar_color = {12, 107, 249, 250};
 SDL_Color textentry_background = (SDL_Color) {200, 200, 200, 255};
 SDL_Color textentry_text_color = (SDL_Color) {0, 0, 0, 255};
 
-
 SDL_Color tgl_bckgrnd = {110, 110, 110, 255};
 
-extern SDL_Color color_global_black;
-extern SDL_Color color_global_clear;
-extern SDL_Color color_global_grey;
+
+
 /* Slider fslider_create(Layout *layout, SliderOrientation orientation, SliderType type, SliderStrFn *fn) */
 Slider *slider_create(
     Layout *layout,
@@ -86,14 +88,20 @@ Slider *slider_create(
 
     /* textbox_size_to_fit(s->label, SLIDER_LABEL_H_PAD, SLIDER_LABEL_V_PAD); */
     /* textbox_set_pad(s->label, SLIDER_LABEL_H_PAD, SLIDER_LABEL_V_PAD); */
-    /* textbox_set_border(s->label, &color_global_black, 2); */
+    /* textbox_set_border(s->label, &colors.black, 2); */
     /* textbox_set_trunc(s->label, false); */
     /* layout_reset(layout); */
     /* bar_container->x.value.intval = SLIDER_INNER_PAD; */
     /* bar_container->y.value.intval = SLIDER_INNER_PAD; */
     /* bar_container->w.value.intval = (layout->rect.w - (SLIDER_INNER_PAD * main_win->dpi_scale_factor * 2)) / main_win->dpi_scale_factor; */
     /* bar_container->h.value.intval = (layout->rect.h - (SLIDER_INNER_PAD * main_win->dpi_scale_factor * 2)) / main_win->dpi_scale_factor; */
-    layout_pad(bar_container, SLIDER_INNER_PAD, SLIDER_INNER_PAD);
+    bar_container->x.value = SLIDER_INNER_PAD;
+    bar_container->y.value = SLIDER_INNER_PAD;
+    bar_container->w.type = REVREL;
+    bar_container->h.type = REVREL;
+    bar_container->w.value = SLIDER_INNER_PAD;
+    bar_container->h.value = SLIDER_INNER_PAD;    
+    /* layout_pad(bar_container, SLIDER_INNER_PAD, SLIDER_INNER_PAD); */
     Layout *bar = layout_add_child(bar_container);
     s->bar_layout = bar;
     layout_set_name(bar, "bar");
@@ -161,6 +169,15 @@ void slider_set_range(Slider *s, Value min, Value max)
 /*     s->max = max; */
 }
 
+void slider_add_point_of_interest(Slider *s, Value p)
+{
+    if (s->num_points_of_interest == SLIDER_MAX_POINTS_OF_INTEREST) {
+	return;
+    }
+    s->points_of_interest[s->num_points_of_interest] = p;
+    s->num_points_of_interest++;
+}
+
 static Value slider_val_from_coord(Slider *s, int coord_pix)
 {
     double proportion;
@@ -209,6 +226,24 @@ Value slider_reset(Slider *s)
 	    break;
 	}
     }
+    for (int i=0; i<s->num_points_of_interest; i++) {
+	Value left = jdaw_val_sub(s->points_of_interest[i], s->min, s->ep->val_type);
+	/* fprintf(stderr, "POI %d MIN %d sub? %d\n", s->points_of_interest[i].int16_v, s->min.int16_v, left.int16_v); */
+	double left_prop = jdaw_val_div_double(left, range, s->ep->val_type);
+	/* fprintf(stderr, "%d: %f\n", i, left_prop); */
+	switch (s->orientation) {
+	case SLIDER_HORIZONTAL:
+	    s->points_of_interest_draw_locs_pix[i] = s->layout->rect.x + s->layout->rect.w * left_prop;
+	    break;
+	case SLIDER_VERTICAL:
+	    s->points_of_interest_draw_locs_pix[i] = s->layout->rect.y + s->layout->rect.h - s->layout->rect.h * left_prop;
+	    break;
+	}
+    }
+    if (s->ep->display_label) {
+	label_reset(s->label, slider_val);
+    }
+
     layout_reset(s->layout);
     return slider_val;
 }    
@@ -219,9 +254,19 @@ void slider_draw(Slider *s)
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(slider_bckgrnd));
     SDL_RenderFillRect(main_win->rend, &s->layout->rect);
 
-
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(slider_bar_container_bckgrnd));
     SDL_RenderFillRect(main_win->rend, &s->layout->children[0]->rect);
+
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.grey));
+    if (s->orientation == SLIDER_VERTICAL) {
+	for (int i=0; i<s->num_points_of_interest; i++) {
+	    SDL_RenderDrawLine(main_win->rend, s->bar_layout->rect.x, s->points_of_interest_draw_locs_pix[i], s->bar_layout->rect.x + s->bar_layout->rect.w, s->points_of_interest_draw_locs_pix[i]);
+	}
+    } else {
+	for (int i=0; i<s->num_points_of_interest; i++) {
+	    SDL_RenderDrawLine(main_win->rend, s->points_of_interest_draw_locs_pix[i], s->bar_layout->rect.y, s->points_of_interest_draw_locs_pix[i], s->bar_layout->rect.y + s->bar_layout->rect.h);
+	}
+    }
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(slider_bar_color));
     SDL_RenderFillRect(main_win->rend, s->bar_rect);
 
@@ -251,8 +296,13 @@ void slider_std_labelmaker(char *dst, size_t dstsize, void *value, ValType type)
 bool slider_mouse_click(Slider *slider, Window *win)
 {
     if (SDL_PointInRect(&main_win->mousep, &slider->layout->rect) && win->i_state & I_STATE_MOUSE_L) {
-	int dim = slider->orientation == SLIDER_VERTICAL ? main_win->mousep.y : main_win->mousep.x;
-	Value newval = slider_val_from_coord(slider, dim);
+	Value newval;
+	if (slider->ep && main_win->i_state & I_STATE_CMDCTRL && !(win->i_state & I_STATE_SHIFT)) {
+	    newval = slider->ep->default_val;
+	} else {
+	    int dim = slider->orientation == SLIDER_VERTICAL ? main_win->mousep.y : main_win->mousep.x;
+	    newval = slider_val_from_coord(slider, dim);
+	}
 	endpoint_start_continuous_change(slider->ep, false, (Value)0, slider->ep->owner_thread, newval);
 	slider_reset(slider);
 
@@ -267,30 +317,36 @@ bool slider_mouse_click(Slider *slider, Window *win)
 
 bool slider_mouse_motion(Slider *slider, Window *win)
 {
-    int dim, mindim, maxdim;
-    switch (slider->orientation) {
-    case SLIDER_VERTICAL:
-	dim = main_win->mousep.y;
-	mindim = slider->layout->rect.y;
-	maxdim = slider->layout->rect.y + slider->layout->rect.h;
-	break;
-    case SLIDER_HORIZONTAL:
-	dim = main_win->mousep.x;
-	mindim = slider->layout->rect.x;
-	maxdim = slider->layout->rect.x + slider->layout->rect.w;
-	break;
-    }
-    /* int dim = slider->orientation == SLIDER_VERTICAL ? main_win->mousep.y : main_win->mousep.x; */
-    /* int mindim = slider->orientation == SLIDER_ */
+    Value newval;
     bool restrict_range = slider->ep->restrict_range;
-    if (slider->disallow_unsafe_mode || !(win->i_state & I_STATE_SHIFT && win->i_state & I_STATE_CMDCTRL)) {
-	if (dim < mindim) dim = mindim;
-	if (dim > maxdim) dim = maxdim;
+    if (slider->ep && win->i_state & I_STATE_CMDCTRL && !(win->i_state & I_STATE_SHIFT)) {
+	newval = slider->ep->default_val;
     } else {
-	status_set_errstr("SLIDER UNSAFE MODE (release ctrl/shift to return to safety!)");
-	slider->ep->restrict_range = false;
+	int dim, mindim, maxdim;
+	switch (slider->orientation) {
+	case SLIDER_VERTICAL:
+	    dim = main_win->mousep.y;
+	    mindim = slider->layout->rect.y;
+	    maxdim = slider->layout->rect.y + slider->layout->rect.h;
+	    break;
+	case SLIDER_HORIZONTAL:
+	    dim = main_win->mousep.x;
+	    mindim = slider->layout->rect.x;
+	    maxdim = slider->layout->rect.x + slider->layout->rect.w;
+	    break;
+	}
+	/* int dim = slider->orientation == SLIDER_VERTICAL ? main_win->mousep.y : main_win->mousep.x; */
+	/* int mindim = slider->orientation == SLIDER_ */
+	if (slider->disallow_unsafe_mode || !(win->i_state & I_STATE_SHIFT && win->i_state & I_STATE_CMDCTRL)) {
+	    if (dim < mindim) dim = mindim;
+	    if (dim > maxdim) dim = maxdim;
+	} else {
+	    status_set_errstr("SLIDER UNSAFE MODE (release ctrl/shift to return to safety!)");
+	    slider->ep->restrict_range = false;
+	}
+
+	newval = slider_val_from_coord(slider, dim);
     }
-    Value newval = slider_val_from_coord(slider, dim);
     endpoint_write(slider->ep, newval, true, true, true, false);
     slider->ep->restrict_range = restrict_range;
     /* jdaw_val_set_ptr(slider->value, slider->val_type, newval); */
@@ -307,13 +363,17 @@ bool slider_mouse_motion(Slider *slider, Window *win)
 void slider_nudge_right(Slider *slider)
 {
     Value range = jdaw_val_sub(slider->max, slider->min, slider->ep->val_type);
-    static const double slider_nudge_prop = SLIDER_NUDGE_PROP;
-    Value nudge_amt = jdaw_val_scale(range, slider_nudge_prop, slider->ep->val_type);
+    /* static const double slider_nudge_prop = SLIDER_NUDGE_PROP; */
+    Value nudge_amt = jdaw_val_scale(range, SLIDER_NUDGE_PROP, slider->ep->val_type);
+    if (jdaw_val_is_zero(nudge_amt, slider->ep->val_type)) {
+	jdaw_val_set_default_incr(&nudge_amt, slider->ep->val_type);
+    }
     Value val = endpoint_safe_read(slider->ep, NULL);
     val = jdaw_val_add(val, nudge_amt, slider->ep->val_type);
     if (jdaw_val_less_than(slider->max, val, slider->ep->val_type)) {
 	val = slider->max;
     }
+    label_reset(slider->label, val);
     endpoint_write(slider->ep, val, true, true, true, true);
 }
 
@@ -322,11 +382,15 @@ void slider_nudge_left(Slider *slider)
     Value range = jdaw_val_sub(slider->max, slider->min, slider->ep->val_type);
     static const double slider_nudge_prop = SLIDER_NUDGE_PROP;
     Value nudge_amt = jdaw_val_scale(range, slider_nudge_prop, slider->ep->val_type);
+    if (jdaw_val_is_zero(nudge_amt, slider->ep->val_type)) {
+	jdaw_val_set_default_incr(&nudge_amt, slider->ep->val_type);
+    }	
     Value val = endpoint_safe_read(slider->ep, NULL);
     val = jdaw_val_sub(val, nudge_amt, slider->ep->val_type);
     if (jdaw_val_less_than(slider->max, val, slider->ep->val_type)) {
 	val = slider->max;
     }
+    label_reset(slider->label, val);
     endpoint_write(slider->ep, val, true, true, true, true);
 }
 
@@ -368,7 +432,7 @@ void slider_nudge_left(Slider *slider)
 
 /* static void stop_update_track_vol_pan() */
 /* { */
-/*     Timeline *tl = proj->timelines[proj->active_tl_index]; */
+/*     Timeline *tl = ACTIVE_TL; */
 /*     Track *trk = NULL; */
 /*     for (int i=0; i<tl->num_tracks; i++) { */
 /* 	trk = tl->tracks[i]; */
@@ -392,27 +456,29 @@ Button *button_create(
     Font *font,
     int text_size,
     SDL_Color *text_color,
-    SDL_Color *background_color)
+    SDL_Color *background_color,
+    bool size_to_fit)
 {
     Button *button = calloc(1, sizeof(Button));
     button->action = action;
     button->target = target;
     button->tb = textbox_create_from_str(text, lt, font, text_size, main_win);
-    button->tb->corner_radius = BUTTON_CORNER_RADIUS;
     textbox_set_trunc(button->tb, false);
-    textbox_set_border(button->tb, text_color, 1);
-    textbox_set_style(button->tb, BUTTON_CLASSIC);
+    textbox_set_border(button->tb, text_color, 1, BUTTON_CORNER_RADIUS);
+    /* textbox_set_style(button->tb, BUTTON_CLASSIC); */
     textbox_set_text_color(button->tb, text_color);
     textbox_set_background_color(button->tb, background_color);
     textbox_set_align(button->tb, CENTER);
-    textbox_size_to_fit(button->tb, 6, 2);
+    if (size_to_fit)
+	textbox_size_to_fit(button->tb, 6, 2);
     textbox_reset_full(button->tb);
     return button;
 }
 
 SymbolButton *symbol_button_create(
     Layout *lt,
-    Symbol *symbol,
+    int symbol_index,
+    /* Symbol *symbol, */
     ComponentFn action,
     void *target,
     SDL_Color *background_color)
@@ -420,7 +486,8 @@ SymbolButton *symbol_button_create(
     SymbolButton *button = calloc(1, sizeof(SymbolButton));
     button->action = action;
     button->target = target;
-    button->symbol = symbol;
+    button->symbol_index = symbol_index;
+    /* button->symbol = symbol; */
     button->layout = lt;
     button->background_color = background_color;
     return button;
@@ -434,19 +501,47 @@ void button_draw(Button *button)
 void symbol_button_draw(SymbolButton *sbutton)
 {
     if (sbutton->background_color) {
-	symbol_draw_w_bckgrnd(sbutton->symbol, &sbutton->layout->rect, sbutton->background_color);
+	symbol_draw_w_bckgrnd(SYMBOL_TABLE[sbutton->symbol_index], &sbutton->layout->rect, sbutton->background_color);
     } else {
-	symbol_draw(sbutton->symbol, &sbutton->layout->rect);
+	symbol_draw(SYMBOL_TABLE[sbutton->symbol_index], &sbutton->layout->rect);
     }
 }
 
 void button_destroy(Button *button)
 {
+    /* Unbind the UserFn */
+    if (button->bound_userfn) {
+	button->bound_userfn->bound_button = NULL;
+    }
     if (button->animation) {
-	project_dequeue_animation(button->animation);
+	session_dequeue_animation(button->animation);
     }
     textbox_destroy(button->tb);
     free(button);
+}
+
+
+/* bckgrnd_color is optional; the existing textbox color will be used otherwise */
+void button_bind_userfn(
+    Button *button,
+    char *fn_id,
+    InputMode im,
+    SDL_Color *pressed_color,
+    SDL_Color *bckgrnd_color)
+{
+    UserFn *userfn = input_get_fn_by_id(fn_id, im);
+    if (!userfn) {
+	fprintf(stderr, "Error: no function \"%s\" found in mode \"%s\".\n", fn_id, input_mode_str(im));
+	return;
+    }
+    userfn->bound_button = button;
+    button->bound_userfn = userfn;
+    if (pressed_color) button->pressed_color = pressed_color;
+    if (bckgrnd_color)
+	button->return_color = bckgrnd_color;
+    else
+	button->return_color = button->tb->bckgrnd_clr;
+    
 }
 
 void symbol_button_destroy(SymbolButton *sbutton)
@@ -454,28 +549,23 @@ void symbol_button_destroy(SymbolButton *sbutton)
     free(sbutton);
 }
 
-extern Project *proj;
-extern void project_active_tl_redraw(Project *proj);
+extern void project_active_tl_redraw();
 static void button_end_animation(void *arg1, void *arg2)
 {
     Button *b = (Button *)arg1;
     SDL_Color *c = (SDL_Color *)arg2;
     textbox_set_background_color(b->tb, c);
-    project_active_tl_redraw(proj);
+    project_active_tl_redraw();
     b->animation = NULL;
     
 }
 void button_press_color_change(
     Button *button,
     SDL_Color *temp_color,
-    SDL_Color *return_color,
-    ComponentFn callback,
-    void *callback_target)
+    SDL_Color *return_color)
 {
     textbox_set_background_color(button->tb, temp_color);
-    
-    button->animation = project_queue_animation(NULL, button_end_animation, (void *)button, (void *)return_color, BUTTON_COLOR_CHANGE_STD_DELAY);
-    /* textbox_schedule_color_change(button->tb, BUTTON_COLOR_CHANGE_STD_DELAY, return_color, false, callback, callback_target); */
+    button->animation = session_queue_animation(NULL, button_end_animation, (void *)button, (void *)return_color, BUTTON_COLOR_CHANGE_STD_DELAY);
 }
 
 
@@ -495,7 +585,7 @@ TextEntry *textentry_create(
     te->tb = textbox_create_from_str(value_handle, lt, font, text_size, win);
     /* textbox_set_text_color(te->tb, &textentry_text_color); */
     /* textbox_set_background_color(te->tb, &textentry_background); */
-    /* textbox_set_border(te->tb, &color_global_black, 1); */
+    /* textbox_set_border(te->tb, &colors.black, 1); */
     /* textbox_size_to_fit_v(te->tb, TEXTENTRY_V_PAD); */
     textbox_set_align(te->tb, CENTER_LEFT);
     textbox_set_pad(te->tb, 8, 0);
@@ -684,6 +774,13 @@ RadioButton *radio_button_create(
     return rb;
 }
 
+void radio_grey_item(RadioButton *rb, int index)
+{
+    Textbox *tb = rb->items[index];
+    textbox_set_text_color(tb, &colors.grey);
+    textbox_reset(tb);
+}
+
 void radio_button_reset_from_endpoint(RadioButton *rb)
 {
     /* if (!rb->target) return; */
@@ -706,7 +803,7 @@ void radio_button_draw(RadioButton *rb)
 	int orig_y = circle_container->rect.y + RADIO_BUTTON_RAD_PAD;
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(slider_bar_container_bckgrnd));
 	geom_fill_circle(main_win->rend, orig_x, orig_y, r);
-	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(color_global_grey));
+	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.grey));
 	geom_draw_circle(main_win->rend, orig_x, orig_y, r);
 	if (i==rb->selected_item) {
 	    r -= RADIO_BUTTON_RAD_PAD;
@@ -722,20 +819,22 @@ void radio_cycle_back(RadioButton *rb)
 {
     if (rb->selected_item > 0)
 	rb->selected_item--;
-    /* else */
-    /* 	rb->selected_item = rb->num_items - 1; */
-    
-    endpoint_write(rb->ep, (Value){.int_v = rb->selected_item}, true, true, true, true);
+    else
+	rb->selected_item = rb->num_items - 1;
+
+    if (rb->ep)
+	endpoint_write(rb->ep, (Value){.int_v = rb->selected_item}, true, true, true, true);
     /* if (rb->action) rb->action((void *)rb, rb->target); */
 }
 
 void radio_cycle(RadioButton *rb)
 {
-    if (rb->selected_item == rb->num_items - 1) return;
+    /* if (rb->selected_item == rb->num_items - 1) return; */
     rb->selected_item++;
-    /* rb->selected_item %= rb->num_items; */
-    
-    endpoint_write(rb->ep, (Value){.int_v = rb->selected_item}, true, true, true, true);
+    rb->selected_item %= rb->num_items;
+
+    if (rb->ep)
+	endpoint_write(rb->ep, (Value){.int_v = rb->selected_item}, true, true, true, true);
     /* if (rb->action) rb->action((void *)rb, rb->target); */
 }
 
@@ -745,7 +844,8 @@ bool radio_click(RadioButton *rb, Window *Win)
 	for (uint8_t i = 0; i<rb->num_items; i++) {
 	    if (SDL_PointInRect(&main_win->mousep, &(rb->layout->children[i]->rect))) {
 		rb->selected_item = i;
-		endpoint_write(rb->ep, (Value){.int_v = rb->selected_item}, true, true, true, true);
+		if (rb->ep)
+		    endpoint_write(rb->ep, (Value){.int_v = rb->selected_item}, true, true, true, true);
 		/* if (rb->action) { */
 		/*     rb->action((void *)rb, rb->target); */
 		/* } */
@@ -767,6 +867,105 @@ void radio_destroy(RadioButton *rb)
     free(rb);
 
 }
+
+
+/* Symbol Radio button */
+
+SymbolRadio *symbol_radio_create(
+    Layout *lt,
+    int *symbol_indices,
+    /* Symbol **symbols, */
+    uint8_t num_items,
+    Endpoint *ep,
+    bool align_horizontal,
+    int padding,
+    SDL_Color *sel_color,
+    SDL_Color *unsel_color)
+{
+    SymbolRadio *sr = calloc(1, sizeof(SymbolRadio));
+    sr->ep = ep;
+    sr->num_items = num_items;
+    sr->layout = lt;
+    sr->ep = ep;
+    sr->sel_color = sel_color;
+    sr->unsel_color = unsel_color;
+    /* memcpy(sr->symbols, symbols, num_items * sizeof(Symbol *)); */
+    memcpy(sr->symbol_indices, symbol_indices, num_items * sizeof(int));
+    for (int i=0; i<num_items; i++) {
+	Layout *item_lt = layout_add_child(lt);
+	if (align_horizontal) {
+	    item_lt->x.type = STACK;
+	    item_lt->y.type = REL;
+	    item_lt->x.value = padding;
+	} else {
+	    item_lt->x.type = REL;
+	    item_lt->y.type = STACK;
+	    item_lt->y.value = padding;
+	}
+	item_lt->w.value = SYMBOL_TABLE[symbol_indices[i]]->x_dim_pix / main_win->dpi_scale_factor;
+	item_lt->h.value = SYMBOL_TABLE[symbol_indices[i]]->y_dim_pix / main_win->dpi_scale_factor;	
+    }
+    return sr;
+
+}
+
+void symbol_radio_reset_from_endpoint(SymbolRadio *sr)
+{
+    Value val = endpoint_safe_read(sr->ep, NULL);
+    sr->selected_item = val.int_v;
+}
+
+void symbol_radio_draw(SymbolRadio *sr)
+{
+    for (uint8_t i=0; i<sr->num_items; i++) {
+	Layout *lt = sr->layout->children[i];
+
+	if (i==sr->selected_item)
+	    symbol_draw_w_bckgrnd(SYMBOL_TABLE[sr->symbol_indices[i]], &lt->rect, sr->sel_color);
+	else
+	    symbol_draw_w_bckgrnd(SYMBOL_TABLE[sr->symbol_indices[i]], &lt->rect, sr->unsel_color);
+    }
+}
+
+void symbol_radio_cycle_back(SymbolRadio *sr)
+{
+    if (sr->selected_item > 0)
+	sr->selected_item--;
+    else
+	sr->selected_item = sr->num_items - 1;
+    endpoint_write(sr->ep, (Value){.int_v = sr->selected_item}, true, true, true, true);
+}
+
+void symbol_radio_cycle(SymbolRadio *sr)
+{
+    /* if (sr->selected_item == sr->num_items - 1) return; */
+    sr->selected_item++;
+    sr->selected_item %= sr->num_items;
+    endpoint_write(sr->ep, (Value){.int_v = sr->selected_item}, true, true, true, true);
+}
+
+bool symbol_radio_click(SymbolRadio *sr, Window *Win)
+{
+    if (SDL_PointInRect(&main_win->mousep, &sr->layout->rect)) {
+	for (uint8_t i = 0; i<sr->num_items; i++) {
+	    if (SDL_PointInRect(&main_win->mousep, &(sr->layout->children[i]->rect))) {
+		sr->selected_item = i;
+		endpoint_write(sr->ep, (Value){.int_v = sr->selected_item}, true, true, true, true);
+		return true;
+	    }
+	}
+    }
+    return false;
+}
+
+void symbol_radio_destroy(SymbolRadio *sr)
+{
+    /* layout_destroy(sr->layout); */
+    free(sr);
+}
+
+
+
 
 
 /* Waveform */
@@ -803,10 +1002,14 @@ void waveform_destroy(Waveform *w)
 
 void waveform_draw(Waveform *w)
 {
+   
     SDL_SetRenderDrawColor(main_win->rend, sdl_colorp_expand(w->background_color));
     SDL_RenderFillRect(main_win->rend, &w->layout->rect);
-    SDL_SetRenderDrawColor(main_win->rend, sdl_colorp_expand(w->plot_color));
-    waveform_draw_all_channels_generic(w->channels, w->type, w->num_channels, w->len, &w->layout->rect, 0, main_win->w_pix);
+    /* SDL_SetRenderDrawColor(main_win->rend, sdl_colorp_expand(w->plot_color)); */
+    waveform_draw_all_channels_generic(w->channels, w->type, w->num_channels, w->len, &w->layout->rect, 0, main_win->w_pix, (double)w->len / w->layout->rect.w, w->plot_color, 1.0);
+
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.dark_grey));
+    SDL_RenderDrawRect(main_win->rend, &w->layout->rect);
 }
 
 /* Canvas */
@@ -831,11 +1034,183 @@ void canvas_destroy(Canvas *c)
     free(c);
 }
 
+
+Dropdown *dropdown_create(
+    Layout *lt,
+    const char *header,
+    char **item_names,
+    char **item_annotations,
+    void **item_args,
+    uint8_t num_items,
+    int *reset_from,
+    /* bool free_args_on_destroy, */
+    int (*selection_fn)(Dropdown *self, void *arg))
+{
+    Dropdown *d = calloc(1, sizeof(Dropdown));
+    d->layout = lt;
+    if (!item_names) {
+	fprintf(stderr, "Error: dropdown_create: item_names cannot be null\n");
+	free(d);
+	return NULL;
+    }
+    d->reset_from = reset_from;
+    d->item_names = calloc(num_items, sizeof(char *));
+    memcpy(d->item_names, item_names, num_items * sizeof(char *));
+    if (item_annotations) {
+	d->item_annotations = calloc(num_items, sizeof(char *));
+	memcpy(d->item_annotations, item_annotations, num_items * sizeof(char *));
+    }
+    if (item_args) {
+	d->item_args = calloc(num_items, sizeof(void *));
+	memcpy(d->item_args, item_args, num_items * sizeof(void *));
+    }
+    d->num_items = num_items;
+    /* d->free_args_on_destroy = free_args_on_destroy; */
+    d->selection_fn = selection_fn;
+    d->tb = textbox_create_from_str(
+	item_names[0],
+	lt,
+	main_win->std_font,
+	12,
+	main_win);
+    textbox_set_trunc(d->tb, false);
+    textbox_set_style(d->tb, BUTTON_DARK);
+    textbox_reset_full(d->tb);
+    return d;
+}
+
+void dropdown_reset(Dropdown *d)
+{
+    MAIN_THREAD_ONLY("dropdown_reset");
+    if (d->reset_from) {
+	int reset = *d->reset_from;
+	if (reset >= d->num_items || reset < 0) {
+	    fprintf(stderr, "Error in dropdown reset: 'reset_from' value is %d (allowed range 0-%d)\n", reset, d->num_items);
+	} else {
+	    d->selected_item = *d->reset_from;
+	}
+    }
+    /* fprintf(stderr, "Selected item: %d\n", d->selected_item); */
+    textbox_set_value_handle(d->tb, d->item_names[d->selected_item]);
+}
+
+void dropdown_draw(Dropdown *d)
+{
+    textbox_draw(d->tb);
+}
+
+void dropdown_destroy(Dropdown *d)
+{
+    textbox_destroy(d->tb);
+    free(d->item_names);
+    if (d->item_annotations) free(d->item_annotations);
+    if (d->item_args) free(d->item_args);
+    free(d);
+}
+
+struct dropdown_menu_item_arg {
+    Dropdown *d;
+    void *inner_arg;
+    int index;
+};
+
+static void dropdown_item_onclick(void *arg_v)
+{
+    struct dropdown_menu_item_arg *arg = arg_v;
+    Dropdown *d = arg->d;
+    int ret = 0;
+    if (d->selection_fn) {
+        ret = d->selection_fn(d, arg->inner_arg);
+    }
+    if (ret < 0) {
+	fprintf(stderr, "Dropdown: invalid\n");
+    } else { /* Allow textbox reset to happen in reset fn */
+	
+	/* d->selected_item = arg->index; */
+	/* textbox_set_value_handle(d->tb, d->item_names[arg->index]); */
+	/* textbox_reset_full(d->tb); */
+    }
+    window_pop_menu(main_win);
+}
+
+
+void dropdown_create_menu(Dropdown *d)
+{
+    Menu *menu = menu_create_at_point(d->layout->rect.x, d->layout->rect.y);
+    MenuColumn *c = menu_column_add(menu, "");
+    MenuSection *s = menu_section_add(c, "");
+    for (int i=0; i<d->num_items; i++) {
+	struct dropdown_menu_item_arg *arg = malloc(sizeof(struct dropdown_menu_item_arg));
+	arg->d = d;
+	arg->inner_arg = d->item_args ? d->item_args[i] : NULL;
+	arg->index = i;
+	MenuItem *item = menu_item_add(
+	    s,
+	    d->item_names[i],
+	    d->item_annotations ? d->item_annotations[i] : NULL,
+	    dropdown_item_onclick,
+	    arg);	
+	item->free_target_on_destroy = true;
+	/* item->free_target_on_destroy = d->free_args_on_destroy; */
+    }
+    if (d->header) menu_add_header(menu, d->header, d->description);
+    window_add_menu(main_win, menu);
+    
+    /* MenuSubcat *sc = menu_add_subcat(menu, ""); */
+}
+
+bool dropdown_click(Dropdown *d, Window *win)
+{
+    if (SDL_PointInRect(&win->mousep, &d->layout->rect)) {
+	dropdown_create_menu(d);
+	return true;
+    } else {
+	return false;
+    }
+}
+
+/* Status light */
+
+StatusLight *status_light_create(Layout *lt, void *value, size_t val_size)
+{
+    StatusLight *sl = calloc(1, sizeof(StatusLight));
+    sl->layout = lt;
+    sl->value = value;
+    sl->val_size = val_size;
+    Layout *inner = layout_add_child(lt);
+    inner->rect.w = SYMBOL_TABLE[SYMBOL_STATUS_ON]->x_dim_pix;
+    inner->rect.h = inner->rect.w;
+    layout_set_values_from_rect(inner);
+    layout_center_agnostic(inner, true, true);
+    return sl;
+    
+}
+
+void status_light_draw(StatusLight *sl)
+{
+    char zero[sl->val_size];
+    memset(zero, '\0', sl->val_size * sizeof(char));
+    if (memcmp(sl->value, zero, sl->val_size) == 0) {
+	symbol_draw(SYMBOL_TABLE[SYMBOL_STATUS_OFF], &sl->layout->children[0]->rect);
+    } else {
+	symbol_draw(SYMBOL_TABLE[SYMBOL_STATUS_ON], &sl->layout->children[0]->rect);
+    }
+}
+
+void status_light_destroy(StatusLight *sl)
+{
+    free(sl);
+}
+
+
 /* Mouse functions */
 
 typedef struct click_segment ClickSegment;
 bool click_track_mouse_motion(ClickSegment *s, Window *win);
 void tabview_tab_drag(TabView *tv, Window *win);
+typedef struct clip_ref ClipRef;
+void clipref_gain_drag(ClipRef *cr, Window *win);
+void click_track_drag_pos(ClickSegment *s, Window *win);
 bool draggable_mouse_motion(Draggable *draggable, Window *win)
 {
     switch (draggable->type) {
@@ -849,6 +1224,12 @@ bool draggable_mouse_motion(Draggable *draggable, Window *win)
 	return true;
     case DRAG_TABVIEW_TAB:
 	tabview_tab_drag((TabView *)draggable->component, win);
+	return true;
+    case DRAG_CLIPREF_GAIN:
+	clipref_gain_drag((ClipRef *)draggable->component, win);
+	return true;
+    case DRAG_CLICK_TRACK_POS:
+	click_track_drag_pos((ClickSegment *)draggable->component, win);
 	return true;
     }
     return false;
@@ -870,8 +1251,15 @@ bool toggle_click(Toggle *toggle, Window *win)
 bool button_click(Button *button, Window *win)
 {
     if (SDL_PointInRect(&main_win->mousep, &button->tb->layout->rect)) {
-	if (button->action) 
+	if (button->bound_userfn) {
+	    button_press_color_change(
+		button,
+		button->pressed_color,
+		button->return_color);
+	}
+	if (button->action) {
 	    button->action((void *)button, button->target);
+	}
 	return true;
     }
     return false;

@@ -1,11 +1,22 @@
+/*****************************************************************************************************************
+  Jackdaw | https://jackdaw-audio.net/ | a free, keyboard-focused DAW | built on SDL (https://libsdl.org/)
+******************************************************************************************************************
+
+  Copyright (C) 2023-2025 Charlie Volow
+  
+  Jackdaw is licensed under the GNU General Public License.
+
+*****************************************************************************************************************/
+
+#include "SDL_events.h"
 #include "color.h"
 #include "geometry.h"
-#include "menu.h"
 #include "layout_xml.h"
-#include "project.h"
+#include "session.h"
 #include "textbox.h"
 
-extern Project *proj;
+#define MAX_EVENTS_TO_PUSH 256
+
 extern Window *main_win;
 
 extern SDL_Color menu_std_clr_inner_border;
@@ -13,9 +24,10 @@ extern SDL_Color menu_std_clr_outer_border;
 
 static const SDL_Color txt_clr = {10, 245, 10, 255};
 
-void project_loading_screen_deinit(Project *proj)
+void session_loading_screen_deinit()
 {
-    LoadingScreen *ls = &proj->loading_screen;
+    Session *session = session_get();
+    LoadingScreen *ls = &session->loading_screen;
     if (ls->title_tb) textbox_destroy(ls->title_tb);
     if (ls->subtitle_tb) textbox_destroy(ls->subtitle_tb);
     ls->title_tb = NULL;
@@ -29,9 +41,11 @@ static void loading_screen_init(
     bool draw_progress_bar)
 {
     if (title)
-	strncpy(ls->title, title, MAX_LOADSTR_LEN);
+	snprintf(ls->title, MAX_LOADSTR_LEN, "%s", title);
+	/* strlcpy(ls->title, title, MAX_LOADSTR_LEN); */
     if (subtitle)
-	strncpy(ls->subtitle, subtitle, MAX_LOADSTR_LEN);
+	snprintf(ls->subtitle, MAX_LOADSTR_LEN, "%s", subtitle);
+	/* strlcpy(ls->subtitle, subtitle, MAX_LOADSTR_LEN); */
     ls->draw_progress_bar = draw_progress_bar;
 
     if (ls->layout) layout_destroy(ls->layout);
@@ -72,12 +86,13 @@ static void loading_screen_init(
 }
 
 
-void project_set_loading_screen(
+void session_set_loading_screen(
     const char *title,
     const char *subtitle,
     bool draw_progress_bar)
 {
-    LoadingScreen *ls = &proj->loading_screen;
+    Session *session = session_get();
+    LoadingScreen *ls = &session->loading_screen;
     loading_screen_init(ls, title, subtitle, draw_progress_bar);
 
     window_start_draw(main_win, NULL);
@@ -116,7 +131,7 @@ static void loading_screen_draw(LoadingScreen *ls)
 	SDL_RenderFillRect(main_win->rend, &progress);
 	
 	SDL_SetRenderDrawColor(main_win->rend, 100, 100, 100, 255);
-	geom_draw_rect_thick(main_win->rend, ls->progress_bar_rect, 2, main_win->dpi_scale_factor);
+	geom_draw_rect_thick(main_win->rend, ls->progress_bar_rect, 2 * main_win->dpi_scale_factor);
     }
 
     window_end_draw(main_win);
@@ -124,15 +139,17 @@ static void loading_screen_draw(LoadingScreen *ls)
 
 
 /* Return 1 to abort operation */
-int project_loading_screen_update(
+int session_loading_screen_update(
     const char *subtitle,
     float progress)
 {
     /* return 0; */
-    LoadingScreen *ls = &proj->loading_screen;
+    Session *session = session_get();
+    LoadingScreen *ls = &session->loading_screen;
     ls->progress = progress;
     if (subtitle) {
-	strncpy(ls->subtitle, subtitle, MAX_LOADSTR_LEN);
+	snprintf(ls->subtitle, MAX_LOADSTR_LEN, "%s", subtitle);
+	/* strlcpy(ls->subtitle, subtitle, MAX_LOADSTR_LEN); */
 	textbox_reset_full(ls->subtitle_tb);
     }
     
@@ -140,6 +157,8 @@ int project_loading_screen_update(
     
     SDL_Event e;
 
+    int num_events_to_push = 0;
+    SDL_Event events_to_push[MAX_EVENTS_TO_PUSH];
     while (SDL_PollEvent(&e)) {
 	switch (e.type) {
 	case SDL_QUIT:
@@ -152,7 +171,15 @@ int project_loading_screen_update(
 	    default:
 		break;
 	    }
+	default:
+	    if (num_events_to_push < MAX_EVENTS_TO_PUSH) {
+		events_to_push[num_events_to_push] = e;
+		num_events_to_push++;
+	    }
 	}
+    }
+    for (int i=0; i<num_events_to_push; i++) {
+	SDL_PushEvent(events_to_push + i);
     }
     return 0;
 }

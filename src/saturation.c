@@ -8,12 +8,6 @@
 
 *****************************************************************************************************************/
 
-/*****************************************************************************************************************
-    saturation.c
-
-    * tanh waveshaping saturator
- *****************************************************************************************************************/
-
 #include "endpoint_callbacks.h"
 #include "saturation.h"
 
@@ -49,13 +43,28 @@ void saturation_init(Saturation *s)
 	"gain",
 	"Gain",
 	JDAW_THREAD_DSP,
-	track_settings_page_el_gui_cb, NULL,
+	page_el_gui_cb, NULL,
 	saturation_gain_cb,
 	(void *)s, NULL, &s->effect->page, "track_settings_saturation_gain_slider");
     endpoint_set_allowed_range(&s->gain_ep, (Value){.double_v = 1.0}, (Value){.double_v = SATURATION_MAX_GAIN});
     endpoint_set_default_value(&s->gain_ep, (Value){.double_v = 1.0});
     endpoint_set_label_fn(&s->gain_ep, label_amp_to_dbstr);
     api_endpoint_register(&s->gain_ep, &s->effect->api_node);
+
+    endpoint_init(
+	&s->symmetry_ep,
+	&s->symmetry,
+	JDAW_DOUBLE,
+	"symmetry",
+	"Symmetry",
+	JDAW_THREAD_DSP,
+	page_el_gui_cb, NULL,
+	saturation_gain_cb,
+	(void *)s, NULL, &s->effect->page, "track_settings_saturation_symmetry_slider");
+    endpoint_set_allowed_range(&s->symmetry_ep, (Value){.double_v = -1.0}, (Value){.double_v = 1.0});
+    endpoint_set_default_value(&s->symmetry_ep, (Value){.double_v = 0.0});
+    api_endpoint_register(&s->symmetry_ep, &s->effect->api_node);
+
     
     endpoint_init(
 	&s->gain_comp_ep,
@@ -75,32 +84,49 @@ void saturation_init(Saturation *s)
 	"type",
 	"Type",
 	JDAW_THREAD_DSP,
-	track_settings_page_el_gui_cb, NULL, saturation_type_cb,
+	page_el_gui_cb, NULL, saturation_type_cb,
 	(void *)s, NULL, &s->effect->page, "track_settings_saturation_type");
 }
 
 static double saturation_sample_tanh(Saturation *s, double in)
 {
-    return tanh(in * s->gain) * s->gain_comp_val;
+    int sign_in = in / fabs(in);
+    int symmetry = s->symmetry / fabs(s->symmetry);
+    int shared_sign = symmetry * sign_in;
+    if (shared_sign >= 0) {
+	return tanh(in * s->gain) * s->gain_comp_val;
+    }
+    return tanh(in * s->gain * (1.0 - fabs(s->symmetry))) * s->gain_comp_val;
 }
 
 static double saturation_sample_tanh_no_gain_comp(Saturation *s, double in)
 {
-    return tanh(in * s->gain);
+    int sign_in = in / fabs(in);
+    int symmetry = s->symmetry / fabs(s->symmetry);
+    int shared_sign = symmetry * sign_in;
+    if (shared_sign >= 0) {
+	return tanh(in * s->gain);
+    }
+    return tanh(in * s->gain * (1.0 - fabs(s->symmetry)));
 }
 
 static double saturation_sample_exponential_no_gain_comp(Saturation *s, double in)
 {
     /* return tanh(2 * in * s->gain - pow(in * s->gain, 3.0) / 3.0); */
     int sign = in < 0 ? -1 : 1;
-    return sign * (1.0-exp(-1 * fabs(in * s->gain)));
+    int symmetry = s->symmetry / fabs(s->symmetry);
+    int shared_sign = symmetry * sign;
+    if (shared_sign >= 0) {
+	return sign * (1.0-exp(-1 * fabs(in * s->gain)));
+    }
+    in = in * s->gain * (1.0 - fabs(s->symmetry));
+    return sign * (1.0-exp(-1 * fabs(in)));
+
     /* return 2.0 / (1 + exp(in * -2 * s->gain)) - 1; */
 }
 static double saturation_sample_exponential(Saturation *s, double in)
 {
     return saturation_sample_exponential_no_gain_comp(s, in) * s->gain_comp_val;
-    /* return sign * (1.0-exp(-1 * fabs(in * s->gain))); */
-    /* return s->logistic_gain_comp_val * s->gain_comp_val * (2.0 / (1 + exp(in * -2 * s->gain)) - 1); */
 }
 
 
@@ -132,7 +158,7 @@ static double saturation_sample(Saturation *s, double in)
     /* return tanh(in * s->amp); */
 }
 
-float saturation_buf_apply(void *saturation_v, float *buf, int len, int channel_unused, float input_amp)
+float saturation_buf_apply(void *saturation_v, float *restrict buf, int len, int channel_unused, float input_amp)
 {
     Saturation *s = saturation_v;
     /* if (!s->active) return input_amp; */

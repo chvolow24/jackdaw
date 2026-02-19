@@ -1,44 +1,21 @@
-/*****************************************************************************************************************
-  Jackdaw | https://jackdaw-audio.net/ | a free, keyboard-focused DAW | built on SDL (https://libsdl.org/)
-******************************************************************************************************************
-
-  Copyright (C) 2023-2025 Charlie Volow
-  
-  Jackdaw is licensed under the GNU General Public License.
-
-*****************************************************************************************************************/
-
-/*****************************************************************************************************************
-    effect_pages.c
-
-    * horrible procedural construction of GUI pages for effects
-    * this is why they invented HTML
- *****************************************************************************************************************/
-
-
+#include "assets.h"
 #include "color.h"
 #include "delay_line.h"
 #include "fir_filter.h"
 #include "geometry.h"
+#include "page.h"
 #include "project.h"
 #include "saturation.h"
-#include "waveform.h"
+#include "session.h"
 
 #define LABEL_STD_FONT_SIZE 12
 #define RADIO_STD_FONT_SIZE 14
 
 extern Window *main_win;
-extern Project *proj;
-
 extern SDL_Color EQ_CTRL_COLORS[];
 extern SDL_Color EQ_CTRL_COLORS_LIGHT[];
 
-extern SDL_Color color_global_black;
-extern SDL_Color color_global_white;
-extern SDL_Color color_global_light_grey;
-extern SDL_Color color_global_white;
-extern SDL_Color freq_L_color;
-extern SDL_Color freq_R_color;
+extern struct colors colors;
 
 SDL_Color filter_selected_clr = {50, 50, 200, 255};
 SDL_Color filter_selected_inactive = {100, 100, 100, 100};
@@ -54,31 +31,31 @@ static SDL_Color page_colors[] = {
     {94, 58, 61, 255},
 };
 
-Page *add_eq_page(EQ *eq, Track *t, TabView *tv);
-Page *add_fir_filter_page(FIRFilter *f, Track *t, TabView *tv);
-Page *add_delay_page(DelayLine *dl, Track *t, TabView *tv);
-Page *add_saturation_page(Saturation *s, Track *t, TabView *tv);
-Page *add_compressor_page(Compressor *c, Track *t, TabView *tv);
+static Page *add_eq_page(EQ *eq, EffectChain *ec, TabView *tv);
+static Page *add_fir_filter_page(FIRFilter *f, EffectChain *ec, TabView *tv);
+static Page *add_delay_page(DelayLine *dl, EffectChain *ec, TabView *tv);
+static Page *add_saturation_page(Saturation *s, EffectChain *ec, TabView *tv);
+static Page *add_compressor_page(Compressor *c, EffectChain *ec, TabView *tv);
 
-Page *effect_add_page(Effect *e, TabView *tv)
+static Page *effect_add_page(Effect *e, TabView *tv)
 {
-    Track *t = e->track;
+    /* Track *t = e->track; */
     Page *p = NULL;
     switch(e->type) {
     case EFFECT_EQ:
-	p = add_eq_page(e->obj, t, tv);
+	p = add_eq_page(e->obj, e->effect_chain, tv);
 	break;
     case EFFECT_FIR_FILTER:
-	p = add_fir_filter_page(e->obj, t, tv);
+	p = add_fir_filter_page(e->obj, e->effect_chain, tv);
 	break;
     case EFFECT_DELAY:
-	p = add_delay_page(e->obj, t, tv);
+	p = add_delay_page(e->obj, e->effect_chain, tv);
 	break;
     case EFFECT_SATURATION:
-	p = add_saturation_page(e->obj, t, tv);
+	p = add_saturation_page(e->obj, e->effect_chain, tv);
 	break;
     case EFFECT_COMPRESSOR:
-	p = add_compressor_page(e->obj, t, tv);
+	p = add_compressor_page(e->obj, e->effect_chain, tv);
 	break;
     default:
 	break;
@@ -89,32 +66,32 @@ Page *effect_add_page(Effect *e, TabView *tv)
     return p;
 }
 
-static void track_effects_swap_pair(Track *track, int swap_i, int swap_j, bool from_undo);
-
+static void effect_chain_swap_pair(EffectChain *ec, int swap_i, int swap_j, bool from_undo);
 NEW_EVENT_FN(undo_redo_swap_effect_order, "undo/redo change effect order")
-    Track *track = obj1;
+    EffectChain *ec = obj1;
     int swap_i = val1.double_pair_v[0];
     int swap_j = val1.double_pair_v[1];
-    track_effects_swap_pair(track, swap_i, swap_j, true);
+    effect_chain_swap_pair(ec, swap_i, swap_j, true);
 }
 
-static void track_effects_swap_pair(Track *track, int swap_i, int swap_j, bool from_undo)
+static void effect_chain_swap_pair(EffectChain *ec, int swap_i, int swap_j, bool from_undo)
 {
-    Effect *displaced = track->effects[swap_i];
-    track->effects[swap_i] = track->effects[swap_j];
-    track->effects[swap_j] = displaced;
+    Effect *displaced = ec->effects[swap_i];
+    ec->effects[swap_i] = ec->effects[swap_j];
+    ec->effects[swap_j] = displaced;
     if (!from_undo) {
 	user_event_push(
-	    &proj->history,
+	    
 	    undo_redo_swap_effect_order,undo_redo_swap_effect_order, NULL, NULL,
-	    track, NULL,
+	    ec, NULL,
 	    (Value){.double_pair_v = {swap_j, swap_i}}, (Value){0},
 	    (Value){.double_pair_v = {swap_i, swap_j}}, (Value){0},
 	    0, 0,
 	    false, false);
     } else {
+	/* TODO: replace tabview check */
 	TabView *tv = main_win->active_tabview;
-	if (tv && strcmp(tv->title, "Track Effects") == 0) {
+	if (tv &&  tv->connected_obj == ec) {
 	    tabview_swap_adjacent_tabs(tv, swap_i, swap_j, false);
 	}
     }
@@ -123,22 +100,35 @@ static void track_effects_swap_pair(Track *track, int swap_i, int swap_j, bool f
 
 static void swapfn(void *target, int swap_i, int swap_j)
 {
-    Track *track = target;
-    track_effects_swap_pair(track, swap_i, swap_j, false);
+    effect_chain_swap_pair(target, swap_i, swap_j, false);
 	
 }
 
-TabView *track_effects_tabview_create(Track *track)
+TabView *effect_chain_tabview_create(EffectChain *ec)
 {
-    TabView *tv = tabview_create("Track Effects", proj->layout, main_win);
-    for (int i=0; i<track->num_effects; i++) {
-	effect_add_page(track->effects[i], tv);
+    Session *session = session_get();
+    TabView *tv = tabview_create("Effects", session->gui.layout, main_win);
+    for (int i=0; i<ec->num_effects; i++) {
+	effect_add_page(ec->effects[i], tv);
     }
     tv->swap_fn = swapfn;
-    tv->swap_fn_target = track;
+    tv->swap_fn_target = ec;
     return tv;
 
 }
+
+void effect_chain_open_tabview(EffectChain *ec)
+{
+    if (main_win->active_tabview) {
+	tabview_close(main_win->active_tabview);
+    }
+    if (ec->num_effects > 0) {
+	TabView *tv = effect_chain_tabview_create(ec);
+    /* TabView *tv = track_effects_tabview_create(track); */
+	tabview_activate(tv, ec, ec->obj_name);
+    }
+}
+
 
 void filter_tabs_canvas_draw(void *draw_arg1, void *draw_arg2);
 static void compressor_canvas_draw(void *draw_arg1, void *draw_arg2);
@@ -150,17 +140,8 @@ static void create_track_selection_area(Page *page, Track *track);
 static int next_track(void *self_v, void *target);
 static int previous_track(void *self_v, void *target);
 static double unscale_freq(double scaled);
-/* static int toggle_delay_line_target_action(void *self_v, void *target); */
-/* static int toggle_saturation_gain_comp(void *self_v, void *target); */
 
-/* static int toggle_eq_active(void *self_v, void *target); */
-/* static int toggle_fir_filter_active(void *self_v, void *target); */
-/* static int toggle_delay_line_active(void *self_v, void *target); */
-/* static int toggle_saturation_active(void *self_v, void *target); */
-/* static int toggle_compressor_active(void *self_v, void *target); */
-
-
-Page *add_eq_page(EQ *eq, Track *track, TabView *tv)
+static Page *add_eq_page(EQ *eq, EffectChain *ec, TabView *tv)
 {
     Page *page = tabview_add_page(
 	tv,
@@ -168,7 +149,7 @@ Page *add_eq_page(EQ *eq, Track *track, TabView *tv)
 	/* "Equalizer", */
 	EQ_LT_PATH,
 	page_colors + 2,
-	&color_global_white,
+	&colors.white,
 	main_win);
 
     PageElParams p;
@@ -194,7 +175,7 @@ Page *add_eq_page(EQ *eq, Track *track, TabView *tv)
     page_add_el(page, EL_EQ_PLOT, p, "track_settings_eq_plot", "eq_plot");
 
     /* p.textarea_p.font = main_win->mono_bold_font; */
-    /* p.textarea_p.color = color_global_white; */
+    /* p.textarea_p.color = colors.white; */
     /* p.textarea_p.text_size = 12; */
     /* p.textarea_p.win = main_win; */
     /* p.textarea_p.value = "Click and drag the circles to set peaks or notches.\n \nHold cmd or ctrl and drag up or down to set the filter bandwidth.\n \nAdditional filter types (shelving, lowpass, highpass) will be added in future versions of jackdaw."; */
@@ -238,7 +219,9 @@ Page *add_eq_page(EQ *eq, Track *track, TabView *tv)
 	    "",
 	    lt_name);
 	Textbox *tab_tb = el->component;
-	textbox_set_border(tab_tb, EQ_CTRL_COLORS + i, 1);
+	textbox_set_border(tab_tb, EQ_CTRL_COLORS + i, 2, 0);
+	textbox_set_align(tab_tb, CENTER);
+	textbox_reset_full(tab_tb);
 
     }
     /* memset(&p, '\0', sizeof(p)); */
@@ -246,8 +229,10 @@ Page *add_eq_page(EQ *eq, Track *track, TabView *tv)
     /* p.toggle_p.action = filter_active_toggle; */
     /* p.toggle_p.target = eq; */
     /* p.toggle_p.value = &eq->selected_filter_active; */
+    eq->selected_filter_active = eq->ctrls[eq->selected_ctrl].filter_active;
     p.toggle_p.ep = &eq->selected_filter_active_ep;
     page_add_el(page, EL_TOGGLE, p, "", "filter_active_toggle");
+    /* fprintf(stderr, "SELECTED FILTER ACTIVE STATE: %d\n", eq->selected_filter_active); */
 
     p.textbox_p.font = main_win->mono_font;
     p.textbox_p.text_size = 14;
@@ -284,7 +269,7 @@ Page *add_eq_page(EQ *eq, Track *track, TabView *tv)
     layout_reset(button_lt);
     p.sbutton_p.action = filter_type_button_action;
     p.sbutton_p.target = eq;
-    p.sbutton_p.s = SYMBOL_TABLE[5];
+    p.sbutton_p.symbol_index = SYMBOL_LOWSHELF;
     p.sbutton_p.background_color = NULL;
     el = page_add_el(
 	page,
@@ -304,7 +289,7 @@ Page *add_eq_page(EQ *eq, Track *track, TabView *tv)
     layout_reset(button_lt);
     p.sbutton_p.action = filter_type_button_action;
     p.sbutton_p.target = eq;
-    p.sbutton_p.s = SYMBOL_TABLE[7];
+    p.sbutton_p.symbol_index = SYMBOL_PEAKNOTCH;
     p.sbutton_p.background_color = NULL;
     el = page_add_el(
 	page,
@@ -325,7 +310,7 @@ Page *add_eq_page(EQ *eq, Track *track, TabView *tv)
     layout_reset(button_lt);
     p.sbutton_p.action = filter_type_button_action;
     p.sbutton_p.target = eq;
-    p.sbutton_p.s = SYMBOL_TABLE[6];
+    p.sbutton_p.symbol_index = SYMBOL_HIGHSHELF;
     p.sbutton_p.background_color = NULL;
     el = page_add_el(
 	page,
@@ -336,18 +321,19 @@ Page *add_eq_page(EQ *eq, Track *track, TabView *tv)
     ((SymbolButton *)el->component)->stashed_val.int_v = IIR_HIGHSHELF;
 
 
-    create_track_selection_area(page, eq->track);
+    /* create_track_selection_area(page, eq->track); */
     return page;
 }
 
-Page *add_fir_filter_page(FIRFilter *f, Track *track, TabView *tv)
+static Page *add_fir_filter_page(FIRFilter *f, EffectChain *ec, TabView *tv)
 {
+    Session *session = session_get();
     Page *page = tabview_add_page(
 	tv,
 	f->effect->name,
 	FIR_FILTER_LT_PATH,
 	page_colors,
-	&color_global_white,
+	&colors.white,
 	main_win);
 
     PageElParams p;
@@ -404,7 +390,7 @@ Page *add_fir_filter_page(FIRFilter *f, Track *track, TabView *tv)
     p.slider_p.ep = &f->impulse_response_len_ep;
 
     p.slider_p.min = (Value){.int_v = 4};
-    p.slider_p.max = (Value){.int_v = proj->fourier_len_sframes};
+    p.slider_p.max = (Value){.int_v = session->proj.fourier_len_sframes};
     p.slider_p.create_label_fn = NULL;
     el = page_add_el(page, EL_SLIDER, p, "track_settings_filter_irlen_slider",  "irlen_slider");    
     Slider *sl = (Slider *)el->component;
@@ -420,7 +406,7 @@ Page *add_fir_filter_page(FIRFilter *f, Track *track, TabView *tv)
     };
     
     p.radio_p.text_size = RADIO_STD_FONT_SIZE;
-    p.radio_p.text_color = &color_global_white;
+    p.radio_p.text_color = &colors.white;
     p.radio_p.ep = &f->type_ep;
     p.radio_p.item_names = item_names;
     p.radio_p.num_items = 4;
@@ -429,40 +415,52 @@ Page *add_fir_filter_page(FIRFilter *f, Track *track, TabView *tv)
     RadioButton *radio = el->component;
     radio->selected_item = (uint8_t)f->type;
 
-    if (!track->buf_L_freq_mag) track->buf_L_freq_mag = calloc(f->frequency_response_len, sizeof(double));
-    if (!track->buf_R_freq_mag) track->buf_R_freq_mag = calloc(f->frequency_response_len, sizeof(double));
+    /* if (!track->buf_L_freq_mag) track->buf_L_freq_mag = calloc(f->frequency_response_len, sizeof(double)); */
+    /* if (!track->buf_R_freq_mag) track->buf_R_freq_mag = calloc(f->frequency_response_len, sizeof(double)); */
     
     double *arrays[3] = {
-	/* track->buf_L_freq_mag, */
-	/* track->buf_R_freq_mag, */
 	f->output_freq_mag_L,
 	f->output_freq_mag_R,
 	f->frequency_response_mag
     };	
-    int steps[] = {1, 1, 1};
-    SDL_Color *plot_colors[] = {&freq_L_color, &freq_R_color, &color_global_white};
-    p.freqplot_p.arrays = arrays;
-    p.freqplot_p.colors =  plot_colors;
-    p.freqplot_p.steps = steps;
-    p.freqplot_p.num_items = f->frequency_response_len / 2;
-    p.freqplot_p.num_arrays = 3;
+    SDL_Color *plot_colors[] = {&colors.freq_L, &colors.freq_R, &colors.white};
+
+    int lens[] = {
+	ec->proj->fourier_len_sframes,
+	ec->proj->fourier_len_sframes,
+	ec->proj->fourier_len_sframes
+    };
+    p.freqplot_p.darrays = arrays;
+    p.freqplot_p.num_darrays = 3;
+    p.freqplot_p.darray_lens = lens;
+    p.freqplot_p.farrays = NULL;
+    p.freqplot_p.num_farrays = 0;
+    p.freqplot_p.darray_colors = plot_colors;
+    p.freqplot_p.farray_colors = NULL;
+    p.freqplot_p.min_freq_hz = 20;
+    p.freqplot_p.max_freq_hz = (double)session->proj.sample_rate / 2;
 
     el = page_add_el(page, EL_FREQ_PLOT, p, "track_settings_filter_freq_plot", "freq_plot");
     /* struct freq_plot *plot = el->component; */
     /* plot->related_obj_lock = &f->lock; */
 
-    create_track_selection_area(page, track);
+    /* create_track_selection_area(page, track); */
     return page;
 }
 
-Page *add_delay_page(DelayLine *d, Track *track, TabView *tv)
+static int16_t sframes_to_msec(int32_t sframes)
+{
+    return (double)sframes / (double)session_get_sample_rate() * 1000.0;
+}
+
+static Page *add_delay_page(DelayLine *d, EffectChain *ec, TabView *tv)
 {
     Page *page = tabview_add_page(
 	tv,
         d->effect->name,
 	DELAY_LINE_LT_PATH,
 	page_colors + 1,
-	&color_global_white,
+	&colors.white,
 	main_win);
 
     PageElParams p;
@@ -498,20 +496,43 @@ Page *add_delay_page(DelayLine *d, Track *track, TabView *tv)
     textbox_set_background_color(tb, NULL);
     textbox_set_align(tb, CENTER_LEFT);
     textbox_reset_full(tb);
-    
-    p.slider_p.create_label_fn = NULL;
+
     p.slider_p.style = SLIDER_TICK;
     p.slider_p.orientation = SLIDER_HORIZONTAL;
-    p.slider_p.ep = &d->len_ep;
-    p.slider_p.min = (Value){.int32_v = 1};
-    p.slider_p.max = (Value){.int32_v = 1000};
-    p.slider_p.create_label_fn = label_msec;
+
+    page_el_params_slider_from_ep(&p, &d->len_ep);
+    /* p.slider_p.create_label_fn = NULL; */
+    /* p.slider_p.ep = &d->len_ep; */
+    /* p.slider_p.min = (Value){.int32_v = 1}; */
+    /* p.slider_p.max = (Value){.int32_v = 1000}; */
+    /* p.slider_p.create_label_fn = label_msec; */
     el = page_add_el(page, EL_SLIDER, p, "track_settings_delay_time_slider", "del_time_slider");
 
     Slider *sl = el->component;
     sl->disallow_unsafe_mode = true;
+
+    Session *session = session_get();
+    ClickSegment *s = click_segment_active_at_cursor(ACTIVE_TL);
+    if (s) {
+	/* fprintf(stderr, "ADDING POINTS OF INTEREST\n"); */
+	int32_t measure_dur_sframes = s->cfg.dur_sframes;
+	int32_t beat_dur_sframes = measure_dur_sframes / s->cfg.num_atoms * s->cfg.beat_len_atoms[0];
+	int32_t subdiv_dur_sframes = beat_dur_sframes / s->cfg.beat_len_atoms[0];
+	int32_t subdiv_dur_msec = sframes_to_msec(subdiv_dur_sframes);
+	int16_t dur_msec = subdiv_dur_msec;
+	while (dur_msec < sl->max.int16_v) {
+	    slider_add_point_of_interest(sl, (Value){.int16_v = dur_msec});
+	    dur_msec += subdiv_dur_msec;
+	}
+	/* fprintf(stderr, "Measure, beat, subdiv? %d %d %d\n", measure_dur, beat_dur, subdiv_dur); */
+	
+	/* slider_add_point_of_interest(sl, (Value){.int16_v = sframes_to_msec(measure_dur_sframes)}); */
+	/* slider_add_point_of_interest(sl, (Value){.int16_v = sframes_to_msec(beat_dur_sframes)}); */
+	/* slider_add_point_of_interest(sl, (Value){.int16_v = sframes_to_msec(subdiv_dur_sframes)}); */
+    }
+
     slider_reset(sl);
-    
+
     p.slider_p.create_label_fn = NULL;
     p.slider_p.ep = &d->amp_ep;
     p.slider_p.min = (Value){.double_v = 0.0};
@@ -528,19 +549,19 @@ Page *add_delay_page(DelayLine *d, Track *track, TabView *tv)
     slider_reset(sl);
     sl->disallow_unsafe_mode = true;
     
-    create_track_selection_area(page, track);
+    /* create_track_selection_area(page, track); */
 
     return page;
 }
 
-Page *add_saturation_page(Saturation *s, Track *track, TabView *tv)
+static Page *add_saturation_page(Saturation *s, EffectChain *ec, TabView *tv)
 {
     Page *page = tabview_add_page(
 	tv,
 	s->effect->name,
 	SATURATION_LT_PATH,
 	page_colors + 3,
-	&color_global_white,
+	&colors.white,
 	main_win);
 
     PageElParams p;
@@ -584,6 +605,13 @@ Page *add_saturation_page(Saturation *s, Track *track, TabView *tv)
     textbox_set_align(tb, CENTER_LEFT);
     textbox_reset_full(tb);
 
+    p.textbox_p.set_str = "Symmetry";
+    tb = (Textbox *)(page_add_el(page, EL_TEXTBOX, p, "track_settings_saturation_symmetry_label", "symmetry_label")->component);
+    textbox_set_background_color(tb, NULL);
+    textbox_set_align(tb, CENTER_LEFT);
+    textbox_reset_full(tb);
+
+
     
     p.slider_p.ep = &s->gain_ep;
     p.slider_p.min = (Value){.double_v = 1.0};
@@ -595,13 +623,17 @@ Page *add_saturation_page(Saturation *s, Track *track, TabView *tv)
     Slider *sl = el->component;
     slider_reset(sl);
 
+    p.slider_p.style = SLIDER_TICK;
+    page_el_params_slider_from_ep(&p, &s->symmetry_ep);
+    page_add_el(page, EL_SLIDER, p, "track_settings_saturation_symmetry_slider", "symmetry_slider");
+
     static const char * saturation_type_names[] = {
 	"Hyperbolic (tanh)",
 	"Exponential"
     };
     
     p.radio_p.text_size = RADIO_STD_FONT_SIZE;
-    p.radio_p.text_color = &color_global_white;
+    p.radio_p.text_color = &colors.white;
     p.radio_p.ep = &s->type_ep;
     p.radio_p.item_names = saturation_type_names;
     p.radio_p.num_items = 2;
@@ -612,18 +644,18 @@ Page *add_saturation_page(Saturation *s, Track *track, TabView *tv)
     /* radio->selected_item = (uint8_t)0; */
 
 
-    create_track_selection_area(page, track);
+    /* create_track_selection_area(page, track); */
     return page;
 }
 
-Page *add_compressor_page(Compressor *c, Track *track, TabView *tv)
+static Page *add_compressor_page(Compressor *c, EffectChain *ec, TabView *tv)
 {
     Page *page = tabview_add_page(
 	tv,
 	c->effect->name,
 	COMPRESSOR_LT_PATH,
 	page_colors + 4,
-	&color_global_white,
+	&colors.white,
 	main_win);
 
     PageElParams p;
@@ -730,7 +762,7 @@ Page *add_compressor_page(Compressor *c, Track *track, TabView *tv)
 
     /* sl->disallow_unsafe_mode = true; */
     
-    create_track_selection_area(page, track);
+    /* create_track_selection_area(page, track); */
     return page;
 
 }
@@ -760,8 +792,8 @@ static void create_track_selection_area(Page *page, Track *track)
     p.button_p.font = main_win->mono_bold_font;
     p.button_p.win = main_win;
     p.button_p.text_size = 16;
-    p.button_p.background_color = &color_global_light_grey;
-    p.button_p.text_color = &color_global_black;
+    p.button_p.background_color = &colors.light_grey;
+    p.button_p.text_color = &colors.black;
     p.button_p.action = previous_track;
     el = page_add_el(page, EL_BUTTON, p, "track_settings_prev_track", "track_previous");
 
@@ -830,7 +862,7 @@ void filter_type_selector_canvas_draw(void *draw_arg1, void *draw_arg2)
     /* SDL_Rect r = sbutton_lt->rect; */
     /* fprintf(stderr, "Found layout to draw: %p, %d %d %d %d\n", sbutton_lt, r.x, r.y, r.w, r.h); */
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(filter_selected_clr));
-    geom_fill_rounded_rect(main_win->rend, &sbutton_lt->rect, SYMBOL_TABLE[7]->corner_rad_pix);
+    geom_fill_rounded_rect(main_win->rend, &sbutton_lt->rect, SYMBOL_TABLE[SYMBOL_LOWSHELF]->corner_rad_pix);
 }
 
 int filter_type_button_action(void *self, void *target)
@@ -863,7 +895,7 @@ static int next_track(void *self_v, void *target)
 
 static double unscale_freq(double scaled)
 {
-    return log(scaled * proj->sample_rate) / log(proj->sample_rate);
+    return log(scaled * session_get_sample_rate()) / log(session_get_sample_rate());
 }
 
 

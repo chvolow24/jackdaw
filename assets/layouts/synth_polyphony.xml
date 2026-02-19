@@ -1,0 +1,136 @@
+<Layout name="synth_polyphony" type="NORMAL">
+  <x>REL 0</x>
+  <y>REL 0</y>
+  <w>SCALE 1.000000</w>
+  <h>SCALE 1.000000</h>
+  <children>
+    <Layout name="row" type="NORMAL">
+      <x>SCALE 0.046667</x>
+      <y>STACK 32</y>
+      <w>SCALE 0.864167</w>
+      <h>ABS 24</h>
+      <children>
+        <Layout name="allow_voice_stealing_label" type="NORMAL">
+          <x>REL 0</x>
+          <y>REL 0</y>
+          <w>REL 250</w>
+          <h>SCALE 1.000000</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="allow_voice_stealing_toggle" type="NORMAL">
+          <x>REL 250</x>
+          <y>REL 0</y>
+          <w>REL 24</w>
+          <h>SCALE 1.000000</h>
+          <children>
+          </children>
+        </Layout>
+      </children>
+    </Layout>
+    <Layout name="row" type="NORMAL">
+      <x>SCALE 0.046667</x>
+      <y>STACK 24</y>
+      <w>SCALE 0.864167</w>
+      <h>ABS 24</h>
+      <children>
+        <Layout name="num_voices_label" type="NORMAL">
+          <x>REL 0</x>
+          <y>REL 0</y>
+          <w>REL 250</w>
+          <h>SCALE 1.000000</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="num_voices_slider" type="NORMAL">
+          <x>REL 250</x>
+          <y>REL 0</y>
+          <w>COMPLEMENT 1</w>
+          <h>SCALE 1.000000</h>
+          <children>
+          </children>
+        </Layout>
+      </children>
+    </Layout>
+    <Layout name="row" type="NORMAL">
+      <x>SCALE 0.046667</x>
+      <y>STACK 24</y>
+      <w>SCALE 0.864167</w>
+      <h>ABS 24</h>
+      <children>
+        <Layout name="poly_portamento_mode_label" type="NORMAL">
+          <x>REL 0</x>
+          <y>REL 0</y>
+          <w>REL 250</w>
+          <h>SCALE 1.000000</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="poly_portamento_mode_toggle" type="NORMAL">
+          <x>REL 250</x>
+          <y>REL 0</y>
+          <w>REL 24</w>
+          <h>SCALE 1.000000</h>
+          <children>
+          </children>
+        </Layout>
+      </children>
+    </Layout>
+    <Layout name="divider" type="NORMAL">
+      <x>SCALE 0.046667</x>
+      <y>STACK 32</y>
+      <w>SCALE 0.864167</w>
+      <h>ABS 0</h>
+      <children>
+      </children>
+    </Layout>
+    <Layout name="row" type="NORMAL">
+      <x>SCALE 0.046667</x>
+      <y>STACK 24</y>
+      <w>SCALE 0.864167</w>
+      <h>ABS 24</h>
+      <children>
+        <Layout name="mono_mode_label" type="NORMAL">
+          <x>REL 0</x>
+          <y>REL 0</y>
+          <w>REL 250</w>
+          <h>SCALE 1.000000</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="mono_mode_toggle" type="NORMAL">
+          <x>REL 250</x>
+          <y>REL 0</y>
+          <w>REL 24</w>
+          <h>SCALE 1.000000</h>
+          <children>
+          </children>
+        </Layout>
+      </children>
+    </Layout>
+    <Layout name="row" type="NORMAL">
+      <x>SCALE 0.046667</x>
+      <y>STACK 24</y>
+      <w>SCALE 0.864167</w>
+      <h>ABS 24</h>
+      <children>
+        <Layout name="portamento_len_label" type="NORMAL">
+          <x>REL 0</x>
+          <y>REL 0</y>
+          <w>REL 250</w>
+          <h>SCALE 1.000000</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="portamento_len_slider" type="NORMAL">
+          <x>REL 250</x>
+          <y>REL 0</y>
+          <w>COMPLEMENT 1</w>
+          <h>SCALE 1.000000</h>
+          <children>
+          </children>
+        </Layout>
+      </children>
+    </Layout>
+  </children>
+</Layout>

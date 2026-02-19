@@ -11,21 +11,22 @@
 /*****************************************************************************************************************
     fir_filter.h
 
-    * 
-    * 
+    * Finite Impulse Response (FIR) filters
+    * lowpass, highpass, bandpass, and band-cut frequency response types available
+    * frequency response implemented via windowed sinc method
+    * filters applied via block convolution
 *****************************************************************************************************************/
 
 #include <complex.h>
 #include <stdio.h>
 #include <stdint.h>
 #include "endpoint.h"
-#include "SDL.h"
 
 #define DEFAULT_FILTER_LEN 128
 #define DELAY_LINE_MAX_LEN_S 1
 
 
-typedef struct track Track;
+/* typedef struct track Track; */
 typedef struct effect Effect;
 
 typedef enum filter_type {
@@ -51,12 +52,14 @@ typedef struct fir_filter {
     /* float *freq_mag_R; */
     uint16_t impulse_response_len; /* Only modified in callbacks */
     uint16_t impulse_response_len_internal;
+    uint16_t chunk_len;
     /* uint16_t impulse_response_len_internal; */
     uint16_t frequency_response_len;
     uint16_t overlap_len;
     /* pthread_mutex_t lock; */
 
-    Track *track;
+    /* float *buf_L_freq */
+    /* Track *track; */
 
     Endpoint type_ep;
     Endpoint cutoff_ep;
@@ -70,7 +73,8 @@ typedef struct fir_filter {
 
 
 /* Init an empty FIR filter and allocate space for its buffers. Params MUST be initialized with 'set_filter_params'*/
-void filter_init(FIRFilter *filter, Track *track, FilterType type, uint16_t impulse_response_len, uint16_t frequency_response_len);
+/* void filter_init(FIRFilter *filter, Track *track, FilterType type, uint16_t impulse_response_len, uint16_t frequency_response_len); */
+void filter_init(FIRFilter *filter, FilterType type, uint16_t impulse_response_len, uint16_t frequency_response_len, uint16_t chunk_len);
 
 /* Bandwidth param only required for band-pass and band-cut filters */
 void filter_set_params(FIRFilter *filter, FilterType type,  double cutoff, double bandwidth);
@@ -92,4 +96,4 @@ void filter_deinit(FIRFilter *filter);
 /* void apply_track_filter(Track *track, uint8_t channel, uint16_t chunk_size, float *sample_array); */
 /* void apply_filter(FIRFilter *filter, Track *track, uint8_t channel, uint16_t chunk_size, float *sample_array); */
 /* void filter_buf_apply(FIRFilter *f, float *buf, int len, int channel); */
-float filter_buf_apply(void *f_v, float *buf, int len, int channel, float input_amp);
+float filter_buf_apply(void *f_v, float *restrict buf, int len, int channel, float input_amp);

@@ -1,32 +1,52 @@
- #include <stdio.h>
+#include <stdio.h>
 #include <sys/param.h>
 #include "SDL_events.h"
+#include "audio_clip.h"
 #include "audio_connection.h"
 #include "autocompletion.h"
+#include "clipref.h"
 #include "dir.h"
+#include "dot_jdaw.h"
 #include "endpoint.h"
 #include "function_lookup.h"
-#include "project_endpoint_ops.h"
+#include "grab.h"
+#include "input_mode.h"
+#include "midi_clip.h"
+#include "page.h"
+#include "session_endpoint_ops.h"
 #include "input.h"
 /* #include "loading */
+#include "jlily.h"
+#include "log.h"
 #include "menu.h"
+#include "midi_file.h"
+#include "midi_qwerty.h"
 #include "modal.h"
 #include "panel.h"
+#include "piano_roll.h"
 #include "project.h"
+#include "session.h"
 #include "settings.h"
 #include "status.h"
+#include "synth_page.h"
 #include "test.h"
 #include "text.h"
 #include "textbox.h"
+#include "effect_pages.h"
+#include "timeview.h"
 #include "transport.h"
 #include "timeline.h"
+#include "userfn.h"
+#include "waveform.h"
 #include "wav.h"
+#include "window.h"
+
 
 #define MENU_MOVE_BY 40
 #define TL_DEFAULT_XSCROLL 60
 #define SLOW_PLAYBACK_SPEED 0.2f
+#define NO_TRACK_ERRSTR "No track. Add new with C-t"
 
-#define ACTIVE_TL (proj->timelines[proj->active_tl_index])
 /* #define ACTIVE_TRACK(timeline) (tl->tracks[tl->track_selector]) */
 #define TRACK_AUTO_SELECTED(track) (track->num_automations != 0 && track->selected_automation != -1)
 #define TABVIEW_BLOCK(str)	    \
@@ -36,32 +56,22 @@
     }
 
 extern Window *main_win;
-extern Project *proj;
+
 extern Mode **modes;
+extern struct colors colors;
 
 extern char DIRPATH_SAVED_PROJ[MAX_PATHLEN];
 extern char DIRPATH_OPEN_FILE[MAX_PATHLEN];
 extern char DIRPATH_EXPORT[MAX_PATHLEN];
 
-/* extern SDL_Color color_global_black; */
-/* extern SDL_Color color_global_grey; */
-/* extern SDL_Color color_global_white; */
-/* extern SDL_Color control_bar_bckgrnd; */
-
-extern SDL_Color color_global_light_grey;
-extern SDL_Color color_global_quickref_button_pressed;
-extern SDL_Color color_global_quickref_button_blue;
-/* extern SDL_Color color_global_white; */
-
-#define NO_TRACK_ERRSTR "No track. Add new with C-t"
-
-int quickref_button_press_callback(void *self_v, void *target)
-{
-    /* Timeline *tl = proj->timelines[proj->active_tl_index]; */
-    Timeline *tl = ACTIVE_TL;
-    tl->needs_redraw = true;
-    return 0;
-}
+/* int quickref_button_press_callback(void *self_v, void *target) */
+/* { */
+/*     /\* Timeline *tl = ACTIVE_TL; *\/ */
+/*     Session *session = session_get(); */
+/*     Timeline *tl = ACTIVE_TL; */
+/*     tl->needs_redraw = true; */
+/*     return 0; */
+/* } */
 
 void jdaw_write_project(const char *path);
 
@@ -86,7 +96,8 @@ static int quit_yes_action(void *self, void *xarg)
 void user_modal_dismiss(void *nullarg);
 static int quit_no_action(void *self, void *xarg)
 {
-    proj->quit_count = 0;
+    Session *session = session_get();    
+    session->quit_count = 0;
     /* user_modal_dismiss(NULL); */
     if (main_win->num_modals > 0)
 	window_pop_modal(main_win);
@@ -101,60 +112,69 @@ void user_tl_activate_source_mode(void *nullarg);
 /* Escape a confusing or illegal program state */
 void user_global_escape(void *nullarg)
 {
-    if (proj->source_mode) {
+    Session *session = session_get();
+    if (session->playback.recording) {
+	transport_stop_recording();
+    } else if (session->source_mode.source_mode) {
 	user_tl_activate_source_mode(NULL);
     } else if (main_win->num_modes > 1) {
-	window_pop_mode(main_win);
-    } else if (main_win->modes[0] != TIMELINE) {
-	main_win->modes[0] = TIMELINE;
+	window_clear_higher_modes(main_win, MODE_GLOBAL);
+	/* window_pop_mode(main_win); */
+    } else if (main_win->modes[0] != MODE_TIMELINE) {
+	main_win->modes[0] = MODE_TIMELINE;
 	main_win->num_modes = 1;
     }
 }
 
 void user_global_quit(void *nullarg)
 {
-    if (proj->quit_count == 0) {
+    Session *session = session_get();
+    if (session->quit_count == 0) {
 	Layout *lt = layout_add_child(main_win->layout);
 	layout_set_default_dims(lt);
 	Modal *m = modal_create(lt);
-	modal_add_header(m, "Really quit?", &color_global_light_grey, 3);
+	modal_add_header(m, "Really quit?", &colors.light_grey, 3);
 	modal_add_button(m, "Yes", quit_yes_action);
 	modal_add_button(m, "No", quit_no_action);
 	m->x->action = quit_no_action;
 	modal_reset(m);
 	window_push_modal(main_win, m);
-    } else if (proj->quit_count > 1) {
+    } else if (session->quit_count > 1) {
 	quit_yes_action(NULL, NULL);
     }
-    proj->quit_count++;
+    session->quit_count++;
 
     /* exit(0); //TODO: add the i_state to window (or proj?) to quit naturally. */
 }
 
 void user_global_undo(void *nullarg)
 {
-    user_event_do_undo(&proj->history);
+    Session *session = session_get();
+    user_event_do_undo(&session->history);
     timeline_reset(ACTIVE_TL, false);
 }
 
 void user_global_redo(void *nullarg)
 {
-    user_event_do_redo(&proj->history);
+    Session *session = session_get();
+    user_event_do_redo(&session->history);
     timeline_reset(ACTIVE_TL, false);
 }
 
 void user_global_show_output_freq_domain(void *nullarg)
 {
     /* proj->show_output_freq_domain = !proj->show_output_freq_domain; */
-    panel_page_refocus(proj->panels, "Output spectrum", 0);
+    Session *session = session_get();
+    panel_page_refocus(session->gui.panels, "Output spectrum", 0);
 }
 
 
 static int submit_server_form(void *mod_v, void *target)
 {
+    Session *session = session_get();
     int port = atoi((char *)((Modal *)mod_v)->stashed_obj);
     fprintf(stderr, "STARTING SERVER ON PORT: %d\n", port);
-    if (api_start_server(proj, port) == 0) {
+    if (api_start_server(port) == 0) {
 	window_pop_modal(main_win);
 	ACTIVE_TL->needs_redraw = true;
 	return 0;
@@ -172,8 +192,8 @@ void user_global_start_server(void *nullarg)
     Layout *mod_lt = layout_add_child(main_win->layout);
     layout_set_default_dims(mod_lt);
     Modal *m = modal_create(mod_lt);
-    modal_add_header(m, "Start server", &color_global_light_grey, 3);
-    modal_add_header(m, "Run a UDP server on port:", &color_global_light_grey, 5);
+    modal_add_header(m, "Start server", &colors.light_grey, 3);
+    modal_add_header(m, "Run a UDP server on port:", &colors.light_grey, 5);
     static char port[6] = {'9', '3', '0', '2'};
     modal_add_textentry(
 	m,
@@ -189,14 +209,12 @@ void user_global_start_server(void *nullarg)
     modal_reset(m);
     /* fprintf(stdout, "about to call move onto\n"); */
     modal_move_onto(m);
-
-
 }
-
 
 int path_updir_name(char *pathname);
 static int submit_save_as_form(void *mod_v, void *target)
 {
+    Session *session = session_get();
     Modal *modal = (Modal *)mod_v;
     char *name;
     char *dirpath;
@@ -204,7 +222,7 @@ static int submit_save_as_form(void *mod_v, void *target)
     for (uint8_t i=0; i<modal->num_els; i++) {
 	switch ((el = modal->els[i])->type) {
 	case MODAL_EL_TEXTENTRY:
-	    name = ((TextEntry *)el->obj)->tb->text->value_handle;
+	    name = ((TextEntry *)el->obj)->tb->text->display_value;
 	    break;
 	case MODAL_EL_DIRNAV: {
 	    DirNav *dn = (DirNav *)el->obj;
@@ -284,7 +302,13 @@ static int dir_to_tline_filter_open(void *dp_v, void *dn_v)
 	    strncmp("jdaw", ext, 4) *
 	    strncmp("WAV", ext, 3) *
 	    strncmp("JDAW", ext, 4) *
-	    strncmp("bak", ext, 3) == 0) {
+	    strncmp("bak", ext, 3) *
+	    strncmp("mid", ext, 3) *
+	    strncmp("MID", ext, 3) *
+	    strncmp("midi", ext, 4) *
+	    strncmp("MIDI", ext, 4) *
+	    strncmp("jsynth", ext, 6) *
+	    strncmp("JSYNTH", ext, 6) == 0) {
 	    return 1;
 	}
 	return 0;
@@ -312,7 +336,7 @@ static int file_ext_completion_wav(Text *txt, void *obj)
 	txt->cursor_end_pos = txt->len;
 	txt_reset_drawable(txt);
 	retval = 0;
-    } else if (strcmp(dotpos, ".wav") != 0 && (strcmp(dotpos, ".wav") != 0)) {
+    } else if (strcmp(dotpos, ".wav") != 0 && (strcmp(dotpos, ".WAV") != 0)) {
 	retval = 1;
     }
     if (retval == 1) {
@@ -346,20 +370,21 @@ static int file_ext_completion_jdaw(Text *txt, void *obj)
 }
 void user_global_save_project(void *nullarg)
 {
+    Session *session = session_get(); 
     Layout *mod_lt = layout_add_child(main_win->layout);
     layout_set_default_dims(mod_lt);
     Modal *save_as = modal_create(mod_lt);
-    modal_add_header(save_as, "Save as:", &color_global_light_grey, 3);
-    modal_add_header(save_as, "Project name:", &color_global_light_grey, 5);
+    modal_add_header(save_as, "Save as:", &colors.light_grey, 3);
+    modal_add_header(save_as, "Project name:", &colors.light_grey, 5);
     modal_add_textentry(
 	save_as,
-	proj->name,
+	session->proj.name,
 	MAX_NAMELENGTH,
 	txt_name_validation,
 	file_ext_completion_jdaw,
 	NULL);
-    modal_add_p(save_as, "\t\t|\t\t<tab>\tv\t\t|\t\t\tS-<tab>\t^\t\t|\t\tC-<ret>\tSubmit (save as)\t\t|", &color_global_light_grey);
-    modal_add_header(save_as, "Project location:", &color_global_light_grey, 5);
+    modal_add_p(save_as, "\t\t|\t\t<tab>\tv\t\t|\t\t\tS-<tab>\t^\t\t|\t\tC-<ret>\tSubmit (save as)\t\t|", &colors.light_grey);
+    modal_add_header(save_as, "Project location:", &colors.light_grey, 5);
     modal_add_dirnav(save_as, DIRPATH_SAVED_PROJ, dir_to_tline_filter_save);
     modal_add_button(save_as, "Save", submit_save_as_form);
     save_as->submit_form = submit_save_as_form;
@@ -384,11 +409,11 @@ static NEW_EVENT_FN(dispose_forward_load_wav, "")
     clipref_destroy_no_displace(cr);
 }
 
-
-Project *jdaw_read_file(char *path);
-static void openfile_file_select_action(DirNav *dn, DirPath *dp)
+void open_file(const char *filepath)
 {
-    char *dotpos = strrchr(dp->path, '.');
+    Session *session = session_get();
+    Timeline *tl = ACTIVE_TL;
+    char *dotpos = strrchr(filepath, '.');
     if (!dotpos) {
 	status_set_errstr("Cannot open file without a .jdaw or .wav extension");
 	fprintf(stderr, "Cannot open file without a .jdaw or .wav extension\n");
@@ -396,9 +421,9 @@ static void openfile_file_select_action(DirNav *dn, DirPath *dp)
     }
     char *ext = dotpos + 1;
     /* fprintf(stdout, "ext char : %c\n", *ext); */
+    bool activate_synth_preset_tab_on_exit = false;
     if (strcmp("wav", ext) * strcmp("WAV", ext) == 0) {
 	fprintf(stdout, "Wav file selected\n");
-	Timeline *tl = ACTIVE_TL;
 	if (!tl) return;
 	Track *track = timeline_selected_track(tl);
 	if (!track) {
@@ -406,7 +431,7 @@ static void openfile_file_select_action(DirNav *dn, DirPath *dp)
 	    fprintf(stderr, "Error: at least one track must exist to load a wav file\n");
 	    return;
 	}
-	ClipRef *cr = wav_load_to_track(track, dp->path, tl->play_pos_sframes);
+	ClipRef *cr = wav_load_to_track(track, filepath, tl->play_pos_sframes);
 	if (!cr) {
 	    Timeline *tl = ACTIVE_TL;
 	    tl->needs_redraw = true;
@@ -415,7 +440,7 @@ static void openfile_file_select_action(DirNav *dn, DirPath *dp)
 	}
 	Value nullval = {.int_v = 0};
 	user_event_push(
-	    &proj->history,
+	    
 	    undo_load_wav,
 	    redo_load_wav,
 	    NULL, dispose_forward_load_wav,
@@ -426,35 +451,75 @@ static void openfile_file_select_action(DirNav *dn, DirPath *dp)
 	
     } else if (strcmp("jdaw", ext) * strcmp("JDAW", ext) * strcmp("bak", ext) == 0) {
 	fprintf(stdout, "Jdaw file selected\n");
-	if (proj->recording) transport_stop_recording();
-	else if (proj->playing) transport_stop_playback();
-	api_quit(proj);
-	Project *new_proj = jdaw_read_file(dp->path);
-	if (new_proj) {
-	    project_destroy(proj);
-	    proj = new_proj;
-	    /* layout_destroy(main_win->layout); */
-	    main_win->layout = new_proj->layout;
-	    layout_reset(main_win->layout);
-	    /* window_resize_passive(main_win, , main_win->h_pix); */
-	    /* layout_force_reset(new_proj->layout); */
-
+	if (session->playback.recording) transport_stop_recording();
+	else if (session->playback.playing) transport_stop_playback();
+	/* Wait for playback callback to exit */
+	audioconn_close(session->audio_io.playback_conn);
+	/* api_quit(); */
+	api_stash_current();
+	Project new_proj;
+	memset(&new_proj, '\0', sizeof(new_proj));
+	session->proj_reading = &new_proj;
+	int ret = jdaw_read_file(&new_proj, filepath);
+	if (ret == 0) {
+	    session_set_proj(session, &new_proj);
+	    api_discard_stash();
 	} else {
 	    status_set_errstr("Error opening jdaw project");
+	    api_reset_from_stash_and_discard();
 	}
-	timeline_reset_full(proj->timelines[0]);
+	session->proj_reading = NULL;
+    } else if (strncmp("mid", ext, 3) * strncmp("MID", ext, 3) == 0) {
+	midi_file_open(filepath, false);
+    } else if (strncmp("jsynth", ext, 6) * strncmp("JSYNTH", ext, 6) == 0) {
+	Timeline *tl = ACTIVE_TL;
+	Track *t = timeline_selected_track(tl);
+	if (t) {
+	    if (!t->synth) {
+		t->synth = synth_create(t);
+	    }
+	    synth_read_preset_file(filepath, t->synth);
+	    activate_synth_preset_tab_on_exit = true;
+	    /* if (!main_win->active_tabview) { */
+	    /* 	TabView *tv = synth_tabview_create(t); */
+	    /* 	tabview_activate(tv); */
+	    /* 	tl->needs_redraw = true; */
+	    /* 	timeline_check_set_midi_monitoring(); */
+	    /* 	tabview_select_tab(tv, 4); */
+	    /* } */
+
+	} else {
+	    status_set_errstr("Error: track not selected");
+	}
+    } else {
+	status_set_errstr("File type not supported");
     }
-    char *last_slash_pos = strrchr(dp->path, '/');
+    char *last_slash_pos = strrchr(filepath, '/');
     if (last_slash_pos) {
 	*last_slash_pos = '\0';
 	char *realpath_ret;
-	if (!(realpath_ret = realpath(dp->path, NULL))) {
+	if (!(realpath_ret = realpath(filepath, NULL))) {
 	    perror("Error in realpath");
 	} else {
 	    strncpy(DIRPATH_OPEN_FILE, realpath_ret, MAX_PATHLEN);
 	    free(realpath_ret);
 	}
     }
+
+    if (activate_synth_preset_tab_on_exit) {
+	Track *track = timeline_selected_track(tl);
+	TabView *tv = synth_tabview_create(track);
+	tabview_activate(tv, track, track->name);
+	tl->needs_redraw = true;
+	timeline_check_set_midi_monitoring();
+	/* tabview_select_tab(tv, 0); */
+    }
+}
+
+static void openfile_file_select_action(DirNav *dn, DirPath *dp)
+{
+    Session *session = session_get();
+    open_file(dp->path);
     window_pop_modal(main_win);
     Timeline *tl = ACTIVE_TL;
     tl->needs_redraw = true;
@@ -465,11 +530,11 @@ void user_global_open_file(void *nullarg)
     Layout *mod_lt = layout_add_child(main_win->layout);
     layout_set_default_dims(mod_lt);
     Modal *openfile = modal_create(mod_lt);
-    modal_add_header(openfile, "Open file:", &color_global_light_grey, 3);
-    /* modal_add_header(openfile, "Project name:", &color_global_light_grey, 5); */
+    modal_add_header(openfile, "Open file:", &colors.light_grey, 3);
+    /* modal_add_header(openfile, "Project name:", &colors.light_grey, 5); */
     /* modal_add_textentry(openfile, proj->name); */
-    /* modal_add_p(openfile, "\t\t\t^\t\tS-p (S-d)\t\t\t\tv\t\tS-n (S-d)", &color_global_black); */
-    /* modal_add_header(openfile, "Project location:", &color_global_light_grey, 5); */
+    /* modal_add_p(openfile, "\t\t\t^\t\tS-p (S-d)\t\t\t\tv\t\tS-n (S-d)", &colors.black); */
+    /* modal_add_header(openfile, "Project location:", &colors.light_grey, 5); */
     ModalEl *dirnav_el = modal_add_dirnav(openfile, DIRPATH_OPEN_FILE, dir_to_tline_filter_open);
     DirNav *dn = (DirNav *)dirnav_el->obj;
     dn->file_select_action = openfile_file_select_action;
@@ -488,22 +553,51 @@ void user_global_function_lookup(void *nullarg)
 /*     main_win->screenrecording = !main_win->screenrecording; */
 /* } */
 
+#ifdef TESTBUILD
 void user_global_chaotic_user_test(void *nullarg)
 {
-    proj->do_tests = true;
+    Session *session = session_get(); 
+    session->do_tests = true;
 }
+
+void toggle_transport_logging();
+void user_global_debug_toggle_transport_performance_logging(void *nullarg)
+{
+    toggle_transport_logging();
+}
+#endif
 
 void api_node_print_all_routes(APINode *node);
 void user_global_api_print_all_routes(void *nullarg)
 {
-    api_node_print_all_routes(&proj->server.api_root);
+    Session *session = session_get();
+    api_node_print_all_routes(&session->server.api_root);
 }
+
+void user_global_dump_logs(void *nullarg)
+{
+    log_printall();
+}
+
+void user_global_enable_synth_parallelism()
+{
+    synth_parallelism_enable();
+}
+
+void user_global_disable_synth_parallelism()
+{
+    synth_parallelism_disable();
+}
+
+
 
 static void menu_nav_mode_error()
 {
-    fprintf(stderr, "ERROR: in mode menu_nav, no menu on main window");
+    log_tmp(LOG_ERROR, "In mode menu_nav, no menu on main window\n");
     breakfn();
-    window_pop_mode(main_win);
+    window_extract_mode(main_win, MODE_MENU_NAV);
+    /* window_clear_higher_modes(main_win, MODE_MENU_NAV); */
+    /* window_pop_mode(main_win); */
 }
 
 void user_menu_nav_next_item(void *nullarg)
@@ -613,8 +707,8 @@ void user_menu_nav_choose_item(void *nullarg)
 {
     Menu *m = window_top_menu(main_win);
     if (!m) {
-	fprintf(stderr, "No menu on main window\n");	
-	exit(1);
+	menu_nav_mode_error();
+	return;
     }
     if (m->sel_col < m->num_columns) {
 	MenuColumn *col = m->columns[m->sel_col];
@@ -633,6 +727,7 @@ void user_menu_nav_choose_item(void *nullarg)
 
 void user_menu_translate_up(void *nullarg)
 {
+    Session *session = session_get();
     Menu *m = window_top_menu(main_win);
     if (!m) {
 	fprintf(stderr, "No menu on main window\n");	
@@ -645,6 +740,7 @@ void user_menu_translate_up(void *nullarg)
 
 void user_menu_translate_down(void *nullarg)
 {
+    Session *session = session_get();
     Menu *m = window_top_menu(main_win);
     if (!m) {
 	fprintf(stderr, "No menu on main window\n");	
@@ -658,6 +754,7 @@ void user_menu_translate_down(void *nullarg)
 
 void user_menu_translate_left(void *nullarg)
 {
+    Session *session = session_get();
     Menu *m = window_top_menu(main_win);
     if (!m) {
 	fprintf(stderr, "No menu on main window\n");	
@@ -670,6 +767,7 @@ void user_menu_translate_left(void *nullarg)
 
 void user_menu_translate_right(void *nullarg)
 {
+    Session *session = session_get();
     Menu *m = window_top_menu(main_win);
     if (!m) {
 	fprintf(stderr, "No menu on main window\n");	
@@ -682,118 +780,194 @@ void user_menu_translate_right(void *nullarg)
 
 void user_menu_dismiss(void *nullarg)
 {
+    Session *session = session_get();
     window_pop_menu(main_win);
     Timeline *tl = ACTIVE_TL;
     tl->needs_redraw = true;
     /* window_pop_mode(main_win); */
 }
 
+static float playspeed_at_zoom(TimeView *tv, float input)
+{
+    if (tv->sample_frames_per_pixel < SFPP_THRESHOLD) {
+	return input * tv->sample_frames_per_pixel / 100;
+    } else {
+	return input;
+    }    
+}
+
 void user_tl_play(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
-    if (proj->dragging && !proj->playing && tl->num_grabbed_clips > 0) {
+    if (session->piano_roll && !session->playback.playing) {
+	piano_roll_start_moving();
+    } else if (session->dragging && !session->playback.playing && tl->num_grabbed_clips > 0) {
 	timeline_cache_grabbed_clip_positions(tl);
     }
     bool started = false;
-    if (proj->play_speed <= 0.0f) {
-	/* proj->play_speed = 1.0f; */
-	timeline_play_speed_set(1.0);
+    if (session->playback.play_speed <= 0.0f) {
+	/* session->playback.play_speed = 1.0f; */
+	timeline_play_speed_set(playspeed_at_zoom(&ACTIVE_TL->timeview, 1.0));
+	/* if (ACTIVE_TL->timeview.sample_frames_per_pixel < SFPP_THRESHOLD) { */
+	/*     timeline_play_speed_set(ACTIVE_TL->timeview.sample_frames_per_pixel / 100); */
+	/* } else { */
+	/*     timeline_play_speed_set(1.0); */
+	/* } */
     } else if (!started) {
 	timeline_play_speed_mult(2.0);
-	/* /\* proj->play_speed *= 2.0f; *\/ */
+	/* /\* session->playback.play_speed *= 2.0f; *\/ */
 	/* status_stat_playspeed(); */
     }
 
-    if (!proj->playing) {
+    if (!session->playback.playing) {
 	started = true;
 	transport_start_playback();
     }
-    /* PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_play"); */
+    /* PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_play"); */
     /* Button *btn = (Button *)el->component; */
     /* button_press_color_change( */
     /* 	btn, */
-    /* 	&color_global_quickref_button_pressed, */
-    /* 	&color_global_quickref_button_blue, */
+    /* 	&colors.quickref_button_pressed, */
+    /* 	&colors.quickref_button_blue, */
     /* 	quickref_button_press_callback, */
     /* 	NULL); */
 }
 
+void user_tl_halve_playspeed(void *nullarg)
+{
+    Session *session = session_get();
+    if (session->playback.playing) {
+	timeline_play_speed_mult(0.5);
+    }    
+}
+
+/* void user_tl_halve_playspeed_rewind(void *nullarg) */
+/* { */
+/*     Session *session = session_get(); */
+/*     if (session->playback.playing) { */
+/* 	if (session->playback.play_speed < 0.0f) { */
+/* 	    timeline_play_speed_adj(0.5); */
+/* 	} else { */
+/* 	    timeline_play_speed_adj(-0.5); */
+/* 	} */
+/*     }     */
+/* } */
+
+void user_tl_play_pause(void *nullarg)
+{
+    Session *session = session_get();
+    if (session->playback.playing) user_tl_pause(NULL);
+    else {
+	user_tl_play(NULL);
+	timeline_play_speed_set(1.0);
+    }
+}
+
 void user_tl_pause(void *nullarg)
 {
-
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
-    proj->play_speed = 0;
-    transport_stop_playback();
-    PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_pause");
-    Button *btn = (Button *)el->component;
-    button_press_color_change(
-	btn,
-	&color_global_quickref_button_pressed,
-	&color_global_quickref_button_blue,
-	quickref_button_press_callback,
-	NULL);
-
+    if (session->playback.playing) {
+	session->playback.play_speed = 0;
+	transport_stop_playback();
+    } else {
+	timeline_full_pause(tl);
+    }
+    /* PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_pause"); */
+    /* Button *btn = (Button *)el->component; */
+    /* button_press_color_change( */
+    /* 	btn, */
+    /* 	&colors.quickref_button_pressed, */
+    /* 	&colors.quickref_button_blue); */
     tl->needs_redraw = true;
-    if (proj->dragging && tl->num_grabbed_clips > 0) {
+    if (session->piano_roll) {
+	piano_roll_stop_moving();
+    } else if (session->dragging && tl->num_grabbed_clips > 0) {
 	timeline_push_grabbed_clip_move_event(tl);
     }
 }
 
 void user_tl_rewind(void *nullarg)
 {
-
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
-    if (proj->dragging && !proj->playing && tl->num_grabbed_clips > 0) {
+    if (session->piano_roll && !session->playback.playing) {
+	piano_roll_start_moving();
+    } else if (session->dragging && !session->playback.playing && tl->num_grabbed_clips > 0) {
 	timeline_cache_grabbed_clip_positions(tl);
     }
-    if (proj->play_speed >= 0.0f) {
-	timeline_play_speed_set(-1.0);
-	/* proj->play_speed = -1.0f; */
+    if (session->playback.play_speed >= 0.0f) {
+	timeline_play_speed_set(playspeed_at_zoom(&ACTIVE_TL->timeview, -1.0));
+	/* if (ACTIVE_TL->timeview.sample_frames_per_pixel < SFPP_THRESHOLD) { */
+	/*     timeline_play_speed_set(-1 * ACTIVE_TL->timeview.sample_frames_per_pixel / 100); */
+	/* } else { */
+	/*     timeline_play_speed_set(-1.0); */
+	/* } */
+
+	/* timeline_play_speed_set(-1.0); */
+	/* session->playback.play_speed = -1.0f; */
 	transport_start_playback();
     } else {
 	timeline_play_speed_mult(2.0);
-	/* proj->play_speed *= 2.0f; */
+	/* session->playback.play_speed *= 2.0f; */
 	/* status_stat_playspeed(); */
     }
-    PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_rewind");
-    Button *btn = (Button *)el->component;
-    button_press_color_change(
-	btn,
-	&color_global_quickref_button_pressed,
-	&color_global_quickref_button_blue,
-	quickref_button_press_callback,
-	NULL);
+    /* PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_rewind"); */
+    /* Button *btn = (Button *)el->component; */
+    /* button_press_color_change( */
+    /* 	btn, */
+    /* 	&colors.quickref_button_pressed, */
+    /* 	&colors.quickref_button_blue); */
 }
 
 void user_tl_play_slow(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
-    if (proj->dragging && !proj->playing && tl->num_grabbed_clips > 0) {
+    if (session->piano_roll && !session->playback.playing) {
+	piano_roll_start_moving();
+    } else if (session->dragging && !session->playback.playing && tl->num_grabbed_clips > 0) {
 	timeline_cache_grabbed_clip_positions(tl);
     }
-    timeline_play_speed_set(SLOW_PLAYBACK_SPEED);
-    /* proj->play_speed = SLOW_PLAYBACK_SPEED; */
+    timeline_play_speed_set(playspeed_at_zoom(&ACTIVE_TL->timeview, SLOW_PLAYBACK_SPEED));
+    /* if (tl->timeview.sample_frames_per_pixel < SFPP_THRESHOLD) { */
+    /* 	timeline_play_speed_set(SLOW_PLAYBACK_SPEED * tl->timeview.sample_frames_per_pixel / 50); */
+    /* } else { */
+    /* 	timeline_play_speed_set(SLOW_PLAYBACK_SPEED); */
+    /* } */
+    /* session->playback.play_speed = SLOW_PLAYBACK_SPEED; */
     /* status_stat_playspeed(); */
     transport_start_playback();
 }
 
 void user_tl_rewind_slow(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
-    if (proj->dragging && !proj->playing && tl->num_grabbed_clips > 0) {
+    if (session->piano_roll && !session->playback.playing) {
+	piano_roll_start_moving();
+    } else if (session->dragging && !session->playback.playing && tl->num_grabbed_clips > 0) {
 	timeline_cache_grabbed_clip_positions(tl);
     }
-    timeline_play_speed_set(-1 * SLOW_PLAYBACK_SPEED);
-    /* proj->play_speed = -1 * SLOW_PLAYBACK_SPEED; */
+    if (tl->timeview.sample_frames_per_pixel < SFPP_THRESHOLD) {
+	timeline_play_speed_set(-1 * SLOW_PLAYBACK_SPEED * tl->timeview.sample_frames_per_pixel / 50);
+    } else {
+	timeline_play_speed_set(-1 * SLOW_PLAYBACK_SPEED);
+    }
+
+    /* timeline_play_speed_set(-1 * SLOW_PLAYBACK_SPEED); */
+    /* session->playback.play_speed = -1 * SLOW_PLAYBACK_SPEED; */
     /* status_stat_playspeed(); */
     transport_start_playback();
 }
 
 static void playhead_incr(float by)
 {
-    if (!proj->playhead_do_incr) {
-	proj->playhead_do_incr = true;
-	proj->playhead_frame_incr = by;
+    Session *session = session_get();
+    if (!session->playhead_scroll.playhead_do_incr) {
+	session->playhead_scroll.playhead_do_incr = true;
+	session->playhead_scroll.playhead_frame_incr = by;
     }
 }
 
@@ -820,91 +994,93 @@ void user_tl_move_playhead_right_slow(void *nullarg)
 
 void user_tl_nudge_left(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
-    timeline_set_play_position(tl, tl->play_pos_sframes - 500);
+    timeline_set_play_position(tl, tl->play_pos_sframes - 500, true);
 }
 
 void user_tl_nudge_right(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
-    timeline_set_play_position(tl, tl->play_pos_sframes + 500);
+    timeline_set_play_position(tl, tl->play_pos_sframes + 500, true);
 }
 
 void user_tl_small_nudge_left(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
-    timeline_set_play_position(tl, tl->play_pos_sframes - 100);
+    timeline_set_play_position(tl, tl->play_pos_sframes - 100, true);
 }
 
 void user_tl_small_nudge_right(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
-    timeline_set_play_position(tl, tl->play_pos_sframes + 100);
+    timeline_set_play_position(tl, tl->play_pos_sframes + 100, true);
 }
 
 void user_tl_one_sample_left(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
-    timeline_set_play_position(tl, tl->play_pos_sframes - 1);
+    timeline_set_play_position(tl, tl->play_pos_sframes - 1, true);
 }
 
 void user_tl_one_sample_right(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
-    timeline_set_play_position(tl, tl->play_pos_sframes + 1);
+    timeline_set_play_position(tl, tl->play_pos_sframes + 1, true);
 }
 
 void user_tl_move_right(void *nullarg)
 {
+    Session *session = session_get();
     timeline_scroll_horiz(ACTIVE_TL, TL_DEFAULT_XSCROLL);
-    PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_right");
-    Button *btn = (Button *)el->component;
-    button_press_color_change(
-	btn,
-	&color_global_quickref_button_pressed,
-	&color_global_quickref_button_blue,
-	quickref_button_press_callback,
-	NULL);
+    /* PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_right"); */
+    /* Button *btn = (Button *)el->component; */
+    /* button_press_color_change( */
+    /* 	btn, */
+    /* 	&colors.quickref_button_pressed, */
+    /* 	&colors.quickref_button_blue); */
 }
 
 void user_tl_move_left(void *nullarg)
 {
+    Session *session = session_get();
     timeline_scroll_horiz(ACTIVE_TL, TL_DEFAULT_XSCROLL * -1);
-    PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_left");
-    Button *btn = (Button *)el->component;
-    button_press_color_change(
-	btn,
-	&color_global_quickref_button_pressed,
-	&color_global_quickref_button_blue,
-	quickref_button_press_callback,
-	NULL);
+    /* PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_left"); */
+    /* Button *btn = (Button *)el->component; */
+    /* button_press_color_change( */
+    /* 	btn, */
+    /* 	&colors.quickref_button_pressed, */
+    /* 	&colors.quickref_button_blue); */
 }
 
 void user_tl_zoom_in(void *nullarg)
 {
+    Session *session = session_get();
     timeline_rescale(ACTIVE_TL, 1.2, false);
-    PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_zoom_in");
-    Button *btn = (Button *)el->component;
-    button_press_color_change(
-	btn,
-	&color_global_quickref_button_pressed,
-	&color_global_quickref_button_blue,
-	quickref_button_press_callback,
-	NULL);
+    /* PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_zoom_in"); */
+    /* Button *btn = (Button *)el->component; */
+    /* button_press_color_change( */
+    /* 	btn, */
+    /* 	&colors.quickref_button_pressed, */
+    /* 	&colors.quickref_button_blue); */
 }
 
 void user_tl_zoom_out(void *nullarg)
 {
+    Session *session = session_get();
     timeline_rescale(ACTIVE_TL, 0.8, false);
 
-    PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_zoom_out");
-    Button *btn = (Button *)el->component;
-    button_press_color_change(
-	btn,
-	&color_global_quickref_button_pressed,
-	&color_global_quickref_button_blue,
-	quickref_button_press_callback,
-	NULL);
+    /* PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_zoom_out"); */
+    /* Button *btn = (Button *)el->component; */
+    /* button_press_color_change( */
+    /* 	btn, */
+    /* 	&colors.quickref_button_pressed, */
+    /* 	&colors.quickref_button_blue); */
 }
 
 static NEW_EVENT_FN(undo_redo_set_mark, "undo/redo set mark")
@@ -922,13 +1098,14 @@ static NEW_EVENT_FN(undo_redo_set_mark, "undo/redo set mark")
 
 void user_tl_set_mark_out(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     Value old_mark = {.int32_v = tl->out_mark_sframes};
     transport_set_mark(tl, false);
     Value new_mark = {.int32_v = tl->out_mark_sframes};
 
     user_event_push(
-	&proj->history,
+	
 	undo_redo_set_mark,
 	undo_redo_set_mark,
 	NULL, NULL,
@@ -940,6 +1117,7 @@ void user_tl_set_mark_out(void *nullarg)
 }
 void user_tl_set_mark_in(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
 
     Value old_mark = {.int32_v = tl->in_mark_sframes};
@@ -947,7 +1125,7 @@ void user_tl_set_mark_in(void *nullarg)
     Value new_mark = {.int32_v = tl->in_mark_sframes};
 
     user_event_push(
-	&proj->history,
+	
 	undo_redo_set_mark,
 	undo_redo_set_mark,
 	NULL, NULL,
@@ -960,45 +1138,50 @@ void user_tl_set_mark_in(void *nullarg)
 
 void user_tl_goto_mark_out(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     transport_goto_mark(tl, false);
 }
 
 void user_tl_goto_mark_in(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     transport_goto_mark(tl, true);
 }
 
 void user_tl_goto_zero(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
-    timeline_set_play_position(tl, 0);
-    tl->display_offset_sframes = 0;
+    timeline_set_play_position(tl, 0, true);
+    tl->timeview.offset_left_sframes = 0;
     timeline_reset(tl, false);
 }
 
 void user_tl_toggle_loop_playback(void *nullarg)
 {
-    proj->loop_play = !proj->loop_play;
+    Session *session = session_get();
+    session->playback.loop_play = !session->playback.loop_play;
 }
 
 void user_tl_goto_previous_clip_boundary(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     if (timeline_selected_track(tl)) {
-	ClipRef *cr = clipref_at_cursor();
+	ClipRef *cr = clipref_at_cursor_not_dragging();
 	int32_t pos;
 	if (cr) {
-	    if (cr->pos_sframes == tl->play_pos_sframes) {
+	    if (cr->tl_pos == tl->play_pos_sframes) {
 		goto goto_previous_clip;
 	    }
-	    timeline_set_play_position(tl, cr->pos_sframes);
+	    timeline_set_play_position(tl, cr->tl_pos, true);
 	    timeline_reset(tl, false);
 	} else {
 	goto_previous_clip:
 	    if (clipref_before_cursor(&pos)) {
-		timeline_set_play_position(tl, pos);
+		timeline_set_play_position(tl, pos, true);
 		timeline_reset(tl, false);
 	    } else {
 		status_set_errstr("No previous clip on selected track");
@@ -1013,23 +1196,23 @@ void user_tl_goto_previous_clip_boundary(void *nullarg)
 
 }
 
-
 void user_tl_goto_next_clip_boundary(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     if (timeline_selected_track(tl)) {
-	ClipRef *cr = clipref_at_cursor();
+	ClipRef *cr = clipref_at_cursor_not_dragging();
 	int32_t pos;
 	if (cr) {
-	    if (cr->pos_sframes + clipref_len(cr) == tl->play_pos_sframes) {
+	    if (cr->tl_pos + clipref_len(cr) == tl->play_pos_sframes) {
 		goto goto_next_clip;
 	    }
-	    timeline_set_play_position(tl, cr->pos_sframes + clipref_len(cr));
+	    timeline_set_play_position(tl, cr->tl_pos + clipref_len(cr), true);
 	    timeline_reset(tl, false);
 	} else {
 	goto_next_clip:
 	    if (clipref_after_cursor(&pos)) {
-		timeline_set_play_position(tl, pos);
+		timeline_set_play_position(tl, pos, true);
 		timeline_reset(tl, false);
 	    } else {
 		status_set_errstr("No subsequent clip on selected track");
@@ -1054,36 +1237,44 @@ static void tl_goto_prox_click(Timeline *tl, int direction, enum beat_prominence
     }
     if (ct) {
 	click_track_goto_prox_beat(ct, direction, bp);
+    } else if (tl->click_track_frozen) {
+	click_track_goto_prox_beat(tl->click_tracks[0], direction, bp);
     }
 }
 
 void user_tl_goto_next_beat(void *nullarg)
 {
+    Session *session = session_get();
     tl_goto_prox_click(ACTIVE_TL, 1, BP_BEAT);
 }
 
 void user_tl_goto_prev_beat(void *nullarg)
 {
+    Session *session = session_get();
     tl_goto_prox_click(ACTIVE_TL,-1, BP_BEAT);
 }
 
 void user_tl_goto_next_subdiv(void *nullarg)
 {
-    tl_goto_prox_click(ACTIVE_TL, 1, BP_SUBDIV2);
+    Session *session = session_get();
+    tl_goto_prox_click(ACTIVE_TL, 1, BP_SSD);
 }
 
 void user_tl_goto_prev_subdiv(void *nullarg)
 {
-    tl_goto_prox_click(ACTIVE_TL, -1, BP_SUBDIV2);
+    Session *session = session_get();
+    tl_goto_prox_click(ACTIVE_TL, -1, BP_SSD);
 }
 
 void user_tl_goto_next_measure(void *nullarg)
 {
+    Session *session = session_get();
     tl_goto_prox_click(ACTIVE_TL, 1, BP_MEASURE);
 }
 
 void user_tl_goto_prev_measure(void *nullarg)
 {
+    Session *session = session_get();
     tl_goto_prox_click(ACTIVE_TL, -1, BP_MEASURE);
 }
 
@@ -1093,7 +1284,7 @@ void user_tl_bring_rear_clip_to_front(void *nullarg)
 }
 
 void user_tl_set_default_out(void *nullarg) {
-    project_set_default_out(proj);
+    session_set_default_out(session_get());
 }
 
 static NEW_EVENT_FN(add_track_undo, "undo add track")
@@ -1107,32 +1298,29 @@ static NEW_EVENT_FN(add_track_redo, "redo add track")
 }
 
 static NEW_EVENT_FN(add_track_dispose_forward, "")
+fprintf(stderr, "Add track dispose forward...\n");
     Track *track = (Track *)obj1;
     track_destroy(track, false);
 }
 
 void user_tl_add_track(void *nullarg)
 {
-    if (!proj) {
-	fprintf(stderr, "Error: user call to add track w/o global project\n");
-	exit(1);
-    }
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
-    Track *track = timeline_add_track(tl);
+    Track *track = timeline_add_track(tl, tl->layout_selector + 1);
     if (!track) return;
-    PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_add_track");
-    Button *btn = (Button *)el->component;
-    button_press_color_change(
-	btn,
-	&color_global_quickref_button_pressed,
-	&color_global_quickref_button_blue,
-	quickref_button_press_callback,
-	NULL);
+    timeline_select_track(track);
+    /* PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_add_track"); */
+    /* Button *btn = (Button *)el->component; */
+    /* button_press_color_change( */
+    /* 	btn, */
+    /* 	&colors.quickref_button_pressed, */
+    /* 	&colors.quickref_button_blue); */
     tl->needs_redraw = true;
 
     Value nullval = {.int_v = 0};
     user_event_push(
-	&proj->history,
+	
 	add_track_undo,
 	add_track_redo,
 	NULL, add_track_dispose_forward,
@@ -1145,6 +1333,7 @@ void user_tl_add_track(void *nullarg)
 
 static void track_select_n(int n)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     if (tl->num_tracks <= n) return;
     Track *track = tl->tracks[n];
@@ -1228,6 +1417,7 @@ static void deactivate_all_tracks(Timeline *tl)
 
 void user_tl_track_activate_all(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     if (activate_all_tracks(tl)) {
 	deactivate_all_tracks(tl);
@@ -1264,6 +1454,7 @@ void user_tl_track_activate_all(void *nullarg)
 
 void user_tl_track_selector_up(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     Track *selected = timeline_selected_track(tl);
 
@@ -1275,7 +1466,13 @@ void user_tl_track_selector_up(void *nullarg)
 	timeline_cache_grabbed_clip_offsets(tl);
     }
     Track *prev_selected = selected;
-    if (tl->layout_selector > 0) {
+    if (tl->click_track_frozen && tl->layout_selector <= 0) {
+	tl->layout_selector = -1; /* Select the frozen click track */
+	tl->click_track_selector = -1;
+	tl->needs_redraw = true;
+	return;
+    }
+    else if (tl->layout_selector > 0) {
 	tl->layout_selector--;
     }
     timeline_rectify_track_indices(tl);
@@ -1287,11 +1484,11 @@ void user_tl_track_selector_up(void *nullarg)
 	    /*  Select last shown automation */
 	    track_select_last_shown_automation(selected);
 	}
-	if (proj->dragging && tl->num_grabbed_clips > 0) {
+	if (session->dragging && tl->num_grabbed_clips > 0) {
 	    timeline_cache_grabbed_clip_positions(tl);
 	    bool some_clip_moved = false;
 	    for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
-		int offset = tl->grabbed_clip_pos_cache[i].track_offset;
+		int offset = tl->grabbed_clip_info_cache[i].track_offset;
 		int new_index = tl->track_selector + offset;
 		if (new_index >=0 && new_index < tl->num_tracks) {
 		    some_clip_moved = true;
@@ -1306,14 +1503,35 @@ void user_tl_track_selector_up(void *nullarg)
 	}
 	TabView *tv;
 	if ((tv = main_win->active_tabview)) {
-	    if (strcmp(tv->title, "Track Effects") == 0) {
-		settings_track_tabview_set_track(tv, selected);
+	    if (strncmp(tv->title, "Effects", 7) == 0) {
+		if (tv->connected_obj == &prev_selected->effect_chain) {
+		    settings_track_tabview_set_track(tv, selected);
+		} else if (tv->connected_obj == &prev_selected->synth->effect_chain) {
+		    tabview_close(tv);
+		    if (selected->synth)
+			effect_chain_open_tabview(&selected->synth->effect_chain);
+		}
+	    } else if (strcmp(tv->title, "Synth") == 0) {
+		tabview_close(tv);
+		if (selected->synth) {
+		    TabView *tv = synth_tabview_create(selected);
+		    tabview_activate(tv, selected->synth, selected->name);
+		}
+		/* effect_chain_open_tabview(&selected->); */
+
+	    } else {
+		tabview_close(tv);
 	    }
+
 	}
     } else {
 	TabView *tv;
 	if ((tv = main_win->active_tabview)) {
-	    click_track_populate_settings_tabview(timeline_selected_click_track(tl), tv);
+	    if (strcmp(tv->title, "Click track settings") == 0) {
+		click_track_populate_settings_tabview(timeline_selected_click_track(tl), tv);
+	    } else {
+		tabview_close(tv);
+	    }
 	}
     }
 
@@ -1330,18 +1548,20 @@ button_animation_and_exit:
 
     tl->needs_redraw = true;
 
-    PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_previous");
-    Button *btn = (Button *)el->component;
-    button_press_color_change(
-	btn,
-	&color_global_quickref_button_pressed,
-	&color_global_quickref_button_blue,
-	quickref_button_press_callback,
-	NULL);  
+    /* if (session->gui.panels_initialized) { */
+    /* 	PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_previous"); */
+    /* 	Button *btn = (Button *)el->component; */
+    /* 	button_press_color_change( */
+    /* 	    btn, */
+    /* 	    &colors.quickref_button_pressed, */
+    /* 	    &colors.quickref_button_blue); */
+    /* } */
+    timeline_check_set_midi_monitoring();
 }
 
 void user_tl_track_selector_down(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     Track *selected = timeline_selected_track(tl);
 
@@ -1370,10 +1590,10 @@ void user_tl_track_selector_down(void *nullarg)
 	if (prev_selected && selected != prev_selected) {
 	    selected->selected_automation = -1;
 	}
-	if (proj->dragging && tl->num_grabbed_clips > 0) {
+	if (session->dragging && tl->num_grabbed_clips > 0) {
 	    timeline_cache_grabbed_clip_positions(tl);
 	    for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
-		int offset = tl->grabbed_clip_pos_cache[i].track_offset;
+		int offset = tl->grabbed_clip_info_cache[i].track_offset;
 		int new_index = tl->track_selector + offset;
 		if (new_index >=0 && new_index < tl->num_tracks) {
 		    ClipRef *cr = tl->grabbed_clips[i];
@@ -1384,14 +1604,32 @@ void user_tl_track_selector_down(void *nullarg)
 	}
 	TabView *tv;
 	if ((tv = main_win->active_tabview)) {
-	    if (strcmp(tv->title, "Track Effects") == 0) {
-		settings_track_tabview_set_track(tv, selected);
+	    if (strncmp(tv->title, "Effects", 7) == 0) {
+		if (tv->connected_obj == &prev_selected->effect_chain) {
+		    settings_track_tabview_set_track(tv, selected);
+		} else if (tv->connected_obj == &prev_selected->synth->effect_chain) {
+		    tabview_close(tv);
+		    if (selected->synth)
+			effect_chain_open_tabview(&selected->synth->effect_chain);
+		}
+	    } else if (strcmp(tv->title, "Synth") == 0) {
+		tabview_close(tv);
+		if (selected->synth) {
+		    TabView *tv = synth_tabview_create(selected);
+		    tabview_activate(tv, selected->synth, selected->name);
+		}
+	    } else {
+		tabview_close(tv);
 	    }
 	}
     } else {
 	TabView *tv;
 	if ((tv = main_win->active_tabview)) {
-	    click_track_populate_settings_tabview(timeline_selected_click_track(tl), tv);
+	    if (strcmp(tv->title, "Click track settings") == 0) {
+		click_track_populate_settings_tabview(timeline_selected_click_track(tl), tv);
+	    } else {
+		tabview_close(tv);
+	    }
 	}
     }
 
@@ -1411,14 +1649,15 @@ button_animation_and_exit:
     /* if (selected) timeline_refocus_track(tl, selected, true); */
     tl->needs_redraw = true;
 
-    PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_quickref_next");
-    Button *btn = (Button *)el->component;
-    button_press_color_change(
-	btn,
-	&color_global_quickref_button_pressed,
-	&color_global_quickref_button_blue,
-	quickref_button_press_callback,
-	NULL);  
+    /* if (session->gui.panels_initialized) { */
+    /* 	PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_next"); */
+    /* 	Button *btn = (Button *)el->component; */
+    /* 	button_press_color_change( */
+    /* 	    btn, */
+    /* 	    &colors.quickref_button_pressed, */
+    /* 	    &colors.quickref_button_blue); */
+    /* } */
+    timeline_check_set_midi_monitoring();
 }
 
 /* Moves automation track if applicable */
@@ -1460,22 +1699,26 @@ button_animation_and_exit:
 
 void user_tl_move_track_up(void *nullarg)
 {
+    Session *session = session_get();
     timeline_move_track_or_automation(ACTIVE_TL, -1);
 }
 
 void user_tl_move_track_down(void *nullarg)
 {
+    Session *session = session_get();
     timeline_move_track_or_automation(ACTIVE_TL, 1);
 }
 
 void user_tl_tracks_minimize(void *nullarg)
 {
+    Session *session = session_get();
     timeline_minimize_track_or_tracks(ACTIVE_TL);
 }
 
 
 void user_tl_track_activate_selected(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     if (tl->track_selector >= 0) {
 	track_select_n(tl->track_selector);
@@ -1485,6 +1728,7 @@ void user_tl_track_activate_selected(void *nullarg)
 void project_draw(void *nullarg);
 void user_tl_track_rename(void *nullarg)
 {
+    Session *session = session_get();
     /* window_pop_menu(main_win); */
     /* window_pop_mode(main_win); */
     Timeline *tl = ACTIVE_TL;
@@ -1508,12 +1752,25 @@ void user_tl_rename_clip_at_cursor(void *nullarg)
 
 void user_tl_track_set_in(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     Track *track = timeline_selected_track(tl);
     if (!track) {
 	return;
     }
     track_set_input(track);
+}
+
+
+void user_tl_track_set_midi_out(void *nullarg)
+{
+    Session *session = session_get();
+    Timeline *tl = ACTIVE_TL;
+    Track *track = timeline_selected_track(tl);
+    if (!track) {
+	return;
+    }
+    track_set_midi_out(track);
 }
 
 static NEW_EVENT_FN(undo_track_delete, "undo delete track")
@@ -1533,8 +1790,9 @@ static NEW_EVENT_FN(dispose_track_delete, "")
 
 void user_tl_track_delete(void *nullarg)
 {
+    Session *session = session_get();
     TABVIEW_BLOCK(delete track);
-    if (proj->recording) transport_stop_recording();
+    if (session->playback.recording) transport_stop_recording();
     Timeline *tl = ACTIVE_TL;
     Track *track = timeline_selected_track(tl);
     if (track) {
@@ -1550,7 +1808,7 @@ void user_tl_track_delete(void *nullarg)
 	}
 	Value nullval = {.int_v = 0};
 	user_event_push(
-	    &proj->history,
+	    
 	    undo_track_delete,
 	    redo_track_delete,
 	    dispose_track_delete, NULL,
@@ -1568,11 +1826,13 @@ void user_tl_track_delete(void *nullarg)
 
 void user_tl_mute(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     track_or_tracks_mute(tl);
 }
 void user_tl_solo(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     track_or_tracks_solo(tl, NULL);
     /* tl->needs_redraw = true; */
@@ -1582,6 +1842,7 @@ static Value vol_incr = {.float_v = 0.04};
 static Value pan_incr = {.float_v = 0.02};
 void user_tl_track_vol_up(void *nullarg)
 {
+    Session *session = session_get();
 
     /* if (proj->vol_changing) return; */
     /* proj->vol_changing = true; */
@@ -1603,7 +1864,7 @@ void user_tl_track_vol_up(void *nullarg)
 	} else {
 	    ClickTrack *tt = timeline_selected_click_track(tl);
 	    if (tt) {
-		endpoint_start_continuous_change(&tt->metronome_vol_ep, true, vol_incr, JDAW_THREAD_MAIN, endpoint_safe_read(&tt->metronome_vol_ep, NULL));
+		endpoint_start_continuous_change(&tt->metronome.vol_ep, true, vol_incr, JDAW_THREAD_MAIN, endpoint_safe_read(&tt->metronome.vol_ep, NULL));
 	    }
 	}
 
@@ -1621,6 +1882,7 @@ void user_tl_track_vol_up(void *nullarg)
 
 void user_tl_track_vol_down(void *nullarg)
 {
+    Session *session = session_get();
     /* if (proj->vol_changing) return; */
     /* proj->vol_changing = true; */
     /* proj->vol_up = false; */
@@ -1642,14 +1904,16 @@ void user_tl_track_vol_down(void *nullarg)
 	} else {
 	    ClickTrack *tt = timeline_selected_click_track(tl);
 	    if (tt) {
-		endpoint_start_continuous_change(&tt->metronome_vol_ep, true, vol_decr, JDAW_THREAD_MAIN, endpoint_safe_read(&tt->metronome_vol_ep, NULL));
+		endpoint_start_continuous_change(&tt->metronome.vol_ep, true, vol_decr, JDAW_THREAD_MAIN, endpoint_safe_read(&tt->metronome.vol_ep, NULL));
 	    }
 	}
     }
 }
 
+
 void user_tl_track_pan_left(void *nullarg)
 {
+    Session *session = session_get();
     /* Timeline *tl = ACTIVE_TL; */
     /* /\* if (tl->num_tracks ==0) return; *\/ */
     /* if (proj->pan_changing) return; */
@@ -1677,6 +1941,7 @@ void user_tl_track_pan_left(void *nullarg)
 
 void user_tl_track_pan_right(void *nullarg)
 {
+    Session *session = session_get();
     bool has_active_track = false;
     Timeline *tl = ACTIVE_TL;
     for (int i=0; i<tl->num_tracks; i++) {
@@ -1702,11 +1967,13 @@ void user_tl_track_pan_right(void *nullarg)
 
 void user_tl_track_add_effect(void *nullarg)
 {
+    Session *session = session_get();
     TABVIEW_BLOCK(add automation);
     Timeline *tl = ACTIVE_TL;
     Track *track = timeline_selected_track(tl);
     if (track) {
-	track_add_new_effect(track);
+	effect_add(&track->effect_chain, track->name);
+	/* track_add_new_effect(track); */
 	/* track_add_new_automation(track); */
 	/* track_automations_show_all(track); */
     } else {
@@ -1717,6 +1984,7 @@ void user_tl_track_add_effect(void *nullarg)
 
 void user_tl_track_open_settings(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     if (main_win->active_tabview) {
 	tabview_close(main_win->active_tabview);
@@ -1726,16 +1994,39 @@ void user_tl_track_open_settings(void *nullarg)
     Track *track = timeline_selected_track(tl);
 
     if (track) {
-	if (track->num_effects == 0) {
+	if (track->effect_chain.num_effects == 0) {
 	    user_tl_track_add_effect(NULL);
 	    return;
 	}
-
-	TabView *tv = settings_track_tabview_create(track);
-	tabview_activate(tv);
+	TabView *tv = effect_chain_tabview_create(&track->effect_chain);
+	/* TabView *tv = track_effects_tabview_create(track); */
+	tabview_activate(tv, track, track->name);
 	tl->needs_redraw = true;
     } else {
 	timeline_click_track_edit(tl);
+    }
+}
+
+void user_tl_track_open_synth(void *nullarg)
+{
+    if (main_win->active_tabview) {
+	bool early_exit = false;
+	if (strcmp(main_win->active_tabview->title, "Synth") == 0) {
+	    early_exit = true;
+	}
+	tabview_close(main_win->active_tabview);
+	if (early_exit)	return;
+    }
+    Session *session = session_get();
+    Timeline *tl = ACTIVE_TL;
+    Track *track = timeline_selected_track(tl);
+    if (track) {
+	TabView *tv = synth_tabview_create(track);
+	tabview_activate(tv, track, track->name);
+	tl->needs_redraw = true;
+	timeline_check_set_midi_monitoring();
+    } else {
+	status_set_errstr("Cannot open synth: no track");
     }
 }
 
@@ -1743,6 +2034,7 @@ void user_tl_track_open_settings(void *nullarg)
 
 void user_tl_track_add_automation(void *nullarg)
 {
+    Session *session = session_get();
     TABVIEW_BLOCK(add automation);
     Timeline *tl = ACTIVE_TL;
     Track *track = timeline_selected_track(tl);
@@ -1756,6 +2048,7 @@ void user_tl_track_add_automation(void *nullarg)
 
 void user_tl_track_show_hide_automations(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     Track *track = timeline_selected_track(tl);
     if (!track) {
@@ -1783,6 +2076,7 @@ void user_tl_track_show_hide_automations(void *nullarg)
 
 void user_tl_track_automation_toggle_read(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     Track *track = timeline_selected_track(tl);
     if (!track) {
@@ -1799,14 +2093,15 @@ void user_tl_track_automation_toggle_read(void *nullarg)
 
 void user_tl_record(void *nullarg)
 {
-    if (proj->recording) {
+    Session *session = session_get();
+    if (session->playback.recording) {
 	transport_stop_recording();
 	return;
     }
 
-    if (proj->automation_recording) {
-	automation_record(proj->automation_recording);
-	proj->automation_recording = NULL;
+    if (session->automation_recording) {
+	automation_record(session->automation_recording);
+	session->automation_recording = NULL;
 	return;
     }
     Timeline *tl = ACTIVE_TL;
@@ -1818,7 +2113,7 @@ void user_tl_record(void *nullarg)
     if (sel_track && sel_track->selected_automation >= 0) {
 	Automation *sel_auto = sel_track->automations[sel_track->selected_automation];
 	automation_record(sel_auto);
-	proj->automation_recording = sel_auto;
+	session->automation_recording = sel_auto;
 	tl->needs_redraw = true;
 	return;
     }
@@ -1829,6 +2124,7 @@ void user_tl_record(void *nullarg)
 
 void user_tl_click_track_add(void *nullarg)
 {
+    Session *session = session_get();
     timeline_add_click_track(ACTIVE_TL);
 }
 
@@ -1839,136 +2135,66 @@ void user_tl_click_track_add(void *nullarg)
 
 void user_tl_click_track_set_tempo(void *nullarg)
 {
+    Session *session = session_get();
     timeline_click_track_set_tempo_at_cursor(ACTIVE_TL);
 }
 
 void user_tl_clipref_grab_ungrab(void *nullarg)
 {
-    Timeline *tl = ACTIVE_TL;
-    tl->needs_redraw = true;
-    if (tl->num_tracks == 0) return;
-    Track *track = NULL;
-    ClipRef *cr =  NULL;
-    
-    ClipRef *clips_to_grab[MAX_GRABBED_CLIPS];
-    uint8_t num_clips = 0;
-    
-    bool clip_grabbed = false;
-    bool had_active_track = false;
-    for (uint8_t i=0; i<tl->num_tracks; i++) {
-	track = tl->tracks[i];
-	if (track->active) {
-	    had_active_track = true;
-	    cr = clipref_at_cursor_in_track(track);
-	    if (cr && !cr->grabbed) {
-		clips_to_grab[num_clips] = cr;
-		num_clips++;
-		/* clipref_grab(cr); */
-		clip_grabbed = true;
-		
-		/* undo_crs[num_undo_crs] = cr; */
-		/* num_undo_crs++; */
-	    }
-	}
-    }
-    track = timeline_selected_track(tl);
-    if (!had_active_track && track) {
-	track = timeline_selected_track(tl);
-	cr = clipref_at_cursor_in_track(track);
-	if (cr && !cr->grabbed) {
-	    /* clipref_grab(cr); */
-	    clips_to_grab[num_clips] = cr;
-	    num_clips++;
-	    clip_grabbed = true;
+    Session *session = session_get();
+    timeline_grab_ungrab(ACTIVE_TL);
+}
 
-	    /* undo_crs[num_undo_crs] = cr; */
-	    /* num_undo_crs++; */
-	}
-    }
+void user_tl_clipref_grab_left_edge(void *nullarg)
+{
+    Session *session = session_get();
+    timeline_grab_left_edge(ACTIVE_TL);
+    /* timeline_grab_ungrab(ACTIVE_TL, CLIPREF_EDGE_LEFT); */
+}
 
-    if (clip_grabbed) {
-	for (uint8_t i=0; i<num_clips; i++) {
-	    clipref_grab(clips_to_grab[i]);
-	}
-	if (proj->dragging && proj->playing) {
-	    timeline_cache_grabbed_clip_positions(tl);
-	}
-    } else {
-	if (proj->dragging && proj->playing) {
-	    timeline_push_grabbed_clip_move_event(tl);
-	}
-	for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
-	    cr = tl->grabbed_clips[i];
-	    cr->grabbed = false;
-	}
-	tl->num_grabbed_clips = 0;
-    }
-    
-    if (proj->dragging) {
-	status_stat_drag();
-    }
-    
-    /* timeline_cache_grabbed_clip_positions(tl); */
-    /* if (num_undo_crs > 0) { */
-    /* 	ClipRef **clips = calloc(num_undo_crs, sizeof(ClipRef *)); */
-    /* 	memcpy(clips, undo_crs, num_undo_crs * sizeof(ClipRef *)); */
-    /* 	Value num = {.uint8_v = num_undo_crs}; */
-    /* 	user_event_push( */
-    /* 	    &proj->history, */
-    /* 	    undo_redo_grab_clips, */
-    /* 	    undo_redo_grab_clips, */
-    /* 	    NULL, */
-    /* 	    clips, */
-    /* 	    NULL, */
-    /* 	    num, */
-    /* 	    num, */
-    /* 	    num, */
-    /* 	    num, */
-    /* 	    0, */
-    /* 	    0, */
-    /* 	    true, */
-    /* 	    false); */
-    /* } */
-    
-    /* if (tl->num_grabbed_clips > 0) { */
+void user_tl_clipref_grab_right_edge(void *nullarg)
+{
+    Session *session = session_get();
+    timeline_grab_right_edge(ACTIVE_TL);
+    /* timeline_grab_ungrab(ACTIVE_TL, CLIPREF_EDGE_RIGHT); */
+}
 
-    /* 	if (proj->playing && proj->dragging) */
-    /* 	    timeline_push_grabbed_clip_move_event(tl); */
-    /* } */
-    /* tl->needs_redraw = true; */
+void user_tl_clipref_ungrab_edge(void *nullarg)
+{
+    Session *session = session_get();
+    timeline_grab_no_edge(ACTIVE_TL);
 }
 
 void user_tl_grab_marked_range(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
-    bool had_active_track = false;
-    for (uint8_t i=0; i<tl->num_tracks; i++) {
-	Track *t = tl->tracks[i];
-	if (t->active) {
-	    had_active_track = true;
-	    for (int i=0; i<t->num_clips; i++) {
-		ClipRef *cr = t->clips[i];
-		if (clipref_marked(tl, cr) && !cr->grabbed) {
-		    clipref_grab(cr);
-		}
-	    }
-	}
-    }
-    Track *t = timeline_selected_track(tl);
-    if (!had_active_track && t) {
-	/* Track *t = timeline_selected_track(tl); */
-	for (int i=0; i<t->num_clips; i++) {
-	    ClipRef *cr = t->clips[i];
-	    if (clipref_marked(tl, cr) && !cr->grabbed) {
-		clipref_grab(cr);
-	    }
-	}
-    }
-    tl->needs_redraw = true;
+    timeline_grab_marked_range(tl, CLIPREF_EDGE_NONE);
 }
+
+void user_tl_grab_marked_range_left_edge(void *nullarg)
+{
+    Session *session = session_get();
+    Timeline *tl = ACTIVE_TL;
+    timeline_grab_marked_range(tl, CLIPREF_EDGE_LEFT);
+}
+
+void user_tl_grab_marked_range_right_edge(void *nullarg)
+{
+    Session *session = session_get();
+    Timeline *tl = ACTIVE_TL;
+    timeline_grab_marked_range(tl, CLIPREF_EDGE_RIGHT);
+}
+
+
 
 void user_tl_copy_grabbed_clips(void *nullarg)
 {
+    Session *session = session_get();
+    if (session->piano_roll) {
+	piano_roll_copy_grabbed_notes();
+	return;
+    }
     Timeline *tl = ACTIVE_TL;
     memcpy(tl->clipboard, tl->grabbed_clips, sizeof(ClipRef *) * tl->num_grabbed_clips);
     tl->num_clips_in_clipboard = tl->num_grabbed_clips;
@@ -2000,16 +2226,21 @@ NEW_EVENT_FN(dispose_forward_paste_grabbed_clips, "redo paste grabbed clips")
 
 void user_tl_paste_grabbed_clips(void *nullarg)
 {
+    Session *session = session_get();
+    if (session->piano_roll) {
+	piano_roll_paste_grabbed_notes();
+	return;
+    }
     Timeline *tl = ACTIVE_TL;
     timeline_ungrab_all_cliprefs(tl);
     if (tl->num_clips_in_clipboard == 0) {
 	status_set_errstr("No clips copied to clipboard");
 	return;
     }
-    int32_t leftmost = tl->clipboard[0]->pos_sframes;
+    int32_t leftmost = tl->clipboard[0]->tl_pos;
     for (int i=0; i<tl->num_clips_in_clipboard; i++) {
 	ClipRef *cr = tl->clipboard[i];
-	if (cr->pos_sframes < leftmost) leftmost = cr->pos_sframes;
+	if (cr->tl_pos < leftmost) leftmost = cr->tl_pos;
     }
 
     
@@ -2018,15 +2249,20 @@ void user_tl_paste_grabbed_clips(void *nullarg)
     for (int i=0; i<tl->num_clips_in_clipboard; i++) {
 	ClipRef *cr = tl->clipboard[i];
 	if (!cr->deleted && !cr->track->deleted) {
-	    int32_t offset = cr->pos_sframes - leftmost;
-	    ClipRef *copy = track_create_clip_ref(cr->track, cr->clip, tl->play_pos_sframes + offset, false);
+	    int32_t offset = cr->tl_pos - leftmost;
+	    ClipRef *copy = clipref_create(
+		cr->track,
+		tl->play_pos_sframes + offset,
+		cr->type,
+		cr->source_clip);
+	    copy->gain = cr->gain;
 	    if (!copy) continue;
 	    snprintf(copy->name, MAX_NAMELENGTH, "%s copy", cr->name);
-	    copy->in_mark_sframes = cr->in_mark_sframes;
-	    copy->out_mark_sframes = cr->out_mark_sframes;
-	    copy->start_ramp_len = cr->start_ramp_len;
-	    copy->end_ramp_len = cr->end_ramp_len;
-	    clipref_grab(copy);
+	    copy->start_in_clip = cr->start_in_clip;
+	    copy->end_in_clip = cr->end_in_clip;
+	    /* copy->start_ramp_len = cr->start_ramp_len; */
+	    /* copy->end_ramp_len = cr->end_ramp_len; */
+	    timeline_clipref_grab(copy, CLIPREF_EDGE_NONE);
 	    undo_cache[actual_num] = copy;
 	    actual_num++;
 	}	    
@@ -2034,7 +2270,7 @@ void user_tl_paste_grabbed_clips(void *nullarg)
 
     Value num = {.uint8_v = actual_num};
     user_event_push(
-	&proj->history,
+	
 	undo_paste_grabbed_clips,
 	redo_paste_grabbed_clips,
 	NULL, dispose_forward_paste_grabbed_clips,
@@ -2046,22 +2282,39 @@ void user_tl_paste_grabbed_clips(void *nullarg)
 
 void user_tl_toggle_drag(void *nullarg)
 {
-    proj->dragging = !proj->dragging;
+    Session *session = session_get();
+    session->dragging = !session->dragging;
     status_stat_drag();
     Timeline *tl = ACTIVE_TL;
-    if (proj->playing) {
-	if (proj->dragging) {
+    if (session->playback.playing) {
+	if (session->piano_roll) {
+	    if (session->dragging) {
+		piano_roll_start_moving();
+	    } else {
+		piano_roll_stop_dragging();
+	    }
+	} else if (session->dragging) {
 	    timeline_cache_grabbed_clip_positions(tl);
 	} else {
 	    timeline_push_grabbed_clip_move_event(tl);
 	}
     }
+    tl->needs_redraw = true;
 }
 
 void user_tl_cut_clipref(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     timeline_cut_at_cursor(tl);
+    tl->needs_redraw = true;
+}
+
+void user_tl_cut_clipref_and_grab_edges(void *nullarg)
+{
+    Session *session = session_get();
+    Timeline *tl = ACTIVE_TL;
+    timeline_cut_at_cursor_and_grab_edges(tl);
     tl->needs_redraw = true;
 }
 
@@ -2073,40 +2326,127 @@ void user_tl_split_stereo_clipref(void *nullarg)
     }
 }
 
+void user_tl_edit_clip_at_cursor(void *nullarg)
+{
+
+    ClipRef *cr = clipref_at_cursor();
+    if (cr && cr->type == CLIP_MIDI) {
+	piano_roll_activate(cr);
+    } else if (cr && cr->type == CLIP_AUDIO) {
+	/* Edit Audio clip ? */
+    } else { /* Create clip */
+	Session *session = session_get();
+	Timeline *tl = ACTIVE_TL;
+	Track *track = timeline_selected_track(tl);
+	if (!track) return;
+	MIDIClip *mclip = midi_clip_create(NULL, track);
+	mclip->len_sframes = session->proj.sample_rate; /* initialize clip len to 1s */
+	ClipRef *cr = clipref_create(track, tl->play_pos_sframes, CLIP_MIDI, mclip);
+	session->proj.active_midi_clip_index++;
+	piano_roll_activate(cr);
+    }
+}
+
+void user_tl_quantize_notes(void *nullarg)
+{
+    ClipRef *cr = clipref_at_cursor();
+    if (cr) {
+	midi_clipref_quantize(cr);
+    } else {
+	status_set_errstr("Cannot quantize; no clip at cursor.");
+    }
+}
+
+void user_tl_adj_quantize_amt(void *nullarg)
+{
+    ClipRef *cr = clipref_at_cursor();
+    if (cr) {
+	midi_clipref_adj_quantize_amt(cr);
+    } else {
+	status_set_errstr("Cannot quantize; no clip at cursor.");
+    }
+}
+
 void user_tl_load_clip_at_cursor_to_src(void *nullarg)
 {
-    /* Timeline *tl = ACTIVE_TL; */
-    ClipRef *cr = clipref_at_cursor();
-    if (cr && !cr->clip->recording) {
-	proj->src_clip = cr->clip;
-	proj->src_in_sframes = cr->in_mark_sframes;
-	proj->src_play_pos_sframes = 0;
-	proj->src_out_sframes = cr->out_mark_sframes;
-	/* fprintf(stdout, "Src clip name? %s\n", proj->src_clip->name); */
-	/* txt_set_value_handle(proj->source_name_tb->text, proj->src_clip->name); */
+    Session *session = session_get();
+    if (session->source_mode.source_mode) {
+	session->source_mode.source_mode = false;
+	window_extract_mode(main_win, MODE_SOURCE);
+	/* window_pop_mode(main_win); */
 	Timeline *tl = ACTIVE_TL;
 	tl->needs_redraw = true;
-	PageEl *el = panel_area_get_el_by_id(proj->panels, "panel_source_clip_name_tb");
-	Textbox *tb = (Textbox *)el->component;
-	textbox_set_value_handle(tb, cr->clip->name);
-	panel_page_refocus(proj->panels, "Sample source", 1);
+	return;
     }
+    /* Timeline *tl = ACTIVE_TL; */
+    ClipRef *cr = clipref_at_cursor();
+    if (!cr) return;
+    void *clip = NULL;
+    bool clip_recording = false;
+    char *clip_name = NULL;
+    int32_t clip_len;
+    /* MIDIClip *mclip = NULL; */
+    if (cr->type == CLIP_AUDIO) {
+	clip = cr->source_clip;
+	clip_recording = ((Clip *)cr->source_clip)->recording;
+	clip_name = ((Clip *)cr->source_clip)->name;
+	clip_len = ((Clip *)cr->source_clip)->len_sframes;
+    } else if (cr->type == CLIP_MIDI) {
+	clip = cr->source_clip;
+	clip_recording = ((MIDIClip *)cr->source_clip)->recording;
+	clip_name = ((MIDIClip *)cr->source_clip)->name;
+	clip_len = ((Clip *)cr->source_clip)->len_sframes;
+    } else {
+	fprintf(stderr, "Error: unhandled clipref type (%d) in user_tl_laod_clip_at_cursor_to_src", cr->type);
+	return;
+    }
+    if (cr && clip && !clip_recording && clip_len > 10) {
+	session->source_mode.src_clip = clip;
+	session->source_mode.src_in_sframes = cr->start_in_clip;
+	session->source_mode.src_play_pos_sframes = 0;
+	session->source_mode.src_out_sframes = cr->end_in_clip;
+	session->source_mode.timeview.sample_frames_per_pixel =
+	    (double)clip_len / session->source_mode.timeview.rect->w;
+	session->source_mode.timeview.restrict_view = true;
+	session->source_mode.timeview.view_min = 0;
+	session->source_mode.timeview.view_max = clip_len - 1;
+	session->source_mode.timeview.offset_left_sframes = 0;
+	session->source_mode.timeview.max_sfpp = session->source_mode.timeview.sample_frames_per_pixel;
+	/* fprintf(stdout, "Src clip name? %s\n", session->source_mode.src_clip->name); */
+	/* txt_set_value_handle(proj->source_name_tb->text, session->source_mode.src_clip->name); */
+	/* fprintf(stderr, "SFPP: %f\n", session->source_mode.timeview.sample_frames_per_pixel); */
+	Timeline *tl = ACTIVE_TL;
+	tl->needs_redraw = true;
+	PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_source_clip_name_tb");
+	Textbox *tb = (Textbox *)el->component;
+	textbox_set_value_handle(tb, clip_name);
+	panel_page_refocus(session->gui.panels, "Sample source", 1);
+    }
+}
 
+void source_mode_deactivate()
+{
+    Session *session = session_get();
+    session->source_mode.source_mode = false;
+    window_extract_mode(main_win, MODE_SOURCE);
+    /* window_pop_mode(main_win); */
 }
 
 void user_tl_activate_source_mode(void *nullarg)
 {
-    if (!proj->source_mode) {
-	if (proj->src_clip) {
-	    proj->source_mode = true;
-	    window_push_mode(main_win, SOURCE);
-	    panel_page_refocus(proj->panels, "Sample source", 1);
+    Session *session = session_get();
+    if (!session->source_mode.source_mode) {
+	if (session->source_mode.src_clip) {
+	    session->source_mode.source_mode = true;
+	    window_push_mode(main_win, MODE_SOURCE);
+	    panel_page_refocus(session->gui.panels, "Sample source", 1);
 	} else {
 	    status_set_errstr("Load a clip to source before activating source mode");
 	}
     } else {
-	proj->source_mode = false;
-	window_pop_mode(main_win);
+	session->source_mode.source_mode = false;
+	window_extract_mode(main_win, MODE_SOURCE);
+	/* window_pop_mode(main_win); */
     }
     Timeline *tl = ACTIVE_TL;
     tl->needs_redraw = true;
@@ -2118,9 +2458,9 @@ void user_tl_activate_source_mode(void *nullarg)
 /*     double latency_est_ms = 44.0f; */
 /*     struct timespec now; */
 /*     clock_gettime(CLOCK_MONOTONIC, &now); */
-/*     struct realtime_tick pb = proj->playback_conn->callback_time; */
+/*     struct realtime_tick pb = session->audio_io.playback_conn->callback_time; */
 /*     double elapsed_pb_chunk_ms = TIMESPEC_DIFF_MS(now, pb.ts); */
-/*     int32_t tl_pos_now = pb.timeline_pos + (int32_t)((elapsed_pb_chunk_ms - latency_est_ms) * proj->sample_rate * proj->play_speed / 1000.0f); */
+/*     int32_t tl_pos_now = pb.timeline_pos + (int32_t)((elapsed_pb_chunk_ms - latency_est_ms) * proj->sample_rate * session->playback.play_speed / 1000.0f); */
 /*     return tl_pos_now; */
 /* } */
 
@@ -2141,6 +2481,7 @@ static NEW_EVENT_FN(dispose_forward_drop, "")
 
 void user_tl_drop_from_source(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     if (tl->num_tracks == 0) return;
     Track *track = timeline_selected_track(tl);
@@ -2148,32 +2489,37 @@ void user_tl_drop_from_source(void *nullarg)
 	status_set_errstr(NO_TRACK_ERRSTR);
 	return;
     }
-    if (proj->src_clip) {
-	/* int32_t drop_pos = tl->play_pos_sframes - proj->play_speed * 2 * proj->chunk_size_sframes; */
-	if (proj->src_in_sframes >= proj->src_out_sframes) return;
+    if (session->source_mode.src_clip) {
+	/* int32_t drop_pos = tl->play_pos_sframes - session->playback.play_speed * 2 * proj->chunk_size_sframes; */
+	if (session->source_mode.src_in_sframes >= session->source_mode.src_out_sframes) return;
 	int32_t drop_pos = tl->play_pos_sframes;
 	/* int32_t drop_pos = get_drop_pos(); */
-	ClipRef *cr = track_create_clip_ref(track, proj->src_clip, drop_pos, false);
+	/* ClipRef *cr = track_add_clipref(track, session->source_mode.src_clip, drop_pos, false); */
+	ClipRef *cr = clipref_create(
+	    track,
+	    drop_pos,
+	    CLIP_AUDIO,
+	    session->source_mode.src_clip);
 	if (!cr) return;
-	cr->in_mark_sframes = proj->src_in_sframes;
-	cr->out_mark_sframes = proj->src_out_sframes;
+	cr->start_in_clip = session->source_mode.src_in_sframes;
+	cr->end_in_clip = session->source_mode.src_out_sframes;
 	clipref_reset(cr, true);
-	struct drop_save current_drop = (struct drop_save){cr->clip, cr->in_mark_sframes, cr->out_mark_sframes};
-	/* struct drop_save drop_zero =  proj->saved_drops[0]; */
+	struct drop_save current_drop = (struct drop_save){cr->source_clip, cr->start_in_clip, cr->end_in_clip};
+	/* struct drop_save drop_zero =  session->source_mode.saved_drops[0]; */
 	/* fprintf(stdout, "Current: %p, %d, %d\nzero: %p, %d, %d\n", current_drop.clip, current_drop.in, current_drop.out, drop_zero.clip, drop_zero.in, drop_zero.out); */
-	if (proj->num_dropped == 0 || memcmp(&current_drop, &(proj->saved_drops[0]), sizeof(struct drop_save)) != 0) {
+	if (session->source_mode.num_dropped == 0 || memcmp(&current_drop, &(session->source_mode.saved_drops[0]), sizeof(struct drop_save)) != 0) {
 	    for (int i=4; i>0; i--) {
-		proj->saved_drops[i] = proj->saved_drops[i-1];
+		session->source_mode.saved_drops[i] = session->source_mode.saved_drops[i-1];
 	    }
-	    /* memcpy(proj->saved_drops + 1, proj->saved_drops, 3 * sizeof(struct drop_save)); */
-	    proj->saved_drops[0] = (struct drop_save){cr->clip, cr->in_mark_sframes, cr->out_mark_sframes};
-	    if (proj->num_dropped <= 4) proj->num_dropped++;
-	    /* fprintf(stdout, "MET condition, num dropped: %d\n", proj->num_dropped); */
+	    /* memcpy(session->source_mode.saved_drops + 1, session->source_mode.saved_drops, 3 * sizeof(struct drop_save)); */
+	    session->source_mode.saved_drops[0] = (struct drop_save){cr->source_clip, cr->start_in_clip, cr->end_in_clip};
+	    if (session->source_mode.num_dropped <= 4) session->source_mode.num_dropped++;
+	    /* fprintf(stdout, "MET condition, num dropped: %d\n", session->source_mode.num_dropped); */
 	}
 	tl->needs_redraw = true;
 	Value nullval = {.int_v = 0};
 	user_event_push(
-	    &proj->history,
+	    
 	    undo_drop, redo_drop,
 	    NULL, dispose_forward_drop,
 	    (void *)cr, NULL,
@@ -2185,27 +2531,28 @@ void user_tl_drop_from_source(void *nullarg)
 
 static void user_tl_drop_savedn_from_source(int n)
 {
-    if (n < proj->num_dropped) {
-	/* fprintf(stdout, "N: %d, num dropped: %d\n", n, proj->num_dropped); */
+    Session *session = session_get();
+    if (n < session->source_mode.num_dropped) {
+	/* fprintf(stdout, "N: %d, num dropped: %d\n", n, session->source_mode.num_dropped); */
 	Timeline *tl = ACTIVE_TL;
 	if (tl->num_tracks == 0) return;
 	Track *track = timeline_selected_track(tl);
 	if (!track) return;
-	struct drop_save drop = proj->saved_drops[n];
+	struct drop_save drop = session->source_mode.saved_drops[n];
 	if (!drop.clip) return;
-	/* int32_t drop_pos = tl->play_pos_sframes - proj->play_speed * 2 * proj->chunk_size_sframes; */
+	/* int32_t drop_pos = tl->play_pos_sframes - session->playback.play_speed * 2 * proj->chunk_size_sframes; */
 	int32_t drop_pos = tl->play_pos_sframes;
 	/* int32_t drop_pos = get_drop_pos(); */
-	ClipRef *cr = track_create_clip_ref(track, drop.clip, drop_pos, false);
+	ClipRef *cr = clipref_create(track, drop_pos, CLIP_AUDIO, drop.clip);
 	if (!cr) return;
-	cr->in_mark_sframes = drop.in;
-	cr->out_mark_sframes = drop.out;
+	cr->start_in_clip = drop.in;
+	cr->end_in_clip = drop.out;
 	clipref_reset(cr, true);
 
 	tl->needs_redraw = true;
 	Value nullval = {.int_v = 0};
 	user_event_push(
-	    &proj->history,
+	    
 	    undo_drop, redo_drop,
 	    NULL, dispose_forward_drop,
 	    (void *)cr, NULL,
@@ -2234,11 +2581,12 @@ void user_tl_drop_saved4_from_source(void *nullarg)
 
 static int new_tl_submit_form(void *mod_v, void *target)
 {
+    Session *session = session_get();
     Modal *mod = (Modal *)mod_v;
     for (uint8_t i=0; i<mod->num_els; i++) {
 	ModalEl *el = mod->els[i];
 	if (el->type == MODAL_EL_TEXTENTRY) {
-	    project_reset_tl_label(proj);
+	    project_reset_tl_label(&session->proj);
 	    break;
 	}
     }
@@ -2250,16 +2598,17 @@ static int new_tl_submit_form(void *mod_v, void *target)
 
 void user_tl_add_new_timeline(void *nullarg)
 {
-    if (proj->recording) transport_stop_recording(); else  transport_stop_playback();
+    Session *session = session_get();
+    if (session->playback.recording) transport_stop_recording(); else  transport_stop_playback();
     
-    ACTIVE_TL->layout->hidden = true;
-    proj->active_tl_index = project_add_timeline(proj, "New Timeline");
-    project_reset_tl_label(proj);
-
+    ACTIVE_TL->track_area->hidden = true;
+    int new_index = project_add_timeline(&session->proj, "New Timeline");
+    /* project_reset_tl_label(&session->proj); */
+    timeline_switch(new_index);
     Layout *mod_lt = layout_add_child(main_win->layout);
     layout_set_default_dims(mod_lt);
     Modal *mod = modal_create(mod_lt);
-    modal_add_header(mod, "Create new timeline:", &color_global_light_grey, 5);
+    modal_add_header(mod, "Create new timeline:", &colors.light_grey, 5);
     modal_add_textentry(
 	mod,
 	ACTIVE_TL->name,
@@ -2276,9 +2625,10 @@ void user_tl_add_new_timeline(void *nullarg)
 
 void user_tl_previous_timeline(void *nullarg)
 {
-    if (proj->active_tl_index > 0) {
-	if (proj->recording) transport_stop_recording(); else  transport_stop_playback();
-	timeline_switch(proj->active_tl_index - 1);
+    Session *session = session_get();
+    if (session->proj.active_tl_index > 0) {
+	if (session->playback.recording) transport_stop_recording(); else  transport_stop_playback();
+	timeline_switch(session->proj.active_tl_index - 1);
     } else {
 	status_set_errstr("No timeline to the left.");
     }
@@ -2286,9 +2636,11 @@ void user_tl_previous_timeline(void *nullarg)
 
 void user_tl_next_timeline(void *nullarg)
 {
-    if (proj->active_tl_index < proj->num_timelines - 1) {
-	if (proj->recording) transport_stop_recording(); else  transport_stop_playback();
-	timeline_switch(proj->active_tl_index + 1);
+    Session *session = session_get();
+    if (session->proj.active_tl_index < session->proj.num_timelines - 1) {
+	if (session->playback.recording) transport_stop_recording(); else  transport_stop_playback();
+
+	timeline_switch(session->proj.active_tl_index + 1);
 	/* ACTIVE_TL->layout->hidden = true; */
 	/* proj->active_tl_index++; */
 	/* ACTIVE_TL->layout->hidden = false; */
@@ -2302,6 +2654,7 @@ void user_tl_next_timeline(void *nullarg)
 
 void user_tl_delete_timeline(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     timeline_delete(tl, false);
 }
@@ -2313,12 +2666,12 @@ void user_tl_delete_timeline(void *nullarg)
 /*     Layout *mod_lt = layout_add_child(main_win->layout); */
 /*     layout_set_default_dims(mod_lt); */
 /*     Modal *save_as = modal_create(mod_lt); */
-/*     modal_add_header(save_as, "Save as:", &color_global_light_grey, 3); */
-/*     modal_add_header(save_as, "Project name:", &color_global_light_grey, 5); */
+/*     modal_add_header(save_as, "Save as:", &colors.light_grey, 3); */
+/*     modal_add_header(save_as, "Project name:", &colors.light_grey, 5); */
 /*     modal_add_textentry(save_as, proj->name); */
-/*     modal_add_p(save_as, "\t\t|\t\t<tab>\tv\t\t|\t\t\tS-p\t^\t\t|\t\tC-<ret>\tSubmit (save as)\t\t|", &color_global_black); */
-/*     /\* modal_add_op(save_as, "\t\t(type <ret> to accept name)", &color_global_light_grey); *\/ */
-/*     modal_add_header(save_as, "Project location:", &color_global_light_grey, 5); */
+/*     modal_add_p(save_as, "\t\t|\t\t<tab>\tv\t\t|\t\t\tS-p\t^\t\t|\t\tC-<ret>\tSubmit (save as)\t\t|", &colors.black); */
+/*     /\* modal_add_op(save_as, "\t\t(type <ret> to accept name)", &colors.light_grey); *\/ */
+/*     modal_add_header(save_as, "Project location:", &colors.light_grey, 5); */
 /*     modal_add_dirnav(save_as, DIRPATH_SAVED_PROJ, dir_to_tline_filter_save); */
 /*     save_as->submit_form = submit_save_as_form; */
 /*     window_push_modal(main_win, save_as); */
@@ -2329,6 +2682,7 @@ void user_tl_delete_timeline(void *nullarg)
 
 static int submit_save_wav_form(void *mod_v, void *target)
 {
+    Session *session = session_get();
     Modal *modal = (Modal *)mod_v;
     char *name;
     char *dirpath;
@@ -2336,7 +2690,7 @@ static int submit_save_wav_form(void *mod_v, void *target)
     for (uint8_t i=0; i<modal->num_els; i++) {
 	switch ((el = modal->els[i])->type) {
 	case MODAL_EL_TEXTENTRY:
-	    name = ((TextEntry *)el->obj)->tb->text->value_handle;
+	    name = ((TextEntry *)el->obj)->tb->text->display_value;
 	    break;
 	case MODAL_EL_DIRNAV: {
 	    DirNav *dn = (DirNav *)el->obj;
@@ -2381,17 +2735,18 @@ static int submit_save_wav_form(void *mod_v, void *target)
 
 void user_tl_write_mixdown_to_wav(void *nullarg)
 {
+    Session *session = session_get();
     Layout *mod_lt = layout_add_child(main_win->layout);
     layout_set_default_dims(mod_lt);
     Modal *save_wav = modal_create(mod_lt);
-    modal_add_header(save_wav, "Export WAV", &color_global_light_grey, 3);
-    modal_add_p(save_wav, "Export a mixdown of the current timeline, from the in-mark to the out-mark, in .wav format.", &color_global_light_grey);
-    modal_add_header(save_wav, "Filename:", &color_global_light_grey, 5);
+    modal_add_header(save_wav, "Export WAV", &colors.light_grey, 3);
+    modal_add_p(save_wav, "Export a mixdown of the current timeline, from the in-mark to the out-mark, in .wav format.", &colors.light_grey);
+    modal_add_header(save_wav, "Filename:", &colors.light_grey, 5);
     static char wavfilename[MAX_NAMELENGTH];
     /* char *wavfilename = malloc(sizeof(char) * 255); */
     int i=0;
     char c;
-    while ((c = proj->name[i]) != '.' && c != '\0') {
+    while ((c = session->proj.name[i]) != '.' && c != '\0') {
 	wavfilename[i] = c;
 	i++;
     }
@@ -2405,9 +2760,9 @@ void user_tl_write_mixdown_to_wav(void *nullarg)
 	file_ext_completion_wav,
 	NULL);
     
-    modal_add_p(save_wav, "\t\t|\t\t<tab>\tv\t\t|\t\t\tS-<tab>\t^\t\t|\t\tC-<ret>\tSubmit (save as)\t\t|", &color_global_light_grey);
-    /* modal_add_op(save_wav, "\t\t(type <ret> to accept name)", &color_global_light_grey); */
-    modal_add_header(save_wav, "Location:", &color_global_light_grey, 5);
+    modal_add_p(save_wav, "\t\t|\t\t<tab>\tv\t\t|\t\t\tS-<tab>\t^\t\t|\t\tC-<ret>\tSubmit (save as)\t\t|", &colors.light_grey);
+    /* modal_add_op(save_wav, "\t\t(type <ret> to accept name)", &colors.light_grey); */
+    modal_add_header(save_wav, "Location:", &colors.light_grey, 5);
     modal_add_dirnav(save_wav, DIRPATH_EXPORT, dir_to_tline_filter_save);
     modal_add_button(save_wav, "Save .wav file", submit_save_wav_form);
     /* save_as->submit_form = submit_save_as_form; */
@@ -2420,29 +2775,31 @@ void user_tl_write_mixdown_to_wav(void *nullarg)
 
 
 /* Deprecated; replaced by user_tl_cliprefs_delete */
-void DEPRECATED_user_tl_cliprefs_destroy(void *nullarg)
-{
-    Timeline *tl = ACTIVE_TL;
-    if (tl) {
-	timeline_destroy_grabbed_cliprefs(tl);
-    }
-    if (proj->dragging) {
-	status_stat_drag();
-    }
-    tl->needs_redraw = true;
-}
+/* void DEPRECATED_user_tl_cliprefs_destroy(void *nullarg) */
+/* { */
+/*     Session *session = session_get(); */
+/*     Timeline *tl = ACTIVE_TL; */
+/*     if (tl) { */
+/* 	timeline_destroy_grabbed_cliprefs(tl); */
+/*     } */
+/*     if (session->dragging) { */
+/* 	status_stat_drag(); */
+/*     } */
+/*     tl->needs_redraw = true; */
+/* } */
 
 void user_tl_delete_generic(void *nullarg)
 {
+    Session *session = session_get();
     TabView *tv;
-    if ((tv = main_win->active_tabview) && strcmp(tv->title, "Track Effects") == 0) {
+    if ((tv = main_win->active_tabview) && strncmp(tv->title, "Effects", 7) == 0) {
 	Page *active = tv->tabs[tv->current_tab];
 	Effect *e = active->linked_obj;
 	status_cat_callstr(" effect");
 	effect_delete(e, false);
 	return;
     }
-    if (proj->recording) transport_stop_recording();
+    if (session->playback.recording) transport_stop_recording();
     Timeline *tl = ACTIVE_TL;
     Track *t;
     ClickTrack *ct;
@@ -2470,68 +2827,140 @@ void user_tl_delete_generic(void *nullarg)
 	    status_cat_callstr(" grabbed clip(s)");
 	    timeline_delete_grabbed_cliprefs(tl);
 	}
-	if (proj->dragging) {
+	if (session->dragging) {
 	    status_stat_drag();
 	}
     }
     tl->needs_redraw = true;
 }
 
+void user_tl_activate_mqwert(void *nullarg)
+{
+    mqwert_activate();
+}
+void user_tl_insert_jlily(void *nullarg)
+{
+    timeline_add_jlily();
+}
+
+void user_tl_lock_view_to_playhead(void *nullarg)
+{
+    Session *session = session_get();
+    session->playback.lock_view_to_playhead = !session->playback.lock_view_to_playhead;
+}
+
+/* END TL */
+
 /* source mode */
 
 void user_source_play(void *nullarg)
 {
-    if (proj->src_play_speed <= 0.0f) {
-	proj->src_play_speed = 1.0f;
+    Session *session = session_get();
+    if (session->source_mode.src_play_speed <= 0.0f) {
+	float playspeed = playspeed_at_zoom(&session->source_mode.timeview, 1.0);
+	/* if (session->source_mode.timeview.sample_frames_per_pixel < SFPP_THRESHOLD) { */
+	/*     timeline_play_speed_set(session->source_mode.timeview.sample_frames_per_pixel / 100); */
+	/* } else { */
+	/*     timeline_play_speed_set(1.0); */
+	/* } */
+	/* timeline_play_speed_set(playspeed); */
+	/* session->source_mode.src_play_speed = 1.0f; */
+	session->source_mode.src_play_speed = playspeed;
 	transport_start_playback();
     } else {
-	proj->src_play_speed *= 2.0f;
+	session->source_mode.src_play_speed *= 2.0f;
 	status_stat_playspeed();
     }
 }
 
 void user_source_pause(void *nullarg)
 {
-    proj->src_play_speed = 0;
+    Session *session = session_get();
+    session->source_mode.src_play_speed = 0;
     transport_stop_playback();
 }
 
 void user_source_rewind(void *nullarg)
 {
-    if (proj->src_play_speed >= 0.0f) {
-	proj->src_play_speed = -1.0f;
+    Session *session = session_get();
+    if (session->source_mode.src_play_speed >= 0.0f) {
+	float playspeed = playspeed_at_zoom(&session->source_mode.timeview, -1.0);
+	session->source_mode.src_play_speed = playspeed;
 	transport_start_playback();
     } else {
-	proj->src_play_speed *= 2.0f;
+	session->source_mode.src_play_speed *= 2.0f;
 	status_stat_playspeed();
     }
 }
 
 void user_source_play_slow(void *nullarg)
 {
-    proj->src_play_speed = SLOW_PLAYBACK_SPEED;
+    Session *session = session_get();
+    float playspeed = playspeed_at_zoom(&session->source_mode.timeview, SLOW_PLAYBACK_SPEED);
+    session->source_mode.src_play_speed = playspeed;
+    /* fprintf(stderr, "Src playspeed: %f\n", playspeed); */
     status_stat_playspeed();
     transport_start_playback();
 }
 
 void user_source_rewind_slow(void *nullarg)
 {
-    proj->src_play_speed = -1 * SLOW_PLAYBACK_SPEED;
+    Session *session = session_get();
+    /* session->source_mode.src_play_speed = -1 * SLOW_PLAYBACK_SPEED; */
+    float playspeed = playspeed_at_zoom(&session->source_mode.timeview, -SLOW_PLAYBACK_SPEED);
+    session->source_mode.src_play_speed = playspeed;
+    /* fprintf(stderr, "Src playspeed (rewind): %f\n", playspeed); */
     status_stat_playspeed();
     transport_start_playback();
 }
 
 void user_source_set_in_mark(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     transport_set_mark(tl, true);
 }
 
 void user_source_set_out_mark(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     transport_set_mark(tl, false);
 }
+
+void user_source_zoom_in(void *nullarg)
+{
+    Session *session = session_get();
+    timeview_rescale(&session->source_mode.timeview, 1.2, false, (SDL_Point){0});
+    ACTIVE_TL->needs_redraw = true;
+}
+
+void user_source_zoom_out(void *nullarg)
+{
+    Session *session = session_get();
+    timeview_rescale(&session->source_mode.timeview, 0.8, false, (SDL_Point){0});
+    ACTIVE_TL->needs_redraw = true;
+}
+
+void user_source_move_left(void *nullarg)
+{
+    Session *session = session_get();
+    timeview_scroll_horiz(&session->source_mode.timeview, TL_DEFAULT_XSCROLL * -1);
+    int rectify;
+    if ((rectify = session->source_mode.timeview.offset_left_sframes) < 0) {
+	timeview_scroll_horiz(&session->source_mode.timeview, rectify * -1);
+    }
+    ACTIVE_TL->needs_redraw = true;
+}
+
+void user_source_move_right(void *nullarg)
+{
+    Session *session = session_get();
+    TimeView *tv = &session->source_mode.timeview;
+    timeview_scroll_horiz(tv, TL_DEFAULT_XSCROLL);
+    ACTIVE_TL->needs_redraw = true;
+}
+
 
 void user_modal_next(void *nullarg)
 {
@@ -2579,8 +3008,29 @@ void user_modal_select(void *nullarg)
     modal_select(modal);
 }
 
+void user_modal_left(void *nullarg)
+{
+    if (main_win->num_modals == 0) {
+	return;
+    }
+    Modal *modal = main_win->modals[main_win->num_modals - 1];
+    modal_left(modal);
+}
+
+void user_modal_right(void *nullarg)
+{
+    if (main_win->num_modals == 0) {
+	return;
+    }
+    Modal *modal = main_win->modals[main_win->num_modals - 1];
+    modal_right(modal);
+}
+
+
+
 void user_modal_dismiss(void *nullarg)
 {
+    Session *session = session_get();
     while (main_win->num_menus > 0) {
 	window_pop_menu(main_win);
     }
@@ -2604,15 +3054,19 @@ void user_modal_submit_form(void *nullarg)
 
 void user_text_edit_escape(void *nullarg)
 {
+    Session *session = session_get();
     if (main_win->txt_editing) {
 	txt_stop_editing(main_win->txt_editing);
+    } else {
+	window_extract_mode(main_win, MODE_TEXT_EDIT);
+	/* window_pop_mode(main_win); */
     }
     Timeline *tl = ACTIVE_TL;
     timeline_reset(tl, false);
 
     /* In modals / tabview, push a new tab keypress to move up or down through fields */
     /* fprintf(stderr, "ESCAPE TEXT EDIT!! TOP MODE: %d\n", TOP_MODE); */
-    if (TOP_MODE == MODAL || TOP_MODE == TABVIEW) {
+    if (TOP_MODE == MODE_MODAL || TOP_MODE == MODE_TABVIEW) {
 	/* fprintf(stderr, "PUSH\n"); */
 	SDL_Event e;
 	e.type = SDL_KEYDOWN;
@@ -2631,6 +3085,7 @@ void user_text_edit_escape(void *nullarg)
 
 void user_text_edit_full_escape(void *nullarg)
 {
+    Session *session = session_get();
     if (main_win->txt_editing) {
 	txt_stop_editing(main_win->txt_editing);
     }
@@ -2773,11 +3228,15 @@ void user_tabview_move_current_tab_right(void *nullarg)
 
 void user_tabview_escape(void *nullarg)
 {
+    Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     if (main_win->active_tabview) {
 	tabview_close(main_win->active_tabview);
 	tl->needs_redraw = true;
 	return;
+    } else {
+	window_extract_mode(main_win, MODE_TABVIEW);
+	/* window_pop_mode(main_win); */
     }
 }
 
@@ -2785,7 +3244,8 @@ void user_autocomplete_next(void *nullarg)
 {
     if (!main_win->ac_active) {
 	fprintf(stderr, "Error: in AC mode without active ac\n");
-	window_pop_mode(main_win);
+	window_extract_mode(main_win, MODE_AUTOCOMPLETE_LIST);
+	/* window_pop_mode(main_win); */
 	return;
     }
 
@@ -2796,7 +3256,8 @@ void user_autocomplete_previous(void *nullarg)
 {
     if (!main_win->ac_active) {
 	fprintf(stderr, "Error: in AC mode without active ac\n");
-	window_pop_mode(main_win);
+	window_extract_mode(main_win, MODE_AUTOCOMPLETE_LIST);
+	/* window_pop_mode(main_win); */
 	return;
     }
 
@@ -2807,6 +3268,7 @@ void user_autocomplete_previous(void *nullarg)
 
 void user_autocomplete_escape(void *nullarg)
 {
+    Session *session = session_get();
     autocompletion_escape();
     Timeline *tl = ACTIVE_TL;
     tl->needs_redraw = true;
@@ -2814,9 +3276,11 @@ void user_autocomplete_escape(void *nullarg)
 
 void user_autocomplete_select(void *nullarg)
 {
+    Session *session = session_get();
     if (!main_win->ac_active) {
 	fprintf(stderr, "Error: in AC mode without active ac\n");
-	window_pop_mode(main_win);
+	window_extract_mode(main_win, MODE_AUTOCOMPLETE_LIST);
+	/* window_pop_mode(main_win); */
 	return;
     }
     /* user_autocomplete_escape(NULL); */
@@ -2824,5 +3288,298 @@ void user_autocomplete_select(void *nullarg)
     autocompletion_select(ac);
     Timeline *tl = ACTIVE_TL;
     tl->needs_redraw = true;
+}
+
+void user_midi_qwerty_escape(void *nullarg)
+{
+    Session *session = session_get();
+    if (session->playback.recording) transport_stop_recording();
+    mqwert_deactivate();
+    Timeline *tl = ACTIVE_TL;
+    tl->needs_redraw = true;
+}
+
+void user_midi_qwerty_octave_up(void *nullarg)
+{
+    mqwert_octave(1);
+}
+void user_midi_qwerty_octave_down(void *nullarg)
+{
+    mqwert_octave(-1);
+}
+void user_midi_qwerty_transpose_up(void *nullarg)
+{
+    mqwert_transpose(1);
+}
+void user_midi_qwerty_transpose_down(void *nullarg)
+{
+    mqwert_transpose(-1);
+}
+void user_midi_qwerty_velocity_up(void *nullarg)
+{
+    mqwert_velocity(1);
+}
+void user_midi_qwerty_velocity_down(void *nullarg)
+{
+    mqwert_velocity(-1);
+}
+
+
+
+/* NOTE FUNCTIONS */
+static void mqwert_key(char key)
+{
+    mqwert_handle_key(key, false);
+}
+
+void user_midi_qwerty_c1(void *nullarg)
+{
+    mqwert_key('a');
+}
+
+void user_midi_qwerty_cis1(void *nullarg)
+{
+    mqwert_key('w');
+}
+
+void user_midi_qwerty_d1(void *nullarg)
+{
+    mqwert_key('s');
+}
+
+void user_midi_qwerty_dis(void *nullarg)
+{
+    mqwert_key('e');
+}
+
+void user_midi_qwerty_e(void *nullarg)
+{
+    mqwert_key('d');
+}
+
+void user_midi_qwerty_f(void *nullarg)
+{
+    mqwert_key('f');
+}
+
+void user_midi_qwerty_fis(void *nullarg)
+{
+    mqwert_key('t');
+}
+
+void user_midi_qwerty_g(void *nullarg)
+{
+    mqwert_key('g');
+}
+
+void user_midi_qwerty_gis(void *nullarg)
+{
+    mqwert_key('y');
+}
+
+void user_midi_qwerty_a(void *nullarg)
+{
+    mqwert_key('h');
+}
+
+void user_midi_qwerty_ais(void *nullarg)
+{
+    mqwert_key('u');
+}
+
+void user_midi_qwerty_b(void *nullarg)
+{
+    mqwert_key('j');
+}
+
+void user_midi_qwerty_c2(void *nullarg)
+{
+    mqwert_key('k');
+}
+
+void user_midi_qwerty_cis2(void *nullarg)
+{
+    mqwert_key('o');
+}
+
+void user_midi_qwerty_d2(void *nullarg)
+{
+    mqwert_key('l');
+}
+
+void user_midi_qwerty_dis2(void *nullarg)
+{
+    mqwert_key('p');
+}
+
+void user_midi_qwerty_e2(void *nullarg)
+{
+    mqwert_key(';');
+}
+
+void user_midi_qwerty_f2(void *nullarg)
+{
+    mqwert_key('\'');
+}
+
+
+/* Piano Roll */
+
+
+void user_piano_roll_escape(void *nullarg)
+{
+    piano_roll_deactivate();
+}
+
+void user_piano_roll_zoom_in(void *nullarg)
+{
+    piano_roll_zoom_in();
+}
+
+void user_piano_roll_zoom_out(void *nullarg)
+{
+    piano_roll_zoom_out();
+}
+
+void user_piano_roll_move_left(void *nullarg)
+{
+    piano_roll_move_view_left();
+}
+
+void user_piano_roll_move_right(void *nullarg)
+{
+    piano_roll_move_view_right();
+}
+
+void user_piano_roll_note_up(void *nullarg)
+{
+    piano_roll_move_note_selector(1);
+}
+
+void user_piano_roll_note_down(void *nullarg)
+{
+    piano_roll_move_note_selector(-1);
+}
+
+void user_piano_roll_note_up_octave(void *nullarg)
+{
+    piano_roll_move_note_selector(12);
+}
+
+void user_piano_roll_note_down_octave(void *nullarg)
+{
+    piano_roll_move_note_selector(-12);
+}
+
+void user_piano_roll_vel_up(void *nullarg)
+{
+    piano_roll_adj_velocity(PIANO_ROLL_VEL_ADJ_AMT);
+}
+
+void user_piano_roll_vel_down(void *nullarg)
+{
+    piano_roll_adj_velocity(-PIANO_ROLL_VEL_ADJ_AMT);
+}
+
+
+void user_piano_roll_forward_dur(void *nullarg)
+{
+    piano_roll_forward_dur();
+}
+
+void user_piano_roll_back_dur(void *nullarg)
+{
+    piano_roll_back_dur();
+}
+
+void user_piano_roll_next_note(void *nullarg)
+{
+    piano_roll_next_note();
+}
+
+void user_piano_roll_prev_note(void *nullarg)
+{
+    piano_roll_prev_note();
+}
+
+void user_piano_roll_up_note(void *nullarg)
+{
+    piano_roll_up_note();
+}
+
+void user_piano_roll_down_note(void *nullarg)
+{
+    piano_roll_down_note();
+}
+
+void user_piano_roll_dur_shorter(void *nullarg)
+{
+    piano_roll_dur_shorter();
+}
+
+void user_piano_roll_dur_longer(void *nullarg)
+{
+    piano_roll_dur_longer();
+}
+
+void user_piano_roll_insert_note(void *nullarg)
+{
+    piano_roll_insert_note(true);
+}
+
+void user_piano_roll_insert_rest(void *nullarg)
+{
+    piano_roll_insert_rest();
+}
+
+void user_piano_roll_grab_ungrab(void *nullarg)
+{
+    piano_roll_grab_ungrab();
+}
+
+void user_piano_roll_grab_note_left_edge(void *nullarg)
+{
+    piano_roll_grab_left_edge();
+}
+
+void user_piano_roll_grab_note_right_edge(void *nullarg)
+{
+    piano_roll_grab_right_edge();
+}
+
+
+void user_piano_roll_grab_marked_range(void *nullarg)
+{
+    piano_roll_grab_marked_range();
+}
+
+void user_piano_roll_toggle_tie(void *nullarg)
+{
+    piano_roll_toggle_tie();
+}
+
+void user_piano_roll_toggle_chord_mode(void *nullarg)
+{
+    piano_roll_toggle_chord_mode();
+}
+
+void user_piano_roll_delete(void *nullarg)
+{
+    piano_roll_delete();
+}
+
+void user_piano_roll_play_grabbed_notes(void *nullarg)
+{
+    piano_roll_play_grabbed_notes();
+}
+
+void user_piano_roll_quantize(void *nullarg)
+{
+    piano_roll_quantize();
+}
+
+void user_piano_roll_adj_quantize_amt(void *nullarg)
+{
+    piano_roll_adj_quantize_amt();
 }
 

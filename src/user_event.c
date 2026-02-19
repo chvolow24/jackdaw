@@ -17,7 +17,7 @@
 
 #include <stdlib.h>
 #include "project.h"
-#include "status.h"
+#include "session.h"
 #include "user_event.h"
 
 extern Project *proj;
@@ -40,8 +40,22 @@ int user_event_do_undo(UserEventHistory *history)
     } else {
 	history->next_undo = NULL;
     }
-    return 0;
-    
+    return 0;   
+}
+
+/* Only do undo if undo fn is in known list */
+void user_event_do_undo_selective(EventFn options[], int num_options)
+{
+    Session *session = session_get();
+    UserEvent *e = session->history.next_undo;
+    if (!e) return;
+    fprintf(stderr, "undo selective!\n");
+    for (int i=0; i<num_options; i++) {
+	if (e->undo == options[i]) {
+	    user_event_do_undo(&session->history);
+	}
+    }
+
 }
 
 /* Returns 0 if action completed; 1 if no action available */
@@ -77,11 +91,12 @@ static void user_event_destroy(UserEvent *e)
     free(e);
 }
 
-void user_event_history_destroy(UserEventHistory *history)
+/* Call when closing down session OR opening a new project */
+void user_event_history_clear(UserEventHistory *history)
 {
     UserEvent *test = history->oldest;
     UserEvent *delete;
-    bool undoable = true;
+    bool undoable = history->next_undo != NULL;
     bool redoable = false;
     while (test) {
 	delete = test;
@@ -89,19 +104,21 @@ void user_event_history_destroy(UserEventHistory *history)
 	if (undoable && delete->dispose) {
 	    delete->dispose(delete, delete->obj1, delete->obj2, delete->undo_val1, delete->undo_val2, delete->type1, delete->type2);
 	}
-	if (redoable && delete->dispose_forward) {
+	if (redoable && delete->dispose_forward && delete->dispose_forward != delete->dispose) {
 	    delete->dispose_forward(delete, delete->obj1, delete->obj2, delete->undo_val1, delete->undo_val2, delete->type1, delete->type2);
 	}
 	if (delete == history->next_undo) {
-	    undoable = false;
+	    /* undoable = false; */
 	    redoable = true;
 	}
 	user_event_destroy(delete);
     }
+    history->oldest = NULL;
+    history->next_undo = NULL;
+    history->len = 0;
 }
 
 UserEvent *user_event_push(
-    UserEventHistory *history,
     EventFn undo_fn,
     EventFn redo_fn,
     EventFn dispose_fn,
@@ -118,7 +135,11 @@ UserEvent *user_event_push(
     bool free_obj2
     )
 {
-    if (!proj) return NULL;
+    Session *session = session_get();
+    if (!session) return NULL;
+    if (!session->proj_initialized) return NULL;
+    UserEventHistory *history = &session->history;
+    if (history->pause) return NULL;
     UserEvent *e = calloc(1, sizeof(UserEvent));
     e->undo = undo_fn;
     e->redo = redo_fn;
@@ -134,15 +155,22 @@ UserEvent *user_event_push(
     e->type2 = type2;
     e->free_obj1 = free_obj1;
     e->free_obj2 = free_obj2;
-
-
-
+    
     /* First case: history initialized, but we're all the way back */
     if (history->oldest && !history->next_undo) {
 	UserEvent *iter = history->oldest;
 	UserEvent *next = iter->next;
 	while (iter) {
 	    next = iter->next;
+	    if (iter->dispose_forward) {
+		iter->dispose_forward(
+		    iter,
+		    iter->obj1,
+		    iter->obj2,
+		    iter->redo_val1,
+		    iter->redo_val2,
+		    iter->type1, iter->type2);
+	    }
 	    user_event_destroy(iter);
 	    iter = next;
 	    history->len--;
@@ -208,6 +236,20 @@ UserEvent *user_event_push(
 	}
     }
     return e;
+}
+
+void user_event_pause()
+{
+    Session *session = session_get();
+    if (session)
+	session->history.pause = true;
+}
+
+void user_event_unpause()
+{
+    Session *session = session_get();
+    if (session)
+	session->history.pause = false;
 }
 
 void user_event_undo_set_value(
@@ -297,3 +339,4 @@ void user_event_redo_set_value(
 	break;
     }
 }
+

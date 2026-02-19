@@ -8,6 +8,7 @@
 
 *****************************************************************************************************************/
 #include <limits.h>
+#include "color.h"
 #include "layout.h"
 #include "text.h"
 #include "window.h"
@@ -25,8 +26,9 @@
 /* extern Layout *main_lt; */
 /* extern SDL_Color white; */
 //extern TTF_Font *open_sans;
+extern struct colors colors;
 
-extern SDL_Color color_global_white;
+
 
 extern Window *main_win;
 
@@ -179,7 +181,6 @@ void layout_set_wh_from_rect(Layout *lt)
     switch (lt->w.type) {
     case ABS:
     case REL:
-    case REVREL:
 	lt->w.value = (float)lt->rect.w / main_win->dpi_scale_factor;
 	/* lt->w.value.intval = round((float)lt->rect.w / main_win->dpi_scale_factor); */
 	break;
@@ -194,6 +195,14 @@ void layout_set_wh_from_rect(Layout *lt)
 	    return;
 	}
 	break;
+    case REVREL:
+	if (lt->parent) {
+	    int pix_diff = (lt->parent->rect.x + lt->parent->rect.w) - (lt->rect.x + lt->rect.w);
+	    lt->w.value = pix_diff / main_win->dpi_scale_factor;
+	} else {
+	    lt->w.value = (float)lt->rect.w / main_win->dpi_scale_factor;
+	}
+	break;
     case COMPLEMENT:
 	break; /* Vales are irrelevant for COMPLEMENT */
     case STACK:
@@ -206,7 +215,6 @@ void layout_set_wh_from_rect(Layout *lt)
     switch (lt->h.type) {
     case ABS:
     case REL:
-    case REVREL:
 	lt->h.value = (float)lt->rect.h / main_win->dpi_scale_factor;
 	/* lt->h.value.intval = round( (float)lt->rect.h / main_win->dpi_scale_factor); */
 	break;
@@ -219,6 +227,14 @@ void layout_set_wh_from_rect(Layout *lt)
 	} else {
 	    fprintf(stderr, "Error: attempting to set scaled dimension values on layout with no parent.\n");
 	    // exit(1);
+	}
+	break;
+    case REVREL:
+	if (lt->parent) {
+	    int pix_diff = (lt->parent->rect.y + lt->parent->rect.h) - (lt->rect.y + lt->rect.h);
+	    lt->h.value = pix_diff / main_win->dpi_scale_factor;
+	} else {
+	    lt->h.value = (float)lt->rect.h / main_win->dpi_scale_factor;
 	}
 	break;
     case COMPLEMENT:
@@ -815,7 +831,6 @@ int set_rect_wh(Layout *lt)
     switch (lt->w.type) {
     case ABS:
     case REL:
-    case REVREL:
 	lt->rect.w = lt->w.value * main_win->dpi_scale_factor;
 	break;
     case SCALE:
@@ -824,19 +839,30 @@ int set_rect_wh(Layout *lt)
 	break;
     case COMPLEMENT: {
 	if (!lt->parent) break;
-	if (lt->index > 0) {
-	    Layout *last_sibling = lt->parent->children[lt->index - 1];
-	    while (last_sibling && last_sibling->w.type == COMPLEMENT && last_sibling->index > 0) {
-		last_sibling = last_sibling->parent->children[last_sibling->index - 1];
-	    }
+	/* if (lt->index > 0) { */
+	Layout *last_sibling = get_last_sibling(lt);
+	    /* Layout *last_sibling = lt->parent->children[lt->index - 1]; */
+	    /* while (last_sibling && last_sibling->w.type == COMPLEMENT && last_sibling->index > 0) { */
+	    /* 	last_sibling = last_sibling->parent->children[last_sibling->index - 1]; */
+	    /* } */
 	    if (!last_sibling) {
 		fprintf(stderr, "Error: layout %s has type dim COMPLEMENT but no last sibling\n", lt->name);
 		return 0;
 	    }
+	    /* fprintf(stderr, "PARENT W: %d, LS W: %d\n", lt->parent->rect.w, last_sibling->rect.w); */
 	    lt->rect.w = lt->parent->rect.w - last_sibling->rect.w;
-	}
+	/* } */
 	break;
     }
+    case REVREL: {
+	if (!lt->parent) break;
+	// x + w = parent_rect_right - DIM * scale_f
+	// w = parent_rect_right - DIM * scale_f - x
+	set_rect_xy(lt);
+	int parent_rect_right_x = lt->parent->rect.x + lt->parent->rect.w;
+	lt->rect.w = parent_rect_right_x - lt->rect.x - lt->w.value * main_win->dpi_scale_factor;
+    }
+	break;
     case STACK:
 	break;
     case PAD:
@@ -849,7 +875,6 @@ int set_rect_wh(Layout *lt)
     switch (lt->h.type) {
     case ABS:
     case REL:
-    case REVREL:
 	lt->rect.h = lt->h.value * main_win->dpi_scale_factor;
 	break;
     case SCALE:
@@ -870,6 +895,13 @@ int set_rect_wh(Layout *lt)
 	lt->rect.h = lt->parent->rect.h - last_sibling->rect.h;
 	break;
     }
+    case REVREL: {
+	if (!lt->parent) break;
+	set_rect_xy(lt);
+	int parent_rect_bottom_y = lt->parent->rect.y + lt->parent->rect.h;
+	lt->rect.h = parent_rect_bottom_y - lt->rect.y - lt->h.value * main_win->dpi_scale_factor;
+    }
+	break;
     case STACK:
 	break;
     case PAD:
@@ -1160,6 +1192,20 @@ Layout *layout_add_complementary_child(Layout *parent, RectMem comp_rm)
     
 }
 
+void layout_reparent_all(Layout *old_parent, Layout *new_parent)
+{
+    for (int i=0; i<old_parent->num_children; i++) {
+	Layout *child = old_parent->children[i];
+	child->parent = new_parent;
+	layout_realloc_children_maybe(new_parent);
+	new_parent->children[new_parent->num_children] = child;
+	child->index = new_parent->num_children;
+	new_parent->num_children++;
+    }
+    old_parent->num_children = 0;
+    layout_reset(new_parent);
+}
+
 void layout_reparent(Layout *child, Layout *parent)
 {
     child->parent = parent;
@@ -1173,8 +1219,8 @@ void layout_reparent(Layout *child, Layout *parent)
 void layout_center_agnostic(Layout *lt, bool horizontal, bool vertical)
 {
     layout_force_reset(lt);
-    if (horizontal) lt->rect.x = lt->parent->rect.x + lt->parent->rect.w / 2 - lt->rect.w / 2;
-    if (vertical) lt->rect.y = lt->parent->rect.y + lt->parent->rect.h / 2 - lt->rect.h / 2;
+    if (horizontal) lt->rect.x = round((float)lt->parent->rect.x + (float)lt->parent->rect.w / 2.0f - (float)lt->rect.w / 2.0f);
+    if (vertical) lt->rect.y = round((float)lt->parent->rect.y + (float)lt->parent->rect.h / 2.0f - (float)lt->rect.h / 2.0f);
     layout_set_values_from_rect(lt);
 }
 
@@ -1226,20 +1272,35 @@ Layout *layout_get_child_by_name(Layout *lt, const char *name)
     return NULL;
 }
 
-
-Layout *layout_get_child_by_name_recursive(Layout *lt, const char *name)
+/* static int TEST_count_recursive_calls = 0; */
+Layout *layout_get_child_by_name_recursive_internal(Layout *lt, const char *name)
 {
+    /* TEST_count_recursive_calls++; */
     Layout *ret = NULL;
     if (strcmp(lt->name, name) == 0) {
         ret = lt;
     } else {
         for (int16_t i=0; i<lt->num_children; i++) {
-            ret = layout_get_child_by_name_recursive(lt->children[i], name);
+            ret = layout_get_child_by_name_recursive_internal(lt->children[i], name);
             if (ret) {
                 break;
             }
         }
     }
+    return ret;
+}
+
+Layout *layout_get_child_by_name_recursive(Layout *lt, const char *name)
+{
+    /* TEST_count_recursive_calls = 0; */
+    Layout *ret = layout_get_child_by_name_recursive_internal(lt, name);
+    /* fprintf(stderr, "Get \"%s\"\n\tCalls: %d\n", name, TEST_count_recursive_calls); */
+    #ifdef TESTBUILD
+    if (!ret) {
+	fprintf(stderr, "FATAL ERROR: layout \"%s\" has no child named \"%s\"\n", lt->name, name);
+	exit(1);
+    }
+    #endif
     return ret;
 }
 
@@ -1346,6 +1407,11 @@ void layout_size_to_fit_children_h(Layout *lt, bool fixed_origin, int padding)
 
 void layout_size_to_fit_children_v(Layout *lt, bool fixed_origin, int padding)
 {
+    if (lt->num_children == 0) {
+	lt->rect.h = 0;
+	layout_set_values_from_rect(lt);
+	return;
+    }
     int min_y = INT_MAX;
     int max_y = INT_MIN;
     int bottom;
@@ -1360,7 +1426,6 @@ void layout_size_to_fit_children_v(Layout *lt, bool fixed_origin, int padding)
     lt->rect.h = max_y - lt->rect.y + padding * main_win->dpi_scale_factor;
     layout_set_values_from_rect(lt);
     /* layout_reset(lt); */
-
 }
 
 
@@ -1538,6 +1603,34 @@ void layout_swap_children(Layout *child1, Layout *child2)
     child2->index = saved_ind;
 }
 
+void layout_displace_child(Layout *child, int by)
+{
+    if (!child->parent) return;
+    Layout **tmp = calloc(child->parent->num_children, sizeof(Layout *));
+    int new_dst_loc = child->index + by;
+    if (new_dst_loc < 0 || new_dst_loc >= child->parent->num_children) {
+	fprintf(stderr, "Error: call to displace child outside of parent->children bounds.\n");
+	return;
+    }
+    int insertion_i = 0;
+    for (int i=0; i<child->parent->num_children; i++) {
+	if (insertion_i == new_dst_loc) {
+	    tmp[insertion_i] = child;
+	    insertion_i++;
+	    i--;
+	} else if (i == child->index) {
+	    continue;
+	} else {
+	    tmp[insertion_i] = child->parent->children[i];
+	    tmp[insertion_i]->index = insertion_i;
+	    insertion_i++;
+	}	
+    }
+    memcpy(child->parent->children, tmp, sizeof(Layout *) * child->parent->num_children);
+    child->index += by;
+    free(tmp);
+}
+
 Layout *layout_add_iter(Layout *lt, IteratorType type, bool scrollable)
 {
     if (!(lt->iterator)) {
@@ -1586,7 +1679,6 @@ void reset_iterations(LayoutIterator *iter)
         iteration->rect.y = y;
         iteration->rect.w = w;
         iteration->rect.h = h;
-//        set_values_from_rect(iteration);
         switch (iter->type) {
             case VERTICAL:
 		iteration->rect.y -= scroll_offset;
@@ -1756,7 +1848,7 @@ void layout_select(Layout *lt)
 
 
     /* lt->namelabel = NULL; */
-    lt->namelabel = txt_create_from_str(lt->name, MAX_LT_NAMELEN, lt->label_lt, main_win->std_font, 12, color_global_white, CENTER_LEFT, false, main_win);
+    lt->namelabel = txt_create_from_str(lt->name, MAX_LT_NAMELEN, lt->label_lt, main_win->std_font, 12, colors.white, CENTER_LEFT, false, main_win);
     lt->selected = true;
     layout_reset(lt);
 }

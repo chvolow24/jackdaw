@@ -1,11 +1,14 @@
 #include "animation.h"
+#include "color.h"
+#include "consts.h"
+#include "dsp_utils.h"
 #include "label.h"
 #include "layout.h"
+#include "session.h"
 #include "value.h"
 
-extern SDL_Color color_global_black;
-
 extern Window *main_win;
+extern struct colors colors;
 
 static void std_str_fn(char *dst, size_t dstsize, Value v, ValType t)
 {
@@ -29,7 +32,7 @@ Label *label_create(
     }
     l->str = calloc(l->max_len, sizeof(char));
     Layout *lt = layout_add_child(parent_lt);
-    l->tb = textbox_create_from_str(l->str, lt, win->mono_font, 12, win);
+    l->tb = textbox_create_from_str(l->str, lt, win->mono_bold_font, 14, win);
     if (set_str_fn) {
 	l->set_str_fn = set_str_fn;
     } else {
@@ -39,7 +42,7 @@ Label *label_create(
     l->countdown_max = LABEL_COUNTDOWN_MAX;
     l->val_type = t;
 
-    textbox_set_border(l->tb, &color_global_black, 2);
+    textbox_set_border(l->tb, &colors.black, 1, 0);
     textbox_set_trunc(l->tb, false);
     textbox_size_to_fit(l->tb, LABEL_H_PAD, LABEL_V_PAD);
 
@@ -77,22 +80,26 @@ extern Project *proj;
 static void animation_frame_op(void *arg1, void *arg2)
 {
     Label *l = (Label *)arg1;
-    if (l->countdown_timer > 0) 
+    if (l->countdown_timer >= 0) {
 	l->countdown_timer--;
+    }
 }
 static void animation_end_op(void *arg1, void *arg2)
 {
+    Session *session = session_get();
     Label *l = (Label *)arg1;
     if (l->countdown_timer <= 0) {
-	l->animation_running = false;
-	Timeline *tl = proj->timelines[proj->active_tl_index];
+	l->animation = NULL;
+	Timeline *tl = ACTIVE_TL;
 	tl->needs_redraw = true;
     } else {
-	l->animation = project_queue_animation(
+	l->animation->label = NULL;
+	l->animation = session_queue_animation(
 	    animation_frame_op, animation_end_op,
 	    (void *)l, NULL,
 	    l->countdown_timer);
-
+	/* l->animation_running = true; */
+	l->animation->label = l;
     }
 }
 
@@ -112,12 +119,13 @@ void label_reset(Label *label, Value v)
 	layout_set_values_from_rect(label->tb->layout);
     }
     label->countdown_timer = label->countdown_max;
-    if (!label->animation_running) {
-	label->animation = project_queue_animation(
+    if (!label->animation) {
+	label->animation = session_queue_animation(
 	    animation_frame_op, animation_end_op,
 	    (void *)label, NULL,
 	    label->countdown_max);
-	label->animation_running = true;
+	/* label->animation_running = true; */
+	label->animation->label = label;
 
     }
     textbox_reset_full(label->tb);
@@ -125,9 +133,9 @@ void label_reset(Label *label, Value v)
 
 void label_destroy(Label *label)
 {
-    if (label->animation_running) {
-	Animation *a = label->animation;
-	project_dequeue_animation(a);
+    if (label->animation) {
+	label->animation->label = NULL;
+	session_dequeue_animation(label->animation);
     }
     free(label->str);
     textbox_destroy(label->tb);
@@ -139,19 +147,47 @@ void label_destroy(Label *label)
 
 /* LABELMAKING UTILITIES */
 
-static float amp_to_db(float amp)
+/* static float amp_to_db(float amp) */
+/* { */
+/*     return (20.0f * log10(amp)); */
+/* } */
+
+void label_bpm(char *dst, size_t dstsize, Value val, ValType t)
 {
-    return (20.0f * log10(amp));
+    int offset = jdaw_val_to_str(dst, dstsize, val, t, 3);
+    snprintf(dst + offset, dstsize - offset, " bpm");
+}
+
+void label_amp_pre_exp_to_dbstr(char *dst, size_t dstsize, Value val, ValType t)
+{
+    float amp = t == JDAW_FLOAT ? val.float_v : val.double_v;
+    if (amp < 0.0f) {
+	amp = pow(fabs(amp), VOL_EXP);
+	float db = amp_to_db(amp);
+	snprintf(dst, dstsize - 4, "Ø %.*f", 2, db);
+	strcat(dst, " dB");
+
+    } else {
+	amp = pow(amp, VOL_EXP);
+	float db = amp_to_db(amp);
+	snprintf(dst, dstsize - 4, "%.*f", 2, db);
+	strcat(dst, " dB");
+    }
 }
 
 void label_amp_to_dbstr(char *dst, size_t dstsize, Value val, ValType t)
 {
     float amp = t == JDAW_FLOAT ? val.float_v : val.double_v;
-    float db = amp_to_db(amp);
-    
-    snprintf(dst, dstsize - 4, "%.*f", 2, db);
-    /* jdaw_val_set_str(dst, dstsize - 4, val, t, 2); */
-    strcat(dst, " dB");
+    if (amp < 0.0f) {
+	float db = amp_to_db(-1 * amp);
+	snprintf(dst, dstsize - 4, "Ø %.*f", 2, db);
+	strcat(dst, " dB");
+
+    } else {
+	float db = amp_to_db(amp);
+	snprintf(dst, dstsize - 4, "%.*f", 2, db);
+	strcat(dst, " dB");
+    }
 }
 
 void label_pan(char *dst, size_t dstsize, Value val, ValType t)
@@ -199,7 +235,6 @@ void label_freq_raw_to_hz(char *dst, size_t dstsize, Value v, ValType t)
     double raw = t == JDAW_FLOAT ? v.float_v : v.double_v;
     double hz = dsp_scale_freq_to_hz(raw);
     snprintf(dst, dstsize, "%.0f Hz", hz);
-    /* snprintf(dst, dstsize, "hi"); */
     dst[dstsize - 1] = '\0';
 }
 
@@ -207,6 +242,13 @@ void label_msec(char *dst, size_t dstsize, Value v, ValType t)
 {
     jdaw_val_to_str(dst, dstsize, v, t, 2);
     strcat(dst, " ms");
+}
+
+void label_int_plus_one(char *dst, size_t dstsize, Value v, ValType t)
+{
+    int plusone = v.int_v + 1;
+    snprintf(dst, dstsize, "%d", plusone);
+    
 }
 
 /* void label_freq_raw_to_hz(char *dst, size_t dstsize, double raw) */

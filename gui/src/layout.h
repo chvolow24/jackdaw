@@ -3,8 +3,6 @@
 
 #include <stdio.h>
 #include <stdbool.h>
-#include "SDL.h"
-#include "text.h"
 #include "window.h"
 
 #define MAX_LT_CHILDREN INT64_MAX
@@ -158,6 +156,7 @@ void layout_translate(Layout *lt, int translate_x, int translate_y, bool block_s
 void layout_resize(Layout *lt, int resize_w, int resize_h, bool block_snap);
 void layout_set_default_dims(Layout *lt);
 void layout_reparent(Layout *child, Layout *parent);
+void layout_reparent_all(Layout *old_parent, Layout *new_parent);
 // Layout *read_layout(FILE *f, long endrange);
 Layout *layout_copy(Layout *to_copy, Layout *parent);
 
@@ -207,6 +206,7 @@ void layout_remove_iter_at(LayoutIterator *iter, int16_t at);
 void layout_remove_child(Layout *child);
 void layout_insert_child_at(Layout *child, Layout *parent, int16_t index);
 void layout_swap_children(Layout *child1, Layout *child2);
+void layout_displace_child(Layout *child, int by);
 void layout_set_wh_from_rect(Layout *lt);
 void layout_set_values_from_rect(Layout *lt);
 

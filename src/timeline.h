@@ -8,6 +8,15 @@
 
 *****************************************************************************************************************/
 
+/*****************************************************************************************************************
+    timeline.h
+
+    * operations related to timeline positions
+    * translate between draw coordinates and absolute positions
+      (time values in sample frames)
+    * other timeline operations in project.h
+ *****************************************************************************************************************/
+
 #ifndef JDAW_TIMELINE_H
 #define JDAW_TIMELINE_H
 
@@ -32,7 +41,15 @@ double timeline_get_leftmost_seconds(Timeline *tl);
 double timeline_get_second_w(Timeline *tl);
 double timeline_first_second_tick_x(Timeline *tl, int *first_second);
 void timeline_rescale(Timeline *tl, double sfpp_scale_factor, bool on_mouse);
-void timeline_set_play_position(Timeline *tl, int32_t abs_pos_sframes);
+
+/* Invalidates continuous-play-dependent caches.
+   Use this any time a "jump" occurs.
+   MAIN (GUI) THREAD ONLY */
+/* void timeline_set_play_position(Timeline *tl, int32_t abs_pos_sframes); */
+void timeline_set_play_position(Timeline *tl, int32_t abs_pos_sframes, bool move_grabbed_clips);
+
+/* Use this for continuous playback incrementation.
+   SDL AUDIO THREAD ONLY */
 void timeline_move_play_position(Timeline *tl, int32_t move_by_sframes);
 
 void timeline_set_timecode(Timeline *tl);
@@ -41,4 +58,7 @@ void timeline_catchup(Timeline *tl);
 void timecode_str_at(Timeline *tl, char *dst, size_t dstsize, int32_t pos);
 
 int32_t timeline_get_play_pos_now(Timeline *tl);
+
+/* Clear all play caches, e.g. synth notes */
+void timeline_full_pause(Timeline *tl);
 #endif

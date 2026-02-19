@@ -15,7 +15,7 @@
 
 static void clear_whitespace(FILE *f) 
 {
-    char c;
+    int c;
     while ((c = fgetc(f)) == ' ' || c == '\n' || c == '\t') {}
     ungetc(c, f);
 }
@@ -37,7 +37,7 @@ static long xml_get_tag_endrange(FILE *f, char *tagname);
 int xml_get_next_tag(FILE *f, char *buf, int maxlen, long *startrange, long *endrange)
 {
 
-    char c;
+    int c;
     int i=0;
     while ((c = fgetc(f)) != '<' && c != EOF) {}
     while ((c = fgetc(f)) != '>' && not_whitespace_char(c)) {
@@ -115,7 +115,7 @@ static long xml_get_tag_endrange(FILE *f, char *tagname)
 */
 int xml_get_tag_attr(FILE *f, char *attr_name_buf, char *attr_value_buf, int maxlen)
 {
-    char c;
+    int c;
     int i=0;
     clear_whitespace(f);
     while ((c = fgetc(f)) != '=') {
@@ -169,12 +169,12 @@ Attr *xml_create_attr(void)
 
 Tag *xml_store_next_tag(FILE *f, long endrange)
 {
-    char *buf = malloc(256);
-    char *buf2 = malloc(256);
+    char buf[256];// = malloc(256);
+    char buf2[256];// = malloc(256);
     long start,end;
     if (xml_get_next_tag(f, buf, 256, &start, &end) == -1 || (start > endrange && endrange != -1) || end - start < 0) {
-        free(buf);
-        free(buf2);
+        /* free(buf); */
+        /* free(buf2); */
         fseek(f, start, 0);
         return NULL;
     } 
@@ -212,8 +212,8 @@ Tag *xml_store_next_tag(FILE *f, long endrange)
         ret->children[ret->num_children] = child;
         ret->num_children++;
     }
-    free(buf);
-    free(buf2);
+    /* free(buf); */
+    /* free(buf2); */
     return ret;
 }
 

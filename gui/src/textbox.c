@@ -1,4 +1,4 @@
-#include "animation.h"
+#include "color.h"
 #include "geometry.h"
 #include "text.h"
 #include "textbox.h"
@@ -7,15 +7,15 @@
 #define TXTBX_DEFAULT_RAD 0
 #define TXTBX_DEFAULT_MAXLEN 255
 
+
 /* #define MAX_TLINES UINT32_MAX */
 
 SDL_Color textbox_default_bckgrnd_clr = (SDL_Color) {240, 240, 240, 255};
 SDL_Color textbox_default_txt_clr = (SDL_Color) {0, 0, 0, 255};
 SDL_Color textbox_default_border_clr = (SDL_Color) {100, 100, 100, 255};
-extern SDL_Color color_global_clear;
-extern SDL_Color color_global_black;
-extern SDL_Color color_global_green;
-extern SDL_Color color_global_grey;
+
+extern struct colors colors;
+
 #ifndef LAYOUT_BUILD
 extern volatile bool CANCEL_THREADS;
 #endif
@@ -49,13 +49,13 @@ Textbox *textbox_create_from_str(
 	true,
 	win
 	);
-    /* textbox_reset_full(tb); */
-	
     return tb;
 }
 
 void textbox_size_to_fit(Textbox *tb, int h_pad, int v_pad)
 {
+    int h_pad_unscaled = h_pad;
+    int v_pad_unscaled = v_pad;
     h_pad *= tb->window->dpi_scale_factor;
     v_pad *= tb->window->dpi_scale_factor;
     SDL_Rect *text_rect = &tb->text->text_lt->rect;
@@ -63,7 +63,7 @@ void textbox_size_to_fit(Textbox *tb, int h_pad, int v_pad)
     bool save_trunc = tb->text->truncate;
     
     tb->text->truncate = false;
-    txt_set_pad(tb->text, h_pad, v_pad);
+    txt_set_pad(tb->text, h_pad_unscaled, v_pad_unscaled);
     txt_reset_display_value(tb->text);
     layout_rect->w = text_rect->w + h_pad * 2;
     layout_rect->h = text_rect->h + v_pad * 2;
@@ -114,8 +114,22 @@ void textbox_size_to_fit_h(Textbox *tb, int h_pad)
     tb->text->truncate = save_trunc;
     layout_set_wh_from_rect(tb->layout);
     layout_reset(tb->layout);
-
 }
+
+
+void textbox_set_dynamic_resize(
+    Textbox *tb,
+    bool dynamic_resize_h,
+    bool dynamic_resize_v,
+    int h_pad_unscaled,
+    int v_pad_unscaled)
+{
+    tb->dynamic_resize_h = dynamic_resize_h;
+    tb->dynamic_resize_v = dynamic_resize_v;
+    tb->dynamic_h_pad = h_pad_unscaled;
+    tb->dynamic_v_pad = v_pad_unscaled;
+}
+
 /* Pad a textbox on all sides. Modifies the dimensions of the layout */
 void textbox_pad(Textbox *tb, int pad)
 {
@@ -145,9 +159,21 @@ void textbox_destroy(Textbox *tb)
     free(tb);
 }
 
+void textbox_destroy_keep_lt(Textbox *tb)
+{
+    if (tb->text) {
+	txt_destroy(tb->text);
+    }
+    free(tb);
+}
+
 void textbox_draw(Textbox *tb)
 {
     int rad = tb->corner_radius * tb->window->dpi_scale_factor;
+    int thickness = tb->border_thickness;
+    if (tb->window->dpi_scale_factor < 1.9 && thickness > 1.1) {
+	thickness /= (tb->window->dpi_scale_factor * 2.0);
+    }
     /* TODO: consider whether this is bad and if rend needs to be on textbox as well */
     SDL_Renderer *rend = tb->text->win->rend;
     SDL_Color *bckgrnd = tb->bckgrnd_clr;
@@ -164,14 +190,15 @@ void textbox_draw(Textbox *tb)
 	if (bckgrnd)
 	    geom_fill_rounded_rect(rend, &tb_rect, rad);
 	SDL_SetRenderDrawColor(rend, brdrclr->r, brdrclr->g, brdrclr->b, brdrclr->a);
-	for (int i=0; i<tb->border_thickness; i++) {	    
-	    geom_draw_rounded_rect(rend, &tb_rect, rad);
-	    tb_rect.x += 1;
-	    tb_rect.y += 1;
-	    tb_rect.w -= 2;
-	    tb_rect.h -= 2;
-	    rad -= 1;
-	}
+	geom_draw_rounded_rect_thick(rend, &tb_rect, thickness, rad);
+	/* for (int i=0; i<thickness; i++) {	     */
+	/*     geom_draw_rounded_rect(rend, &tb_rect, rad); */
+	/*     tb_rect.x += 1; */
+	/*     tb_rect.y += 1; */
+	/*     tb_rect.w -= 2; */
+	/*     tb_rect.h -= 2; */
+	/*     rad -= 1; */
+	/* } */
 	    
     } else {
 	if (bckgrnd)
@@ -218,6 +245,11 @@ void textbox_draw(Textbox *tb)
 
     
     SDL_SetRenderDrawColor(rend, txtclr->r, txtclr->g, txtclr->b, txtclr->a);
+    if (tb->live) {
+	if (strncmp(tb->text->display_value, tb->text->value_handle, tb->text->max_len) != 0) {
+	    txt_reset_display_value(tb->text);
+	}
+    }
     txt_draw(tb->text);
 }
 
@@ -268,11 +300,12 @@ void textbox_set_trunc(Textbox *tb, bool trunc)
     txt_reset_display_value(tb->text);
 }
 
-void textbox_set_text_color(Textbox *tb, SDL_Color *clr)
+void textbox_set_text_color(Textbox *tb, const SDL_Color *clr)
 {
-    /* txt_set_color also resets the text drawables */
+    /* txt_set_color also resets the text drawables if new clr */
     txt_set_color(tb->text, clr);
 }
+
 
 void textbox_set_background_color(Textbox *tb, SDL_Color *clr)
 {
@@ -284,12 +317,13 @@ void textbox_set_border_color(Textbox *tb, SDL_Color *clr)
     tb->border_clr = clr;
 }
 
-void textbox_set_border(Textbox *tb, SDL_Color *color, int thickness)
+void textbox_set_border(Textbox *tb, SDL_Color *color, int thickness, int radius)
 {
     if (color) {
 	tb->border_clr = color;
     }
     tb->border_thickness = thickness;
+    tb->corner_radius = radius;
 }
 
 void textbox_set_align(Textbox *tb, TextAlign align)
@@ -302,6 +336,16 @@ void textbox_set_align(Textbox *tb, TextAlign align)
 void textbox_reset_full(Textbox *tb)
 {
     txt_reset_display_value(tb->text);
+    if (tb->dynamic_resize_h) {
+	if (tb->dynamic_resize_v) {
+	    textbox_size_to_fit(tb, tb->dynamic_h_pad, tb->dynamic_v_pad);
+	} else {
+	    textbox_size_to_fit_h(tb, tb->dynamic_h_pad);
+	}
+    } else if (tb->dynamic_resize_v) {
+	textbox_size_to_fit_v(tb, tb->dynamic_v_pad);
+    }
+
 }
 
 
@@ -309,6 +353,15 @@ void textbox_reset(Textbox *tb)
 {
     /* txt_reset_display_value(tb->text); */
     txt_reset_drawable(tb->text);
+    /* if (tb->dynamic_resize_h) { */
+    /* 	if (tb->dynamic_resize_v) { */
+    /* 	    textbox_size_to_fit(tb, tb->dynamic_h_pad, tb->dynamic_v_pad); */
+    /* 	} else { */
+    /* 	    textbox_size_to_fit_h(tb, tb->dynamic_h_pad); */
+    /* 	} */
+    /* } else if (tb->dynamic_resize_v) { */
+    /* 	textbox_size_to_fit_v(tb, tb->dynamic_v_pad); */
+    /* } */
 }
 
 void textbox_set_pad(Textbox *tb, int h_pad, int v_pad)
@@ -322,36 +375,61 @@ void textbox_set_value_handle(Textbox *tb, const char *new_value)
     txt_set_value_handle(tb->text, (char *) new_value);
 }
 
+/* Convenience function, used in tandem with textbox_create_from_str */
+void textbox_style(
+    Textbox *tb,
+    TextAlign align,
+    bool trunc,
+    SDL_Color *background_color,
+    SDL_Color *text_color)
+{
+    tb->text->align = align;
+    tb->text->truncate = trunc;
+    tb->bckgrnd_clr = background_color;
+    txt_set_color_no_reset(tb->text, text_color);
+    textbox_reset_full(tb);
+}
+    
+    
 
 /* Chunky buttons -- save for later, maybe */
 void textbox_set_style(Textbox *tb, enum textbox_style style)
 {
-    /* tb->border_thickness = 0; */
+    tb->border_thickness = 0;
     /* tb->border_clr = NULL; */
-    /* tb->corner_radius = 0; */
+    tb->corner_radius = 0;
 
-    /* switch (style) { */
-    /* case BUTTON_CLASSIC: */
-    /* 	tb->style = BUTTON_CLASSIC; */
-    /* 	break; */
-    /* case BUTTON_DARK: */
-    /* 	tb->style = BUTTON_DARK; */
-    /* default: */
-    /* 	break; */
-    /* } */
+    switch (style) {
+    case BUTTON_CLASSIC:
+	tb->style = BUTTON_CLASSIC;
+	break;
+    case BUTTON_DARK:
+	tb->corner_radius = BUTTON_CORNER_RADIUS;
+	/* textbox_set_trunc(tb, false); */
+	textbox_set_border(tb, &colors.dark_grey, 1, BUTTON_CORNER_RADIUS);
+	/* textbox_set_style(tb, BUTTON_CLASSIC); */
+	textbox_set_text_color(tb, &colors.white);
+	textbox_set_background_color(tb, &colors.quickref_button_blue);
+	textbox_set_align(tb, CENTER);
+	textbox_size_to_fit(tb, 6, 2);
+	textbox_reset_full(tb);
+	tb->style = BUTTON_DARK;
+    default:
+	break;
+    }
 }
 
 /* void textbox_set_style(Textbox *tb, enum textbox_style style) */
 /* { */
 /*     switch (style) { */
 /*     case BLANK: */
-/* 	textbox_set_background_color(tb, &color_global_clear); */
-/* 	textbox_set_border(tb, &color_global_clear, 0); */
+/* 	textbox_set_background_color(tb, &colors.clear); */
+/* 	textbox_set_border(tb, &colors.clear, 0); */
 /* 	break; */
 /*     case NUMBOX: */
-/* 	textbox_set_background_color(tb, &color_global_black); */
-/* 	textbox_set_text_color(tb, &color_global_green); */
-/* 	textbox_set_border(tb, &color_global_grey, 2); */
+/* 	textbox_set_background_color(tb, &colors.black); */
+/* 	textbox_set_text_color(tb, &colors.green); */
+/* 	textbox_set_border(tb, &colors.grey, 2); */
 /* 	tb->text->font = tb->text->win->mono_bold_font; */
 /* 	break; */
 /*     } */

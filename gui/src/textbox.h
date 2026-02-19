@@ -8,6 +8,7 @@
 #define MAX_MENU_SECTIONS 16
 #define MAX_MENU_COLUMNS 8
 #define MAX_ADDTL_TBS 16
+#define BUTTON_CORNER_RADIUS 6
 
 #define MAX_NAMELENGTH 64
 
@@ -34,6 +35,15 @@ typedef struct textbox {
     int border_thickness;
     int corner_radius;
     Window *window;
+
+    bool dynamic_resize_h; /* Resizes to match text if true */
+    bool dynamic_resize_v; /* Resizes to match text if true */
+    int dynamic_h_pad; /* unscaled (not pix) */
+    int dynamic_v_pad; /* unscaled (not pix) */
+
+    /* 'live' textboxes check value at every draw frame
+       to determine if redraw necessary */
+    bool live;
 
     /* COLOR CHANGE CALLBACKS: DEPRECATED AND REPLACED WITH animation.c */
     
@@ -67,6 +77,10 @@ typedef struct text_lines {
 
 Textbox *textbox_create();
 void textbox_destroy(Textbox *);
+void textbox_destroy_keep_lt(Textbox *tb);
+
+    
+
 Textbox *textbox_create_from_str(
     const char *set_str,
     Layout *lt,
@@ -76,19 +90,43 @@ Textbox *textbox_create_from_str(
     Window *win
     );
 
+/* Sets all parameters and resets text drawable */
+void textbox_style(
+    Textbox *tb,
+    TextAlign align,
+    bool trunc,
+    SDL_Color *background_color,
+    SDL_Color *text_color);
+
+
 /* WARNING: deprecated. Use 'textbox_size_to_fit' instead */
 void textbox_pad(Textbox *tb, int pad);
+
+
+
 void textbox_draw(Textbox *tb);
+
+
 void textbox_size_to_fit(Textbox *tb, int w_pad, int v_pad);
 void textbox_size_to_fit_v(Textbox *tb, int v_pad);
 void textbox_size_to_fit_h(Textbox *tb, int h_pad);
+
+/* If set, textbox is resized every time text is updated */
+void textbox_set_dynamic_resize(
+    Textbox *tb,
+    bool dynamic_resize_h,
+    bool dynamic_resize_v,
+    int h_pad_unscaled,
+    int v_pad_unscaled);
+
+
 void textbox_set_fixed_w(Textbox *tb, int fixed_w);
-void textbox_set_text_color(Textbox *tb, SDL_Color *clr);
+void textbox_set_text_color(Textbox *tb, const SDL_Color *clr);
 void textbox_set_trunc(Textbox *tb, bool trunc);
-void textbox_set_text_color(Textbox *tb, SDL_Color *clr);
+/* void textbox_set_text_color(Textbox *tb, SDL_Color *clr); */
 void textbox_set_background_color(Textbox *tb, SDL_Color *clr);
 void textbox_set_border_color(Textbox *tb, SDL_Color *clr);
-void textbox_set_border(Textbox *tb, SDL_Color *color, int thickness);
+void textbox_set_border(Textbox *tb, SDL_Color *color, int thickness, int corner_radius);
 void textbox_set_align(Textbox *tb, TextAlign align);
 
 /* Reset drawable only. For full reset, use textbox_reset_full */

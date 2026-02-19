@@ -11,7 +11,7 @@
 /*****************************************************************************************************************
     tempo.h
 
-    * Define structs related to tempo tracks, bars, and beats
+    * ClickTracks, metronomes, time signatures
  *****************************************************************************************************************/
 
 #ifndef JDAW_TEMPO_H
@@ -23,26 +23,39 @@
 #include "endpoint.h"
 #include "layout.h"
 #include "textbox.h"
+#include "timeview.h"
 
 #define MAX_BEATS_PER_BAR 13
 #define MAX_CLICK_TRACKS 16
 #define CLICK_POS_STR_LEN 32
 #define BARS_FOR_NOTHING 2
 
-enum beat_prominence {
-    BP_SEGMENT=0,
-    BP_MEASURE=1,
-    BP_BEAT=2,
-    BP_SUBDIV=3,
-    BP_SUBDIV2=4,
-    BP_NONE=5
-};
+#define BPM_STRLEN 16
+
+/* typedef enum beat_prominence { */
+/*     BP_SEGMENT=0, */
+/*     BP_MEASURE=1, */
+/*     BP_BEAT=2, */
+/*     BP_SUBDIV=3, */
+/*     BP_SUBDIV2=4, */
+/*     BP_NONE=5 */
+/* } BeatProminence; */
+
+typedef enum beat_prominence {
+    BP_SEGMENT,
+    BP_MEASURE,
+    BP_BEAT,
+    BP_SD,
+    BP_SSD,
+    BP_SSSD,
+    BP_NONE
+} BeatProminence;
 
 typedef struct measure_config {
-    int bpm;
+    float bpm;
     int32_t dur_sframes;
     uint8_t num_beats;
-    uint8_t beat_subdiv_lens[MAX_BEATS_PER_BAR];
+    uint8_t beat_len_atoms[MAX_BEATS_PER_BAR];
     uint8_t num_atoms;
     int32_t atom_dur_approx; /* Not to be used for precise calculations */
 } MeasureConfig;
@@ -63,16 +76,39 @@ typedef struct click_segment {
 
     int32_t start_pos_internal;
     Endpoint start_pos_ep;
+    Endpoint bpm_ep;
+
+    Label *bpm_label;
 } ClickSegment;
 
 typedef struct timeline Timeline;
 
-typedef struct metronome {
+typedef struct click_track_pos {
+    ClickSegment *seg;
+    int measure;
+    int beat; /* (e.g. quarter) */
+    int sd; /* subdiv (e.g. eighth) */
+    int ssd; /* sub-subdiv (e.g. sixteenth) */
+    int sssd; /* sub-sub-subdiv (e.g. thirty-second) */
+    double remainder; /* as a fraction of sd len */
+} ClickTrackPos;
+
+typedef struct metronome_buffer {
+    const char *filepath;
     const char *name;
-    /* const char *buffer_filenames[2]; */
-    float *buffers[2];
-    int32_t buf_lens[2];
-} Metronome;
+    float *buf;
+    int32_t buf_len;
+    int used_in; /* Reference counter */
+} MetronomeBuffer;
+
+typedef struct metronome_config {
+    MetronomeBuffer *bp_measure_buf;
+    MetronomeBuffer *bp_beat_buf;
+    MetronomeBuffer *bp_offbeat_buf;
+    MetronomeBuffer *bp_subdiv_buf;
+    float vol;
+    Endpoint vol_ep;
+} MetronomeConfig;
 
 
 enum ts_end_bound_behavior {
@@ -85,9 +121,12 @@ typedef struct click_track {
     uint8_t index;
     /* uint8_t num_segments; */
     uint8_t current_segment;
+    char bpm_str[BPM_STRLEN];
 
-    Metronome *metronome;
-    float metronome_vol;
+    /* Metronome *metronome; */
+    MetronomeConfig metronome;
+    float *metronome_buf;
+    int32_t metronome_buf_len;
     /* Button *metronome_button; */
     Textbox *metronome_button;
     Textbox *edit_button;
@@ -112,36 +151,53 @@ typedef struct click_track {
 
     /* Settings GUI objs */
     char num_beats_str[3];
-    char tempo_str[5];
+    char tempo_str[BPM_STRLEN];
     char subdiv_len_strs[MAX_BEATS_PER_BAR][2];
 
     /* API */
     APINode api_node;
-    Endpoint metronome_vol_ep;
     Endpoint end_bound_behavior_ep;
     
 } ClickTrack;
 
+/* Public utils */
+void click_track_pos_fprint(FILE *f, ClickTrackPos pos);
+ClickTrackPos click_track_pos_round(ClickTrackPos in, BeatProminence bp);
+ClickTrackPos click_track_get_pos(ClickTrack *ct, int32_t tl_pos);
+int32_t click_track_pos_to_tl_pos(const ClickTrackPos *ctp);
+ClickTrackPos click_track_pos_do_increment(ClickTrackPos ctp, BeatProminence bp);
+ClickTrackPos click_track_pos_do_decrement(ClickTrackPos ctp, BeatProminence bp);
 
 /* Timeline interface */
 ClickTrack *timeline_add_click_track(Timeline *tl);
 void timeline_cut_click_track_at_cursor(Timeline *tl);
 void timeline_increment_tempo_at_cursor(Timeline *tl, int inc_by);
-void click_track_goto_prox_beat(ClickTrack *tt, int direction, enum beat_prominence bp);
-/* void timeline_goto_prox_beat(Timeline *tl, int direction, enum beat_prominence bp); */
+void click_track_goto_prox_beat(ClickTrack *tt, int direction, BeatProminence bp);
+void click_track_get_prox_beats(ClickTrack *ct, int32_t pos, BeatProminence bp, int32_t *next_pos_dst, int32_t *prev_pos_dst);
+/* void timeline_goto_prox_beat(Timeline *tl, int direction, BeatProminence bp); */
 void timeline_click_track_set_tempo_at_cursor(Timeline *tl);
 void timeline_click_track_edit(Timeline *tl);
 bool timeline_click_track_delete(Timeline *tl);
 
+ClickTrack *click_track_active_at_cursor(Timeline *tl);
+ClickSegment *click_segment_active_at_cursor(Timeline *tl);
+
+/* Reset the on-screen bar.beat.subdiv:sample indicator */
+void click_track_set_readout(ClickTrack *ct, int32_t tl_pos);
 
 /* Required in settings.c */
 ClickSegment *click_track_get_segment_at_pos(ClickTrack *t, int32_t pos);
-void click_segment_set_config(ClickSegment *s, int num_measures, int bpm, uint8_t num_beats, uint8_t *subdivs, enum ts_end_bound_behavior ebb);
+void click_segment_set_config(ClickSegment *s, int num_measures, float bpm, uint8_t num_beats, uint8_t *subdivs, enum ts_end_bound_behavior ebb);
 void click_segment_destroy(ClickSegment *s);
+
+
+/* For piano roll and JLily */
+void click_segment_get_durs_at(ClickTrack *ct, int32_t at, int32_t *measure_dur, int32_t *beat_dur, int32_t *subdiv_dur);
 
 void click_segment_fprint(FILE *f, ClickSegment *s);
 
-int32_t click_track_bar_beat_subdiv(ClickTrack *tt, int32_t pos, int *bar_p, int *beat_p, int *subdiv_p, ClickSegment **segment_p, bool set_readout);
+/* int32_t click_track_bar_beat_subdiv(ClickTrack *tt, int32_t pos, int *bar_p, int *beat_p, int *subdiv_p, ClickSegment **segment_p, bool set_readout); */
+void click_track_draw_segments(ClickTrack *tt, TimeView *tv, SDL_Rect draw_rect);
 void click_track_draw(ClickTrack *tt);
 
 typedef struct project Project;
@@ -151,15 +207,19 @@ void click_track_mute_unmute(ClickTrack *t);
 void click_track_increment_vol(ClickTrack *tt);
 void click_track_decrement_vol(ClickTrack *tt);
 void click_track_delete_segment_at_cursor(ClickTrack *ct);
-void project_init_metronomes(Project *proj);
-void project_destroy_metronomes(Project *proj);
-void click_track_mix_metronome(ClickTrack *tt, float *mixdown_buf, int32_t mixdown_buf_len, int32_t tl_start_pos_sframes, int32_t tl_end_pos_sframes, float step);
+/* void project_init_metronomes(Project *proj); */
+void session_init_metronomes(Session *session);
+void session_destroy_metronomes(Session *session);
+void click_track_mix_metronome(ClickTrack *tt, float *mixdown_buf, int32_t mixdown_buf_len, int32_t tl_start_pos_sframes, int32_t tl_end_pos_sframes, float step, int channel);
 bool click_track_triage_click(uint8_t button, ClickTrack *t);
 
 
 void click_track_fprint(FILE *f, ClickTrack *tt);
 void click_segment_at_cursor_fprint(FILE *f, Timeline *tl);
 
-ClickSegment *click_track_add_segment(ClickTrack *t, int32_t start_pos, int16_t num_measures, int bpm, uint8_t num_beats, uint8_t *subdiv_lens);
+ClickSegment *click_track_add_segment(ClickTrack *t, int32_t start_pos, int16_t num_measures, float bpm, uint8_t num_beats, uint8_t *subdiv_lens);
+
+/* Required in MIDI file reads */
+ClickSegment *click_track_cut_at(ClickTrack *tt, int32_t at);
 
 #endif

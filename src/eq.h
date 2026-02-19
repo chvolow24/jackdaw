@@ -11,8 +11,8 @@
 /*****************************************************************************************************************
     eq.h
 
-    * Parametric EQ
-    * Implemented as IIR group and accompanying freq plot
+    * cascaded biquad Parametric EQ
+    * Implemented as IIR group (see iir.h) and accompanying freq plot
  *****************************************************************************************************************/
 
 #ifndef JDAW_EQ_H
@@ -72,7 +72,7 @@ typedef struct eq {
     int selected_ctrl;
     bool selected_filter_active;
     Endpoint selected_filter_active_ep;
-    Track *track;
+    /* Track *track; */
 
     Effect *effect;
 } EQ;
@@ -91,7 +91,7 @@ bool eq_mouse_click(EQ *eq, SDL_Point mousep);
 void eq_mouse_motion(EQFilterCtrl *ctrl, Window *win);
 void eq_draw(EQ *eq);
 /* double eq_sample(EQ *eq, double in, int channel); */
-float eq_buf_apply(void *eq_v, float *buf, int len, int channel, float input_amp);
+float eq_buf_apply(void *eq_v, float *restrict buf, int len, int channel, float input_amp);
 void eq_advance(EQ *eq, int channel);
 void eq_clear(EQ *eq);
 

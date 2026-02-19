@@ -67,15 +67,15 @@ void set_lt_params(Layout *lt)
         lt_params->w_type_value = txt_create_from_str(NULL, 5, w_typeval_layout, main_win->std_font, 12, txt_color, CENTER_LEFT, false, main_win);
         lt_params->h_type_value = txt_create_from_str(NULL, 5, h_typeval_layout, main_win->std_font, 12, txt_color, CENTER_LEFT, false, main_win);
 
-        lt_params->x_value = txt_create_from_str(NULL, 10, x_value_layout, main_win->std_font, 12, txt_color, CENTER_LEFT, false, main_win);
-        lt_params->y_value = txt_create_from_str(NULL, 10, y_value_layout, main_win->std_font, 12, txt_color, CENTER_LEFT, false, main_win);
-        lt_params->w_value = txt_create_from_str(NULL, 10, w_value_layout, main_win->std_font, 12, txt_color, CENTER_LEFT, false, main_win);
-        lt_params->h_value = txt_create_from_str(NULL, 10, h_value_layout, main_win->std_font, 12, txt_color, CENTER_LEFT, false, main_win);
+        lt_params->x_value = txt_create_from_str(NULL, 16, x_value_layout, main_win->std_font, 12, txt_color, CENTER_LEFT, false, main_win);
+        lt_params->y_value = txt_create_from_str(NULL, 16, y_value_layout, main_win->std_font, 12, txt_color, CENTER_LEFT, false, main_win);
+        lt_params->w_value = txt_create_from_str(NULL, 16, w_value_layout, main_win->std_font, 12, txt_color, CENTER_LEFT, false, main_win);
+        lt_params->h_value = txt_create_from_str(NULL, 16, h_value_layout, main_win->std_font, 12, txt_color, CENTER_LEFT, false, main_win);
 
-        lt_params->x_value_str = malloc(10);
-        lt_params->y_value_str = malloc(10);
-        lt_params->w_value_str = malloc(10);
-        lt_params->h_value_str = malloc(10);
+        lt_params->x_value_str = malloc(16);
+        lt_params->y_value_str = malloc(16);
+        lt_params->w_value_str = malloc(16);
+        lt_params->h_value_str = malloc(16);
     }
     txt_set_value_handle(lt_params->name_value, lt->name);
     txt_set_value_handle(lt_params->x_type_value, (char *) layout_get_dimtype_str(lt->x.type));

@@ -11,7 +11,10 @@
 /*****************************************************************************************************************
     api.h
 
-    * typedefs supporting jackdaw UDP API
+    * create and maintain data structures related to UDP API
+    * setup and teardown UDP server
+    * triage messages sent via UDP
+
  *****************************************************************************************************************/
 
 #include <arpa/inet.h>
@@ -21,6 +24,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 
 #ifndef JDAW_API_H
@@ -31,7 +35,7 @@
 
 typedef struct endpoint Endpoint;
 typedef struct api_node APINode;
-typedef struct project Project;
+typedef struct session Session;
 
 typedef struct api_node {
     APINode *parent;
@@ -40,6 +44,9 @@ typedef struct api_node {
     Endpoint *endpoints[MAX_API_NODE_ENDPOINTS];
     uint8_t num_endpoints;
     char *obj_name;
+    const char *fixed_name;
+    bool do_not_serialize;
+    bool do_not_automate;
 } APINode;
 
 struct api_server {
@@ -64,21 +71,39 @@ typedef struct api_hash_node {
 void api_endpoint_register(Endpoint *ep, APINode *parent);
 Endpoint *api_endpoint_get(const char *route);
 int api_endpoint_get_route(Endpoint *ep, char *dst, size_t dst_size);
+int api_node_get_route(APINode *node, char *dst, size_t dst_size);
 int api_endpoint_get_route_until(Endpoint *ep, char *dst, size_t dst_size, APINode *until);
 int api_endpoint_get_display_route_until(Endpoint *ep, char *dst, size_t dst_size, APINode *until);
-void api_node_register(APINode *node, APINode *parent, char *obj_name);
+void api_node_register(APINode *node, APINode *parent, char *obj_name, const char *fixed_name);
+/* void api_node_register(APINode *node, APINode *parent, char *obj_name); */
 void api_node_deregister(APINode *node);
 void api_node_reregister(APINode *node);
 /* void api_node_deregister(APINode *node); */
 void api_node_renamed(APINode *node);
 /* static void api_endpoint_get_route(Endpoint *ep, char *dst, size_t dst_size); */
 
-int api_start_server(Project *proj, int port);
+void api_node_set_defaults(APINode *node);
+
+int api_start_server(int port);
     
 void api_node_print_all_routes(APINode *node);
 void api_node_print_routes_with_values(APINode *node);
+void api_node_serialize(FILE *f, APINode *node);
+/* void api_node_deserialize(FILE *f); */
+
+/* Returns 0 on success, else error */
+int api_node_deserialize(FILE *f, APINode *root);
+
 void api_table_print();
-void api_quit(Project *proj);
+void api_clear_all();
+void api_quit();
+
+/* Before swapping project, make room in session for new api structure */
+void api_stash_current();
+/* If proj read fails, use stashed info to reset api */
+void api_reset_from_stash_and_discard();
+/* Else if proj read successful, discard old api info */
+void api_discard_stash();
 /* void api_hash_table_destroy(); */
 
 /* void api_node_renamed(APINode *api); */

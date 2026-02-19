@@ -8,27 +8,21 @@
 
 *****************************************************************************************************************/
 
-/*****************************************************************************************************************
-    settings.c
-
-    * create structs required for settings pages
-    * swap out params for settings pages
- *****************************************************************************************************************/
-
 #include <pthread.h>
 #include "assets.h"
 #include "color.h"
-/* #include "dsp.h" */
+#include "dir.h"
 #include "eq.h"
-#include "geometry.h"
-#include "label.h"
 #include "layout.h"
+#include "menu.h"
+#include "modal.h"
 #include "page.h"
 #include "project.h"
+#include "session.h"
 #include "textbox.h"
 #include "timeline.h"
 #include "userfn.h"
-#include "waveform.h"
+#include "window.h"
 
 #ifndef INSTALL_DIR
 #define INSTALL_DIR "."
@@ -37,17 +31,11 @@
 #define LABEL_STD_FONT_SIZE 12
 #define RADIO_STD_FONT_SIZE 14
 
-extern Project *proj;
 extern Window *main_win;
 
 extern Symbol *SYMBOL_TABLE[];
 
-extern SDL_Color color_global_white;
-extern SDL_Color color_global_black;
-extern SDL_Color color_global_light_grey;
-extern SDL_Color color_global_quickref_button_blue;
-extern SDL_Color freq_L_color;
-extern SDL_Color freq_R_color;
+extern struct colors colors;
 
 extern SDL_Color EQ_CTRL_COLORS[];
 extern SDL_Color EQ_CTRL_COLORS_LIGHT[];
@@ -58,607 +46,22 @@ extern SDL_Color EQ_CTRL_COLORS_LIGHT[];
 /* static struct freq_plot *current_fp; */
 Waveform *current_waveform;
 
-/* static double unscale_freq(double scaled) */
-/* { */
-/* } */
-/*     return log(scaled * proj->sample_rate) / log(proj->sample_rate); */
-/* static int toggle_delay_line_target_action(void *self_v, void *target) */
-/* { */
-/*     DelayLine *dl = (DelayLine *)target; */
-/*     delay_line_clear(dl); */
-/*     return 0; */
-/* } */
-
-/* static int toggle_saturation_gain_comp(void *self_v, void *target) */
-/* { */
-/*     Saturation *s = (Saturation *)target; */
-/*     /\* fprintf(stderr, "WRITING TYPE: %d\n", s->type); *\/ */
-/*     endpoint_write(&s->gain_comp_ep, (Value){.bool_v = s->do_gain_comp}, true, true, true, true); */
-/*     return 0; */
-
-/* } */
-/* static int previous_track(void *self_v, void *target) */
-/* { */
-/*     user_tl_track_selector_up(NULL); */
-/*     return 0; */
-/* } */
-
-/* static int next_track(void *self_v, void *target) */
-/* { */
-/*     user_tl_track_selector_down(NULL); */
-/*     return 0; */
-/* } */
-
-/* static void create_track_selection_area(Page *page, Track *track) */
-/* { */
-/*     PageElParams p; */
-/*     p.textbox_p.font = main_win->mono_bold_font; */
-/*     p.textbox_p.win = main_win; */
-/*     p.textbox_p.text_size = 16; */
-/*     p.textbox_p.set_str = track->name; */
-/*     PageEl *el = page_add_el(page, EL_TEXTBOX, p, "track_settings_name_tb", "track_name"); */
-/*     Textbox *tb = el->component; */
-/*     textbox_set_align(tb, CENTER_LEFT); */
-/*     textbox_size_to_fit_h(tb, 5); */
-/*     /\* layout_reset(tb->layout->parent); *\/ */
-/*     textbox_reset_full(tb); */
-
-/*     p.button_p.set_str = "p↑"; */
-/*     p.button_p.font = main_win->mono_bold_font; */
-/*     p.button_p.win = main_win; */
-/*     p.button_p.text_size = 16; */
-/*     p.button_p.background_color = &color_global_light_grey; */
-/*     p.button_p.text_color = &color_global_black; */
-/*     p.button_p.action = previous_track; */
-/*     el = page_add_el(page, EL_BUTTON, p, "track_settings_prev_track", "track_previous"); */
-
-/*     p.button_p.set_str = "n↓"; */
-/*     p.button_p.action = next_track; */
-/*     el = page_add_el(page, EL_BUTTON, p, "track_settings_next_track", "track_next"); */
-/* } */
-
-/* int filter_type_button_action(void *self, void *target) */
-/* { */
-/*     SymbolButton *sb = self; */
-/*     EQ *eq = target; */
-/*     eq_set_filter_type(eq, sb->stashed_val.int_v); */
-/*     return 0; */
-/* } */
-
-/* /\* int filter_selector_button_action(void *self, void *target) *\/ */
-/* /\* { *\/ */
-/* /\*     Button *b = self; *\/ */
-/* /\*     EQ *eq = target; *\/ */
-/* /\* } *\/ */
-
-/* void filter_tabs_canvas_draw(void *draw_arg1, void *draw_arg2) */
-/* { */
-/*     EQ *eq = draw_arg1; */
-/*     Layout *filter_tabs = draw_arg2; */
-/*     for (int i=0; i<filter_tabs->num_children; i++) { */
-/* 	/\* fprintf(stderr, "check %d\n", i); *\/ */
-/* 	if (i == eq->selected_ctrl) { */
-/* 	    /\* fprintf(stderr, "found !\n"); *\/ */
-/* 	    if (eq->ctrls[eq->selected_ctrl].filter_active) { */
-/* 		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(EQ_CTRL_COLORS_LIGHT[i])); */
-/* 	    } else { */
-/* 		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(filter_selected_inactive)); */
-/* 	    } */
-/* 	    SDL_RenderFillRect(main_win->rend, &filter_tabs->children[i]->rect); */
-/* 	    break; */
-/* 	} */
-/*     }     */
-/* } */
-
-/* void filter_type_selector_canvas_draw(void *draw_arg1, void *draw_arg2) */
-/* { */
-/*     EQ *eq = draw_arg1; */
-/*     Layout *selector_lt = draw_arg2; */
-/*     IIRFilterType t = eq->group.filters[eq->selected_ctrl].type; */
-/*     Layout *sbutton_lt = selector_lt->children[t]; */
-/*     /\* SDL_Rect r = sbutton_lt->rect; *\/ */
-/*     /\* fprintf(stderr, "Found layout to draw: %p, %d %d %d %d\n", sbutton_lt, r.x, r.y, r.w, r.h); *\/ */
-/*     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(filter_selected_clr)); */
-/*     geom_fill_rounded_rect(main_win->rend, &sbutton_lt->rect, SYMBOL_TABLE[7]->corner_rad_pix); */
-/* } */
-
-/* bool filter_tabs_onclick(SDL_Point p, Canvas *self, void *draw_arg1, void *draw_arg2) */
-/* { */
-/*     EQ *eq = draw_arg1; */
-/*     Layout *filter_tabs = draw_arg2; */
-/*     for (int i=0; i<filter_tabs->num_children; i++) { */
-/* 	if (SDL_PointInRect(&p, &filter_tabs->children[i]->rect)) { */
-/* 	    eq_select_ctrl(eq, i); */
-/* 	    /\* eq->selected_ctrl = i; *\/ */
-/* 	    return true; */
-/* 	    break; */
-/* 	} */
-/*     } */
-/*     return false;     */
-/* } */
-
-/* int filter_active_toggle(void *self, void *target) */
-/* { */
-/*     EQ *eq = target; */
-/*     eq_toggle_selected_filter_active(eq); */
-/*     /\* Toggle *t = self; *\/ */
-/*     /\* bool val = *t->value; *\/ */
-/*     /\* eq->ctrls[eq->selected_ctrl].filter_active = val; *\/ */
-/*     return 0; */
-/* } */
 void settings_track_tabview_set_track(TabView *tv, Track *track)
 {
     user_tl_track_open_settings(tv);
     user_tl_track_open_settings(tv);
     /* tabview_deactivate(tv); */
 }
-/* void settings_track_tabview_set_track(TabView *tv, Track *track) */
-/* { */
-/*     /\* if (!track->fir_filter.frequency_response) { *\/ */
-/*     /\* 	Project *proj_loc = track->tl->proj; *\/ */
-/*     /\* 	int ir_len = proj_loc->fourier_len_sframes/4; *\/ */
-/*     /\* 	if (!track->fir_filter.initialized) *\/ */
-/*     /\* 	    filter_init(&track->fir_filter, track, LOWPASS, ir_len, proj_loc->fourier_len_sframes * 2); *\/ */
-/*     /\* 	track->fir_filter_active = false; *\/ */
-/*     /\* } *\/ */
-/*     /\* if (!track->delay_line.buf_L) { *\/ */
-/*     /\* 	delay_line_init(&track->delay_line, track, proj->sample_rate); *\/ */
-/*     /\* 	/\\* delay_line_set_params(&track->delay_line, 0.3, 10000); *\\/ *\/ */
-/*     /\* } *\/ */
-
-/*     FIRFilter *f = &track->fir_filter; */
-
-/*     tabview_clear_all_contents(tv); */
-
-/*     static SDL_Color page_colors[] = { */
-/* 	{30, 80, 80, 255}, */
-/* 	{50, 50, 80, 255}, */
-/* 	/\* {70, 40, 70, 255} *\/ */
-/* 	{43, 43, 55, 255}, */
-/* 	{100, 40, 40, 255}, */
-/*     }; */
-
-/*     Page *page = tab_view_add_page( */
-/* 	tv, */
-/* 	"Equalizer", */
-/* 	EQ_LT_PATH, */
-/* 	page_colors + 2, */
-/* 	&color_global_white, */
-/* 	main_win); */
-
-/*     PageElParams p; */
-/*     p.textbox_p.font = main_win->mono_bold_font; */
-/*     p.textbox_p.text_size = LABEL_STD_FONT_SIZE; */
-/*     p.textbox_p.win = main_win; */
-
-/*     p.textbox_p.set_str = "Enable EQ"; */
-/*     PageEl *el = page_add_el(page, EL_TEXTBOX, p, "track_settings_eq_toggle_label", "toggle_label"); */
-/*     Textbox *tb = el->component; */
-/*     textbox_set_trunc(tb, false); */
-/*     textbox_set_align(tb, CENTER_LEFT); */
-/*     textbox_reset_full(tb); */
-
-/*     p.toggle_p.value = &track->eq.active; */
-/*     p.toggle_p.target = NULL; */
-/*     p.toggle_p.action = NULL; */
-/*     page_add_el(page, EL_TOGGLE, p, "track_settings_eq_toggle", "toggle_eq_on"); */
-    
-
-/*     p.eq_plot_p.eq = &track->eq; */
-/*     page_add_el(page, EL_EQ_PLOT, p, "track_settings_eq_plot", "eq_plot"); */
-
-/*     /\* p.textarea_p.font = main_win->mono_bold_font; *\/ */
-/*     /\* p.textarea_p.color = color_global_white; *\/ */
-/*     /\* p.textarea_p.text_size = 12; *\/ */
-/*     /\* p.textarea_p.win = main_win; *\/ */
-/*     /\* p.textarea_p.value = "Click and drag the circles to set peaks or notches.\n \nHold cmd or ctrl and drag up or down to set the filter bandwidth.\n \nAdditional filter types (shelving, lowpass, highpass) will be added in future versions of jackdaw."; *\/ */
-/*     /\* page_add_el(page, EL_TEXTAREA, p, "track_settings_eq_desc", "description"); *\/ */
-
-/*     Layout *filter_tabs = layout_get_child_by_name_recursive(page->layout, "filter_tabs"); */
-    
-/*     p.canvas_p.draw_arg1 = &track->eq; */
-/*     p.canvas_p.draw_arg2 = filter_tabs; */
-/*     p.canvas_p.draw_fn = filter_tabs_canvas_draw; */
-/*     el = page_add_el( */
-/* 	page, */
-/* 	EL_CANVAS, */
-/* 	p, */
-/* 	"", */
-/* 	"filter_tabs"); */
-/*     ((Canvas *)el->component)->on_click = filter_tabs_onclick; */
-
-/*     char lt_name[2]; */
-/*     /\* static const char *tab_ids[] = *\/ */
-/*     /\* 	{"filter_tab1", "filter_tab2", "filter_tab3", "filter_tab4", "filter_tab5", "filter_tab6"}; *\/ */
-/*     for (int i=0; i<EQ_DEFAULT_NUM_FILTERS; i++) { */
-/* 	Layout *tab_lt = layout_add_child(filter_tabs); */
-/* 	tab_lt->h.type = SCALE; */
-/* 	tab_lt->h.value = 1.0; */
-/* 	tab_lt->w.value = 50.0; */
-/* 	tab_lt->x.type = STACK; */
-/* 	tab_lt->x.value = 0; */
-/* 	snprintf(lt_name, 2, "%d", i); */
-/* 	/\* p.button_p. *\/ */
-/* 	p.textbox_p.font = main_win->mono_bold_font; */
-/* 	p.textbox_p.text_size = 14; */
-/* 	p.textbox_p.set_str = lt_name; */
-/* 	p.textbox_p.win = main_win; */
-/* 	layout_set_name(tab_lt, lt_name); */
-/* 	layout_reset(tab_lt); */
-/* 	el = page_add_el( */
-/* 	    page, */
-/* 	    EL_TEXTBOX, */
-/* 	    p, */
-/* 	    "", */
-/* 	    lt_name); */
-/* 	Textbox *tab_tb = el->component; */
-/* 	textbox_set_border(tab_tb, EQ_CTRL_COLORS + i, 1); */
-
-/*     } */
-/*     /\* memset(&p, '\0', sizeof(p)); *\/ */
-
-/*     p.toggle_p.action = filter_active_toggle; */
-/*     p.toggle_p.target = &track->eq; */
-/*     p.toggle_p.value = &track->eq.selected_filter_active; */
-/*     page_add_el(page, EL_TOGGLE, p, "", "filter_active_toggle"); */
-
-/*     p.textbox_p.font = main_win->mono_font; */
-/*     p.textbox_p.text_size = 14; */
-/*     p.textbox_p.set_str = "Selected filter active"; */
-/*     p.textbox_p.win = main_win; */
-
-/*     el = page_add_el(page, EL_TEXTBOX, p, "", "filter_active_toggle_label"); */
-/*     tb = el->component; */
-/*     textbox_set_trunc(tb, false); */
-/*     textbox_set_align(tb, CENTER_LEFT); */
-/*     textbox_reset_full(tb); */
-
-
-/*     Layout *button_container = layout_get_child_by_name_recursive(page->layout, "type_selector"); */
-
-/*     p.canvas_p.draw_arg1 = &track->eq; */
-/*     p.canvas_p.draw_arg2 = button_container; */
-/*     p.canvas_p.draw_fn = filter_type_selector_canvas_draw; */
-/*     el = page_add_el( */
-/* 	page, */
-/* 	EL_CANVAS, */
-/* 	p, */
-/* 	"", */
-/* 	"type_selector"); */
-/*     /\* ((Canvas *)el->component)->on_click = filter_tabs_onclick; *\/ */
-
-
-/*     Layout *button_lt = layout_add_child(button_container); */
-/*     layout_set_name(button_lt, "lowshelf_btn"); */
-/*     button_lt->x.type = STACK; */
-/*     button_lt->x.value = 0.0; */
-/*     button_lt->w.value = SYMBOL_STD_DIM * SYMBOL_FILTER_DIM_SCALAR_H; */
-/*     button_lt->h.value = SYMBOL_STD_DIM * SYMBOL_FILTER_DIM_SCALAR_V; */
-/*     layout_reset(button_lt); */
-/*     p.sbutton_p.action = filter_type_button_action; */
-/*     p.sbutton_p.target = &track->eq; */
-/*     p.sbutton_p.s = SYMBOL_TABLE[5]; */
-/*     p.sbutton_p.background_color = NULL; */
-/*     el = page_add_el( */
-/* 	page, */
-/* 	EL_SYMBOL_BUTTON, */
-/* 	p, */
-/* 	"lowshelf_btn", */
-/* 	"lowshelf_btn"); */
-/*     ((SymbolButton *)el->component)->stashed_val.int_v = IIR_LOWSHELF; */
-
-
-/*     button_lt = layout_add_child(button_container); */
-/*     layout_set_name(button_lt, "peaknotch_btn"); */
-/*     button_lt->x.type = STACK; */
-/*     button_lt->x.value = 20.0; */
-/*     button_lt->w.value = SYMBOL_STD_DIM * SYMBOL_FILTER_DIM_SCALAR_H; */
-/*     button_lt->h.value = SYMBOL_STD_DIM * SYMBOL_FILTER_DIM_SCALAR_V; */
-/*     layout_reset(button_lt); */
-/*     p.sbutton_p.action = filter_type_button_action; */
-/*     p.sbutton_p.target = &track->eq; */
-/*     p.sbutton_p.s = SYMBOL_TABLE[7]; */
-/*     p.sbutton_p.background_color = NULL; */
-/*     el = page_add_el( */
-/* 	page, */
-/* 	EL_SYMBOL_BUTTON, */
-/* 	p, */
-/* 	"peaknotch_btn", */
-/* 	"peaknotch_btn"); */
-
-/*     ((SymbolButton *)el->component)->stashed_val.int_v = IIR_PEAKNOTCH; */
-
-        
-/*     button_lt = layout_add_child(button_container); */
-/*     layout_set_name(button_lt, "highshelf_btn"); */
-/*     button_lt->x.type = STACK; */
-/*     button_lt->x.value = 20.0; */
-/*     button_lt->w.value = SYMBOL_STD_DIM * SYMBOL_FILTER_DIM_SCALAR_H; */
-/*     button_lt->h.value = SYMBOL_STD_DIM * SYMBOL_FILTER_DIM_SCALAR_V; */
-/*     layout_reset(button_lt); */
-/*     p.sbutton_p.action = filter_type_button_action; */
-/*     p.sbutton_p.target = &track->eq; */
-/*     p.sbutton_p.s = SYMBOL_TABLE[6]; */
-/*     p.sbutton_p.background_color = NULL; */
-/*     el = page_add_el( */
-/* 	page, */
-/* 	EL_SYMBOL_BUTTON, */
-/* 	p, */
-/* 	"highshelf_btn", */
-/* 	"highshelf_btn"); */
-/*     ((SymbolButton *)el->component)->stashed_val.int_v = IIR_HIGHSHELF; */
-
-
-/*     create_track_selection_area(page, track); */
-
-/*     memset(&p, '\0', sizeof(p)); */
-
-/*     page = tab_view_add_page( */
-/* 	tv, */
-/* 	"FIR Filter", */
-/* 	FIR_FILTER_LT_PATH, */
-/* 	page_colors, */
-/* 	&color_global_white, */
-/* 	main_win); */
-
-/*     p.textbox_p.font = main_win->mono_bold_font; */
-/*     p.textbox_p.text_size = LABEL_STD_FONT_SIZE; */
-/*     p.textbox_p.set_str = "Bandwidth:"; */
-/*     p.textbox_p.win = page->win; */
-/*     el = page_add_el(page, EL_TEXTBOX, p, "track_settings_filter_bandwidth_label", "bandwidth_label"); */
-
-/*     tb = el->component; */
-/*     textbox_set_align(tb, CENTER_LEFT); */
-/*     textbox_reset_full(tb); */
-
-/*     p.textbox_p.set_str = "Cutoff / center frequency:"; */
-/*     p.textbox_p.win = main_win; */
-/*     el = page_add_el(page, EL_TEXTBOX, p, "track_settings_filter_cutoff_label",  "cutoff_label"); */
-/*     tb = el->component; */
-/*     textbox_set_align(tb, CENTER_LEFT); */
-/*     textbox_reset_full(tb); */
-    
-/*     p.textbox_p.set_str = "Impulse response length (\"sharpness\")"; */
-/*     el = page_add_el(page, EL_TEXTBOX, p, "track_settings_filter_irlen_label", "irlen_label"); */
-/*     tb=el->component; */
-/*     textbox_set_trunc(tb, false); */
-/*     textbox_set_align(tb, CENTER_LEFT); */
-/*     textbox_reset_full(tb); */
-
-/*     p.textbox_p.set_str = "Enable FIR filter"; */
-/*     el = page_add_el(page, EL_TEXTBOX, p, "track_settings_filter_toggle_label", "toggle_label"); */
-/*     tb=el->component; */
-/*     textbox_set_trunc(tb, false); */
-/*     textbox_set_align(tb, CENTER_LEFT); */
-/*     textbox_reset_full(tb); */
-
-/*     p.toggle_p.value = &track->fir_filter.active; */
-/*     p.toggle_p.target = NULL; */
-/*     p.toggle_p.action = NULL; */
-/*     page_add_el(page, EL_TOGGLE, p, "track_settings_filter_toggle", "toggle_filter_on"); */
-    
-/*     f->cutoff_freq_unscaled = unscale_freq(f->cutoff_freq); */
-/*     p.slider_p.create_label_fn = label_freq_raw_to_hz; */
-/*     p.slider_p.style = SLIDER_TICK; */
-/*     p.slider_p.orientation = SLIDER_HORIZONTAL; */
-/*     p.slider_p.min = (Value){.double_v = 0.0}; */
-/*     p.slider_p.max = (Value){.double_v = 1.0}; */
-/*     p.slider_p.ep = &track->fir_filter.cutoff_ep; */
-/*     el = page_add_el(page, EL_SLIDER, p, "track_settings_filter_cutoff_slider", "cutoff_slider"); */
-
-/*     f->bandwidth_unscaled = unscale_freq(f->bandwidth); */
-/*     p.slider_p.ep = &track->fir_filter.bandwidth_ep; */
-/*     el = page_add_el(page, EL_SLIDER, p, "track_settings_filter_bandwidth_slider", "bandwidth_slider"); */
-
-/*     p.slider_p.ep = &track->fir_filter.impulse_response_len_ep; */
-
-/*     p.slider_p.min = (Value){.int_v = 4}; */
-/*     p.slider_p.max = (Value){.int_v = proj->fourier_len_sframes}; */
-/*     p.slider_p.create_label_fn = NULL; */
-/*     el = page_add_el(page, EL_SLIDER, p, "track_settings_filter_irlen_slider",  "irlen_slider");     */
-/*     Slider *sl = (Slider *)el->component; */
-/*     sl->disallow_unsafe_mode = true; */
-/*     slider_reset(sl); */
-
-/*     static const char * item_names[] = { */
-/* 	"Lowpass", */
-/* 	"Highpass", */
-/* 	"Bandpass", */
-/* 	"Bandcut" */
-
-/*     }; */
-    
-/*     p.radio_p.text_size = RADIO_STD_FONT_SIZE; */
-/*     p.radio_p.text_color = &color_global_white; */
-/*     p.radio_p.ep = &f->type_ep; */
-/*     p.radio_p.item_names = item_names; */
-/*     p.radio_p.num_items = 4; */
-    
-/*     el = page_add_el(page, EL_RADIO, p, "track_settings_filter_type_radio", "filter_type"); */
-/*     RadioButton *radio = el->component; */
-/*     radio->selected_item = (uint8_t)f->type; */
-
-/*     if (!track->buf_L_freq_mag) track->buf_L_freq_mag = calloc(f->frequency_response_len, sizeof(double)); */
-/*     if (!track->buf_R_freq_mag) track->buf_R_freq_mag = calloc(f->frequency_response_len, sizeof(double)); */
-    
-/*     double *arrays[3] = { */
-/* 	track->buf_L_freq_mag, */
-/* 	track->buf_R_freq_mag, */
-/* 	f->frequency_response_mag */
-/*     };	 */
-/*     int steps[] = {1, 1, 1}; */
-/*     SDL_Color *plot_colors[] = {&freq_L_color, &freq_R_color, &color_global_white}; */
-/*     p.freqplot_p.arrays = arrays; */
-/*     p.freqplot_p.colors =  plot_colors; */
-/*     p.freqplot_p.steps = steps; */
-/*     p.freqplot_p.num_items = f->frequency_response_len / 2; */
-/*     p.freqplot_p.num_arrays = 3; */
-
-/*     el = page_add_el(page, EL_FREQ_PLOT, p, "track_settings_filter_freq_plot", "freq_plot"); */
-/*     struct freq_plot *plot = el->component; */
-/*     plot->related_obj_lock = &f->lock; */
-
-/*     create_track_selection_area(page, track); */
-
-/*     page = tab_view_add_page( */
-/* 	tv, */
-/* 	"Delay line", */
-/* 	DELAY_LINE_LT_PATH, */
-/* 	page_colors + 1, */
-/* 	&color_global_white, */
-/* 	main_win); */
-
-/*     p.toggle_p.value = &track->delay_line.active; */
-/*     p.toggle_p.action = toggle_delay_line_target_action; */
-/*     p.toggle_p.target = (void *)(&track->delay_line); */
-/*     el = page_add_el(page, EL_TOGGLE, p, "track_settings_delay_toggle", "toggle_delay"); */
-
-/*     p.textbox_p.set_str = "Delay line on"; */
-/*     p.textbox_p.font = main_win->mono_bold_font; */
-/*     p.textbox_p.text_size = LABEL_STD_FONT_SIZE; */
-/*     p.textbox_p.win = main_win; */
-/*     tb = (Textbox *)(page_add_el(page, EL_TEXTBOX, p, "track_settings_delay_toggle_label", "toggle_label")->component); */
-/*     textbox_set_background_color(tb, NULL); */
-/*     textbox_set_align(tb, CENTER_LEFT); */
-/*     textbox_reset_full(tb); */
-
-/*     p.textbox_p.set_str = "Delay time (ms)"; */
-/*     tb = (Textbox *)(page_add_el(page, EL_TEXTBOX, p, "track_settings_delay_time_label", "del_time_label")->component); */
-/*     textbox_set_background_color(tb, NULL); */
-/*     textbox_set_align(tb, CENTER_LEFT); */
-/*     textbox_reset_full(tb); */
-    
-/*     p.textbox_p.set_str = "Delay amplitude"; */
-/*     tb = (Textbox *)(page_add_el(page, EL_TEXTBOX, p, "track_settings_delay_amp_label", "del_amp_label")->component); */
-/*     textbox_set_background_color(tb, NULL); */
-/*     textbox_set_align(tb, CENTER_LEFT); */
-/*     textbox_reset_full(tb); */
-
-/*     p.textbox_p.set_str = "Stereo offset"; */
-/*     tb = (Textbox *)(page_add_el(page, EL_TEXTBOX, p, "track_settings_delay_stereo_offset", "del_stereo_offset_label")->component); */
-/*     textbox_set_background_color(tb, NULL); */
-/*     textbox_set_align(tb, CENTER_LEFT); */
-/*     textbox_reset_full(tb); */
-    
-/*     p.slider_p.create_label_fn = NULL; */
-/*     p.slider_p.style = SLIDER_TICK; */
-/*     p.slider_p.orientation = SLIDER_HORIZONTAL; */
-/*     p.slider_p.ep = &track->delay_line.len_ep; */
-/*     p.slider_p.min = (Value){.int32_v = 1}; */
-/*     p.slider_p.max = (Value){.int32_v = 1000}; */
-/*     p.slider_p.create_label_fn = label_msec; */
-/*     el = page_add_el(page, EL_SLIDER, p, "track_settings_delay_time_slider", "del_time_slider"); */
-
-/*     sl = el->component; */
-/*     sl->disallow_unsafe_mode = true; */
-/*     slider_reset(sl); */
-    
-/*     p.slider_p.create_label_fn = NULL; */
-/*     p.slider_p.ep = &track->delay_line.amp_ep; */
-/*     p.slider_p.min = (Value){.double_v = 0.0}; */
-/*     p.slider_p.max = (Value){.double_v = 0.99}; */
-
-/*     el = page_add_el(page, EL_SLIDER, p, "track_settings_delay_amp_slider", "del_amp_slider"); */
-
-/*     p.slider_p.ep = &track->delay_line.stereo_offset_ep; */
-/*     p.slider_p.max = (Value){.double_v = 0.0}; */
-/*     p.slider_p.max = (Value){.double_v = 1.0}; */
-
-/*     el = page_add_el(page, EL_SLIDER, p, "track_settings_delay_stereo_offset_slider", "del_stereo_offset_slider"); */
-/*     sl = el->component; */
-/*     slider_reset(sl); */
-/*     sl->disallow_unsafe_mode = true; */
-    
-/*     create_track_selection_area(page, track); */
-
-/*     page = tab_view_add_page( */
-/* 	tv, */
-/* 	"Saturation", */
-/* 	SATURATION_LT_PATH, */
-/* 	page_colors + 3, */
-/* 	&color_global_white, */
-/* 	main_win); */
-
-/*     p.toggle_p.value = &track->saturation.active; */
-/*     p.toggle_p.action = NULL; */
-/*     p.toggle_p.target = NULL; */
-/*     el = page_add_el(page, EL_TOGGLE, p, "track_settings_saturation_toggle", "toggle_saturation"); */
-
-/*     p.textbox_p.set_str = "Saturation on"; */
-/*     p.textbox_p.font = main_win->mono_bold_font; */
-/*     p.textbox_p.text_size = LABEL_STD_FONT_SIZE; */
-/*     p.textbox_p.win = main_win; */
-/*     tb = (Textbox *)(page_add_el(page, EL_TEXTBOX, p, "track_settings_saturation_toggle_label", "toggle_label")->component); */
-/*     textbox_set_background_color(tb, NULL); */
-/*     textbox_set_align(tb, CENTER_LEFT); */
-/*     textbox_reset_full(tb); */
-
-
-/*     p.toggle_p.value = &track->saturation.do_gain_comp; */
-/*     p.toggle_p.action = toggle_saturation_gain_comp; */
-/*     p.toggle_p.target = &track->saturation; */
-/*     el = page_add_el(page, EL_TOGGLE, p, "track_settings_saturation_gain_comp_toggle", "toggle_gain_comp"); */
-
-/*     p.textbox_p.set_str = "Gain compensation"; */
-/*     p.textbox_p.font = main_win->mono_bold_font; */
-/*     p.textbox_p.text_size = LABEL_STD_FONT_SIZE; */
-/*     p.textbox_p.win = main_win; */
-/*     tb = (Textbox *)(page_add_el(page, EL_TEXTBOX, p, "track_settings_saturation_toggle_label", "toggle_gain_comp_label")->component); */
-/*     textbox_set_background_color(tb, NULL); */
-/*     textbox_set_align(tb, CENTER_LEFT); */
-/*     textbox_reset_full(tb); */
-
-/*     p.textbox_p.set_str = "Gain"; */
-/*     p.textbox_p.font = main_win->mono_bold_font; */
-/*     p.textbox_p.text_size = LABEL_STD_FONT_SIZE; */
-/*     p.textbox_p.win = main_win; */
-/*     tb = (Textbox *)(page_add_el(page, EL_TEXTBOX, p, "track_settings_saturation_gain_label", "amp_label")->component); */
-/*     textbox_set_background_color(tb, NULL); */
-/*     textbox_set_align(tb, CENTER_LEFT); */
-/*     textbox_reset_full(tb); */
-
-    
-/*     p.slider_p.ep = &track->saturation.gain_ep; */
-/*     p.slider_p.min = (Value){.double_v = 1.0}; */
-/*     p.slider_p.max = (Value){.double_v = SATURATION_MAX_GAIN}; */
-/*     p.slider_p.create_label_fn = label_amp_to_dbstr; */
-/*     p.slider_p.style = SLIDER_FILL; */
-/*     p.slider_p.orientation = SLIDER_HORIZONTAL; */
-/*     el = page_add_el(page, EL_SLIDER, p, "track_settings_saturation_gain_slider", "amp_slider"); */
-/*     sl = el->component; */
-/*     slider_reset(sl); */
-
-/*     static const char * saturation_type_names[] = { */
-/* 	"Hyperbolic (tanh)", */
-/* 	"Exponential" */
-/*     }; */
-    
-/*     p.radio_p.text_size = RADIO_STD_FONT_SIZE; */
-/*     p.radio_p.text_color = &color_global_white; */
-/*     p.radio_p.ep = &track->saturation.type_ep; */
-/*     p.radio_p.item_names = saturation_type_names; */
-/*     p.radio_p.num_items = 2; */
-    
-/*     el = page_add_el(page, EL_RADIO, p, "track_settings_saturation_type", "type_radio"); */
-/*     radio = el->component; */
-/*     radio_button_reset_from_endpoint(radio); */
-/*     /\* radio->selected_item = (uint8_t)0; *\/ */
-
-
-/*     create_track_selection_area(page, track); */
-/*     /\* sl->disallow_unsafe_mode = true; *\/ */
-/* } */
-
 TabView *track_effects_tabview_create(Track *track);
-TabView *settings_track_tabview_create(Track *track)
-{
-    return track_effects_tabview_create(track);
-    /* TabView *tv = tabview_create("Track Settings", proj->layout, main_win); */
-    /* settings_track_tabview_set_track(tv, track); */
-    /* layout_force_reset(tv->layout); */
-    /* return tv; */
+/* TabView *settings_track_tabview_create(Track *track) */
+/* { */
+/*     return track_effects_tabview_create(track); */
+/*     /\* TabView *tv = tabview_create("Track Settings", session->gui.layout, main_win); *\/ */
+/*     /\* settings_track_tabview_set_track(tv, track); *\/ */
+/*     /\* layout_force_reset(tv->layout); *\/ */
+/*     /\* return tv; *\/ */
  
-}
+/* } */
 
 
 static void click_track_populate_settings_internal(ClickSegment *s, TabView *tv, bool set_from_cfg);
@@ -694,6 +97,12 @@ static ClickSegment *click_segment_copy(ClickSegment *s)
     return cpy;
 }
 
+/* Do not free bpm label or any other copied pointers */
+static void click_segment_destroy_copy(ClickSegment *s)
+{
+    free(s);
+}
+
 NEW_EVENT_FN(undo_redo_set_segment_params, "undo/redo edit click segment")
     ClickSegment *s = (ClickSegment *)obj1;
     s = click_track_get_segment_at_pos(s->track, s->start_pos);
@@ -702,8 +111,8 @@ NEW_EVENT_FN(undo_redo_set_segment_params, "undo/redo edit click segment")
     enum ts_end_bound_behavior ebb = val1.int_v;
 
     ClickSegment *redo_cpy = click_segment_copy(s);
-    click_segment_set_config(s, -1, cpy->cfg.bpm, cpy->cfg.num_beats, cpy->cfg.beat_subdiv_lens, ebb);
-    click_segment_destroy(cpy);
+    click_segment_set_config(s, -1, cpy->cfg.bpm, cpy->cfg.num_beats, cpy->cfg.beat_len_atoms, ebb);
+    click_segment_destroy_copy(cpy);
     self->obj2 = redo_cpy;
     s->track->tl->needs_redraw = true;
 }
@@ -728,7 +137,6 @@ static int time_sig_submit_button_action(void *self, void *s_v)
 
     Value ebb = {.int_v = tt->end_bound_behavior};
     user_event_push(
-	&proj->history,
 	undo_redo_set_segment_params,
 	undo_redo_set_segment_params,
 	NULL, NULL,
@@ -802,6 +210,60 @@ static int segment_prev_action(void *self, void *targ)
     return 0;
 }
 
+struct metronome_buf_menu_item_data {
+    MetronomeBuffer **buf_dst;
+    int sel_i;
+    Button *button_to_reset;
+};
+
+void metronome_buf_menu_item_onclick(void *target)
+{
+    Session *session = session_get();
+    struct metronome_buf_menu_item_data *data = target;
+    if (data->sel_i < 0) {
+	*(data->buf_dst) = NULL;
+	textbox_set_value_handle(data->button_to_reset->tb, "(none)");
+	textbox_size_to_fit(data->button_to_reset->tb, 6, 2);
+	textbox_reset_full(data->button_to_reset->tb);
+    } else {
+	*(data->buf_dst) = session->metronome_buffers + data->sel_i;
+	textbox_set_value_handle(data->button_to_reset->tb, (*(data->buf_dst))->name);
+	textbox_size_to_fit(data->button_to_reset->tb, 6, 2);
+	textbox_reset_full(data->button_to_reset->tb);
+    }
+    window_pop_menu(main_win);
+}
+
+static int metronome_buf_button_action(void *self_v, void *target_v)
+{
+    Button *b = self_v;
+    Menu *m = menu_create_at_point(b->tb->layout->rect.x + b->tb->layout->rect.w, b->tb->layout->rect.y + b->tb->layout->rect.h);
+    MenuColumn *mc = menu_column_add(m, NULL);
+    MenuSection *ms = menu_section_add(mc, NULL);
+
+    MetronomeBuffer **dst = target_v;
+    
+    Session *session = session_get();
+    for (int i=0; i<session->num_metronome_buffers; i++) {
+	struct metronome_buf_menu_item_data *data = malloc(sizeof(struct metronome_buf_menu_item_data));
+	data->buf_dst = dst;
+	data->sel_i = i;
+	data->button_to_reset = b;
+	MenuItem *item = menu_item_add(ms, session->metronome_buffers[i].name, NULL, metronome_buf_menu_item_onclick, data);
+	item->free_target_on_destroy = true;
+    }
+
+    struct metronome_buf_menu_item_data *data = malloc(sizeof(struct metronome_buf_menu_item_data));
+    data->buf_dst = dst;
+    data->sel_i = -1;
+    data->button_to_reset = b;
+    MenuItem *item = menu_item_add(ms, "(none)", NULL, metronome_buf_menu_item_onclick, data);
+    item->free_target_on_destroy = true;
+    
+    window_add_menu(main_win, m);
+    return 0;
+}
+
 static void click_track_populate_settings_internal(ClickSegment *s, TabView *tv, bool set_from_cfg)
 {
 
@@ -821,7 +283,7 @@ static void click_track_populate_settings_internal(ClickSegment *s, TabView *tv,
 	"Click track config",
 	CLICK_TRACK_SETTINGS_LT_PATH,
 	page_colors,
-	&color_global_white,
+	&colors.white,
 	main_win);
     if (tv->current_tab >= tv->num_tabs) {
 	tv->current_tab = 0;
@@ -832,11 +294,8 @@ static void click_track_populate_settings_internal(ClickSegment *s, TabView *tv,
     PageElParams p;
     PageEl *el;
     Textbox *tb;
-
-
-    
     p.textbox_p.font = main_win->mono_font;
-    p.textbox_p.text_size = 14;
+    p.textbox_p.text_size = 16;
     p.textbox_p.win = page->win;
 
     p.textbox_p.set_str = "Track name:";
@@ -874,14 +333,10 @@ static void click_track_populate_settings_internal(ClickSegment *s, TabView *tv,
     if (num_beats > MAX_BEATS_PER_BAR) {
 	num_beats = MAX_BEATS_PER_BAR;
 	snprintf(tt->num_beats_str, 3, "%d", num_beats);
-	char errstr[128];
-	snprintf(errstr, 128, "Cannot exceed %d beats per bar", num_beats);
-	status_set_errstr(errstr);
+	status_set_errstr("Cannot exceed %d beats per bar", num_beats);
     }
     p.textentry_p.font = main_win->mono_bold_font;
     p.textentry_p.text_size = 14;
-
-
     p.textentry_p.value_handle = tt->name;
     p.textentry_p.validation = NULL;
     p.textentry_p.completion = NULL;
@@ -891,7 +346,6 @@ static void click_track_populate_settings_internal(ClickSegment *s, TabView *tv,
     /* layout_size_to_fit_children_v(name_lt, false, 1); */
     /* layout_center_agnostic(name_lt, false, true); */
     textentry_reset(el->component);
-
     
     p.textentry_p.value_handle = tt->num_beats_str;
     p.textentry_p.buf_len = 3;    
@@ -911,7 +365,7 @@ static void click_track_populate_settings_internal(ClickSegment *s, TabView *tv,
     for (int i=0; i<num_beats; i++) {
 	int subdivs;
 	if (set_from_cfg) {
-	    subdivs = s->cfg.beat_subdiv_lens[i];
+	    subdivs = s->cfg.beat_len_atoms[i];
 	} else {
 	    subdivs = atoi(tt->subdiv_len_strs[i]);
 	}
@@ -980,12 +434,12 @@ static void click_track_populate_settings_internal(ClickSegment *s, TabView *tv,
 
 
     /* Add tempo */
-    snprintf(tt->tempo_str, 5, "%d", s->cfg.bpm);
+    snprintf(tt->tempo_str, BPM_STRLEN, "%f", s->cfg.bpm);
     p.textentry_p.font = main_win->mono_bold_font;
     p.textentry_p.text_size = 14;
     p.textentry_p.value_handle = tt->tempo_str;
-    p.textentry_p.buf_len = 5;
-    p.textentry_p.validation = txt_integer_validation;
+    p.textentry_p.buf_len = BPM_STRLEN;
+    p.textentry_p.validation = txt_float_validation;
     p.textentry_p.completion = NULL;
     /* p.textentry_p.completion = num_beats_completion; */
     /* p.textentry_p.completion_target = (void *)s; */
@@ -1025,7 +479,7 @@ static void click_track_populate_settings_internal(ClickSegment *s, TabView *tv,
 	/* p.radio_p.target = (void *)&tt->end_bound_behavior; */
 	p.radio_p.num_items = 2;
 	p.radio_p.text_size = 14;
-	p.radio_p.text_color = &color_global_white;
+	p.radio_p.text_color = &colors.white;
 	p.radio_p.item_names = (const char **)options;
 
 	el = page_add_el(
@@ -1052,9 +506,9 @@ static void click_track_populate_settings_internal(ClickSegment *s, TabView *tv,
     p.button_p.action = time_sig_submit_button_action;
     p.button_p.target = (void *)s;
     p.button_p.font = main_win->mono_bold_font;
-    p.button_p.text_color = &color_global_black;
+    p.button_p.text_color = &colors.black;
     p.button_p.text_size = 14;
-    p.button_p.background_color = &color_global_light_grey;
+    p.button_p.background_color = &colors.light_grey;
     p.button_p.win = main_win;
     p.button_p.set_str = "Submit";
     el = page_add_el(
@@ -1097,41 +551,99 @@ static void click_track_populate_settings_internal(ClickSegment *s, TabView *tv,
 	p.button_p.font = main_win->mono_font;
 	p.button_p.win = page->win;
 	p.button_p.target = NULL;
-	p.button_p.text_color = &color_global_white;
-	p.button_p.text_size = 14;
-	p.button_p.background_color = &color_global_quickref_button_blue;
+	p.button_p.text_color = &colors.white;
+	p.button_p.text_size = 18;
+	p.button_p.background_color = &colors.quickref_button_blue;
 	p.button_p.target = s;
-
     }
     if (s->prev) {
 	p.button_p.set_str = "←";
 	p.button_p.action = segment_prev_action;
-	page_add_el(page, EL_BUTTON, p, "segment_left", "segment_left");
+	el = page_add_el(page, EL_BUTTON, p, "segment_left", "segment_left");
+	Textbox *tb = ((Button *)el->component)->tb;
+	textbox_set_border(tb, &colors.grey, 1, 4);
 
     }
     if (s->next) {
 	p.button_p.set_str = "→";
 	p.button_p.action = segment_next_action;
-	page_add_el(page, EL_BUTTON, p, "segment_right", "segment_right");
+	el = page_add_el(page, EL_BUTTON, p, "segment_right", "segment_right");
+	Textbox *tb = ((Button *)el->component)->tb;
+	textbox_set_border(tb, &colors.grey, 1, 4);
+
     }
-    
     page_reset(page);
+
+/*------ metronome page ----------------------------------------------*/
+    
+    page = tabview_add_page(
+	tv,
+	"Metronome",
+	METRONOME_PAGE_LT_PATH,
+	page_colors,
+	&colors.white,
+	main_win);
+
+    p.textbox_p.font = main_win->mono_bold_font;
+    p.textbox_p.text_size = 16;
+    p.textbox_p.win = main_win;
+    p.textbox_p.set_str = "Measure:";
+    page_add_el(page, EL_TEXTBOX, p, "", "measure_label");
+
+    p.textbox_p.set_str = "Beat:";
+    page_add_el(page, EL_TEXTBOX, p, "", "beat_label");
+
+    p.textbox_p.set_str = "Offbeat (2 & 4):";
+    page_add_el(page, EL_TEXTBOX, p, "", "offbeat_label");
+
+    p.textbox_p.set_str = "Subdiv (8ths):";
+    page_add_el(page, EL_TEXTBOX, p, "", "subdiv_label");
+
+    p.button_p.action = metronome_buf_button_action;
+    p.button_p.background_color = &colors.light_grey;
+    p.button_p.text_color = &colors.black;
+    p.button_p.text_size = 16;
+
+    MetronomeBuffer **mb = &tt->metronome.bp_measure_buf;
+    p.button_p.target = mb;
+    p.button_p.set_str = *mb ? (char *)(*mb)->name : "(none)";
+    page_add_el(page, EL_BUTTON, p, "", "measure_value");
+
+    mb = &tt->metronome.bp_beat_buf;
+    p.button_p.target = mb;
+    p.button_p.set_str = *mb ? (char *)(*mb)->name : "(none)";
+    page_add_el(page, EL_BUTTON, p, "", "beat_value");
+
+    mb = &tt->metronome.bp_offbeat_buf;
+    p.button_p.target = mb;
+    p.button_p.set_str = *mb ? (char *)(*mb)->name : "(none)";
+    page_add_el(page, EL_BUTTON, p, "", "offbeat_value");
+
+    mb = &tt->metronome.bp_subdiv_buf;
+    p.button_p.target = mb;
+    p.button_p.set_str = *mb ? (char *)(*mb)->name : "(none)";    
+    page_add_el(page, EL_BUTTON, p, "", "subdiv_value");
+
+    page_reset(page);
+
 }
 
 void click_track_populate_settings_tabview(ClickTrack *tt, TabView *tv)
 {
     ClickSegment *s = click_track_get_segment_at_pos(tt, tt->tl->play_pos_sframes);
+    if (!s) s = tt->segments;
     click_track_populate_settings_internal(s, tv, true);
 }
 
 void timeline_click_track_edit(Timeline *tl)
 {
+    Session *session = session_get();
     ClickTrack *tt = timeline_selected_click_track(tl);
     if (!tt) return;
 
-    TabView *tv = tabview_create("Track Settings", proj->layout, main_win);
+    TabView *tv = tabview_create("Click track settings", session->gui.layout, main_win);
     click_track_populate_settings_tabview(tt, tv);
 
-    tabview_activate(tv);
+    tabview_activate(tv, tt, tt->name);
     tl->needs_redraw = true;    
 }

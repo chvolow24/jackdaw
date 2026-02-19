@@ -10,10 +10,14 @@
 
 #include <string.h>
 
-#include "draw.h"
+/* #include "draw.h" */
+#include "SDL_ttf.h"
+#include "input_mode.h"
+#include "log.h"
 #include "text.h"
+#include "textbox.h"
 #include "layout.h"
-#include "project.h"
+/* #include "project.h" */
 #include "status.h"
 #include "window.h"
 
@@ -26,6 +30,21 @@ extern Layout *main_layout;
 extern Window *main_win;
 
 SDL_Color highlight = {0, 0, 255, 80};
+
+typedef struct txt_hash_node TxtHashNode;
+typedef struct txt_hash_node {
+    Text *text;
+    bool deleted;
+} TxtHashNode;
+
+#define TXT_HASH_TABLE_SIZE 4096
+TxtHashNode TXT_HASH_TABLE[TXT_HASH_TABLE_SIZE] = {0};
+
+static int txt_hash(Text *text)
+{
+    long ptr_index = ((long)text) / 64;
+    return ptr_index % TXT_HASH_TABLE_SIZE;
+}
 
 
 static void init_empty_text(
@@ -69,6 +88,48 @@ static void init_empty_text(
     txt->completion = NULL;
 }
 
+static void txt_insert_into_hash_table(Text *txt)
+{
+    int hash = txt_hash(txt);
+    if (!TXT_HASH_TABLE[hash].text || TXT_HASH_TABLE[hash].deleted) {
+	TXT_HASH_TABLE[hash].text = txt;
+	TXT_HASH_TABLE[hash].deleted = false;
+    } else {
+	int lookup_i = hash + 1;
+	while (1) {
+	    if (!TXT_HASH_TABLE[lookup_i].text || TXT_HASH_TABLE[lookup_i].deleted) {
+		TXT_HASH_TABLE[lookup_i].text = txt;
+		TXT_HASH_TABLE[lookup_i].deleted = false;
+		break;
+	    }
+	    lookup_i++;
+	    if (lookup_i >= TXT_HASH_TABLE_SIZE) lookup_i = 0;
+	    if (lookup_i == hash) {
+		fprintf(stderr, "ERROR IN TXT HASH TABLE Insert: No free slots!\n");
+		/* exit(1); */
+		return;
+	    }
+	}
+    }
+}
+
+static void txt_remove_from_hash_table(Text *txt)
+{
+    int hash = txt_hash(txt);
+    int lookup_i = hash;
+    while ((TXT_HASH_TABLE[lookup_i].text || TXT_HASH_TABLE[lookup_i].deleted) && TXT_HASH_TABLE[lookup_i].text != txt) {
+	lookup_i++;
+	if (lookup_i >= TXT_HASH_TABLE_SIZE) lookup_i = 0;
+	if (lookup_i == hash) {
+	    return;
+	}
+    }
+    if (TXT_HASH_TABLE[lookup_i].text == txt) {
+	TXT_HASH_TABLE[lookup_i].text = NULL;
+	TXT_HASH_TABLE[lookup_i].deleted = true;
+    }
+}
+
 static Text *create_empty_text(
     /* SDL_Rect *container, */
     Layout *container,
@@ -83,6 +144,8 @@ static Text *create_empty_text(
 {
 
     Text *txt = calloc(1, sizeof(Text));
+    txt_insert_into_hash_table(txt);
+    
     init_empty_text(txt, container, font, text_size, txt_clr, align, truncate, win);
     return txt;
 }
@@ -118,6 +181,7 @@ void txt_reset_drawable(Text *txt)
     }
     SDL_FreeSurface(surface);
     SDL_QueryTexture(txt->texture, NULL, NULL, &(txt->text_lt->rect.w), &(txt->text_lt->rect.h));
+    
     switch (txt->align) {
     case CENTER:
 	txt->text_lt->rect.x = txt->container->rect.x + (int) round((float)txt->container->rect.w / 2.0 - (float) txt->text_lt->rect.w / 2.0);
@@ -152,8 +216,17 @@ void txt_reset_drawable(Text *txt)
 
     }
     layout_set_values_from_rect(txt->text_lt);
-
 }
+
+void txt_reset_all()
+{
+    for (int i=0; i<TXT_HASH_TABLE_SIZE; i++) {
+	if (TXT_HASH_TABLE[i].text && !TXT_HASH_TABLE[i].deleted) {
+	    txt_reset_drawable(TXT_HASH_TABLE[i].text);
+	}
+    }
+}
+
 
 void txt_reset_display_value(Text *txt) 
 {
@@ -178,9 +251,10 @@ void txt_reset_display_value(Text *txt)
     }
     txt_reset_drawable(txt);
 }
+
+
 void txt_set_value_handle(Text *txt, char *set_str)
 {
-    /* fprintf(stderr, "setting text value handle to %s\n", set_str); */
     txt->value_handle = set_str;
     txt->len = strlen(set_str);
     txt_reset_display_value(txt);
@@ -201,7 +275,6 @@ void txt_set_value(Text *txt, char *set_str)
 /*     } */
 /*     return 0; */
 /* } */
-
 
 Text *txt_create_from_str(
     char *set_str,
@@ -321,16 +394,18 @@ static void handle_backspace(Text *txt)
 }
 
 #ifndef LAYOUT_BUILD
+#include "test.h"
 void txt_edit(Text *txt, void (*draw_fn) (void))
 {
     /* fprintf(stdout, "NEW txt edit\n"); */
     /* txt->truncate = false; */
     /* txt_reset_display_value(txt); */
+    TESTBREAK;
     txt->show_cursor = true;
     txt_reset_display_value(txt);
     txt->cursor_start_pos = 0;
     txt->cursor_end_pos = txt->len;
-    window_push_mode(main_win, TEXT_EDIT);
+    window_push_mode(main_win, MODE_TEXT_EDIT);
     main_win->txt_editing = txt;
     if (txt->cached_value) {
 	free(txt->cached_value);
@@ -342,20 +417,25 @@ void txt_edit(Text *txt, void (*draw_fn) (void))
 
 void txt_stop_editing(Text *txt)
 {
+    
     if (!main_win->txt_editing) return;
+    log_tmp(LOG_INFO, "Text stop editing (%p)\n", txt);
     main_win->txt_editing = NULL; /* Set this FIRST to avoid infinite loop in completion */
     txt->show_cursor = false;
     /* txt->truncate = save_truncate; */
     txt_set_value(txt, txt->display_value);
     /* main_win->txt_editing = NULL; */
     SDL_StopTextInput();
-    window_pop_mode(main_win);
+    /* window_pop_mode(main_win); */
+    window_extract_mode(main_win, MODE_TEXT_EDIT);
     if (txt->completion && txt->completion(txt, txt->completion_target) != 0) {
 	return;
     }
 }
 
+#ifndef LAYOUT_BUILD
 static int txt_check_len(Text *txt, int len);
+#endif
 void txt_input_event_handler(Text *txt, SDL_Event *e)
 {
     char input = e->text.text[0];
@@ -489,6 +569,8 @@ void txt_edit(Text *txt, void (*draw_fn) (void))
         SDL_Delay(1);
 
     }
+    /* log_tmp(LOG_INFO, "Text edit: handle char \'%c\'\n", e->text.text[0]); */
+    log_tmp(LOG_INFO, "Text edit: exit normal\n");
     SDL_StopTextInput();
     txt->show_cursor = false;
     txt->truncate = save_truncate;
@@ -500,23 +582,31 @@ void txt_edit(Text *txt, void (*draw_fn) (void))
 
 void txt_destroy(Text *txt)
 {
+    txt_remove_from_hash_table(txt);
     if (txt->texture) {
         SDL_DestroyTexture(txt->texture);
     }
-    if (txt->text_lt) {
-	layout_destroy(txt->text_lt);
-    }
+    /* if (txt->text_lt) { */
+    /* 	layout_destroy(txt->text_lt); */
+    /* } */
     if (txt->cached_value) {
 	free(txt->cached_value);
     }
     free(txt);
 }
 
-TTF_Font *ttf_open_font(const char* path, int size, Window *win)
+TTF_Font *ttf_open_font(const char* path, int size_int, Window *win)
 {
+    double size = size_int;
     size *= win->dpi_scale_factor;
     size *= TTF_SPEC_ADJUST;
+    #ifdef LAYOUT_BUILD
     TTF_Font *font = TTF_OpenFont(path, size * GLOBAL_TEXT_SCALE);
+    #else
+    char *abs_path = asset_get_abs_path(path);
+    TTF_Font *font = TTF_OpenFont(abs_path, size * GLOBAL_TEXT_SCALE);
+    free(abs_path);
+    #endif
     if (!font) {
         fprintf(stderr, "\nError: failed to open font: %s", TTF_GetError());
         exit(1);
@@ -556,7 +646,7 @@ void ttf_destroy_font(Font *font)
 }
     
 
-TTF_Font *ttf_get_font_at_size(Font *font, int size)
+TTF_Font *ttf_get_font_at_size(const Font *font, int size)
 {
     int i = 0;
     int sizes[] = STD_FONT_SIZES;
@@ -577,13 +667,22 @@ TTF_Font *ttf_get_font_at_size(Font *font, int size)
 void ttf_reset_dpi_scale_factor(Font *font)
 {
     int sizes[] = STD_FONT_SIZES;
-    for (int i=0; i<STD_FONT_ARRLEN; i++) {;
+    for (int i=0; i<STD_FONT_ARRLEN; i++) {
+	TTF_CloseFont(font->ttf_array[i]);
 	font->ttf_array[i] = ttf_open_font(font->path, sizes[i], main_win); //TODO: Replace "main_win"
     }	
 }
 
-void txt_set_color(Text *txt, SDL_Color *clr)
+void txt_set_color_no_reset(Text *txt, const SDL_Color *clr)
 {
+   txt->color = *clr;
+}
+
+void txt_set_color(Text *txt, const SDL_Color *clr)
+{
+    SDL_Color new = *clr;
+    /* If color hasn't changed, don't reset the drawable */
+    if (memcmp(&txt->color, &new, sizeof(SDL_Color)) == 0) return;
     txt->color = *clr;
     txt_reset_drawable(txt);
 }
@@ -748,18 +847,14 @@ void txt_area_create_lines(TextArea *txtarea)
 	txtarea->text_h = line_h;
     }
     Layout *line_template = layout_add_child(txtarea->layout);
+    line_template->y.type = STACK;
     line_template->y.value = txtarea->line_spacing;
     line_template->h.value = (float)txtarea->text_h / txtarea->win->dpi_scale_factor;
-
-
-    /* NEW */
-    line_template->y.type = STACK;
-    /* END */
-
     
     for (int i=0; i<txtarea->num_lines; i++) {
 	txtarea->layout->h.value += ((float)txtarea->text_h / txtarea->win->dpi_scale_factor) + txtarea->line_spacing;
 	/* layout_add_iter(line_template, VERTICAL, false); */
+	line_template->w.value = txtarea->line_widths[i];
 	layout_copy(line_template, txtarea->layout);
     }
     /* reset_iterations(line_template->iterator); */
@@ -781,8 +876,6 @@ TextArea *txt_area_create(const char *value, Layout *layout, Font *font, uint8_t
     txtarea->line_spacing = TXT_AREA_DEFAULT_LINE_SPACING;
     txt_area_create_lines(txtarea);
 
-    /* layout_force_reset(layout); */
-    
     return txtarea;
 }
 
@@ -896,9 +989,9 @@ void txt_area_draw(TextArea *txtarea)
 static int txt_check_len(Text *txt, int len)
 {
     if (strlen(txt->display_value) - (txt->cursor_end_pos - txt->cursor_start_pos) >= len - 1) {
-	char buf[255];
-	snprintf(buf, 255, "Field cannot exceed %d characters", len - 1);
-	status_set_errstr(buf);
+	/* char buf[255]; */
+	/* snprintf(buf, 255, "Field cannot exceed %d characters", len - 1); */
+	status_set_errstr("Field cannot exceed %d characters", len - 1);
 	return 1;
     }
     return 0;
@@ -909,18 +1002,72 @@ int txt_name_validation(Text *txt, char input)
     return txt_check_len(txt, MAX_NAMELENGTH);
 }
 
+int txt_float_validation(Text *txt, char input)
+{
+    if ((input < '0' || input > '9') && input != '.') {
+	status_set_errstr("Only decimal inputs allowed");
+	return 1;
+    }
+    if (input == '.') {
+	for (int i=0; i<strlen(txt->display_value); i++) {
+	    if (txt->display_value[i] == '.') {
+		return 1;
+	    }
+	}
+    }
+    return 0;
+}
+
+/* No input error handling; use AFTER txt_float_validation */
+double txt_float_from_str(char *str)
+{
+    double ret = 0.0;
+    char c = '\0';
+    while ((c = *str) && c != '.') {
+	ret *= 10;
+	ret += c - '0';
+	str++;
+    }
+    int divisor = 10;
+    if (c == '.') {
+	str++;
+	while ((c = *str)) {
+	    ret += (double)(c - '0') / divisor;
+	    divisor *= 10;
+	    str++;
+	}
+    }
+    return ret;
+}
+
 int txt_integer_validation(Text *txt, char input)
 {
-    /* if (strlen(txt->display_value) - (txt->cursor_end_pos - txt->cursor_start_pos) >= txt->max_len - 1) { */
-    /* 	char buf[255]; */
-    /* 	snprintf(buf, 255, "Field cannot exceed %d characters", txt->max_len - 1); */
-    /* 	status_set_errstr(buf); */
-    /* 	return 1; */
     if (input < '0' || input > '9') {
 	status_set_errstr("Only integer values allowed");
 	return 1;
     }
     return 0;
+}
+
+SDL_Texture *txt_create_texture(const char *str, SDL_Color color, const Font *font, int font_size, int *w, int *h)
+{
+    TTF_Font *ttf_font = ttf_get_font_at_size(font, font_size);
+    SDL_Surface *surface = TTF_RenderUTF8_Blended(ttf_font, str, color);
+    /* SDL_Surface *surface = TTF_RenderUTF8_Blended(font, test_str, txt->color); */
+    if (!surface) {
+        fprintf(stderr, "Error: TTF_RenderText_Blended failed: %s\n", TTF_GetError());
+        return NULL;
+    }
+    SDL_Texture *texture = SDL_CreateTextureFromSurface(main_win->rend, surface);
+    if (!texture) {
+        fprintf(stderr, "Error: SDL_CreateTextureFromSurface failed: %s\n", TTF_GetError());
+        return NULL;
+    }
+    SDL_FreeSurface(surface);
+    if (w || h) {
+	SDL_QueryTexture(texture, NULL, NULL, w, h);
+    }
+    return texture;
 }
 
 #endif

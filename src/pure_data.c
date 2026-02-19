@@ -1,3 +1,13 @@
+/*****************************************************************************************************************
+  Jackdaw | https://jackdaw-audio.net/ | a free, keyboard-focused DAW | built on SDL (https://libsdl.org/)
+******************************************************************************************************************
+
+  Copyright (C) 2023-2025 Charlie Volow
+  
+  Jackdaw is licensed under the GNU General Public License.
+
+*****************************************************************************************************************/
+
 #include <stdio.h>
 #include <sys/mman.h>
 #include <sys/errno.h>
@@ -11,7 +21,7 @@
 
 #include "audio_connection.h"
 #include "project.h"
-#include "transport.h"
+#include "session.h"
 /* #include "pure_data.h" */
 
 #define MAX_SEMNAME 255
@@ -232,10 +242,11 @@ int pd_jackdaw_shm_init()
     
 }
 
-extern Project *proj;
+void copy_conn_buf_to_clip(Clip *clip, enum audio_conn_type type);
 void *pd_jackdaw_record_on_thread(void *arg)
 {
 
+    Session *session = session_get();
     fprintf(stdout, "PD JACKDAW RECORD ON THREAD\n");
     AudioConn *conn = (AudioConn *)arg;
     /* SDL_Delay(10); */
@@ -253,10 +264,10 @@ void *pd_jackdaw_record_on_thread(void *arg)
 	fprintf(stdout, "PD BLOCKSIZE: %d\n", pd_blocksize);
     }
 
-    PdConn *pdconn = &conn->c.pd;
+    PdConn *pdconn = conn->obj;
     while (1) {
 	/* fprintf(stdout, "about to check proj rec\n"); */
-	if (!proj->recording) {
+	if (!session->playback.recording) {
 	    break;
 	}
 	while (sem_trywait(audio_buffers_write_sem) == 0) {};

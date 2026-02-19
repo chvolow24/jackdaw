@@ -1,23 +1,20 @@
 <Layout name="output_panel" type="NORMAL">
   <x>REL 0</x>
   <y>REL 0</y>
-  <w>REL 400</w>
+  <w>ABS 400</w>
   <h>SCALE 1.000000</h>
-  <index>0</index>
   <children>
     <Layout name="default_out" type="NORMAL">
-      <x>REL 0</x>
+      <x>REL 15</x>
       <y>REL 0</y>
       <w>REL 186</w>
       <h>REL 20</h>
-      <index>0</index>
       <children>
         <Layout name="default_out_label" type="NORMAL">
           <x>REL 0</x>
           <y>REL 0</y>
           <w>REL 80</w>
           <h>SCALE 1.000000</h>
-          <index>0</index>
           <children>
           </children>
         </Layout>
@@ -26,7 +23,6 @@
           <y>REL 0</y>
           <w>COMPLEMENT 0</w>
           <h>SCALE 1.000000</h>
-          <index>1</index>
           <children>
           </children>
         </Layout>
@@ -34,19 +30,33 @@
     </Layout>
     <Layout name="out_waveform_right" type="NORMAL">
       <x>REL 111</x>
-      <y>REL 35</y>
+      <y>REL 30</y>
       <w>REL 90</w>
-      <h>REL 45</h>
-      <index>2</index>
+      <h>REL 55</h>
       <children>
       </children>
     </Layout>
     <Layout name="out_waveform_left" type="NORMAL">
       <x>REL 15</x>
-      <y>REL 35</y>
+      <y>REL 30</y>
       <w>REL 90</w>
-      <h>REL 45</h>
-      <index>4</index>
+      <h>REL 55</h>
+      <children>
+      </children>
+    </Layout>
+    <Layout name="output_vu" type="NORMAL">
+      <x>REL 212</x>
+      <y>REL 0</y>
+      <w>REL 44</w>
+      <h>REL 85</h>
+      <children>
+      </children>
+    </Layout>
+    <Layout name="vol_slider" type="NORMAL">
+      <x>REL 261</x>
+      <y>REL 0</y>
+      <w>REL 15</w>
+      <h>REL 85</h>
       <children>
       </children>
     </Layout>

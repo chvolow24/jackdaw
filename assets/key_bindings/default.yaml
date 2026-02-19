@@ -1,4 +1,3 @@
-
 ##################################################################
 #################### JACKDAW KEY BINDINGS ########################
 ##################################################################
@@ -20,7 +19,6 @@
 #   ...
 
 
-
 ---
 - global:
   - C-m		: menu
@@ -28,16 +26,19 @@
   - <esc>	: escape
   - C-q		: quit
   - C-z		: undo
+  - C-/		: undo
   - C-y		: redo
   - C-S-z	: redo
   - C-s		: save_project
   - C-o		: open_file
   - A-S-<del>	: chaotic_user_test
   - C-S-p	: start_api_server
-  - <spc>	: function_lookup
+  - /		: command_lookup
 - menu_nav:
   - n		: menu_next_item
   - p		: menu_previous_item
+  - <tab>	: menu_next_item
+  - S-<tab>	: menu_previous_item
   - f		: menu_next_item
   - d		: menu_previous_item
   - <up>	: menu_translate_up
@@ -66,9 +67,10 @@
   - e		: tl_play
   - w		: tl_pause
   - q		: tl_rewind
-  - K-l		: tl_play_slow
-  - K-j		: tl_rewind_slow
-  - S-k		: tl_pause
+  - <spc>	: tl_play_pause
+  - k-l		: tl_play_slow
+  - k-j		: tl_rewind_slow
+  - A-k		: tl_halve_playspeed
   - [		: tl_move_playhead_left
   - ]		: tl_move_playhead_right
   - S-[		: tl_move_playhead_left_slow
@@ -80,7 +82,9 @@
   - C-S-<left>	: tl_one_sample_left
   - C-S-<right>	: tl_one_sample_right
   - C-k		: tl_toggle_drag
+  - S-k		: tl_toggle_drag
   - S-c		: tl_cut_clipref
+  - g-c		: tl_cut_clipref_and_grab_edges
   - ;		: tl_move_right
   - h		: tl_move_left
   - ,		: tl_zoom_out
@@ -122,15 +126,17 @@
   - S-p		: tl_move_track_up
   - S-f		: tl_move_track_down
   - S-d		: tl_move_track_up
-  - S-<down>	: tl_move_track_selector_down
-  - S-<up>	: tl_move_track_selector_up  
+  - S-<down>	: tl_move_track_down
+  - S-<up>	: tl_move_track_up
   - -		: tl_track_or_tracks_minimize
   - <ret>	: tl_track_activate_selected
   - C-r		: tl_track_rename
   - C-S-i	: tl_track_set_in
+  - C-S-m	: tl_track_set_midi_out
   - C-<del>	: tl_track_delete
   - S-t		: tl_track_open_settings
   - S-e		: tl_track_add_effect
+  - S-s		: tl_track_open_synth
   - a		: tl_track_show_hide_automations
   - C-a		: tl_track_add_automation
   - S-r		: tl_track_automation_toggle_read
@@ -138,7 +144,12 @@
   - m		: tl_mute
   - s		: tl_solo
   - g		: tl_grab_clips_at_cursor
+  - g-j		: tl_grab_clips_left_edge
+  - g-l		: tl_grab_clips_right_edge
+  - g-k		: tl_ungrab_clip_edge
   - S-g		: tl_grab_marked_range
+  - S-g-j	: tl_grab_marked_range_left_edge
+  - S-g-l	: tl_grab_marked_range_right_edge
   - C-c		: tl_copy_grabbed_clips
   - C-v		: tl_paste_grabbed_clips
   - C-S-r	: tl_rename_clip_at_cursor
@@ -147,6 +158,9 @@
   - t		: tl_click_track_set_tempo
   - C-1		: tl_load_clip_at_cursor_to_source
   - S-1		: tl_activate_source_mode
+  - C-S-e	: tl_edit_clip_at_cursor
+  - A-q		: tl_quantize_notes
+  - A-S-q	: tl_adj_quantize_amt
   - b		: tl_drop_from_source
   - v		: tl_drop_saved1_from_source
   - c		: tl_drop_saved2_from_source
@@ -162,6 +176,8 @@
   - A-<del>	: tl_delete_timeline
   - C-e		: tl_write_mixdown_to_wav
   - S-w		: tl_write_mixdown_to_wav
+  - S-q		: tl_activate_qwerty_piano
+  - S-\		: tl_lock_view_to_playhead
 - source:
   - l		: source_play
   - k		: source_pause
@@ -169,12 +185,16 @@
   - S-l		: source_play_slow
   - S-j		: source_rewind_slow
   - S-k		: source_pause
-  - K-l		: source_play_slow
-  - K-j		: source_rewind_slow
+  - k-l		: source_play_slow
+  - k-j		: source_rewind_slow
   - i		: source_set_in_mark
   - o		: source_set_out_mark
   - S-i		: source_set_in_mark
   - S-o		: source_set_out_mark
+  - ,		: source_zoom_out
+  - .		: source_zoom_in
+  - h		: source_move_left
+  - ;		: source_move_right
 - modal:
   - n		: modal_next
   - p		: modal_previous
@@ -191,10 +211,14 @@
   - S-<down>	: modal_next_escape
   - S-<up>	: modal_previous_escape
   - <ret>	: modal_select
+  - h		: modal_left
+  - ;		: modal_right
   - m		: modal_dismiss
-  - h		: modal_dismiss
   - g		: modal_dismiss
   - <esc>	: modal_dismiss
+  - <del>	: modal_dismiss
+  - C-<del>	: modal_dismiss
+  - S-<del>	: modal_dismiss
   - C-<ret>	: modal_submit_form
 - text_edit:
   - <ret>	: text_edit_escape
@@ -228,8 +252,9 @@
   - C-S-l	: tabview_move_current_tab_right
   - C-S-h	: tabview_move_current_tab_left
   - C-S-;	: tabview_move_current_tab_right
-  - g		: tabview_escape
   - <esc>	: tabview_escape
+  - C-<del>	: tabview_escape
+  - S-<del>	: tabview_escape
 - autocomplete_list:
   - <tab>	: autocomplete_next
   - S-<tab>	: autocomplete_previous
@@ -239,3 +264,91 @@
   - C-p		: autocomplete_previous
   - <ret>	: autocomplete_select
   - <esc>	: autocomplete_escape
+  - /		: autocomplete_escape
+  - C-<del>	: autocomplete_escape
+  - S-<del>	: autocomplete_escape
+- midi_qwerty:
+  - z		: midi_qwerty_octave_down
+  - x		: midi_qwerty_octave_up
+  - ,		: midi_qwerty_transpose_down
+  - .		: midi_qwerty_transpose_up
+  - c		: midi_qwerty_velocity_down
+  - v		: midi_qwerty_velocity_up
+  - a		: midi_qwerty_c1
+  - w		: midi_qwerty_cis1
+  - s		: midi_qwerty_d1
+  - e		: midi_qwerty_dis
+  - d		: midi_qwerty_e
+  - f		: midi_qwerty_f
+  - t		: midi_qwerty_fis
+  - g		: midi_qwerty_g
+  - y		: midi_qwerty_gis
+  - h		: midi_qwerty_a
+  - u		: midi_qwerty_ais
+  - j		: midi_qwerty_b
+  - k		: midi_qwerty_c2
+  - o		: midi_qwerty_cis2
+  - l		: midi_qwerty_d2
+  - p		: midi_qwerty_dis2
+  - ;		: midi_qwerty_e2
+  - '		: midi_qwerty_f2
+  - i		: null
+  - q		: null
+  - r		: null
+  - [		: null
+  - ]		: null
+  - `		: null
+  - k-j		: null
+  - k-l		: null
+  - <esc>	: midi_qwerty_escape
+  - S-q		: midi_qwerty_escape
+- piano_roll:
+  - <esc>	: piano_roll_escape
+  - C-S-e	: piano_roll_escape
+  - ,		: piano_roll_zoom_out
+  - .		: piano_roll_zoom_in
+  - h		: piano_roll_move_left
+  - ;		: piano_roll_move_right
+  - n		: piano_roll_note_down
+  - p		: piano_roll_note_up
+  - f		: piano_roll_note_down
+  - d		: piano_roll_note_up
+  - C-n		: piano_roll_note_down_octave
+  - C-p		: piano_roll_note_up_octave
+  - C-f		: piano_roll_note_down_octave
+  - C-d		: piano_roll_note_up_octave
+  - c		: piano_roll_vel_down
+  - v		: piano_roll_vel_up
+  - <right>	: piano_roll_forward_dur
+  - <left>	: piano_roll_back_dur
+  - S-l		: piano_roll_next_note
+  - S-j		: piano_roll_prev_note
+  - S-p		: piano_roll_up_note
+  - S-n		: piano_roll_down_note
+  - S-d		: piano_roll_up_note
+  - S-f		: piano_roll_down_note
+  - <down>	: piano_roll_dur_longer
+  - <up>	: piano_roll_dur_shorter
+  - 1		: piano_roll_dur_longer
+  - 2		: piano_roll_dur_shorter
+  - <ret>	: piano_roll_insert_note
+  - <spc>	: piano_roll_insert_rest
+  - g		: piano_roll_grab_ungrab
+  - g-j		: piano_roll_grab_note_left_edge
+  - g-l		: piano_roll_grab_note_right_edge
+  - g-k		: piano_roll_grab_no_edge
+  - S-g		: piano_roll_grab_marked_range
+  - <del>	: piano_roll_delete
+  - C-<del>	: piano_roll_delete
+  - S-<spc>	: piano_roll_play_grabbed_notes
+  - S-t		: piano_roll_toggle_tie
+  - S-h		: piano_roll_toggle_chord_mode
+  - A-q		: piano_roll_quantize
+  - A-S-q	: piano_roll_adj_quantize_amt
+  - C-r		: null
+  - C-t		: null
+  - C-S-t	: null
+  - C-S-r	: null
+  - C-c		: null
+  - C-a		: null
+  - S-e		: null

@@ -8,12 +8,15 @@
 
 *****************************************************************************************************************/
 #include <stdio.h>
-#include "SDL.h"
 #include "SDL_render.h"
 #include "autocompletion.h"
 #include "color.h"
+#include "error.h"
+#include "input_mode.h"
 #include "layout.h"
+#include "log.h"
 #include "menu.h"
+#include "session.h"
 #include "text.h"
 #include "window.h"
 #include "modal.h"
@@ -109,34 +112,63 @@ void window_check_monitor_dpi(Window *win)
         exit(1);
     }
     ttf_reset_dpi_scale_factor(win->std_font);
+    ttf_reset_dpi_scale_factor(win->bold_font);
+    ttf_reset_dpi_scale_factor(win->mono_font);
+    ttf_reset_dpi_scale_factor(win->mono_bold_font);
+    ttf_reset_dpi_scale_factor(win->symbolic_font);
+    ttf_reset_dpi_scale_factor(win->mathematical_font);
+    ttf_reset_dpi_scale_factor(win->music_font);
+
+    symbol_quit(win);
+    init_symbol_table(win);
+
+    layout_force_reset(win->layout);
+    txt_reset_all();
+    Session *session = session_get();
+    for (int i=0; i<session->gui.panels->num_pages; i++) {
+	page_reset(session->gui.panels->pages[i]);
+    }
+    for (int i=0; i<session->gui.panels->num_panels; i++) {
+	layout_force_reset(session->gui.panels->panels[i]->layout);
+    }
+
+
+    layout_force_reset(win->layout);
+
+    
+
 
 }
 
-void window_assign_font(Window *win, const char *font_path, FontType type)
+static void window_assign_font(Window *win, const char *font_path, FontType type)
 {
     Font **font_to_init;
 
     int style = TTF_STYLE_NORMAL;
     switch (type) {
-    case REG:
+    case FONT_REG:
 	font_to_init = &win->std_font;
 	break;
-    case BOLD:
+    case FONT_BOLD:
 	font_to_init = &win->bold_font;
 	style = TTF_STYLE_BOLD;
 	break;
-    case MONO:
+    case FONT_MONO:
         font_to_init = &win->mono_font;
 	break;
-    case MONO_BOLD:
+    case FONT_MONO_BOLD:
 	font_to_init = &win->mono_bold_font;
 	break;
-    case SYMBOLIC:
+    case FONT_SYMBOLIC:
 	font_to_init = &win->symbolic_font;
 	break;
-    case MATHEMATICAL:
+    case FONT_MATHEMATICAL:
 	font_to_init = &win->mathematical_font;
 	break;
+    case FONT_MUSIC:
+	font_to_init = &win->music_font;
+	break;
+	
     }
     *font_to_init = ttf_init_font(font_path, win, style);
     if (!(*font_to_init)) {
@@ -207,9 +239,11 @@ void window_resize_passive(Window *win, int w, int h)
     if (win->layout) {
 	layout_reset_from_window(win->layout, win);
     }
+    #ifndef LAYOUT_BUILD
     if (win->active_tabview) {
 	tabview_reset(win->active_tabview, win->active_tabview->leftmost_index);
     }
+    #endif
 
  
 }
@@ -289,28 +323,32 @@ void window_end_draw(Window *win)
     SDL_RenderCopy(win->rend, win->canvas, &win->canvas_src, NULL);
     SDL_RenderPresent(win->rend);
 }
-
 void window_set_layout(Window *win, Layout *layout)
 {
     layout->x.value = 0.0f;
     layout->y.value = 0.0f;
-    layout->w.value = win->w_pix;
-    layout->h.value = win->h_pix;
+    layout->w.value = win->w_pix / win->dpi_scale_factor;
+    layout->h.value = win->h_pix / win->dpi_scale_factor;
     layout_reset(layout);
     win->layout = layout;
 }
 
 Layout *layout_create_from_window(Window *win);
 
-
-
-void layout_destroy(Layout *lt);
-void window_destroy(Window *win)
+void window_assign_fonts(Window *win)
 {
-    /* if (win->ac_active) { */
-    #ifndef LAYOUT_BUILD
-    autocompletion_deinit(&win->ac);
-    #endif
+    window_assign_font(win, OPEN_SANS_PATH, FONT_REG);
+    window_assign_font(win, OPEN_SANS_BOLD_PATH, FONT_BOLD);
+    window_assign_font(win, LTSUPERIOR_PATH, FONT_MONO);
+    window_assign_font(win, LTSUPERIOR_BOLD_PATH, FONT_MONO_BOLD);
+    window_assign_font(win, NOTO_SANS_SYMBOLS2_PATH, FONT_SYMBOLIC);
+    window_assign_font(win, NOTO_SANS_MATH_PATH, FONT_MATHEMATICAL);
+    window_assign_font(win, NOTO_MUSIC_PATH, FONT_MUSIC);
+
+}
+
+void window_destroy_fonts(Window *win)
+{
     /* } */
     if (win->std_font) {
 	ttf_destroy_font(win->std_font);
@@ -330,6 +368,20 @@ void window_destroy(Window *win)
     if (win->mathematical_font) {
 	ttf_destroy_font(win->mathematical_font);
     }
+    if (win->music_font) {
+	ttf_destroy_font(win->music_font);
+    }
+
+}
+
+void layout_destroy(Layout *lt);
+void window_destroy(Window *win)
+{
+    /* if (win->ac_active) { */
+    #ifndef LAYOUT_BUILD
+    autocompletion_deinit(&win->ac);
+    #endif
+    window_destroy_fonts(win);
     if (win->rend) {
 	SDL_DestroyRenderer(win->rend);
     }
@@ -349,8 +401,9 @@ void window_pop_menu(Window *win)
 	menu_destroy(win->menus[win->num_menus - 1]);
 	win->num_menus--;
     }
-    if (win->num_menus == 0 && win->modes[win->num_modes - 1] == MENU_NAV)  {
-	window_pop_mode(win);
+    if (win->num_menus == 0) {//&& win->modes[win->num_modes - 1] == MODE_MENU_NAV)  {
+	/* window_pop_mode(win); */
+	window_extract_mode(win, MODE_MENU_NAV);
     }
 }
 #endif
@@ -361,9 +414,15 @@ void window_add_menu(Window *win, Menu *menu)
     if (win->num_menus < MAX_WINDOW_MENUS) {
 	win->menus[win->num_menus] = menu;
 	win->num_menus++;
-	if (win->modes[win->num_modes - 1] != MENU_NAV) {
-	    window_push_mode(win, MENU_NAV);
+	if (win->modes[win->num_modes - 1] != MODE_MENU_NAV) {
+	    window_push_mode(win, MODE_MENU_NAV);
 	}
+	menu->sel_col = 0;
+	menu->columns[0]->sel_sctn = 0;
+	menu->columns[0]->sections[0]->sel_item = 0;
+	menu->columns[0]->sections[0]->items[0]->selected = true;
+	menu_reset_layout(menu);
+	
     } else {
 	fprintf(stderr, "Error: window already has maximum number of menus (%d)\n", win->num_menus);
     }
@@ -383,20 +442,101 @@ void window_push_mode(Window *win, InputMode im)
 {
     /* if (im == TEXT_EDIT) */
     /* 	SDL_StartTextInput(); */
+
+    /* fprintf(stderr, "\nWINDOW PUSH MODE %d (%s)\n\n", im, input_mode_str(im)); */
+    /* if (im == MIDI_QWERTY) breakfn(); */
     if (win->num_modes < WINDOW_MAX_MODES) {
 	win->modes[win->num_modes] = im;
+	log_tmp(LOG_DEBUG, "Push mode %s at %d\n", input_mode_str(im), win->num_modes);
 	win->num_modes++;
     } else {
-	fprintf(stderr, "Error: window already has maximum number of modes\n");
+	error_exit("Error: window already has maximum number of modes\n");
+	/* fprintf(stderr,  */
     }
 }
 
-void window_pop_mode(Window *win)
+/* 'static' bc deprecated for public use */
+static InputMode window_pop_mode(Window *win)
 {
     /* if (win->modes[win->num_modes] == TEXT_EDIT) */
     /* 	SDL_StopTextInput(); */
+    
     if (win->num_modes > 0) {
 	win->num_modes--;
+	log_tmp(LOG_DEBUG, "Pop mode %s at %d\n", input_mode_str(win->modes[win->num_modes]), win->num_modes);
+	if (win->num_modes == 0) {
+	    log_tmp(LOG_FATAL, "Window num modes == 0\n");
+	    error_exit("Window num modes == 0");
+	}
+	return win->modes[win->num_modes];
+    }
+    return MODE_GLOBAL;
+}
+
+void window_extract_mode(Window *win, InputMode mode)
+{
+    log_tmp(LOG_DEBUG, "Extract mode %s\n", input_mode_str(mode));
+    for (int i=win->num_modes - 1; i>0; i--) {
+	if (win->modes[i] == mode) {
+	    memmove(win->modes + i, win->modes + i + 1, (win->num_modes - i - 1) * sizeof(InputMode));
+	    win->num_modes--;
+	    if (win->num_modes == 0) {
+		log_tmp(LOG_FATAL, "Window num modes == 0\n");
+		error_exit("Window num modes == 0");
+	    }
+	    return;
+	}
+    }
+    log_tmp(LOG_ERROR, "Mode not found in extract (num modes %d)\n", win->num_modes);   
+}
+
+
+#define TOP_MODE_LOC(window) (window->modes[window->num_modes - 1])
+
+void mqwert_deactivate(void);
+void piano_roll_deactivate(void);
+void source_mode_deactivate(void);
+
+/* Clear out everything over timeline mode, taking care to avoid recursion */
+void window_clear_higher_modes(Window *win, InputMode called_from_mode)
+{
+    InputMode top;
+    while ((top = TOP_MODE_LOC(win)) != MODE_TIMELINE) {
+	if (top == called_from_mode) {
+	    window_pop_mode(win);
+	    fprintf(stderr, "Clearing mode (Current!), %s\n", input_mode_str(top));
+	} else {
+	    fprintf(stderr, "Clearing mode: %s\n", input_mode_str(top));
+	    switch (top) {
+	    case MODE_TEXT_EDIT:
+		txt_stop_editing(win->txt_editing);	    
+		break;
+	    case MODE_MIDI_QWERTY:
+		mqwert_deactivate();
+		break;
+	    case MODE_PIANO_ROLL:
+		piano_roll_deactivate();
+		break;
+	    case MODE_MENU_NAV:
+		window_pop_menu(win);
+		break;
+	    case MODE_MODAL:
+		window_pop_modal(win);
+		break;
+	    case MODE_TABVIEW:
+		tabview_close(win->active_tabview);
+		break;
+	    case MODE_SOURCE:
+		source_mode_deactivate();
+		break;
+	    case MODE_AUTOCOMPLETE_LIST:
+		autocompletion_escape();
+		break;
+	    default:
+		break;
+		
+	    }
+	}
     }
 }
 
@@ -404,12 +544,13 @@ void window_pop_mode(Window *win)
 #include "page.h"
 void window_push_modal(Window *win, Modal *modal)
 {
+    Session *session = session_get();
     while (win->num_modals > 0) {
 	window_pop_modal(win);
     }
     
     #ifndef LAYOUT_BUILD
-    Timeline *tl = proj->timelines[proj->active_tl_index];
+    Timeline *tl = ACTIVE_TL;
     tl->needs_redraw = true;
     #endif
     
@@ -427,15 +568,15 @@ void window_push_modal(Window *win, Modal *modal)
     while (win->num_menus > 0) {
 	window_pop_menu(win);
     }
-    if (win->modes[win->num_modes - 1] == MENU_NAV) {
+    if (win->modes[win->num_modes - 1] == MODE_MENU_NAV) {
 	window_pop_mode(win);
     }
     if (win->num_modals < WINDOW_MAX_MODALS) {
 	win->modals[win->num_modals] = modal;
 	win->num_modals++;
 	/* layout_center_agnostic(modal->layout, true, true); */
-	if (win->modes[win->num_modes - 1] != MODAL) {
-	    window_push_mode(win, MODAL);
+	if (win->modes[win->num_modes - 1] != MODE_MODAL) {
+	    window_push_mode(win, MODE_MODAL);
 	}
     } else {
 	fprintf(stderr, "Error: window already has maximum number of modals\n");
@@ -447,20 +588,23 @@ void window_pop_modal(Window *win)
     if (win->num_modals == 0) {
 	return;
     }
-    if (win->txt_editing) {
-	txt_stop_editing(win->txt_editing);
-    }
+    /* if (win->txt_editing) { */
+    /* 	txt_stop_editing(win->txt_editing); */
+    /* } */
     
     modal_destroy(win->modals[win->num_modals - 1]);
     /* } */
     win->num_modals--;
-    if (win->num_menus > 0) {
-	window_pop_menu(win);
-    }
-
     if (win->num_modals == 0) {
-	window_pop_mode(win);
+	window_extract_mode(win, MODE_MODAL);
     }
+    /* if (win->num_menus > 0) { */
+    /* 	window_pop_menu(win); */
+    /* } */
+
+    /* if (win->num_modals == 0) { */
+    /* 	window_pop_mode(win); */
+    /* } */
 }
 
 

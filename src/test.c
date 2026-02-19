@@ -1,12 +1,32 @@
-#include "SDL.h"
-#include "SDL_events.h"
+#include <execinfo.h>
+#include <stdlib.h>
 #include "input.h"
 #include "test.h"
+
 
 #define MAX_TEXT_EDIT_CHARS 24
 
 void breakfn()
 {
+}
+void print_backtrace()
+{
+    const int max = 32;
+    void **results = malloc(max * sizeof(void *));
+    int len = backtrace(results, max);
+    char **symbols = backtrace_symbols(results, len);
+    for (int i=0; i<len; i++) {
+	fprintf(stderr, "%s\n",symbols[i]);
+    }
+    free(symbols);
+}
+
+
+void err_exit(const char *fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    vprintf(fmt, args);
+    va_end(args);
 }
 
 extern Window *main_win;
@@ -74,15 +94,17 @@ TEST_FN_DEF(
 	    /* free(keycmd_str); */
 	}
 	/* fprintf(stderr, "\n\n\n\n"); */
-	if (main_win->modes[main_win->num_modes - 1] == TEXT_EDIT) {
+	if (main_win->modes[main_win->num_modes - 1] == MODE_TEXT_EDIT) {
 	    if (text_edit_chars >= MAX_TEXT_EDIT_CHARS) {
 		user_text_edit_escape(NULL);
 		text_edit_chars = 0;
 	    } else {
 		text_edit_chars += num_events;
 	    }
-	} else if (main_win->modes[main_win->num_modes - 1] == AUTOCOMPLETE_LIST) {
+	} else if (main_win->modes[main_win->num_modes - 1] == MODE_AUTOCOMPLETE_LIST) {
 	   user_autocomplete_escape(NULL);
 	}
 	return 0;
     } , bool *run_tests, uint64_t max_num_frames);
+
+

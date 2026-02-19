@@ -11,15 +11,16 @@
 /*****************************************************************************************************************
     delay_line.h
 
-    * 
-    * 
- *****************************************************************************************************************/
+    * delay line effect implementation
+    * delay length (time) changes accomplished via stretching/squishing the buffer,
+      resulting in pitch variations
+*****************************************************************************************************************/
 
 
 #ifndef DELAY_LINE_H
 #define DELAY_LINE_H
 
-#include "dsp_utils.h"
+#include "project.h"
 
 typedef struct delay_line {
     /* bool active; */
@@ -38,21 +39,18 @@ typedef struct delay_line {
     double *cpy_buf;
     /* pthread_mutex_t lock; */
 
-    Track *track;
+    /* Track *track; */
 
     Endpoint len_ep;
     Endpoint amp_ep;
     Endpoint stereo_offset_ep;
-
     Effect *effect;
-
-    /* SDL_mutex *lock; */
 } DelayLine;
 
-void delay_line_init(DelayLine *dl, Track *track, uint32_t sample_rate);
+void delay_line_init(DelayLine *dl, uint32_t sample_rate);
 void delay_line_set_params(DelayLine *dl, double amp, int32_t len);
 void delay_line_clear(DelayLine *dl);
-float delay_line_buf_apply(void *dl_v, float *buf, int len, int channel, float input_amp);
+float delay_line_buf_apply(void *dl_v, float *restrict buf, int len, int channel, float input_amp);
 void delay_line_deinit(DelayLine *dl);
 
 #endif

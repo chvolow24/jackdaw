@@ -8,20 +8,11 @@
 
 *****************************************************************************************************************/
 
-/*****************************************************************************************************************
-    endpoint_callbacks.c
-
-    * Definitions of all endpoint callback functions
- *****************************************************************************************************************/
-
-/* #include "dsp.h" */
 #include "endpoint_callbacks.h"
+#include "modal.h"
 #include "page.h"
-#include "project_endpoint_ops.h"
+#include "session_endpoint_ops.h"
 #include "status.h"
-#include "waveform.h"
-
-
 
 extern Project *proj;
 extern Window *main_win;
@@ -35,7 +26,9 @@ void track_slider_cb(Endpoint *ep)
 {
     Slider *s = *((Slider **)ep->xarg1);
     Value val = slider_reset(s);
-    label_reset(s->label, val);
+    if (ep->display_label) {
+	label_reset(s->label, val);
+    }
     Timeline *tl = (Timeline *)ep->xarg2;
     tl->needs_redraw = true;
 }
@@ -114,11 +107,11 @@ void track_slider_cb(Endpoint *ep)
 /*     radio_button_reset_from_endpoint((RadioButton *)el->component);    */
 /* } */
 
-void track_settings_page_el_gui_cb(Endpoint *ep)
+void page_el_gui_cb(Endpoint *ep)
 {
-    /* if (!main_win->active_tabview) return; */
-
     Page **page_loc = ep->xarg3;
+    char dststr[32];
+    jdaw_val_to_str(dststr, 32, ep->current_write_val, ep->val_type, 2);
     if (!page_loc) {
 	fprintf(stderr, "Error: track settings callback: endpoint does not contain page loc in third xarg\n");
 	return;
@@ -128,11 +121,26 @@ void track_settings_page_el_gui_cb(Endpoint *ep)
 	/* fprintf(stderr, "(page not active)\n"); */
 	return;
     }
+
+    bool page_in_pa = false;
+    Session *session = session_get();
+    for (int i=0; i<session->gui.panels->num_pages; i++) {
+	if (page == session->gui.panels->pages[i]) {
+	    page_in_pa = true;
+	    break;
+	}
+    }
+    if (!page_in_pa) {
+	TabView *tv = main_win->active_tabview;
+	if (!tv || tv->tabs[tv->current_tab] != page) {
+	    return;
+	}
+    }
     const char *el_id = ep->xarg4;
 
     PageEl *el = page_get_el_by_id(page, el_id);
     if (!el) {
-	fprintf(stderr, "Error: gui callback for endpoint \"%s\" failed; page element not found.\n", ep->display_name);
+	fprintf(stderr, "Error: gui callback for endpoint \"%s\" failed; page element with id \"%s\" not found in page \"%s\".\n", ep->display_name, el_id, page->title);
 	return;
     }
     page_el_reset(el);

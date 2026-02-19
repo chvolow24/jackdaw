@@ -10,11 +10,15 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include "assets.h"
 #include "layout.h"
 #include "parse_xml.h"
 
 #define MAX_TOKLEN 255
 #define LT_TAGNAME "Layout"
+
+#define OPENED_LAYOUTS_HASH_TABLE_SIZE 1024
+Layout *OPENED_LAYOUTS_HASH_TABLE[1024];
 
 
 static void write_dimension(FILE *f, Dimension *dim, char dimchar, int indent)
@@ -305,11 +309,15 @@ static Layout *read_layout(FILE *f, long endrange)
     return lt;
 }
 
-Layout *layout_read_from_xml(const char *filename)
+Layout *layout_read_from_xml(const char *asset_path)
 {
-    FILE *f = fopen(filename, "r");
+    #ifdef LAYOUT_BUILD
+    FILE *f = fopen(asset_path, "r");
+    #else
+    FILE *f = asset_open(asset_path, "r");
+    #endif
     if (!f) {
-        fprintf(stderr, "Error: unable to open file at %s\n", filename);
+        fprintf(stderr, "Error: unable to open asset at %s\n", asset_path);
 	perror("(Error in fopen)");
         return NULL;
     }

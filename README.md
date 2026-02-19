@@ -264,9 +264,11 @@ You can use the mousewheel or trackpad to achieve finer control over playback.
 
 <kbd>S-\<scroll horizontal\></kbd> : **scrub (fine)**<br>
 <kbd>C-S-\<scroll horizontal\></kbd> : **scrub (coarse)**<br>
+<kbd>A-S-\<scroll horizontal\></kbd> : **scrub (finer)**<br>
 
 <kbd>S-\<scroll vertical\></kbd> : **adjust speed (fine)**<br>
 <kbd>C-S-\<scroll vertical\></kbd> : **adjust speed (coarse)**<br>
+<kbd>A-S-\<scroll vertical\></kbd> : **adjust speed (finer)**<br>
 
 
 ### Translate / zoom
@@ -548,13 +550,26 @@ You can click and drag the boundaries between click track segments to reposition
 
 While dragging, the segment boundary will automatically snap to the previous segment's subdivisions. Hold <kbd>\<shift\></kbd> to disable the snapping.
 
+### Grid navigation
+
+Click tracks can be moved up and down on the timeline exactly like audio tracks: with <kbd>S-n</kbd> and <kbd>S-p</kbd>.
+
+All of the audio tracks directly *below* a given click track are governed by that click track. In the current version of jackdaw (v0.5.0) this is only relevant when using the following navigation commands:
+
+<kbd>C-j</kbd> : **Go to previous beat**<br>
+<kbd>C-l</kbd> : **Go to next beat**<br>
+
+<kbd>C-S-j</kbd> : **Go to previous subdivision**<br>
+<kbd>C-S-k</kbd> : **Go to next subdivision**<br>
+
+<kbd>A-S-j</kbd> : **Go to previous measure**<br>
+<kbd>A-S-k</kbd> : **Go to next measure**<br>
+
+<img src="https://jackdaw-audio.net/static/sync_gifs/click_track_navigation.gif" width="80%" />
+
 ### "Freeze" click track
 
-Jackdaw provides a lot of flexibility that you'll almost never need with respect to click track placement; you can create a bunch of click tracks and move them up and down the timeline to your heart's content. Placement is not strictly cosmetic: each Track is "governed" by the click track positioned nearest above it on the timeline, so when you need to do grid-related things on a track (e.g. jumping to the next beat position with `C-l`, or adding notes in the piano roll), you can control *which* grid you're using.
-
-The downside of this design is that if you have a bunch of tracks and scroll down, the click track you're using may no longer be visible.
-
-To solve this, you can now "freeze" a click track at the top of the timeline view, and it will remain fixed there regardless of how you scroll. You do this simply by moving (`S-p`) the click track "all the way up":
+You can "freeze" a click track at the top of the timeline view, and it will remain fixed there regardless of how you scroll. You do this simply by moving (`S-p`) the click track "all the way up":
 
 <img src="https://jackdaw-audio.net/static/sync_gifs//freeze_click_track.gif" width="80%">
 
@@ -576,22 +591,6 @@ You can also lightly customize the metronome by setting which sound plays on eac
 
 These options can be found in the second tab of the click track settings tab view (select a click track (`n` and `p`) and then `S-t` to open the tabview, and `S-l` to tab right).
 
-### Grid navigation
-
-Click tracks can be moved up and down on the timeline exactly like audio tracks: with <kbd>S-n</kbd> and <kbd>S-p</kbd>.
-
-All of the audio tracks directly *below* a given click track are governed by that click track. In the current version of jackdaw (v0.5.0) this is only relevant when using the following navigation commands:
-
-<kbd>C-j</kbd> : **Go to previous beat**<br>
-<kbd>C-l</kbd> : **Go to next beat**<br>
-
-<kbd>C-S-j</kbd> : **Go to previous subdivision**<br>
-<kbd>C-S-k</kbd> : **Go to next subdivision**<br>
-
-<kbd>A-S-j</kbd> : **Go to previous measure**<br>
-<kbd>A-S-k</kbd> : **Go to next measure**<br>
-
-<img src="https://jackdaw-audio.net/static/sync_gifs/click_track_navigation.gif" width="80%" />
 
 ### Set tempo
 
@@ -603,7 +602,7 @@ Changing the tempo of click track segment moves clips, notes, and automation key
 
 <img src="https://jackdaw-audio.net/static/sync_gifs/click_track_tempo_change.gif" width="80%">
 
-If you want to edit a click track without moving these objects, you can first move the click track to the bottom of the timeline, or temporarily insert another click track below the one you wish to edit. I recognize this may not be ideal, and may refine the feature later.
+If you want to edit a click track without moving these objects, you can first move the click track to the bottom of the timeline, or temporarily insert another click track below the one you wish to edit, "blocking" it. I recognize this may not be ideal, and may refine the feature later.
 
 ## Source mode
 
@@ -903,7 +902,7 @@ In timeline view, <kbd>S-j</kbd> and <kbd>S-l</kbd> move the cursor to the previ
 
 #### Note insertion (manual)
 
-> ![TIP]
+> [!TIP]
 > It is usually much faster to [insert notes with a MIDI device](#note-insertion-with-midi-device), including the builtin QWERTY piano emulator).
 
 The "note selector" can be moved up and down with <kbd>n</kbd> and <kbd>p</kbd> (or <kbd>d</kbd> and <kbd>f</kbd>) just like the track selector. 

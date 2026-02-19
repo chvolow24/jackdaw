@@ -967,6 +967,7 @@ Synth *synth_create(Track *track)
 	api_endpoint_register(&cfg->unison.num_voices_ep, &cfg->api_node);
 	endpoint_set_label_fn(&cfg->unison.num_voices_ep, label_int_plus_one);
 
+	cfg->unison.detune_cents = 10.0f;
 	endpoint_init(
 	    &cfg->unison.detune_cents_ep,
 	    &cfg->unison.detune_cents,
@@ -980,6 +981,9 @@ Synth *synth_create(Track *track)
 	endpoint_set_default_value(&cfg->unison.detune_cents_ep, (Value){.float_v = 10.0f});
 	api_endpoint_register(&cfg->unison.detune_cents_ep, &cfg->api_node);
 
+	endpoint_write(&cfg->unison.detune_cents_ep, cfg->unison.detune_cents_ep.default_val, false, false, true, false);
+
+	cfg->unison.relative_amp = 0.4;
 	endpoint_init(
 	    &cfg->unison.relative_amp_ep,
 	    &cfg->unison.relative_amp,
@@ -993,6 +997,7 @@ Synth *synth_create(Track *track)
 	endpoint_set_default_value(&cfg->unison.relative_amp_ep, (Value){.float_v = 0.4f});
 	api_endpoint_register(&cfg->unison.relative_amp_ep, &cfg->api_node);
 
+	cfg->unison.stereo_spread = 0.4;
 	endpoint_init(
 	    &cfg->unison.stereo_spread_ep,
 	    &cfg->unison.stereo_spread,
@@ -1003,7 +1008,7 @@ Synth *synth_create(Track *track)
 	    page_el_gui_cb, NULL, unison_stereo_spread_dsp_cb,
 	    s, cfg, &s->osc_page, cfg->unison.stereo_spread_id);
 	endpoint_set_allowed_range(&cfg->unison.stereo_spread_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 1.0f});
-	endpoint_set_default_value(&cfg->unison.stereo_spread_ep, (Value){.float_v = 0.0f});
+	endpoint_set_default_value(&cfg->unison.stereo_spread_ep, (Value){.float_v = 0.4f});
 	api_endpoint_register(&cfg->unison.stereo_spread_ep, &cfg->api_node);
 
 	endpoint_init(

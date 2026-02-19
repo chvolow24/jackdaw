@@ -347,6 +347,10 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     } else if (session->playback.playing) {
 	/* timer_start(); */
 	struct dsp_chunk_info *chunk_info = tl->dsp_chunks_info + tl->dsp_chunks_info_read_i;
+	if (!chunk_info) {
+	    log_tmp(LOG_WARN, "Chunk info not set in playback callback (session->playback.playing set during pb cb execution)\n");
+	    goto end_playhead_reset;
+	}
 	chunk_info->elapsed_playback_chunks++;
 	int32_t new_play_pos = chunk_info->tl_start + proj->chunk_size_sframes * chunk_info->elapsed_playback_chunks * chunk_info->playspeed;
 	timeline_move_play_position(tl, new_play_pos - tl->play_pos_sframes);
@@ -361,6 +365,7 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 	/* timer_stop_and_print("Did playback_things"); */
     }
     /* timer_start(); */
+    end_playhead_reset:
     session_do_ongoing_changes(session, JDAW_THREAD_PLAYBACK);
     session_flush_val_changes(session, JDAW_THREAD_PLAYBACK);
     session_flush_callbacks(session, JDAW_THREAD_PLAYBACK);

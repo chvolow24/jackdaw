@@ -1,3 +1,9 @@
+ifdef USE_EXTERNAL_SDLS
+    ifndef SDL_TTF_LIB_DIR
+        $(error "ERROR: When USE_EXTERNAL_SDLS is set, SDL_TTF_LIB_DIR must also be specified")
+    endif
+endif
+
 CC := gcc
 SRC_DIR := src
 BUILD_DIR := build
@@ -17,8 +23,16 @@ PORTMIDI_PATH := $(PWD)/portmidi
 PORTMIDI_LIB := $(PORTMIDI_PATH)/build/libportmidi.a
 
 SDL_TTF_PATH := $(PWD)/SDL_ttf
-SDL_TTF_LIB := $(SDL_TTF_PATH)/.libs/libSDL2_ttf.a
 
+
+ifdef SDL_TTF_LIB_DIR
+SDL_TTF_LIB :=
+# ifeq ($(wildcard $(SDL_TTF_LIB)),)
+# $(error SDL_ttf lib not found: $(SDL_TTF_LIB))
+# endif
+else
+SDL_TTF_LIB := $(SDL_TTF_PATH)/.libs/libSDL2_ttf.a
+endif
 
 SDL_FLAGS_MACOS_ONLY := -framework AudioToolBox \
 	-framework Cocoa \
@@ -38,7 +52,7 @@ SDL_FLAGS_MACOS_ONLY := -framework AudioToolBox \
 
 UNAME_S := $(shell uname -s)
 
-ifdef use-external-sdls
+ifdef USE_EXTERNAL_SDLS
 SDL_FLAGS_ALL := $(shell sdl2-config --cflags)
 else
 SDL_FLAGS_ALL := -I$(SDL_INCLUDE_PATH)
@@ -55,9 +69,9 @@ LINK_ASOUND := -lasound
 LDFLAGS := -lpthread -lm -ldl -lrt
 endif
 
-ifdef use-external-sdls
+ifdef USE_EXTERNAL_SDLS
 	LIBS := $(PORTMIDI_LIB)
-	LDFLAGS += $(shell sdl2-config --libs --cflags)
+	LDFLAGS += $(shell sdl2-config --libs --cflags) -L$(SDL_TTF_LIB_DIR) -lSDL2_ttf
 
 else
 	LIBS := $(SDL_LIB) $(SDL_TTF_LIB) $(PORTMIDI_LIB)

@@ -3,9 +3,11 @@ SRC_DIR := src
 BUILD_DIR := build
 GUI_SRC_DIR := gui/src
 GUI_BUILD_DIR := gui/build
+
 DEPFLAGS = -MMD -MP -MF $(@:.o=.d)
 
 # Dependencies
+
 
 SDL_PATH := $(PWD)/SDL
 SDL_LIB := $(SDL_PATH)/build/.libs/libSDL2.a
@@ -36,7 +38,11 @@ SDL_FLAGS_MACOS_ONLY := -framework AudioToolBox \
 
 UNAME_S := $(shell uname -s)
 
+ifdef use-external-sdls
+SDL_FLAGS_ALL := $(shell sdl2-config --cflags)
+else
 SDL_FLAGS_ALL := -I$(SDL_INCLUDE_PATH)
+endif
 LINK_ASOUND :=
 
 # Operation system checks
@@ -49,7 +55,13 @@ LINK_ASOUND := -lasound
 LDFLAGS := -lpthread -lm -ldl -lrt
 endif
 
-LIBS := $(SDL_LIB) $(SDL_TTF_LIB) $(PORTMIDI_LIB)
+ifdef use-external-sdls
+	LIBS := $(PORTMIDI_LIB)
+	LDFLAGS += $(shell sdl2-config --libs --cflags)
+
+else
+	LIBS := $(SDL_LIB) $(SDL_TTF_LIB) $(PORTMIDI_LIB)
+endif
 
 CFLAGS := -Wall -Wno-unused-command-line-argument -Wno-format-truncation -I$(SRC_DIR) -I$(GUI_SRC_DIR) \
 	-Iportmidi/porttime \
@@ -152,6 +164,7 @@ cleanall:
 	@[ -n "${BUILD_DIR}" ] || { echo "BUILD_DIR unset or null"; exit 127; }
 	@[ -n "${GUI_BUILD_DIR}" ] || { echo "GUI_BUILD_DIR unset or null"; exit 127; }
 	rm -rf $(BUILD_DIR)/* $(GUI_BUILD_DIR)/*
-	cd $(SDL_PATH) && make clean
-	cd $(PORTMIDI_PATH) && rm -rf build/*
-	cd $(SDL_TTF_PATH) && make clean
+	git submodule foreach --recursive git clean -fdx
+	# cd $(SDL_PATH) && make clean
+	# cd $(PORTMIDI_PATH) && rm -rf build/*
+	# cd $(SDL_TTF_PATH) && make clean

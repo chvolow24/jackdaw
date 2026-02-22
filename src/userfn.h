@@ -16,8 +16,8 @@ void user_global_chaotic_user_test(void *nullarg);
 void user_global_debug_toggle_transport_performance_logging(void *nullarg);
 void user_global_api_print_all_routes(void *nullarg);
 void user_global_dump_logs(void *nullarg);
-void user_global_enable_synth_parallelism();
-void user_global_disable_synth_parallelism();
+void user_global_enable_synth_parallelism(void *nullarg);
+void user_global_disable_synth_parallelism(void *nullarg);
 
 
 void user_menu_nav_next_item(void *nullarg);

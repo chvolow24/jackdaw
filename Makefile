@@ -27,9 +27,6 @@ SDL_TTF_PATH := $(PWD)/SDL_ttf
 
 ifdef SDL_TTF_LIB_DIR
 SDL_TTF_LIB :=
-# ifeq ($(wildcard $(SDL_TTF_LIB)),)
-# $(error SDL_ttf lib not found: $(SDL_TTF_LIB))
-# endif
 else
 SDL_TTF_LIB := $(SDL_TTF_PATH)/.libs/libSDL2_ttf.a
 endif
@@ -179,6 +176,3 @@ cleanall:
 	@[ -n "${GUI_BUILD_DIR}" ] || { echo "GUI_BUILD_DIR unset or null"; exit 127; }
 	rm -rf $(BUILD_DIR)/* $(GUI_BUILD_DIR)/*
 	git submodule foreach --recursive git clean -fdx
-	# cd $(SDL_PATH) && make clean
-	# cd $(PORTMIDI_PATH) && rm -rf build/*
-	# cd $(SDL_TTF_PATH) && make clean

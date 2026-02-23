@@ -5,8 +5,8 @@ PKGCONF := $(shell command -v pkg-config 2>/dev/null || command -v pkgconf 2>/de
 ifeq ($(PKGCONF),)
 $(error "pkg-config required when USE_EXTERNAL_SDLS is set")
 endif
-HAVE_EXTERNAL_SDL := $(shell $(PKG_CONF) --exists sdl2 2>/dev/null && echo yes || echo no)
-HAVE_EXTERNAL_SDL_TTF := $(shell $(PKG_CONF) --exists sdl2_ttf 2>/dev/null && echo yes || echo no)
+HAVE_EXTERNAL_SDL := $(shell $(PKGCONF) --exists sdl2 2>/dev/null && echo yes || echo no)
+HAVE_EXTERNAL_SDL_TTF := $(shell $(PKGCONF) --exists SDL2_ttf 2>/dev/null && echo yes || echo no)
 
 ifeq ($(HAVE_EXTERNAL_SDL),no)
 $(error "SDL2 was not found on your system.")
@@ -82,7 +82,7 @@ endif
 
 ifdef USE_EXTERNAL_SDLS
 	LIBS := $(PORTMIDI_LIB)
-	LDFLAGS += $(shell $(PKGCONF) sdl2 --libs) $(shell $(PKGCONF) sdl2_ttf --libs)
+	LDFLAGS += $(shell $(PKGCONF) sdl2 --libs) $(shell $(PKGCONF) SDL2_ttf --libs)
 
 else
 	LIBS := $(SDL_LIB) $(SDL_TTF_LIB) $(PORTMIDI_LIB)
@@ -96,7 +96,7 @@ CFLAGS := -Wall -Wno-unused-command-line-argument -Wno-format-truncation -I$(SRC
 	$(SDL_FLAGS)
 
 ifdef USE_EXTERNAL_SDLS
-CFLAGS += $(shell $(PKGCONF) sdl2 --cflags) $(shell $(PKGCONF) sdl2_ttf --cflags)
+CFLAGS += $(shell $(PKGCONF) sdl2 --cflags) $(shell $(PKGCONF) SDL2_ttf --cflags)
 endif
 
 CFLAGS_JDAW_ONLY := -DLT_DEV_MODE=0

@@ -1,8 +1,23 @@
 ifdef USE_EXTERNAL_SDLS
-    ifndef SDL_TTF_LIB_DIR
-        $(error "ERROR: When USE_EXTERNAL_SDLS is set, SDL_TTF_LIB_DIR must also be specified")
-    endif
+# Check for pkg-config or pkgconf
+PKGCONF := $(shell command -v pkg-config 2>/dev/null || command -v pkgconf 2>/dev/null)
+# Check if we found a pkg-config implementation
+ifeq ($(PKGCONF),)
+$(error "pkg-config required when USE_EXTERNAL_SDLS is set")
 endif
+HAVE_EXTERNAL_SDL := $(shell $(PKG_CONF) --exists sdl2 2>/dev/null && echo yes || echo no)
+HAVE_EXTERNAL_SDL_TTF := $(shell $(PKG_CONF) --exists sdl2_ttf 2>/dev/null && echo yes || echo no)
+
+ifeq ($(HAVE_EXTERNAL_SDL),no)
+$(error "SDL2 was not found on your system.")
+endif
+
+ifeq ($(HAVE_EXTERNAL_SDL_TTF),no)
+$(error "SDL_ttf was not found on your system.")
+endif
+
+endif
+
 
 CC := gcc
 SRC_DIR := src
@@ -25,7 +40,7 @@ PORTMIDI_LIB := $(PORTMIDI_PATH)/build/libportmidi.a
 SDL_TTF_PATH := $(PWD)/SDL_ttf
 
 
-ifdef SDL_TTF_LIB_DIR
+ifdef USE_EXTERNAL_SDLS
 SDL_TTF_LIB :=
 else
 SDL_TTF_LIB := $(SDL_TTF_PATH)/.libs/libSDL2_ttf.a
@@ -50,7 +65,7 @@ SDL_FLAGS_MACOS_ONLY := -framework AudioToolBox \
 UNAME_S := $(shell uname -s)
 
 ifdef USE_EXTERNAL_SDLS
-SDL_FLAGS_ALL := $(shell sdl2-config --cflags)
+SDL_FLAGS_ALL := 
 else
 SDL_FLAGS_ALL := -I$(SDL_INCLUDE_PATH)
 endif
@@ -68,7 +83,7 @@ endif
 
 ifdef USE_EXTERNAL_SDLS
 	LIBS := $(PORTMIDI_LIB)
-	LDFLAGS += $(shell sdl2-config --libs --cflags) -L$(SDL_TTF_LIB_DIR) -lSDL2_ttf
+	LDFLAGS += $(shell $(PKGCONF) sdl2 --libs) $(shell $(PKGCONF) sdl2_ttf --libs)
 
 else
 	LIBS := $(SDL_LIB) $(SDL_TTF_LIB) $(PORTMIDI_LIB)
@@ -80,6 +95,10 @@ CFLAGS := -Wall -Wno-unused-command-line-argument -Wno-format-truncation -I$(SRC
 	-ISDL_ttf \
 	-DINSTALL_DIR="\"$(PWD)\"" \
 	$(SDL_FLAGS)
+
+ifdef USE_EXTERNAL_SDLS
+CFLAGS += $(shell $(PKGCONF) sdl2 --cflags) $(shell $(PKGCONF) sdl2_ttf --cflags)
+endif
 
 CFLAGS_JDAW_ONLY := -DLT_DEV_MODE=0
 CFLAGS_LT_ONLY := -DLT_DEV_MODE=1 -DLAYOUT_BUILD=1

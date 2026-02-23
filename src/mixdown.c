@@ -73,7 +73,6 @@ static float get_track_mixdown_chunk(Track *track, float *restrict L, float *res
     float vol_vals[output_chunk_len_sframes];
     float pan_vals[2][output_chunk_len_sframes];
 
-
     /* Construct volume buffer for linear scaling */
     if (vol_auto && !vol_auto->write && vol_auto->read) {
 	automation_get_range(vol_auto, vol_vals, output_chunk_len_sframes, start_pos_sframes, step);
@@ -90,7 +89,8 @@ static float get_track_mixdown_chunk(Track *track, float *restrict L, float *res
 
     /* Construct pan buffer for linear scaling */
     if (pan_auto && !pan_auto->write && pan_auto->read) {
-	automation_get_range(pan_auto, pan_vals, output_chunk_len_sframes, start_pos_sframes, step);
+	automation_get_range(pan_auto, pan_vals[0], output_chunk_len_sframes, start_pos_sframes, step);
+	memcpy(pan_vals[1], pan_vals[0], output_chunk_len_sframes * sizeof(float));
 	make_pan_chunk(pan_vals[0], output_chunk_len_sframes, 0);
 	make_pan_chunk(pan_vals[1], output_chunk_len_sframes, 1);
     } else {

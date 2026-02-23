@@ -56,6 +56,7 @@ void saturation_set_gain(Saturation *s, double gain);
 void saturation_set_type(Saturation *s, SaturationType t);
 /* double saturation_sample(Saturation *s, double in); */
 float saturation_buf_apply(void *saturation_v, float *restrict buf, int len, int channel_unused, float input_amp);
+float saturation_buf_apply_stereo(void *saturation_v, float *restrict L, float *restrict R, int len, float input_amp);
 /* void saturation_buf_apply(Saturation *s, float *buf, int len, int channel_unused); */
 
 

@@ -170,6 +170,13 @@ float saturation_buf_apply(void *saturation_v, float *restrict buf, int len, int
     return output_amp;
 }
 
+float saturation_buf_apply_stereo(void *saturation_v, float *restrict L, float *restrict R, int len, float input_amp)
+{
+    input_amp = saturation_buf_apply(saturation_v, L, len, 0, input_amp);
+    input_amp = saturation_buf_apply(saturation_v, R, len, 1, input_amp);
+    return input_amp;
+}
+
 
 /* void saturation_deinit(Saturation *s) */
 /* { */

@@ -188,8 +188,9 @@ void wav_write_mixdown(const char *filepath)
 		return;
 	    }
 	}
-	get_mixdown_chunk(tl, samples_L, 0, chunk_len_sframes, tl->in_mark_sframes + (c * chunk_len_sframes), 1);
-        get_mixdown_chunk(tl, samples_R, 1, chunk_len_sframes, tl->in_mark_sframes + (c * chunk_len_sframes), 1);
+	get_mixdown_chunk(tl, samples_L, samples_R, chunk_len_sframes, tl->in_mark_sframes + (c * chunk_len_sframes), 1);
+	/* get_mixdown_chunk(tl, samples_L, 0, chunk_len_sframes, tl->in_mark_sframes + (c * chunk_len_sframes), 1); */
+        /* get_mixdown_chunk(tl, samples_R, 1, chunk_len_sframes, tl->in_mark_sframes + (c * chunk_len_sframes), 1); */
         for (uint32_t i=0; i<chunk_len_samples; i+=2) {
             samples[c * chunk_len_samples + i] = clip_float_sample(samples_L[i/2]) * INT16_MAX;
             samples[c * chunk_len_samples + i + 1] = clip_float_sample(samples_R[i/2]) * INT16_MAX;
@@ -199,8 +200,9 @@ void wav_write_mixdown(const char *filepath)
     if (remainder_sframes > 0) {
 	uint32_t done_len_sframes = chunk_len_sframes * chunks;
 	uint32_t done_len_samples = chunk_len_samples * chunks;
-	get_mixdown_chunk(tl, samples_L, 0, remainder_sframes, tl->in_mark_sframes + done_len_sframes, 1);
-	get_mixdown_chunk(tl, samples_R, 1, remainder_sframes, tl->in_mark_sframes + done_len_sframes, 1);
+	get_mixdown_chunk(tl, samples_L, samples_R, remainder_sframes, tl->in_mark_sframes + done_len_sframes, 1);
+	/* get_mixdown_chunk(tl, samples_L, 0, remainder_sframes, tl->in_mark_sframes + done_len_sframes, 1); */
+	/* get_mixdown_chunk(tl, samples_R, 1, remainder_sframes, tl->in_mark_sframes + done_len_sframes, 1); */
 	for (uint32_t i=0; i<remainder_sframes * proj->channels; i+=2) {
 	    samples[done_len_samples + i] = clip_float_sample(samples_L[i/2]) * INT16_MAX;
 	    samples[done_len_samples + i + 1] = clip_float_sample(samples_R[i/2]) * INT16_MAX;

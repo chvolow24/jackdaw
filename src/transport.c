@@ -313,8 +313,8 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 
 	/* Allocate half of chunk time to synth */
 	double alloced_msec = 0.25 * 1000.0 * session->proj.chunk_size_sframes / session->proj.sample_rate;
-	synth_add_buf(s, chunk_L, 0, len_sframes, playspeed, true, alloced_msec); /* TL Pos ignored */
-	synth_add_buf(s, chunk_R, 1, len_sframes, playspeed, true, alloced_msec); /* TL Pos ignored */
+	synth_add_buf(s, chunk_L, chunk_R, len_sframes, playspeed, true, alloced_msec); /* TL Pos ignored */
+	/* synth_add_buf(s, chunk_R, 1, len_sframes, playspeed, true, alloced_msec); /\* TL Pos ignored *\/ */
     }
 
     /* Check for queued bufs and add to chunk_L and chunk_R */
@@ -442,9 +442,10 @@ static void *transport_dsp_thread_fn(void *arg)
 	/* tl->last_read_playspeed = play_speed; */
 	/* tl->current_dsp_chunk_start = tl->read_pos_sframes; */
 	
-	/* GET MIXDOWN */	
-	get_mixdown_chunk(tl, buf_L, 0, len, tl->read_pos_sframes, play_speed);
-	get_mixdown_chunk(tl, buf_R, 1, len, tl->read_pos_sframes, play_speed);
+	/* GET MIXDOWN */
+	get_mixdown_chunk(tl, buf_L, buf_R, len, tl->read_pos_sframes, play_speed);
+	/* get_mixdown_chunk(tl, buf_L, 0, len, tl->read_pos_sframes, play_speed); */
+	/* get_mixdown_chunk(tl, buf_R, 1, len, tl->read_pos_sframes, play_speed); */
 	
 
 	/* DSP */

@@ -405,14 +405,14 @@ Synth *synth_create(Track *track)
 	
     for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 	SynthVoice *v = s->voices + i;
-	adsr_params_add_follower(&s->amp_env, &v->amp_env[0]);
-	adsr_params_add_follower(&s->amp_env, &v->amp_env[1]);
+	adsr_params_add_follower(&s->amp_env, &v->amp_env);
+	/* adsr_params_add_follower(&s->amp_env, &v->amp_env[1]); */
 	
-	adsr_params_add_follower(&s->filter_env, &v->filter_env[0]);
-	adsr_params_add_follower(&s->filter_env, &v->filter_env[1]);
+	adsr_params_add_follower(&s->filter_env, &v->filter_env);
+	/* adsr_params_add_follower(&s->filter_env, &v->filter_env[1]); */
 	
-	adsr_params_add_follower(&s->noise_amt_env, &v->noise_amt_env[0]);
-	adsr_params_add_follower(&s->noise_amt_env, &v->noise_amt_env[1]);
+	adsr_params_add_follower(&s->noise_amt_env, &v->noise_amt_env);
+	/* adsr_params_add_follower(&s->noise_amt_env, &v->noise_amt_env[1]); */
 
 	iir_init(&v->filter, 2, 2);
 	v->synth = s;
@@ -1391,33 +1391,33 @@ static void osc_get_buf_preamp(Osc *osc, float step, int len, int after)
 /*     synth_parallelism = !synth_parallelism; */
 /*     fprintf(stderr, "Synth parallellism %s\n", synth_parallelism ? "ON" : "OFF"); */
 /* } */
-static void synth_voice_add_buf(SynthVoice *v, float *restrict buf, int32_t len, int channel, float step, bool set_not_add);
+static void synth_voice_add_buf(SynthVoice *v, float *restrict L, float *restrict R, int32_t len, float step, bool set_not_add);
 struct synthvoice_arg {
     SynthVoice *v;
-    float *buf;
+    float *restrict L;
+    float *restrict R;
     int32_t len;
-    int channel;
     float step;
 };
 static void *synth_voice_add_buf_threadfn(void *userdata)
 {
     struct synthvoice_arg *arg = userdata;
     /* fprintf(stderr, "Adding buf %p...\n", arg->buf); */
-    synth_voice_add_buf(arg->v, arg->buf, arg->len, arg->channel, arg->step, true);
+    synth_voice_add_buf(arg->v, arg->L, arg->R, arg->len, arg->step, true);
     /* fprintf(stderr, "\tbuf %p done...\n", arg->buf); */
     return NULL;
 }
 
-static void synth_voice_add_buf(SynthVoice *v, float *restrict buf, int32_t len, int channel, float step, bool set_not_add)
+static void synth_voice_add_buf(SynthVoice *v, float *restrict L, float *restrict R, int32_t len, float step, bool set_not_add)
 {
     /* if (v->available && !(v->synth->mono_mode && v == v->synth->voices)) return; */
     /* if (v->available) return; */
-    float osc_buf[len];
-    memset(osc_buf, '\0', len * sizeof(float));
+    float osc_buf[2][len];
+    memset(osc_buf, '\0', 2 * len * sizeof(float));
     for (int i=0; i<SYNTHVOICE_NUM_OSCS; i++) {
 	osc_reset_params(v->oscs + i, len);
     }
-    int after = v->amp_env->current_stage == ADSR_UNINIT ? v->amp_env->env_remaining : 0;
+    int after = v->amp_env.current_stage == ADSR_UNINIT ? v->amp_env.env_remaining : 0;
     for (int i=0; i<SYNTH_NUM_BASE_OSCS; i++) {
 	OscCfg *cfg = v->synth->base_oscs + i;
 	/* fprintf(stderr, "\t\tvoice %ld osc %d\n", v - v->synth->voices, i); */
@@ -1430,14 +1430,16 @@ static void synth_voice_add_buf(SynthVoice *v, float *restrict buf, int32_t len,
 	/*     osc_reset_params(osc->freq_modulator); */
 	/* if (osc->amp_modulator) */
 	/*     osc_reset_params(osc->amp_modulator); */
-	float ind_osc_buf[len];
-	if (channel == 0) {
-	    osc_get_buf_preamp(osc, step, len, after);
-	}
-	memcpy(ind_osc_buf, osc->buf, len * sizeof(float));
-	float amp = osc->amp * pan_scale(osc->pan, channel);
-        float_buf_mult_const(ind_osc_buf, amp, len);
-	float_buf_add(osc_buf, ind_osc_buf, len);
+	float ind_osc_buf[2][len];
+	osc_get_buf_preamp(osc, step, len, after);
+	memcpy(ind_osc_buf[0], osc->buf, len * sizeof(float));
+	memcpy(ind_osc_buf[1], osc->buf, len * sizeof(float));
+	float amp_L = osc->amp * pan_scale(osc->pan, 0);
+	float amp_R = osc->amp * pan_scale(osc->pan, 1);
+        float_buf_mult_const(ind_osc_buf[0], amp_L, len);
+	float_buf_mult_const(ind_osc_buf[1], amp_R, len);
+	float_buf_add(osc_buf[0], ind_osc_buf[0], len);
+	float_buf_add(osc_buf[1], ind_osc_buf[1], len);
 	
 	/* for (int i=0; i<len; i++) { */
 	/*     osc_buf[i] += osc_sample(osc, channel, 2, step, i); */
@@ -1450,21 +1452,25 @@ static void synth_voice_add_buf(SynthVoice *v, float *restrict buf, int32_t len,
 	    /* if (osc->amp_modulator) */
 	    /* 	osc_reset_params(osc->amp_modulator); */
 
-	    if (channel == 0) {
-		osc_get_buf_preamp(osc, step, len, after);
-	    }
-	    memcpy(ind_osc_buf, osc->buf, len * sizeof(float));
-	    amp = osc->amp * pan_scale(osc->pan, channel);
-	    float_buf_mult_const(ind_osc_buf, amp, len);
-	    float_buf_add(osc_buf, ind_osc_buf, len);
+	    /* if (channel == 0) { */
+	    osc_get_buf_preamp(osc, step, len, after);
+	    /* } */
+	    memcpy(ind_osc_buf[0], osc->buf, len * sizeof(float));
+	    memcpy(ind_osc_buf[1], osc->buf, len * sizeof(float));
+	    amp_L = osc->amp * pan_scale(osc->pan, 0);
+	    amp_R = osc->amp * pan_scale(osc->pan, 1);
+	    float_buf_mult_const(ind_osc_buf[0], amp_L, len);
+	    float_buf_mult_const(ind_osc_buf[1], amp_R, len);
+	    float_buf_add(osc_buf[0], ind_osc_buf[0], len);
+	    float_buf_add(osc_buf[1], ind_osc_buf[1], len);
 	}
     }
 
     float amp_env[len];
     bool reinit_scheduled = false;
-    enum adsr_stage amp_stage = adsr_get_chunk(&v->amp_env[channel], amp_env, len, &reinit_scheduled);
+    enum adsr_stage amp_stage = adsr_get_chunk(&v->amp_env, amp_env, len, &reinit_scheduled);
     /* fprintf(stderr, "\t\tGot amp chunk channel %d (env %p), end stage %d\n", channel, &v->amp_env[channel], amp_stage); */
-    if (amp_stage == ADSR_OVERRUN && channel == 1 && !reinit_scheduled) {
+    if (amp_stage == ADSR_OVERRUN && !reinit_scheduled) {
 	v->available = true;
 	/* fprintf(stderr, "\t\t\tFREEING VOICE %ld (env overrun)\n", v - v->synth->voices); */
 	/* return; */
@@ -1474,7 +1480,7 @@ static void synth_voice_add_buf(SynthVoice *v, float *restrict buf, int32_t len,
     float filter_env[len];
     float *filter_env_p = amp_env;
     if (v->synth->filter_active && !v->synth->use_amp_env) {
-	adsr_get_chunk(&v->filter_env[channel], filter_env, len, NULL);
+	adsr_get_chunk(&v->filter_env, filter_env, len, NULL);
 	filter_env_p = filter_env;
     }
     bool do_noise = false;
@@ -1482,7 +1488,7 @@ static void synth_voice_add_buf(SynthVoice *v, float *restrict buf, int32_t len,
     if (v->synth->noise_amt > 1e-9) {
 	do_noise = true;
 	if (v->synth->noise_apply_env) {
-	    adsr_get_chunk(&v->noise_amt_env[channel], noise_env, len, NULL);
+	    adsr_get_chunk(&v->noise_amt_env, noise_env, len, NULL);
 	}
     }
     for (int i=0; i<len; i++) {
@@ -1491,7 +1497,8 @@ static void synth_voice_add_buf(SynthVoice *v, float *restrict buf, int32_t len,
 	    if (v->synth->noise_apply_env) {
 		env = noise_env[i];
 	    }
-	    osc_buf[i] += env * (((float)(rand() % INT16_MAX) / INT16_MAX) - 0.5) * 2.0 * v->synth->noise_amt;
+	    osc_buf[0][i] += env * (((float)(rand() % INT16_MAX) / INT16_MAX) - 0.5) * 2.0 * v->synth->noise_amt;
+	    osc_buf[1][i] += env * (((float)(rand() % INT16_MAX) / INT16_MAX) - 0.5) * 2.0 * v->synth->noise_amt;
 	}
 	if (v->synth->filter_active) {
 	    if (i%37 == 0) { /* Update filter every 37 sample frames */
@@ -1519,7 +1526,8 @@ static void synth_voice_add_buf(SynthVoice *v, float *restrict buf, int32_t len,
 		/* } */
 	    }
 	    /* float pre_filter = osc_buf[i]; */
-	    osc_buf[i] = iir_sample(f, osc_buf[i], channel);
+	    osc_buf[0][i] = iir_sample(f, osc_buf[0][i], 0);
+	    osc_buf[1][i] = iir_sample(f, osc_buf[1][i], 1);
 	    /* if (fabs(osc_buf[i]) > 5.0) { */
 	    /* 	fprintf(stderr, "Err post filter %f (pre %f)\n", osc_buf[i], pre_filter); */
 	    /* 	fprintf(stderr, "\tLast set freq: %f (%fHz), coeffs A: %f %f %f, B: %f %f\n", last_set_freq, dsp_scale_freq_to_hz(last_set_freq),   f->A[0], f->A[1], f->A[2], f->B[0], f->B[1]); */
@@ -1529,7 +1537,8 @@ static void synth_voice_add_buf(SynthVoice *v, float *restrict buf, int32_t len,
 	}
 	/* buf[i] += osc_buf[i] * (float)v->velocity / 127.0f; */
     }
-    float_buf_mult(osc_buf, amp_env, len);
+    float_buf_mult(osc_buf[0], amp_env, len);
+    float_buf_mult(osc_buf[1], amp_env, len);
 
     int32_t p_len_remaining = 0;
     if (v->do_portamento && (p_len_remaining = (v->portamento_len_sframes - v->portamento_elapsed_sframes) * step) > 0) {
@@ -1548,12 +1557,15 @@ static void synth_voice_add_buf(SynthVoice *v, float *restrict buf, int32_t len,
 	float end = abs_start + (((double)v->portamento_elapsed_sframes + p_len) / v->portamento_len_sframes) * m;
 	make_rampf(vel_ramp, ramp_len, start, end);
 	/* fprintf(stderr, "VEl ramp %f->%f\n", start, end); */
-	float_buf_mult(osc_buf, vel_ramp, ramp_len);
+	float_buf_mult(osc_buf[0], vel_ramp, ramp_len);
+	float_buf_mult(osc_buf[1], vel_ramp, ramp_len);
 	if (ramp_len < len) {
-	    float_buf_mult_const(osc_buf + ramp_len, end, len - ramp_len);
+	    float_buf_mult_const(osc_buf[0] + ramp_len, end, len - ramp_len);
+	    float_buf_mult_const(osc_buf[1] + ramp_len, end, len - ramp_len);
 	}
     } else {
-	float_buf_mult_const(osc_buf, (float)v->velocity / 127.0f, len);
+	float_buf_mult_const(osc_buf[0], (float)v->velocity / 127.0f, len);
+	float_buf_mult_const(osc_buf[1], (float)v->velocity / 127.0f, len);
     }
 
     if (p_len_remaining > 0) {
@@ -1564,9 +1576,11 @@ static void synth_voice_add_buf(SynthVoice *v, float *restrict buf, int32_t len,
     }
 
     if (set_not_add) {
-	memcpy(buf, osc_buf, len * sizeof(float));	
+	memcpy(L, osc_buf[0], len * sizeof(float));
+	memcpy(R, osc_buf[1], len * sizeof(float));	
     } else {
-	float_buf_add(buf, osc_buf, len);
+	float_buf_add(L, osc_buf[0], len);
+	float_buf_add(R, osc_buf[0], len);
     }
 }
 
@@ -1676,23 +1690,23 @@ static void synth_voice_assign_note(SynthVoice *v, double note, int velocity, in
     v->available = false;
 
     if (portamento || stolen) {
-	adsr_reinit(v->amp_env, start_rel);
-	adsr_reinit(v->amp_env + 1, start_rel);
+	adsr_reinit(&v->amp_env, start_rel);
+	/* adsr_reinit(v->amp_env + 1, start_rel); */
 
-	adsr_reinit(v->filter_env, start_rel);
-	adsr_reinit(v->filter_env + 1, start_rel);
+	adsr_reinit(&v->filter_env, start_rel);
+	/* adsr_reinit(v->filter_env + 1, start_rel); */
 
-	adsr_reinit(v->noise_amt_env, start_rel);
-	adsr_reinit(v->noise_amt_env + 1, start_rel);
+	adsr_reinit(&v->noise_amt_env, start_rel);
+	/* adsr_reinit(v->noise_amt_env + 1, start_rel); */
     } else {
-	adsr_init(v->amp_env, start_rel);
-	adsr_init(v->amp_env + 1, start_rel);
+	adsr_init(&v->amp_env, start_rel);
+	/* adsr_init(v->amp_env + 1, start_rel); */
 
-	adsr_init(v->filter_env, start_rel);
-	adsr_init(v->filter_env + 1, start_rel);
+	adsr_init(&v->filter_env, start_rel);
+	/* adsr_init(v->filter_env + 1, start_rel); */
 
-	adsr_init(v->noise_amt_env, start_rel);
-	adsr_init(v->noise_amt_env + 1, start_rel);
+	adsr_init(&v->noise_amt_env, start_rel);
+	/* adsr_init(v->noise_amt_env + 1, start_rel); */
     }
 }
 
@@ -1843,12 +1857,12 @@ int synth_set_amp_mod_pair(Synth *s, OscCfg *carrier_cfg, OscCfg *modulator_cfg)
 void synth_voice_start_release(SynthVoice *v, int32_t after)
 {
     if (after < 0) after = 0;
-    adsr_start_release(v->amp_env, after);
-    adsr_start_release(v->amp_env + 1, after);
-    adsr_start_release(v->filter_env, after);
-    adsr_start_release(v->filter_env + 1, after);
-    adsr_start_release(v->noise_amt_env, after);
-    adsr_start_release(v->noise_amt_env + 1, after);
+    adsr_start_release(&v->amp_env, after);
+    /* adsr_start_release(v->amp_env + 1, after); */
+    adsr_start_release(&v->filter_env, after);
+    /* adsr_start_release(v->filter_env + 1, after); */
+    adsr_start_release(&v->noise_amt_env, after);
+    /* adsr_start_release(v->noise_amt_env + 1, after); */
 }
 
 static Value endpoint_val_from_midi(Endpoint *ep, int midi_val)
@@ -1942,7 +1956,7 @@ void synth_feed_midi(
 			for (int i=0; i<s->timeout_num_voices; i++) {
 			    SynthVoice *v = s->voices + i;
 			    if (!v->available) {
-				int32_t dur = adsr_query_position(v->amp_env);
+				int32_t dur = adsr_query_position(&v->amp_env);
 				if (dur > oldest_dur) {
 				    oldest_dur =  dur;
 				    oldest = v;
@@ -1960,7 +1974,7 @@ void synth_feed_midi(
 			/* First try to get nearest voice that is in release stage */
 			for (int i=0; i<s->timeout_num_voices; i++) {
 			    SynthVoice *v = s->voices + i;
-			    if (!v->available && v->amp_env->current_stage >= ADSR_R) {
+			    if (!v->available && v->amp_env.current_stage >= ADSR_R) {
 				int vdist = abs((int)v->note_val - note_val);
 				if (vdist < dist) {
 				    nearest = v;
@@ -2087,7 +2101,7 @@ void synth_debug_summary(Synth *s, int channel, int32_t len, float step)
 
 double timespec_elapsed_ms(const struct timespec *start, const struct timespec *end);
 
-void synth_add_buf(Synth *s, float *restrict buf, int channel, int32_t len, float step, bool has_timeout, double timeout_after_msec)
+void synth_add_buf(Synth *s, float *restrict L, float *restrict R, int32_t len, float step, bool has_timeout, double timeout_after_msec)
 {
     /* synth_debug_summary(s, channel, len, step); */
     /* fprintf(stderr, "PED? %d\n", s->pedal_depressed); */
@@ -2097,23 +2111,27 @@ void synth_add_buf(Synth *s, float *restrict buf, int channel, int32_t len, floa
     if (step < 0.0) step *= -1;
     if (step > 5.0) {
 	synth_silence(s);
-	memset(buf, '\0', len * sizeof(float));
+	memset(L, '\0', len * sizeof(float));
+	memset(R, '\0', len * sizeof(float));
 	return;
     } else if (s->cpu_stress > 1.5) {
 	log_tmp(LOG_WARN, "Synth silenced due to CPU stress\n");
 	s->cpu_stress = 1.0;
 	synth_silence(s);
 	/* synth_close_all_notes(s); */
-	memset(buf, '\0', len * sizeof(float));
+	memset(L, '\0', len * sizeof(float));
+	memset(R, '\0', len * sizeof(float));
 	return;
 
     }
     if (pthread_mutex_trylock(&s->audio_proc_lock) != 0) {
-	memset(buf, '\0', len * sizeof(float));
+	memset(L, '\0', len * sizeof(float));
+	memset(R, '\0', len * sizeof(float));
 	return;
     }
-    float internal_buf[len];
-    memset(internal_buf, 0, sizeof(internal_buf));
+    float internal_buf[2][len];
+    memset(internal_buf[0], 0, len * sizeof(float));
+    memset(internal_buf[1], 0, len * sizeof(float));
 
     /* bool timed_out = false; */
     struct timespec start, end;
@@ -2129,7 +2147,7 @@ void synth_add_buf(Synth *s, float *restrict buf, int channel, int32_t len, floa
     /* 	    fprintf(stderr, "SYNTH %d / %d%s\n", s->timeout_num_voices, s->num_voices, s->timed_out ? " TIMED OUT":""); */
     /* 	} */
     /* } */
-    float bufs[SYNTH_NUM_VOICES][len];
+    float bufs[SYNTH_NUM_VOICES][2][len];
     /* memset(bufs, 0, sizeof(bufs)); */
     struct synthvoice_arg args[SYNTH_NUM_VOICES];
     pthread_t threads[SYNTH_NUM_VOICES];
@@ -2144,9 +2162,10 @@ void synth_add_buf(Synth *s, float *restrict buf, int channel, int32_t len, floa
 	    if (!v->available) {
 		active_voices++;
 		args[i].v = v;
-		args[i].buf = bufs[i];
+		args[i].L = bufs[i][0];
+		args[i].R = bufs[i][1];
 		args[i].len = len;
-		args[i].channel = channel;
+		/* args[i].channel = channel; */
 		args[i].step = step;
 		pthread_create(threads + i, NULL, synth_voice_add_buf_threadfn, args + i);
 		thread_exists[i] = true;
@@ -2156,7 +2175,7 @@ void synth_add_buf(Synth *s, float *restrict buf, int channel, int32_t len, floa
     	for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 	    SynthVoice *v = s->voices + i;
 	    if (!v->available) {
-		synth_voice_add_buf(v, internal_buf, len, channel, step, false);
+		synth_voice_add_buf(v, internal_buf[0], internal_buf[1], len, step, false);
 	    }
 	}
     }
@@ -2164,7 +2183,8 @@ void synth_add_buf(Synth *s, float *restrict buf, int channel, int32_t len, floa
 	for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 	    if (thread_exists[i]) {
 		pthread_join(threads[i], NULL);
-		float_buf_add(internal_buf, bufs[i], len);
+		float_buf_add(internal_buf[0], bufs[i][0], len);
+		float_buf_add(internal_buf[1], bufs[i][1], len);
 	    }
 	}
     }
@@ -2210,26 +2230,24 @@ void synth_add_buf(Synth *s, float *restrict buf, int channel, int32_t len, floa
     /* } */
 
     /* if (!timed_out) { */
-    effect_chain_buf_apply(&s->effect_chain, internal_buf, len, channel, 1.0);
-    /* } else { */
-	/* effect_chain_silence(&s->effect_chain); */
-    /* } */
-    /* float sum = 0.0f; */
-    /* for (int i=0; i<len; i++) { */
-    /* 	sum += fabs(internal_buf[i]); */
-    /* } */
-    /* fprintf(stderr, "\tInternal buf tot %f\n", sum); */
-    /* fprintf(stderr, "\tvol: %f pan scale: %f\n", s->vol, pan_scale(s->pan, channel)); */
-    /* float sum = 0.0f; */
+    effect_chain_buf_apply(&s->effect_chain, internal_buf[0], internal_buf[1], len, 1.0);
+    
     for (int i=0; i<len; i++) {
 	/* float dc_blocked = iir_sample(&s->dc_blocker, internal_buf[i], channel); */
 	/* sum += fabs(dc_blocked); */
-	buf[i] += tanh(
+ 	L[i] += tanh(
 	    /* dc_blocked */
-	    iir_sample(&s->dc_blocker, internal_buf[i], channel)
+	    iir_sample(&s->dc_blocker, internal_buf[0][i], 0)
 	    * s->vol
-	    * pan_scale(s->pan, channel)
+	    * pan_scale(s->pan, 0)
 	    );
+	R[i] += tanh(
+	    /* dc_blocked */
+	    iir_sample(&s->dc_blocker, internal_buf[1][i], 1)
+	    * s->vol
+	    * pan_scale(s->pan, 1)
+	    );
+
 	/* sum += fabs(buf[i]); */
 	
     }
@@ -2271,8 +2289,8 @@ int32_t synth_make_notes(Synth *s, int *pitches, int *velocities, int num_pitche
 	    memset(buf_L + alloc_len / 2, '\0', alloc_len * sizeof(float) / 2);
 	    memset(buf_R + alloc_len / 2, '\0', alloc_len * sizeof(float) / 2);
 	}
-	synth_add_buf(s, buf_L + len, 0, incr_len, 1.0, false, 0);
-	synth_add_buf(s, buf_R + len, 1, incr_len, 1.0, false, 0);
+	synth_add_buf(s, buf_L + len, buf_R + len, incr_len, 1.0, false, 0);
+	/* synth_add_buf(s, buf_R + len, 1, incr_len, 1.0, false, 0); */
 	len += incr_len;
 	
 	/* Quarter-second sustain time */
@@ -2304,12 +2322,12 @@ void synth_close_all_notes(Synth *s)
 	synth_voice_pitch_bend(v, 0.0);
 	if (!v->available) {
 	    /* fprintf(stderr, "\tkill voice %d\n", i); */
-	    adsr_start_release(v->amp_env, 0);
-	    adsr_start_release(v->amp_env + 1, 0);
-	    adsr_start_release(v->filter_env, 0);
-	    adsr_start_release(v->filter_env + 1, 0);
-	    adsr_start_release(v->noise_amt_env, 0);
-	    adsr_start_release(v->noise_amt_env + 1, 0);
+	    adsr_start_release(&v->amp_env, 0);
+	    /* adsr_start_release(v->amp_env + 1, 0); */
+	    adsr_start_release(&v->filter_env, 0);
+	    /* adsr_start_release(v->filter_env + 1, 0); */
+	    adsr_start_release(&v->noise_amt_env, 0);
+	    /* adsr_start_release(v->noise_amt_env + 1, 0); */
 	}
     }
 }
@@ -2319,7 +2337,7 @@ void synth_silence(Synth *s)
     for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 	SynthVoice *v = s->voices + i;
 	v->available = true;
-	v->amp_env->current_stage = ADSR_OVERRUN;
+	v->amp_env.current_stage = ADSR_OVERRUN;
     }
     effect_chain_silence(&s->effect_chain);
 }

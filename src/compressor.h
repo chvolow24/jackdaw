@@ -51,6 +51,7 @@ typedef struct compressor {
 /* static inline float compressor_sample_gain_reduction(Compressor *c, float in); */
 void compressor_init(Compressor *c);
 float compressor_buf_apply(void *compressor_v, float *buf, int len, int channel, float input_amp);
+float compressor_buf_apply_stereo(void *compressor_v, float *restrict L, float *restrict R, int len, float input_amp);
 void compressor_set_times_msec(Compressor *c, double attack_msec, double release_msec, double sample_rate);
 void compressor_set_threshold(Compressor *c, float thresh);
 void compressor_set_m(Compressor *c, float m);

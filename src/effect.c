@@ -251,7 +251,7 @@ Effect *effect_chain_add_effect(EffectChain *ec, EffectType type)
 	((EQ *)e->obj)->effect = e;
 	/* ((EQ *)e->obj)->track = track; */
 	eq_init(e->obj);
-	e->buf_apply = eq_buf_apply;
+	e->buf_apply = eq_buf_apply_stereo;
 	break;
     case EFFECT_FIR_FILTER: {
 	e->obj = calloc(1, sizeof(FIRFilter));
@@ -260,27 +260,27 @@ Effect *effect_chain_add_effect(EffectChain *ec, EffectType type)
 	/* int fr_len = track->tl->proj->fourier_len_sframes * 2; */
 	int ir_len = ec->chunk_len_sframes;
 	filter_init(e->obj, LOWPASS, ir_len, ec->proj->fourier_len_sframes * 2, ec->chunk_len_sframes);
-	e->buf_apply = filter_buf_apply;
+	e->buf_apply = filter_buf_apply_stereo;
     }
 	break;
     case EFFECT_DELAY:
 	e->obj = calloc(1, sizeof(DelayLine));
 	((DelayLine *)e->obj)->effect = e;
 	delay_line_init(e->obj, ec->proj->sample_rate);
-	e->buf_apply = delay_line_buf_apply;
+	e->buf_apply = delay_line_buf_apply_stereo;
 	e->operate_on_empty_buf = true;
 	break;
     case EFFECT_SATURATION:
 	e->obj = calloc(1, sizeof(Saturation));
 	((Saturation *)e->obj)->effect = e;
 	saturation_init(e->obj);
-	e->buf_apply = saturation_buf_apply;
+	e->buf_apply = saturation_buf_apply_stereo;
 	break;
     case EFFECT_COMPRESSOR:
 	e->obj = calloc(1, sizeof(Compressor));
 	((Compressor *)e->obj)->effect = e;
 	compressor_init(e->obj);
-	e->buf_apply = compressor_buf_apply;
+	e->buf_apply = compressor_buf_apply_stereo;
 	e->operate_on_empty_buf = true;
 	break;
     default:
@@ -407,20 +407,20 @@ static int add_effect_form(void *mod_v, void *nullarg)
     return 0;
 }
 
-static float effect_buf_apply(Effect *e, float *restrict buf, int len, int channel, float input_amp)
+static float effect_buf_apply(Effect *e, float *restrict buf_L, float *restrict buf_R, int len, float input_amp)
 {
     /* if (!e->active) return input_amp; */
-    return e->buf_apply(e->obj, buf, len, channel, input_amp);
+    return e->buf_apply(e->obj, buf_L, buf_R, len, input_amp);
 }
 
-float effect_chain_buf_apply(EffectChain *ec, float *restrict buf, int len, int channel, float input_amp)
+float effect_chain_buf_apply(EffectChain *ec, float *restrict L, float *restrict R, int len, float input_amp)
 {
     static float amp_epsilon = 1e-7f;
     float output = input_amp;
     if (len > ec->chunk_len_sframes) {
 	int index = 0;
 	while (index < len) {
-	    output = effect_chain_buf_apply(ec, buf + index, ec->chunk_len_sframes, channel, output);
+	    output = effect_chain_buf_apply(ec, L + index, R + index, ec->chunk_len_sframes, output);
 	    index += ec->chunk_len_sframes;
 	}
 	return output;
@@ -430,7 +430,7 @@ float effect_chain_buf_apply(EffectChain *ec, float *restrict buf, int len, int 
     for (int i=0; i<ec->num_effects; i++) {
 	Effect *e = ec->effects[i];
 	if (e->active && (e->operate_on_empty_buf || fabs(input_amp) > amp_epsilon)) {
-	    output = effect_buf_apply(e, buf, len, channel, input_amp);
+	    output = effect_buf_apply(e, L, R, len, input_amp);
 	}
     }
     pthread_mutex_unlock(&ec->effect_chain_lock);

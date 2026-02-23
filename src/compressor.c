@@ -68,8 +68,14 @@ float compressor_buf_apply(void *compressor_v, float *buf, int len, int channel,
     }
     c->gain_scalar[channel] = amp_scalar;
     c->env[channel] = env;
-    return output_amp;
-    
+    return output_amp;    
+}
+
+float compressor_buf_apply_stereo(void *compressor_v, float *restrict L, float *restrict R, int len, float input_amp)
+{
+    input_amp = compressor_buf_apply(compressor_v, L, len, 0, input_amp);
+    input_amp = compressor_buf_apply(compressor_v, R, len, 1, input_amp);
+    return input_amp;
 }
 
 void compressor_set_times_msec(Compressor *c, double attack_msec, double release_msec, double sample_rate)

@@ -481,8 +481,14 @@ float filter_buf_apply(void *f_v, float *restrict buf, int len, int channel, flo
     float output_amp = 0.0;
     for (int i=0; i<len; i++) {
 	output_amp += fabs(buf[i]);
-    }
-    
+    }    
     return output_amp;
+}
+
+float filter_buf_apply_stereo(void *f_v, float *restrict L, float *restrict R, int len, float input_amp)
+{
+    input_amp = filter_buf_apply(f_v, L, len, 0, input_amp);
+    input_amp = filter_buf_apply(f_v, R, len, 1, input_amp);
+    return input_amp;
 }
 

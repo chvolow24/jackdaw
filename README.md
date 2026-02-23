@@ -61,6 +61,8 @@ $ cd jackdaw
 $ make
 ```
 
+(If you already cloned an earlier version of the jackdaw repo, you will need to run `git submodule update --init --recursive` to pull in the new submodules, and `make clean` before running `make`).
+
 `make` will create static builds of each of the (included) dependencies, and will construct the `jackdaw` binary in the root directory of the project. The dependencies are built locally (i.e., nothing will be installed on your system).
 
 If `make` executes successfully, you can open Jackdaw with

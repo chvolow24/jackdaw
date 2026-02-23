@@ -23,6 +23,7 @@
 #define MAX_LINEAR_PLOTS 10
 #define SFPP_THRESHOLD 15.5
 
+#include <pthread.h>
 #include "logscale.h"
 #include "textbox.h"
 #include "value.h"

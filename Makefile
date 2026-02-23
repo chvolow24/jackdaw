@@ -18,7 +18,6 @@ endif
 
 endif
 
-
 CC := gcc
 SRC_DIR := src
 BUILD_DIR := build
@@ -105,8 +104,6 @@ CFLAGS_LT_ONLY := -DLT_DEV_MODE=1 -DLAYOUT_BUILD=1
 CFLAGS_PROD := -O3
 CFLAGS_DEBUG := -DTESTBUILD=1 -g -O0 -fsanitize=address
 CFLAGS_ADDTL =
-
-
 
 LAYOUT_PROGRAM_SRCS := gui/src/openfile.c gui/src/lt_params.c gui/src/draw.c gui/src/main.c gui/src/test.c
 JACKDAW_ONLY_SRCS :=  src/main.c  gui/src/test.c gui/src/menu.c gui/src/modal.c gui/src/dir.c gui/src/components.c gui/src/label.c gui/src/symbols.c gui/src/autocompletion.c gui/src/symbol.c

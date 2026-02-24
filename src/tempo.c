@@ -62,7 +62,7 @@ static MetronomeBuffer *session_add_metronome(const char *filepath)
     MetronomeBuffer *mb = session->metronome_buffers + session->num_metronome_buffers;
     mb->buf_len = buf_len;
     mb->buf = buf;
-    mb->filepath = filepath;
+    mb->filepath = strdup(filepath);
     mb->used_in = 0;
     mb->name = mb->filepath;
     const char *last_slash_pos = NULL;
@@ -96,6 +96,7 @@ void session_destroy_metronomes(Session *session)
     for (int i=0; i<session->num_metronome_buffers; i++) {
 	/* Metronome *m = session->metronomes + i; */
 	MetronomeBuffer *mb = session->metronome_buffers + i;
+	if (mb->filepath) free((void *)mb->filepath);
 	if (mb->buf) free(mb->buf);
 	mb->buf = NULL;
 	mb->used_in = 0;

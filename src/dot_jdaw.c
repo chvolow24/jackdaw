@@ -15,6 +15,7 @@
 #include "compressor.h"
 #include "consts.h"
 #include "delay_line.h"
+#include "dsp_utils.h"
 #include "effect.h"
 #include "eq.h"
 #include "file_backup.h"
@@ -121,20 +122,30 @@ void jdaw_write_project(const char *path)
 	if (proj->clips[i]->num_refs > 0) num_clips++;
     }
     uint16_ser_le(f, &num_clips);
-    uint16_ser_le(f, &proj->num_midi_clips);
+    
+    uint16_t num_midi_clips = 0;
+    for (uint16_t i=0; i<proj->num_midi_clips; i++) {
+	if (proj->midi_clips[i]->num_refs > 0) num_midi_clips++;
+    }
+
+    uint16_ser_le(f, &num_midi_clips);
     uint8_ser(f, &proj->num_timelines);
     /* fwrite(&proj->num_timelines, 1, 1, f); */
 
     session_loading_screen_update("Writing clip data...", 0.2);
     /* fprintf(stderr, "Serializing %d audio clips...\n", proj->num_clips); */
-    for (uint16_t i=0; i<num_clips; i++) {
+    for (uint16_t i=0; i<proj->num_clips; i++) {
 	session_loading_screen_update(NULL, 0.1 + 0.8 * (float)i/proj->num_clips);
-	jdaw_write_clip(f, proj->clips[i], i);
+	if (proj->clips[i]->num_refs > 0) {
+	    jdaw_write_clip(f, proj->clips[i], i);
+	}
     }
     session_loading_screen_update("Writing MIDI clips...", 0.2);
     for (uint16_t i=0; i<proj->num_midi_clips; i++) {
 	session_loading_screen_update(NULL, 0.1 + 0.8 * (float)i/proj->num_midi_clips);
-	jdaw_write_midi_clip(f, proj->midi_clips[i]);
+	if (proj->midi_clips[i]->num_refs > 0) {
+	    jdaw_write_midi_clip(f, proj->midi_clips[i]);
+	}
     }
     session_loading_screen_update("Writing timelines...", 0.9);
     /* fprintf(stderr, "\t...done.\nSerializing %d timelines...\n", proj->num_timelines); */
@@ -172,12 +183,12 @@ static void jdaw_write_clip(FILE *f, Clip *clip, int index)
     }
     if (clip->channels == 2) {
         for (uint32_t i=0; i<len_samples; i+=2) {
-	    clip_samples[i] = clip->L[i/2] * INT16_MAX;
-	    clip_samples[i+1] = clip->R[i/2] * INT16_MAX;
+	    clip_samples[i] = clip_float_sample(clip->L[i/2]) * INT16_MAX;
+	    clip_samples[i+1] = clip_float_sample(clip->R[i/2]) * INT16_MAX;
         }
     } else if (clip->channels == 1) {
         for (uint32_t i=0; i<len_samples; i++) {
-	    clip_samples[i] = clip->L[i] * INT16_MAX;
+	    clip_samples[i] = clip_float_sample(clip->L[i]) * INT16_MAX;
         }
     }
     if (SYS_BYTEORDER_LE) {
@@ -432,23 +443,32 @@ static void jdaw_write_clipref(FILE *f, ClipRef *cr)
     uint8_t type_byte = cr->type;
     uint8_ser(f, &type_byte);
     
-    int src_clip_index = -1;
+    int src_clip_index = 0;
+    bool src_clip_found = false;
     if (cr->type == CLIP_AUDIO) {
 	for (int i=0; i<proj->num_clips; i++) {
+	    if (proj->clips[i]->num_refs == 0) {
+		continue;
+	    }
 	    if (cr->source_clip == proj->clips[i]) {
-		src_clip_index = i;
+		src_clip_found = true;
 		break;
 	    }
+	    src_clip_index++;
 	}
     } else {
 	for (int i=0; i<proj->num_midi_clips; i++) {
+	    if (proj->midi_clips[i]->num_refs == 0) {
+		continue;
+	    }
 	    if (cr->source_clip == proj->midi_clips[i]) {
-		src_clip_index = i;
+		src_clip_found = true;
 		break;
 	    }
+	    src_clip_index++;
 	}
     }
-    if (src_clip_index < 0) {
+    if (!src_clip_found) {
 	fprintf(stderr, "CRITICAL ERROR: clipref \"%s\" source clip not found. Src clip ptr %p, proj num clips: %d and midi clips: %d\n", cr->name, cr->source_clip, proj->num_clips, proj->num_midi_clips);
 	exit(1);
     }

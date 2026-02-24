@@ -398,7 +398,6 @@ static int add_auto_form(void *mod_v, void *nullarg)
 	    break;
 	}
     }
-    fprintf(stderr, "EP INDEX: %d; NODE: %p; TRACK: %p\n", ep_index, node, track);
 
     struct automation_add_item item = automation_add_items[ep_index];
     

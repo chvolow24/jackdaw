@@ -214,6 +214,8 @@ void wav_write_mixdown(const char *filepath)
 
     write_wav(filepath, samples, len_samples, 16, proj->channels);
     free(samples);
+    timeline_full_pause(tl);
+    timeline_play_speed_set(0.0);
     session_loading_screen_deinit();
 }
 

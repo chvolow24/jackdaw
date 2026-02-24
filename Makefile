@@ -1,11 +1,33 @@
+ifdef USE_EXTERNAL_SDLS
+# Check for pkg-config or pkgconf
+PKGCONF := $(shell command -v pkg-config 2>/dev/null || command -v pkgconf 2>/dev/null)
+# Check if we found a pkg-config implementation
+ifeq ($(PKGCONF),)
+$(error "pkg-config required when USE_EXTERNAL_SDLS is set")
+endif
+HAVE_EXTERNAL_SDL := $(shell $(PKGCONF) --exists sdl2 2>/dev/null && echo yes || echo no)
+HAVE_EXTERNAL_SDL_TTF := $(shell $(PKGCONF) --exists SDL2_ttf 2>/dev/null && echo yes || echo no)
+
+ifeq ($(HAVE_EXTERNAL_SDL),no)
+$(error "SDL2 was not found on your system.")
+endif
+
+ifeq ($(HAVE_EXTERNAL_SDL_TTF),no)
+$(error "SDL_ttf was not found on your system.")
+endif
+
+endif
+
 CC := gcc
 SRC_DIR := src
 BUILD_DIR := build
 GUI_SRC_DIR := gui/src
 GUI_BUILD_DIR := gui/build
+
 DEPFLAGS = -MMD -MP -MF $(@:.o=.d)
 
 # Dependencies
+
 
 SDL_PATH := $(PWD)/SDL
 SDL_LIB := $(SDL_PATH)/build/.libs/libSDL2.a
@@ -15,8 +37,13 @@ PORTMIDI_PATH := $(PWD)/portmidi
 PORTMIDI_LIB := $(PORTMIDI_PATH)/build/libportmidi.a
 
 SDL_TTF_PATH := $(PWD)/SDL_ttf
-SDL_TTF_LIB := $(SDL_TTF_PATH)/.libs/libSDL2_ttf.a
 
+
+ifdef USE_EXTERNAL_SDLS
+SDL_TTF_LIB :=
+else
+SDL_TTF_LIB := $(SDL_TTF_PATH)/.libs/libSDL2_ttf.a
+endif
 
 SDL_FLAGS_MACOS_ONLY := -framework AudioToolBox \
 	-framework Cocoa \
@@ -36,7 +63,11 @@ SDL_FLAGS_MACOS_ONLY := -framework AudioToolBox \
 
 UNAME_S := $(shell uname -s)
 
+ifdef USE_EXTERNAL_SDLS
+SDL_FLAGS_ALL := 
+else
 SDL_FLAGS_ALL := -I$(SDL_INCLUDE_PATH)
+endif
 LINK_ASOUND :=
 
 # Operation system checks
@@ -49,7 +80,13 @@ LINK_ASOUND := -lasound
 LDFLAGS := -lpthread -lm -ldl -lrt
 endif
 
-LIBS := $(SDL_LIB) $(SDL_TTF_LIB) $(PORTMIDI_LIB)
+ifdef USE_EXTERNAL_SDLS
+	LIBS := $(PORTMIDI_LIB)
+	LDFLAGS += $(shell $(PKGCONF) sdl2 --libs) $(shell $(PKGCONF) SDL2_ttf --libs)
+
+else
+	LIBS := $(SDL_LIB) $(SDL_TTF_LIB) $(PORTMIDI_LIB)
+endif
 
 CFLAGS := -Wall -Wno-unused-command-line-argument -Wno-format-truncation -I$(SRC_DIR) -I$(GUI_SRC_DIR) \
 	-Iportmidi/porttime \
@@ -58,13 +95,15 @@ CFLAGS := -Wall -Wno-unused-command-line-argument -Wno-format-truncation -I$(SRC
 	-DINSTALL_DIR="\"$(PWD)\"" \
 	$(SDL_FLAGS)
 
+ifdef USE_EXTERNAL_SDLS
+CFLAGS += $(shell $(PKGCONF) sdl2 --cflags) $(shell $(PKGCONF) SDL2_ttf --cflags)
+endif
+
 CFLAGS_JDAW_ONLY := -DLT_DEV_MODE=0
 CFLAGS_LT_ONLY := -DLT_DEV_MODE=1 -DLAYOUT_BUILD=1
 CFLAGS_PROD := -O3
 CFLAGS_DEBUG := -DTESTBUILD=1 -g -O0 -fsanitize=address
 CFLAGS_ADDTL =
-
-
 
 LAYOUT_PROGRAM_SRCS := gui/src/openfile.c gui/src/lt_params.c gui/src/draw.c gui/src/main.c gui/src/test.c
 JACKDAW_ONLY_SRCS :=  src/main.c  gui/src/test.c gui/src/menu.c gui/src/modal.c gui/src/dir.c gui/src/components.c gui/src/label.c gui/src/symbols.c gui/src/autocompletion.c gui/src/symbol.c
@@ -152,6 +191,4 @@ cleanall:
 	@[ -n "${BUILD_DIR}" ] || { echo "BUILD_DIR unset or null"; exit 127; }
 	@[ -n "${GUI_BUILD_DIR}" ] || { echo "GUI_BUILD_DIR unset or null"; exit 127; }
 	rm -rf $(BUILD_DIR)/* $(GUI_BUILD_DIR)/*
-	cd $(SDL_PATH) && make clean
-	cd $(PORTMIDI_PATH) && rm -rf build/*
-	cd $(SDL_TTF_PATH) && make clean
+	git submodule foreach --recursive git clean -fdx

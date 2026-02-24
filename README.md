@@ -51,7 +51,9 @@ Each dependency is included as a submodule.
 
 ## Installation
 
-Currently, the only way to install Jackdaw is to build it from the source code:
+Currently, the only way to install Jackdaw is to build it from the source code.
+
+The 'standard' way to do this is to run the following commands:
 
 ```console
 $ git clone --recurse-submodules https://github.com/chvolow24/jackdaw.git
@@ -59,9 +61,15 @@ $ cd jackdaw
 $ make
 ```
 
-`make` will first attempt to build each of the (included) dependencies, and will then compile jackdaw's source code and construct the `jackdaw` binary in the root directory of the project.
+(If you already cloned an earlier version of the jackdaw repo, you will need to run `git submodule update --init --recursive` to pull in the new submodules, and `make clean` before running `make`).
 
-The dependencies are built locally (i.e., nothing will be installed on your system) and statically linked.
+`make` will create static builds of each of the (included) dependencies, and will construct the `jackdaw` binary in the root directory of the project. The dependencies are built locally (i.e., nothing will be installed on your system).
+
+If `make` executes successfully, you can open Jackdaw with
+
+```console
+$ ./jackdaw
+```
 
 `make clean` cleans all of Jackdaw's build objects, but leaves the dependencies in place.
 
@@ -70,6 +78,19 @@ The dependencies are built locally (i.e., nothing will be installed on your syst
 `make debug` builds a debug version of Jackdaw.
 
 PortMidi uses CMake for its build process, and SDL and SDL_ttf use GNU Autotools, so both are required for `make` to execute successfully. For its part, Jackdaw just uses GNU Make.
+
+### Link to system SDL2 / SDL2_ttf
+
+If you have SDL2 and SDL2_ttf installed on your system already and would prefer to link to the system installs, you can do so:
+
+```console
+$ make USE_EXTERNAL_SDLS=1
+```
+
+Make will use `pkg-config` to locate the appropriate files and link to those instead of building them from the source code included in the submodules. You do not need to clone the SDL submodules if you build this way, but the PortMidi submodule is still required.
+
+The `USE_EXTERNAL_SDLS=1` setting does not persist, so you will need to include that flag every time you re-run `make`.
+
 
 ## Keyboard command shorthand
 

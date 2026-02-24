@@ -49,7 +49,8 @@ typedef struct allpass_group {
 void allpass_init(Allpass *ap, int32_t len, float coeff);
 float allpass_sample(Allpass *ap, float in);
 
-void allpass_group_init_schroeder(AllpassGroup *ag);
+void allpass_group_init(AllpassGroup *ag, int num_filters, int32_t *lens_samples, float coeff);
+/* void allpass_group_init_schroeder(AllpassGroup *ag); */
 float allpass_group_sample(AllpassGroup *ag, float in);
 
 float lop_delay_sample(LopDelay *ld, float in);

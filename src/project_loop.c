@@ -37,6 +37,7 @@
 #include "project.h"
 #include "project_draw.h"
 #include "screenrecord.h"
+#include "schroeder.h"
 #include "session_endpoint_ops.h"
 #include "session.h"
 #include "settings.h"
@@ -228,6 +229,12 @@ void loop_project_main()
 		/* } */
 
 		switch (e.key.keysym.scancode) {
+		case SDL_SCANCODE_6:
+		    schroeder_toggle_do_allpass();
+		    break;
+		case SDL_SCANCODE_7:
+		    schroeder_toggle_do_lop_delay();
+		    break;
  		/* case SDL_SCANCODE_6: { */
 		/*     Track *track = ACTIVE_TL->tracks[0]; */
 		/*     Effect *e = effect_chain_add_effect(&track->synth->effect_chain, EFFECT_DELAY); */

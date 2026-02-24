@@ -65,6 +65,15 @@ float allpass_group_sample(AllpassGroup *ag, float in)
 }
 
 
+void allpass_group_init(AllpassGroup *ag, int num_filters, int32_t *lens_samples, float coeff)
+{
+    memset(ag, '\0', sizeof(AllpassGroup));
+    ag->filters = calloc(num_filters, sizeof(Allpass));
+    ag->num_filters = num_filters;
+    for (int i=0; i<num_filters; i++) {
+	allpass_init(ag->filters + i, lens_samples[i], coeff);
+    }
+}
 
 void allpass_group_init_schroeder(AllpassGroup *ag)
 {

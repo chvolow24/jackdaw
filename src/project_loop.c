@@ -74,10 +74,13 @@ extern Project *proj;
 
 extern void user_global_quit(void *);
 extern void open_file(const char *filepath);
+extern Schroeder *freeverb_p;
 
 /* void user_piano_roll_quantize(void *nullarg); */
 
 /* void effect_chain_open_tabview(EffectChain *ec); */
+
+void effect_toggle_mid_side_mode();
 void loop_project_main()
 {
     Session *session = session_get();
@@ -227,14 +230,45 @@ void loop_project_main()
 		/*     } */
 			    
 		/* } */
-
 		switch (e.key.keysym.scancode) {
+		case SDL_SCANCODE_1:
+		    schroeder_decr_allpass_coeff(freeverb_p);
+		    break;
+		case SDL_SCANCODE_2:
+		    schroeder_incr_allpass_coeff(freeverb_p);
+		    break;
+
+		case SDL_SCANCODE_3:
+		    schroeder_decr_lop_delay_coeff(freeverb_p);
+		    break;
+		case SDL_SCANCODE_4:
+		    schroeder_incr_lop_delay_coeff(freeverb_p);
+		    break;
+		case SDL_SCANCODE_5:
+		    schroeder_decr_lop_coeff(freeverb_p);
+		    break;
 		case SDL_SCANCODE_6:
-		    schroeder_toggle_do_allpass();
+		    schroeder_incr_lop_coeff(freeverb_p);
 		    break;
+
 		case SDL_SCANCODE_7:
-		    schroeder_toggle_do_lop_delay();
+		    schroeder_decr_dry(freeverb_p);
 		    break;
+		case SDL_SCANCODE_8:
+		    schroeder_incr_dry(freeverb_p);
+		    break;
+		case SDL_SCANCODE_9:
+		    schroeder_decr_stereo_spread(freeverb_p);
+		    break;
+		case SDL_SCANCODE_0:
+		    schroeder_incr_stereo_spread(freeverb_p);
+		    break;
+		case SDL_SCANCODE_Y:
+		    effect_toggle_mid_side_mode();
+		    break;
+
+
+
  		/* case SDL_SCANCODE_6: { */
 		/*     Track *track = ACTIVE_TL->tracks[0]; */
 		/*     Effect *e = effect_chain_add_effect(&track->synth->effect_chain, EFFECT_DELAY); */
@@ -343,6 +377,9 @@ void loop_project_main()
 		    /* stop_update_track_vol_pan(); */
 		    break;
 		}
+		fprintf(stderr, "SCH\n\tDry: %f\n\tAp: %f\n\tLOP: %f, %f\n\tstereo: %f\n",
+			freeverb_p->dry, freeverb_p->allpass_coeff, freeverb_p->lop_delay_coeff, freeverb_p->lop_coeff, freeverb_p->stereo_spread);
+
 		break;
 	    case SDL_MOUSEWHEEL: {
 		Timeline *tl = ACTIVE_TL;

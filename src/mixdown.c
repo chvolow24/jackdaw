@@ -275,6 +275,8 @@ extern Window *main_win;
 static bool freeverb_init = false;
 static Schroeder freeverb;
 
+Schroeder *freeverb_p = &freeverb;
+
 /* 
 Sum track samples over a chunk of timeline and return an array of samples. from_mark_in indicates that samples
 should be collected from the in mark rather than from the play head.

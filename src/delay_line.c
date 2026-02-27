@@ -191,8 +191,10 @@ float delay_line_buf_apply(void *dl_v, float *restrict buf, int len, int channel
 
 float delay_line_buf_apply_stereo(void *dl_v, float *restrict L, float *restrict R, int len, float input_amp)
 {
-    input_amp = delay_line_buf_apply(dl_v, L, len, 0, input_amp);
-    input_amp = delay_line_buf_apply(dl_v, R, len, 1, input_amp);
+    if (L)
+	input_amp = delay_line_buf_apply(dl_v, L, len, 0, input_amp);
+    if (R)
+	input_amp = delay_line_buf_apply(dl_v, R, len, 1, input_amp);
     return input_amp;
 }
 

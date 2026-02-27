@@ -53,6 +53,7 @@ typedef struct effect {
 } Effect;
 
 typedef struct effect_chain {
+    bool initialized;
     Effect **effects;
     int num_effects;
     int effects_alloc_len;

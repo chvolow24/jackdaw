@@ -487,8 +487,10 @@ float filter_buf_apply(void *f_v, float *restrict buf, int len, int channel, flo
 
 float filter_buf_apply_stereo(void *f_v, float *restrict L, float *restrict R, int len, float input_amp)
 {
-    input_amp = filter_buf_apply(f_v, L, len, 0, input_amp);
-    input_amp = filter_buf_apply(f_v, R, len, 1, input_amp);
+    if (L)
+	input_amp = filter_buf_apply(f_v, L, len, 0, input_amp);
+    if (R)
+	input_amp = filter_buf_apply(f_v, R, len, 1, input_amp);
     return input_amp;
 }
 

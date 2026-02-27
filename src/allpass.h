@@ -53,6 +53,8 @@ void allpass_group_init(AllpassGroup *ag, int num_filters, int32_t *lens_samples
 /* void allpass_group_init_schroeder(AllpassGroup *ag); */
 float allpass_group_sample(AllpassGroup *ag, float in);
 
+void allpass_group_set_coeff(AllpassGroup *ag, float new);
+
 float lop_delay_sample(LopDelay *ld, float in);
 void lop_delay_init(LopDelay *ld, int32_t len, float delay_coeff, float lop_coeff);
 

@@ -650,8 +650,10 @@ void eq_advance(EQ *eq, int channel)
 
 float eq_buf_apply_stereo(void *eq_v, float *restrict L, float *restrict R, int len, float input_amp)
 {
-    input_amp = eq_buf_apply(eq_v, L, len, 0, input_amp);
-    input_amp = eq_buf_apply(eq_v, R, len, 1, input_amp);
+    if (L)
+	input_amp = eq_buf_apply(eq_v, L, len, 0, input_amp);
+    if (R)
+	input_amp = eq_buf_apply(eq_v, R, len, 1, input_amp);
     return input_amp;
 }
 

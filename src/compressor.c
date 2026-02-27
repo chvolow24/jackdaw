@@ -73,8 +73,10 @@ float compressor_buf_apply(void *compressor_v, float *buf, int len, int channel,
 
 float compressor_buf_apply_stereo(void *compressor_v, float *restrict L, float *restrict R, int len, float input_amp)
 {
-    input_amp = compressor_buf_apply(compressor_v, L, len, 0, input_amp);
-    input_amp = compressor_buf_apply(compressor_v, R, len, 1, input_amp);
+    if (L)
+	input_amp = compressor_buf_apply(compressor_v, L, len, 0, input_amp);
+    if (R)
+	input_amp = compressor_buf_apply(compressor_v, R, len, 1, input_amp);
     return input_amp;
 }
 

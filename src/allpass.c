@@ -52,7 +52,6 @@ float lop_delay_sample(LopDelay *ld, float in)
     if (ld->mem_index < 0) {
 	ld->mem_index += ld->len;
     }
-
     return delay_out;
 }
 
@@ -94,5 +93,12 @@ void allpass_group_init_schroeder(AllpassGroup *ag)
 	allpass_init(ag->filters + i, LENS[i], COEFF);
 	/* allpass_init(ag->filters + i, 1 + (rand() % 96000), COEFF); */
 	/* allpass_init(ag->filters + i, LENS[i], COEFF); */
+    }
+}
+
+void allpass_group_set_coeff(AllpassGroup *ag, float new)
+{
+    for (int i=0; i<ag->num_filters; i++) {
+	ag->filters[i].coeff = new;
     }
 }

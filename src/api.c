@@ -82,6 +82,11 @@ void api_node_register(APINode *node, APINode *parent, char *obj_name, const cha
 	fprintf(stderr, "API setup error: node \"%s\" max num children\n", parent->obj_name);
 	return;
     }
+    if (node->parent) {
+	fprintf(stderr, "ERROR: API node %s (%s) already has parent %s (%s)\n", node->obj_name, node->fixed_name, node->parent->obj_name, node->fixed_name);
+	TESTBREAK;
+	exit(1);
+    }
     parent->children[parent->num_children] = node;
     parent->num_children++;
     node->obj_name = obj_name;

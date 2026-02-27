@@ -153,26 +153,21 @@ NEW_EVENT_FN(dispose_forward_add_effect, "")
 /* Always call before adding any effects */
 void effect_chain_init(EffectChain *ec, Project *proj, APINode *parent_api_node, const char *obj_name, int32_t chunk_len_sframes)
 {
-    bool already_init = false;
-    if (ec->effects) {
-	already_init = true;
+    if (ec->initialized) {
+	log_tmp(LOG_WARN, "Redundant call to initialize effect chain \"%s\"\n", ec->obj_name);
+	TESTBREAK;
 	return;
     }
     ec->proj = proj;
     ec->obj_name = obj_name;
     ec->effects_alloc_len = 0;
     ec->num_effects = 0;
-    if (!already_init) {
-	api_node_register(&ec->api_node, parent_api_node, NULL, "Effects");
-    } else {
-	if (ec->api_node.parent != parent_api_node) {
-	    log_tmp(LOG_ERROR, "In redundant call to effect_chain_init, api_node is not equal to (new) parent\n");
-	}
-    }
-    /* ec->api_node = api_node; */
+
+    api_node_register(&ec->api_node, parent_api_node, NULL, "Effects");
     ec->chunk_len_sframes = chunk_len_sframes;
     memset(ec->num_effects_per_type, 0, sizeof(int) * NUM_EFFECT_TYPES);
     pthread_mutex_init(&ec->effect_chain_lock, NULL);
+    ec->initialized = true;
 }
 
 void effect_chain_block_type(EffectChain *ec, EffectType type)
@@ -406,11 +401,45 @@ static int add_effect_form(void *mod_v, void *nullarg)
     }
     return 0;
 }
+static int mid_side_mode = false;
 
+void effect_toggle_mid_side_mode()
+{
+    int new = (mid_side_mode + 1) % 3;
+    mid_side_mode = new;
+    status_set_alertstr("Mid side mode %s\n", new == 0 ? "STEREO" : new == 1 ? "MID" : "SIDE");
+}
 static float effect_buf_apply(Effect *e, float *restrict buf_L, float *restrict buf_R, int len, float input_amp)
 {
     /* if (!e->active) return input_amp; */
-    return e->buf_apply(e->obj, buf_L, buf_R, len, input_amp);
+    if (mid_side_mode != 0) {
+	for (int i=0; i<len; i++) {
+	    float mid = (buf_L[i] + buf_R[i]) / 2;
+	    float side = (buf_L[i] - buf_R[i]) / 2;
+	    buf_L[i] = mid;
+	    buf_R[i] = side;
+	}
+    }
+    float *save_buf_L = buf_L;
+    float *save_buf_R = buf_R;
+    if (mid_side_mode == 1) {
+	buf_R = NULL;
+    } else if (mid_side_mode == 2) {
+	buf_L = NULL;
+    }
+    float ret = e->buf_apply(e->obj, buf_L, buf_R, len, input_amp);
+    buf_R = save_buf_R;
+    buf_L = save_buf_L;
+    if (mid_side_mode != 0) {
+	for (int i=0; i<len; i++) {
+	    float mid = buf_L[i];
+	    float side = buf_R[i];
+	    buf_L[i] = mid + side;
+	    buf_R[i] = mid - side;
+	}
+    }
+
+    return ret;
 }
 
 float effect_chain_buf_apply(EffectChain *ec, float *restrict L, float *restrict R, int len, float input_amp)

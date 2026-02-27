@@ -1,8 +1,14 @@
-#include <execinfo.h>
 #include <stdlib.h>
 #include <time.h>
 #include "input.h"
 #include "test.h"
+
+#if defined(__has_include)
+#if __has_include("execinfo.h")
+#define JDAW_BACKTRACE_AVAILABLE
+#include <execinfo.h>
+#endif
+#endif
 
 
 #define MAX_TEXT_EDIT_CHARS 24
@@ -10,6 +16,7 @@
 void breakfn()
 {
 }
+#ifdef JDAW_BACKTRACE_AVAILABLE
 void print_backtrace()
 {
     const int max = 32;
@@ -21,6 +28,10 @@ void print_backtrace()
     }
     free(symbols);
 }
+#else
+void print_backtrace() {}
+#endif
+
 
 
 void err_exit(const char *fmt, ...) {

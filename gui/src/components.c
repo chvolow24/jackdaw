@@ -6,6 +6,7 @@
 #include "input.h"
 #include "input_mode.h"
 #include "layout.h"
+#include "log.h"
 #include "menu.h"
 #include "status.h"
 #include "symbol.h"
@@ -787,8 +788,8 @@ void radio_button_reset_from_endpoint(RadioButton *rb)
     Value val = endpoint_safe_read(rb->ep, NULL);
     rb->selected_item = val.int_v;
     if (rb->selected_item > rb->num_items) {
+	log_tmp(LOG_WARN, "Error: unable to reset radio button from endpoint (sel %d, num %d)\n", rb->selected_item, rb->num_items);
 	rb->selected_item = 0;
-	fprintf(stderr, "Error: unable to set radio button from target valu");
     }
 }
 

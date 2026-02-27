@@ -23,6 +23,7 @@
 #include "input.h"
 #include "layout.h"
 #include "layout_xml.h"
+#include "log.h"
 #include "modal.h"
 #include "project.h"
 #include "session.h"
@@ -386,9 +387,11 @@ static int add_auto_form(void *mod_v, void *nullarg)
     Track *track = NULL;
     APINode *node = NULL;
     int ep_index = -1;
+    Endpoint *auto_selection_ep = NULL;
     for (uint8_t i=0; i<modal->num_els; i++) {
 	switch ((el = modal->els[i])->type) {
 	case MODAL_EL_RADIO:
+	    auto_selection_ep = ((RadioButton *)el->obj)->ep;
 	    ep_index = ((RadioButton *)el->obj)->selected_item;
 	    /* t = ((RadioButton *)el->obj)->selected_item; */
 	    track = ((RadioButton *)el->obj)->ep->xarg1;
@@ -429,6 +432,11 @@ static int add_auto_form(void *mod_v, void *nullarg)
 	/* APINode *subnode = node->children[ep_index - node->num_endpoints]; */
 	/* fprintf(stderr, "OK NODE: %p:\n", subnode); */
 	APINode *node = item.node;
+	if (auto_selection_ep) {
+	    endpoint_write(auto_selection_ep, (Value){.int_v = 0}, false, false, false, false);
+	} else {
+	    log_tmp(LOG_WARN, "Cannot reset automation selection ep: not found in modal.\n");
+	}
 	window_pop_modal(main_win);
 	track_add_automation_from_api_node(track, node);
     }

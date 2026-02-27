@@ -13,6 +13,7 @@
 #include "color.h"
 #include "delay_line.h"
 #include "effect.h"
+#include "error.h"
 #include "fir_filter.h"
 #include "log.h"
 #include "modal.h"
@@ -154,25 +155,32 @@ NEW_EVENT_FN(dispose_forward_add_effect, "")
 void effect_chain_init(EffectChain *ec, Project *proj, APINode *parent_api_node, const char *obj_name, int32_t chunk_len_sframes)
 {
     bool already_init = false;
-    if (ec->effects) {
+    if (ec->initialized) {
+	log_tmp(LOG_DEBUG, "Redundant to effect_chain_reinit on \"%s\" (new name \"%s\" (likely deser)\n", ec->obj_name, obj_name);
 	already_init = true;
 	return;
     }
+    ec->initialized = true;
     ec->proj = proj;
     ec->obj_name = obj_name;
     ec->effects_alloc_len = 0;
+    if (already_init && ec->num_effects > 0) {
+	log_tmp(LOG_ERROR, "Call to reinit effect chain \"%s\" which already has %d effects\n", ec->obj_name, ec->num_effects);
+	error_exit("Call to reinit effect chain \"%s\" which already has %d effects\n", ec->obj_name, ec->num_effects);
+    }
     ec->num_effects = 0;
     if (!already_init) {
 	api_node_register(&ec->api_node, parent_api_node, NULL, "Effects");
-    } else {
-	if (ec->api_node.parent != parent_api_node) {
-	    log_tmp(LOG_ERROR, "In redundant call to effect_chain_init, api_node is not equal to (new) parent\n");
-	}
+    } else if (ec->api_node.parent != parent_api_node) {
+	log_tmp(LOG_ERROR, "In redundant call to effect_chain_init, api_node is not equal to (new) parent\n");
+	error_exit("In redundant call to effect_chain_init, api_node is not equal to (new) parent\n");
     }
     /* ec->api_node = api_node; */
     ec->chunk_len_sframes = chunk_len_sframes;
     memset(ec->num_effects_per_type, 0, sizeof(int) * NUM_EFFECT_TYPES);
-    pthread_mutex_init(&ec->effect_chain_lock, NULL);
+    if (!already_init) {
+	pthread_mutex_init(&ec->effect_chain_lock, NULL);
+    }
 }
 
 void effect_chain_block_type(EffectChain *ec, EffectType type)

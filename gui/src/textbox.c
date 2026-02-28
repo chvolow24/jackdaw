@@ -438,6 +438,17 @@ void textbox_set_style(Textbox *tb, enum textbox_style style)
 
 /* #include "dir.h" */
 
+void textlines_layout_reset(TextLines *tl)
+{
+    for (int i=0; i<tl->num_items; i++) {
+	TLinesItem *item = tl->items + i;
+	textbox_reset(item->tb);
+	for (int i=0; i<item->num_addtl_tbs; i++) {
+	    textbox_reset(item->addtl_tbs[i]);
+	}
+    }
+}
+
 TextLines *textlines_create(
     void *src_items,
     size_t item_width,

@@ -158,7 +158,7 @@ void effect_chain_init(EffectChain *ec, Project *proj, APINode *parent_api_node,
     if (ec->initialized) {
 	log_tmp(LOG_DEBUG, "Redundant to effect_chain_reinit on \"%s\" (new name \"%s\" (likely deser)\n", ec->obj_name, obj_name);
 	already_init = true;
-	return;
+	/* return; */
     }
     ec->initialized = true;
     ec->proj = proj;

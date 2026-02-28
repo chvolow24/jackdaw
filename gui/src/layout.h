@@ -97,6 +97,8 @@ typedef struct layout {
     // Layout *complement;
     // bool display;
     // bool internal;
+
+    bool offscreen_reset_done; /* Reset *once* after going offscreen, then set this to true */
 } Layout;
 
 

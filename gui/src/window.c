@@ -243,6 +243,9 @@ void window_resize_passive(Window *win, int w, int h)
     if (win->active_tabview) {
 	tabview_reset(win->active_tabview, win->active_tabview->leftmost_index);
     }
+    if (win->ac_active) {
+	autocompletion_reset_layout(&win->ac);
+    }
     #endif
 
  

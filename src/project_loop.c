@@ -114,18 +114,17 @@ void loop_project_main()
 		user_global_quit(NULL);
 		break;
 	    case SDL_WINDOWEVENT:
-		if (e.window.event == SDL_WINDOWEVENT_RESIZED) {
+		if (e.window.event == SDL_WINDOWEVENT_RESIZED || e.window.event == SDL_WINDOWEVENT_MAXIMIZED) {
 		    window_resize_passive(main_win, e.window.data1, e.window.data2);
 		    ACTIVE_TL->needs_redraw = true;
 		} else if (e.window.event == SDL_WINDOWEVENT_DISPLAY_CHANGED) {
-		    fprintf(stderr, "WINDOW DISPLAY CHANGED\n");
 		    int rw = 0, rh = 0, ww = 0, wh = 0;
 		    SDL_GetWindowSize(main_win->win, &ww, &wh);
 		    SDL_GetRendererOutputSize(main_win->rend, &rw, &rh);
 
 		    double new_dpi = (double) rw / ww;
+		    log_tmp(LOG_INFO, "Window display changed. DPI %f => %f\n", main_win->dpi_scale_factor, new_dpi);
 		    main_win->dpi_scale_factor = new_dpi;
-		    fprintf(stderr, "NEW DPI: %f\n", new_dpi);
 
 		    window_check_monitor_dpi(main_win);
 		    /* Reinit fonts */

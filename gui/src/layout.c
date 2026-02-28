@@ -965,6 +965,17 @@ void layout_force_reset(Layout *lt)
     
 }
 
+/* SDL's SDL_HasIntersection does not include zero-area overlap */
+static bool has_intersection_incl_zero_area(SDL_Rect *a, SDL_Rect *b)
+{
+    if (!a || !b) return false;
+    return
+	(a->x + a->w) >= b->x &&
+	a->x <= (b->x + b->w) &&
+	(a->y + a->h) >= b->y &&
+	a->y <= (b->y + b->h);
+}
+
 /* Old recursive implementation */
 void layout_reset(Layout *lt)
 {
@@ -994,8 +1005,10 @@ void layout_reset(Layout *lt)
     padded_win.y -= WINDOW_PAD;
     padded_win.w += WINDOW_PAD * 2;
     padded_win.h += WINDOW_PAD * 2;
-
-    if (SDL_HasIntersection(&lt->rect, &padded_win)) {
+    bool my_intersect = has_intersection_incl_zero_area(&lt->rect, &padded_win);
+    if (my_intersect) {
+	lt->offscreen_reset_done = false;
+    do_recursion:
 	for (int16_t i=0; i<lt->num_children; i++) {
 	    Layout *child = lt->children[i];
 	    layout_reset(child);
@@ -1003,6 +1016,11 @@ void layout_reset(Layout *lt)
 
 	if (lt->iterator) {
 	    reset_iterations(lt->iterator);
+	}
+    } else {
+	if (!lt->offscreen_reset_done) {
+	    lt->offscreen_reset_done = true;
+	    goto do_recursion;
 	}
     }
 }
@@ -1778,7 +1796,6 @@ static void draw_dotted_vertical(SDL_Renderer *rend, int x, int y1, int y2)
         y1 += DTTD_LN_LEN * 2;
     }
 }
-
 
 void layout_draw(Window *win, Layout *lt)
 {   

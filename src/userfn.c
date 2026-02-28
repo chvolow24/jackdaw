@@ -565,6 +565,15 @@ void user_global_debug_toggle_transport_performance_logging(void *nullarg)
 {
     toggle_transport_logging();
 }
+
+void user_global_debug_write_main_layout()
+{
+    static const char *filename = "DEBUG_MAIN_LT.xml";
+    FILE *f = fopen("DEBUG_MAIN_LT.xml", "w");
+    layout_write(f, main_win->layout, 0);
+    fclose(f);
+    fprintf(stderr, "Wrote main window layout to %s\n", filename);
+}
 #endif
 
 void api_node_print_all_routes(APINode *node);
@@ -3263,7 +3272,6 @@ void user_autocomplete_previous(void *nullarg)
 
     AutoCompletion *ac = &main_win->ac;
     autocompletion_reset_selection(ac, ac->selection - 1);
-
 }
 
 void user_autocomplete_escape(void *nullarg)

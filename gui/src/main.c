@@ -244,8 +244,9 @@ int main(int argc, char** argv)
     
 
     main_win = window_create(1200, 900, "Layout editor");
-    window_assign_font(main_win, OPEN_SANS_PATH, REG);
-    window_assign_font(main_win, OPEN_SANS_BOLD_PATH, BOLD);
+    window_assign_fonts(main_win);
+    /* window_assign_fonts(main_win, OPEN_SANS_PATH, REG); */
+    /* window_assign_font(main_win, OPEN_SANS_BOLD_PATH, BOLD); */
 
     //  open_sans = open_font("../assets/ttf/OpenSans-Regular.ttf", 12, main_win);
 

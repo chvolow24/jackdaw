@@ -11,6 +11,7 @@
 #include "color.h"
 #include "layout.h"
 #include "text.h"
+#include "textbox.h"
 #include "window.h"
 
 #define TXT_H 40
@@ -35,9 +36,19 @@ extern Window *main_win;
 void layout_set_name(Layout *lt, const char *new_name)
 {
     int len = strlen(new_name);
-    if (len < MAX_LT_NAMELEN - 1) {
-	strcpy(lt->name, new_name);
+    #ifndef LAYOUT_BUILD
+    if (lt->name) free(lt->name);;
+    lt->name = malloc(len + 1);
+    #endif 
+    snprintf(lt->name, len + 1, "%s", new_name);
+    #ifdef LAYOUT_BUILD
+    if (lt->namelabel) {
+	textbox_set_value_handle(lt->namelabel, lt->name);
     }
+    #endif
+    /* if (len < MAX_LT_NAMELEN - 1) { */
+    /* 	strcpy(lt->name, new_name); */
+    /* } */
 }
 
 
@@ -1038,9 +1049,13 @@ Layout *layout_create()
     lt->children = calloc(4, sizeof(Layout *));
     lt->num_children = 0;
     lt->index = 0;
-    lt->name[0] = 'L';
-    lt->name[1] = 't';
-    lt->name[2] = '\0';
+    #ifdef LAYOUT_BUILD
+    lt->name = malloc(64);
+    layout_set_name(lt, "Lt");
+    #endif
+    /* lt->name[0] = 'L'; */
+    /* lt->name[1] = 't'; */
+    /* lt->name[2] = '\0'; */
     lt->selected = false;
     lt->type = NORMAL;
     lt->iterator = NULL;
@@ -1085,6 +1100,7 @@ static void layout_destroy_inner(Layout *lt)
     for (int16_t i=0; i<lt->num_children; i++) {
         layout_destroy_inner(lt->children[i]);
     }
+    if (lt->name) free(lt->name);
     free(lt->children);
     free(lt); 
 }
@@ -1124,7 +1140,8 @@ Layout *layout_create_from_window(Window *win)
 	layout_set_values_from_rect(lt->label_lt);
     }
     lt->index = 0;
-    snprintf(lt->name, 5, "main");
+    layout_set_name(lt, "main");
+    /* snprintf(lt->name, 5, "main"); */
     return lt;
 }
 
@@ -1183,7 +1200,7 @@ Layout *layout_add_child(Layout *parent)
     
     /* fprintf(stderr, "ADDING CHILD w index %d\n", index); */
     parent->num_children++;
-    snprintf(child->name, 32, "%s_child%lld", parent->name, parent->num_children);
+    /* snprintf(child->name, 32, "%s_child%lld", parent->name, parent->num_children); */
     // fprintf(stderr, "\t->done add child\n");
     return child;
 }
@@ -1283,7 +1300,7 @@ void layout_set_default_dims(Layout *lt)
 Layout *layout_get_child_by_name(Layout *lt, const char *name)
 {
     for (int16_t i=0; i<lt->num_children; i++) {
-        if (strcmp(lt->children[i]->name, name) == 0) {
+        if (lt->children[i]->name && strcmp(lt->children[i]->name, name) == 0) {
             return lt->children[i];
         }
     }
@@ -1295,7 +1312,7 @@ Layout *layout_get_child_by_name_recursive_internal(Layout *lt, const char *name
 {
     /* TEST_count_recursive_calls++; */
     Layout *ret = NULL;
-    if (strcmp(lt->name, name) == 0) {
+    if (lt->name && strcmp(lt->name, name) == 0) {
         ret = lt;
     } else {
         for (int16_t i=0; i<lt->num_children; i++) {
@@ -1484,7 +1501,10 @@ LayoutIterator *copy_iterator(LayoutIterator *to_copy)
 Layout *layout_copy(Layout *to_copy, Layout *parent)
 {
     Layout *copy = layout_create();
-    strcpy(copy->name, to_copy->name);
+    if (to_copy->name) {
+	copy->name = strdup(to_copy->name);
+    }
+    /* strcpy(copy->name, to_copy->name); */
     copy->rect = to_copy->rect;
     copy->x = to_copy->x;
     copy->y = to_copy->y;
@@ -1513,7 +1533,8 @@ static Layout *copy_layout_as_iteration(Layout *to_copy, Layout *parent)
 {
     Layout *copy = layout_create();
     copy->type = ITERATION;
-    strcpy(copy->name, to_copy->name);
+    if (to_copy->name) copy->name = strdup(copy->name);
+    /* strcpy(copy->name, to_copy->name); */
     copy->rect = to_copy->rect;
     copy->x = to_copy->x;
     copy->y = to_copy->y;
@@ -1753,6 +1774,7 @@ void layout_fprint(FILE *f, Layout *lt)
     layout_get_dimval_str(&(lt->h), hval, 255);
 
     fprintf(f, "Layout %s\n\tx: %s %s\n\ty: %s %s\n\tw: %s %s\n\th: %s %s\n",
+	    lt->name ? lt->name : "lt",
 	    lt->name,
 	    layout_get_dimtype_str(lt->x.type),
 	    xval,
@@ -1865,7 +1887,7 @@ void layout_select(Layout *lt)
 
 
     /* lt->namelabel = NULL; */
-    lt->namelabel = txt_create_from_str(lt->name, MAX_LT_NAMELEN, lt->label_lt, main_win->std_font, 12, colors.white, CENTER_LEFT, false, main_win);
+    lt->namelabel = txt_create_from_str(lt->name ? lt->name : "lt", MAX_LT_NAMELEN, lt->label_lt, main_win->std_font, 12, colors.white, CENTER_LEFT, false, main_win);
     lt->selected = true;
     layout_reset(lt);
 }

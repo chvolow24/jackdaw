@@ -119,11 +119,14 @@ void window_check_monitor_dpi(Window *win)
     ttf_reset_dpi_scale_factor(win->mathematical_font);
     ttf_reset_dpi_scale_factor(win->music_font);
 
+    #ifndef LAYOUT_BUILD
     symbol_quit(win);
     init_symbol_table(win);
+    #endif
 
     layout_force_reset(win->layout);
     txt_reset_all();
+    #ifndef LAYOUT_BUILD
     Session *session = session_get();
     for (int i=0; i<session->gui.panels->num_pages; i++) {
 	page_reset(session->gui.panels->pages[i]);
@@ -131,13 +134,10 @@ void window_check_monitor_dpi(Window *win)
     for (int i=0; i<session->gui.panels->num_panels; i++) {
 	layout_force_reset(session->gui.panels->panels[i]->layout);
     }
+    #endif
 
 
     layout_force_reset(win->layout);
-
-    
-
-
 }
 
 static void window_assign_font(Window *win, const char *font_path, FontType type)
@@ -424,7 +424,9 @@ void window_add_menu(Window *win, Menu *menu)
 	menu->columns[0]->sel_sctn = 0;
 	menu->columns[0]->sections[0]->sel_item = 0;
 	menu->columns[0]->sections[0]->items[0]->selected = true;
+	#ifndef LAYOUT_BUILD
 	menu_reset_layout(menu);
+	#endif
 	
     } else {
 	fprintf(stderr, "Error: window already has maximum number of menus (%d)\n", win->num_menus);
@@ -450,10 +452,14 @@ void window_push_mode(Window *win, InputMode im)
     /* if (im == MIDI_QWERTY) breakfn(); */
     if (win->num_modes < WINDOW_MAX_MODES) {
 	win->modes[win->num_modes] = im;
+	#ifndef LAYOUT_BUILD
 	log_tmp(LOG_DEBUG, "Push mode %s at %d\n", input_mode_str(im), win->num_modes);
+	#endif
 	win->num_modes++;
     } else {
+	#ifndef LAYOUT_BUILD
 	error_exit("Error: window already has maximum number of modes\n");
+	#endif
 	/* fprintf(stderr,  */
     }
 }
@@ -466,11 +472,13 @@ static InputMode window_pop_mode(Window *win)
     
     if (win->num_modes > 0) {
 	win->num_modes--;
+	#ifndef LAYOUT_BUILD
 	log_tmp(LOG_DEBUG, "Pop mode %s at %d\n", input_mode_str(win->modes[win->num_modes]), win->num_modes);
 	if (win->num_modes == 0) {
 	    log_tmp(LOG_FATAL, "Window num modes == 0\n");
 	    error_exit("Window num modes == 0");
 	}
+	#endif
 	return win->modes[win->num_modes];
     }
     return MODE_GLOBAL;
@@ -478,19 +486,25 @@ static InputMode window_pop_mode(Window *win)
 
 void window_extract_mode(Window *win, InputMode mode)
 {
+    #ifndef LAYOUT_BUILD
     log_tmp(LOG_DEBUG, "Extract mode %s\n", input_mode_str(mode));
+    #endif
     for (int i=win->num_modes - 1; i>0; i--) {
 	if (win->modes[i] == mode) {
 	    memmove(win->modes + i, win->modes + i + 1, (win->num_modes - i - 1) * sizeof(InputMode));
 	    win->num_modes--;
+	    #ifndef LAYOUT_BUILD
 	    if (win->num_modes == 0) {
 		log_tmp(LOG_FATAL, "Window num modes == 0\n");
 		error_exit("Window num modes == 0");
 	    }
+	    #endif
 	    return;
 	}
     }
-    log_tmp(LOG_ERROR, "Mode not found in extract (num modes %d)\n", win->num_modes);   
+#ifndef LAYOUT_BUILD
+    log_tmp(LOG_ERROR, "Mode not found in extract (num modes %d)\n", win->num_modes);
+#endif
 }
 
 
@@ -500,6 +514,7 @@ void mqwert_deactivate(void);
 void piano_roll_deactivate(void);
 void source_mode_deactivate(void);
 
+#ifndef LAYOUT_BUILD
 /* Clear out everything over timeline mode, taking care to avoid recursion */
 void window_clear_higher_modes(Window *win, InputMode called_from_mode)
 {
@@ -507,9 +522,7 @@ void window_clear_higher_modes(Window *win, InputMode called_from_mode)
     while ((top = TOP_MODE_LOC(win)) != MODE_TIMELINE) {
 	if (top == called_from_mode) {
 	    window_pop_mode(win);
-	    fprintf(stderr, "Clearing mode (Current!), %s\n", input_mode_str(top));
 	} else {
-	    fprintf(stderr, "Clearing mode: %s\n", input_mode_str(top));
 	    switch (top) {
 	    case MODE_TEXT_EDIT:
 		txt_stop_editing(win->txt_editing);	    
@@ -533,7 +546,9 @@ void window_clear_higher_modes(Window *win, InputMode called_from_mode)
 		source_mode_deactivate();
 		break;
 	    case MODE_AUTOCOMPLETE_LIST:
+		#ifdef LAYOUT_BUILD
 		autocompletion_escape();
+		#endif
 		break;
 	    default:
 		break;
@@ -542,6 +557,7 @@ void window_clear_higher_modes(Window *win, InputMode called_from_mode)
 	}
     }
 }
+#endif
 
 #ifndef LAYOUT_BUILD
 #include "page.h"

@@ -144,6 +144,7 @@
   - m		: tl_mute
   - s		: tl_solo
   - g		: tl_grab_clips_at_cursor
+  - C-g		: tl_grab_clips_and_drag
   - g-j		: tl_grab_clips_left_edge
   - g-l		: tl_grab_clips_right_edge
   - g-k		: tl_ungrab_clip_edge
@@ -334,6 +335,7 @@
   - <ret>	: piano_roll_insert_note
   - <spc>	: piano_roll_insert_rest
   - g		: piano_roll_grab_ungrab
+  - C-g		: piano_roll_grab_and_drag
   - g-j		: piano_roll_grab_note_left_edge
   - g-l		: piano_roll_grab_note_right_edge
   - g-k		: piano_roll_grab_no_edge

@@ -17,6 +17,7 @@
 #include "status.h"
 #include "timeline.h"
 #include "user_event.h"
+#include "userfn.h"
 
 
 /* LOW-LEVEL INTERFACE:
@@ -261,6 +262,16 @@ void timeline_grab_ungrab(Timeline *tl)
     }    
     
     tl->needs_redraw = true;
+}
+
+void timeline_grab_and_drag(Timeline *tl)
+{
+    timeline_grab_ungrab(tl);
+    if (tl->num_grabbed_clips > 0 && !session_get()->dragging) {
+	user_tl_toggle_drag(NULL);
+    } else if (tl->num_grabbed_clips == 0 && session_get()->dragging) {
+	user_tl_toggle_drag(NULL);
+    }
 }
 
 /* Grab left edge of clip at cursor */

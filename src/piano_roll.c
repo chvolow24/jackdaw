@@ -1434,6 +1434,18 @@ void piano_roll_grab_ungrab()
     /* play_all_grabbed_notes(); */
 }
 
+void user_tl_toggle_drag(void *nullarg);
+void piano_roll_grab_and_drag()
+{
+    Session *session = session_get();
+    piano_roll_grab_ungrab();
+    if (state.clip->num_grabbed_notes > 0 && !session->dragging) {
+	user_tl_toggle_drag(NULL);
+    } else if (state.clip->num_grabbed_notes == 0 && session->dragging) {
+	user_tl_toggle_drag(NULL);
+    }
+}
+
 void piano_roll_grab_left_edge()
 {
     Session *session = session_get();

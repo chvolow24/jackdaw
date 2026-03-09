@@ -138,6 +138,7 @@ void user_tl_track_pan_right(void *nullarg);
 
 void user_tl_record(void *nullarg);
 void user_tl_clipref_grab_ungrab(void *nullarg);
+void user_tl_clipref_grab_and_drag(void *nullarg);
 void user_tl_clipref_grab_left_edge(void *nullarg);
 void user_tl_clipref_grab_right_edge(void *nullarg);
 void user_tl_clipref_ungrab_edge(void *nullarg);
@@ -270,6 +271,7 @@ void user_piano_roll_dur_longer(void *nullarg);
 void user_piano_roll_insert_note(void *nullarg);
 void user_piano_roll_insert_rest(void *nullarg);
 void user_piano_roll_grab_ungrab(void *nullarg);
+void user_piano_roll_grab_and_drag(void *nullarg);
 void user_piano_roll_grab_note_left_edge(void *nullarg);
 void user_piano_roll_grab_note_right_edge(void *nullarg);
 void user_piano_roll_grab_marked_range(void *nullarg);

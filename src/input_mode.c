@@ -871,6 +871,12 @@ static void mode_load_timeline()
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
+	"tl_grab_clips_and_drag",
+	"Grab clip at cursor and drag",
+	user_tl_clipref_grab_and_drag);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
 	"tl_grab_clips_left_edge",
 	"Grab left edge of clips",
 	user_tl_clipref_grab_left_edge);
@@ -1649,6 +1655,12 @@ void mode_load_piano_roll()
 	"piano_roll_grab_ungrab",
 	"Grab/ungrab notes",
 	user_piano_roll_grab_ungrab);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"piano_roll_grab_and_drag",
+	"Grab/ungrab notes and start/stop dragging",
+	user_piano_roll_grab_and_drag);
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(

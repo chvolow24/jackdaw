@@ -2154,6 +2154,12 @@ void user_tl_clipref_grab_ungrab(void *nullarg)
     timeline_grab_ungrab(ACTIVE_TL);
 }
 
+void user_tl_clipref_grab_and_drag(void *nullarg)
+{
+    Session *session = session_get();
+    timeline_grab_and_drag(ACTIVE_TL);
+}
+
 void user_tl_clipref_grab_left_edge(void *nullarg)
 {
     Session *session = session_get();
@@ -3544,6 +3550,12 @@ void user_piano_roll_grab_ungrab(void *nullarg)
 {
     piano_roll_grab_ungrab();
 }
+
+void user_piano_roll_grab_and_drag(void *nullarg)
+{
+    piano_roll_grab_and_drag();
+}
+
 
 void user_piano_roll_grab_note_left_edge(void *nullarg)
 {

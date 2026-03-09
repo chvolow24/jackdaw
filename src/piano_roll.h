@@ -31,6 +31,7 @@ Note *piano_roll_note_at_cursor(bool include_end);
 SDL_Rect piano_roll_get_note_rect(Note *note);
 
 void piano_roll_grab_ungrab();
+void piano_roll_grab_and_drag();
 void piano_roll_grab_left_edge();
 void piano_roll_grab_right_edge();
 void piano_roll_grab_marked_range();

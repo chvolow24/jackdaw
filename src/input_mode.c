@@ -203,6 +203,7 @@ static void mode_load_global()
     mode_subcat_add_fn(mc, fn);
 
     #ifdef TESTBUILD
+    mc = mode_add_subcat(mode, "Debug");
     fn = create_user_fn(
 	"chaotic_user_test",
 	"Chaotic user test (debug only)",
@@ -211,8 +212,14 @@ static void mode_load_global()
 
     fn = create_user_fn(
 	"toggle_transport_logging",
-	"Toggle tranpsort performance logging (debug only)",
+	"Toggle transport performance logging (debug only)",
 	user_global_debug_toggle_transport_performance_logging);
+    mode_subcat_add_fn(mc, fn);
+
+    fn = create_user_fn(
+	"write_main_layout",
+	"Write main layout to file (debug only)",
+	user_global_debug_write_main_layout);
     mode_subcat_add_fn(mc, fn);
     #endif
 
@@ -861,6 +868,12 @@ static void mode_load_timeline()
 	"tl_grab_clips_at_cursor",
 	"Grab clip at cursor",
 	user_tl_clipref_grab_ungrab);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_grab_clips_and_drag",
+	"Grab clip at cursor and drag",
+	user_tl_clipref_grab_and_drag);
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(
@@ -1642,6 +1655,12 @@ void mode_load_piano_roll()
 	"piano_roll_grab_ungrab",
 	"Grab/ungrab notes",
 	user_piano_roll_grab_ungrab);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"piano_roll_grab_and_drag",
+	"Grab/ungrab notes and start/stop dragging",
+	user_piano_roll_grab_and_drag);
     mode_subcat_add_fn(sc, fn);
 
     fn = create_user_fn(

@@ -565,6 +565,15 @@ void user_global_debug_toggle_transport_performance_logging(void *nullarg)
 {
     toggle_transport_logging();
 }
+
+void user_global_debug_write_main_layout()
+{
+    static const char *filename = "DEBUG_MAIN_LT.xml";
+    FILE *f = fopen("DEBUG_MAIN_LT.xml", "w");
+    layout_write(f, main_win->layout, 0);
+    fclose(f);
+    fprintf(stderr, "Wrote main window layout to %s\n", filename);
+}
 #endif
 
 void api_node_print_all_routes(APINode *node);
@@ -2145,6 +2154,12 @@ void user_tl_clipref_grab_ungrab(void *nullarg)
     timeline_grab_ungrab(ACTIVE_TL);
 }
 
+void user_tl_clipref_grab_and_drag(void *nullarg)
+{
+    Session *session = session_get();
+    timeline_grab_and_drag(ACTIVE_TL);
+}
+
 void user_tl_clipref_grab_left_edge(void *nullarg)
 {
     Session *session = session_get();
@@ -3263,7 +3278,6 @@ void user_autocomplete_previous(void *nullarg)
 
     AutoCompletion *ac = &main_win->ac;
     autocompletion_reset_selection(ac, ac->selection - 1);
-
 }
 
 void user_autocomplete_escape(void *nullarg)
@@ -3536,6 +3550,12 @@ void user_piano_roll_grab_ungrab(void *nullarg)
 {
     piano_roll_grab_ungrab();
 }
+
+void user_piano_roll_grab_and_drag(void *nullarg)
+{
+    piano_roll_grab_and_drag();
+}
+
 
 void user_piano_roll_grab_note_left_edge(void *nullarg)
 {

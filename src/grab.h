@@ -42,6 +42,9 @@ typedef struct clip_ref ClipRef;
 /* void timeline_grab_ungrab(Timeline *tl); */
 void timeline_grab_ungrab(Timeline *tl);
 
+/* Same as 'timeline_grab_ungrab', but will start dragging if clips are dragged, and stop otherwise */
+void timeline_grab_and_drag(Timeline *tl);
+
 /* Grab left edge of clip at cursor */
 void timeline_grab_left_edge(Timeline *tl);
 

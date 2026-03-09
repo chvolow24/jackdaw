@@ -340,10 +340,12 @@ DirNav *dirnav_create(
     dn->dirpath = dp;
     dn->dir_to_tline_filter = tlines_filter;
     dn->layout = lt;
-    strcpy(lt->name, "dirnav_lt");
+    layout_set_name(lt, "dirnav_lt");
+    /* strcpy(lt->name, "dirnav_lt"); */
     Layout *inner = layout_add_child(lt);
     dn->inner_layout = inner;
-    strcpy(inner->name, "dirnav_lines_container");
+    layout_set_name(inner, "dirnav_lines_container");
+    /* strcpy(inner->name, "dirnav_lines_container"); */
     inner->x.value = 5;
     inner->y.value = 5;
     inner->w.type = PAD;

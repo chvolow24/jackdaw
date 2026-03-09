@@ -68,7 +68,7 @@ void layout_write_debug(FILE *f, Layout *lt, int indent, int maxdepth)
     if (lt->type == PRGRM_INTERNAL) {
         return;
     }
-    fprintf(f, "%*s<Layout name=\"%s\" type=\"%s\">\n", indent, "", lt->name, get_lt_type_str(lt->type));
+    fprintf(f, "%*s<Layout name=\"%s\" type=\"%s\">\n", indent, "", lt->name ? lt->name : "lt", get_lt_type_str(lt->type));
 
     // fprintf(f, "%*s<Layout name=\"%s\" display=\"%s\" internal=\"%s\">\n", indent, "", lt->name, get_bool_str(lt->display), get_bool_str(lt->internal));
     // fprintf(f, "%*s<name>%s</name>\n", indent + TABSPACES, "", lt->name);
@@ -256,7 +256,8 @@ static Layout *get_layout_from_tag(Tag *lt_tag)
     for (int i=0; i<lt_tag->num_attrs; i++) {
         Attr *attr = lt_tag->attrs[i];
         if (strcmp(attr->name, "name") == 0) {
-            strcpy(lt->name, attr->value);
+	    lt->name = strdup(attr->value);
+            /* strcpy(lt->name, attr->value); */
         } else if (strcmp(attr->name, "type") == 0) {
             lt->type = read_lt_type_str(attr->value);
         }

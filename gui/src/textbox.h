@@ -159,6 +159,8 @@ TextLines *textlines_create(
     /* TLinesItem *(*create_item)(void ***curent_item, Layout *container, void *x_arg, int (*filter)(void *item, void *x_arg)), */
     Layout *container,
     void *x_arg);
+
+void textlines_layout_reset(TextLines *tl);
 void textlines_draw(TextLines *tlines);
 void textlines_destroy(TextLines *tlines);
 

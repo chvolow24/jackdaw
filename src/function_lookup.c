@@ -225,9 +225,12 @@ void function_lookup()
 	    update_records_fn,
 	    fn_lookup_filter);
     } else {
-	layout_set_default_dims(main_win->ac.outer_layout);
-	layout_force_reset(main_win->ac.outer_layout);
-	layout_size_to_fit_children_v(main_win->ac.outer_layout, true, 20);
+	autocompletion_reset_layout(&main_win->ac);
+	/* layout_set_default_dims(main_win->ac.outer_layout); */
+	/* layout_force_reset(main_win->ac.outer_layout); */
+	/* layout_pad(main_win->ac.inner_layout, 20, 16); */
+	/* layout_size_to_fit_children_v(main_win->ac.inner_layout, true, 0); */
+	/* layout_size_to_fit_children_v(main_win->ac.outer_layout, true, 20); */
     }
     textentry_edit(main_win->ac.entry);
     window_push_mode(main_win, MODE_AUTOCOMPLETE_LIST);

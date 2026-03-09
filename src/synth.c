@@ -2108,6 +2108,9 @@ void synth_add_buf(Synth *s, float *restrict L, float *restrict R, int32_t len, 
     /* if (channel != 0) return; */
     
     if (s->mono_mode) has_timeout = false;
+    #ifdef JDAW_MACOS_BUILD
+    has_timeout = false;
+    #endif
     if (step < 0.0) step *= -1;
     if (step > 5.0) {
 	synth_silence(s);

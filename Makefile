@@ -99,6 +99,12 @@ ifdef USE_EXTERNAL_SDLS
 CFLAGS += $(shell $(PKGCONF) sdl2 --cflags) $(shell $(PKGCONF) SDL2_ttf --cflags)
 endif
 
+ifeq ($(UNAME_S),Darwin)
+CFLAGS += -DJDAW_MACOS_BUILD
+else
+CFLAGS += -DJDAW_LINUX_BUILD
+endif
+
 CFLAGS_JDAW_ONLY := -DLT_DEV_MODE=0
 CFLAGS_LT_ONLY := -DLT_DEV_MODE=1 -DLAYOUT_BUILD=1
 CFLAGS_PROD := -O3

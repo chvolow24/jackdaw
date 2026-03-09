@@ -20,6 +20,7 @@
 #include "eq.h"
 #include "file_backup.h"
 #include "fir_filter.h"
+#include "log.h"
 #include "midi_clip.h"
 #include "midi_file.h"
 #include "midi_io.h"
@@ -1432,14 +1433,17 @@ static int jdaw_read_automation(FILE *f, Track *track)
 	    /* exit(0); */
 	} else {
 	    /* Horrible, stop it */
-	    fprintf(stderr, "Endpoint not found at route \"%s\"\n", route);
 	    char *try = try_fix_api_route(route, route_len);
 	    if (try) {
+		log_tmp(LOG_DEBUG, "Automation route not found (\"%s\"), attempting fix...\n", route);
 		ep = api_endpoint_get(try);
 		if (!ep) {
-		    TESTBREAK;
+		    log_tmp(LOG_DEBUG, "...failed to fix.\n");
+		    log_tmp(LOG_ERROR, "Could not find automation endpoint at \"%s\" (or \"%s\")\n", route, try);
+		    fprintf(stderr, "Endpoint not found at route \"%s\"\n", route);
 		    return 1;
 		}
+		log_tmp(LOG_DEBUG, "...success, route found\n");
 		a = track_add_automation_from_endpoint(track, ep);
 		free(try);
 	    }

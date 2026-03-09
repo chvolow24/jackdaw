@@ -73,6 +73,7 @@ static void create_autocomplete_tline(
     current_line->obj = item->obj;
 
     Layout *lt = layout_add_child(tlines->container);
+    layout_set_name(lt, "ac_tl_innr");
     lt->y.type = STACK;
     lt->y.value = AUTOCOMPLETE_LINE_SPACING;
     lt->h.value = 70;
@@ -102,6 +103,7 @@ static void create_autocomplete_tline(
     /* TODO: move tline creation out of autocompletion and into
        calling functions. Need caller-specific logic for addtl tbs */
     Layout *right_item = layout_add_child(lt);
+    layout_set_name(right_item, "ic_itm_rt");
     right_item->w.type = SCALE;
     right_item->w.value = 1.0;
     right_item->h.type = SCALE;
@@ -121,10 +123,7 @@ static void create_autocomplete_tline(
     textbox_set_pad(keycmd, 10, 1);
     textbox_set_text_color(keycmd, &colors.white);
     textbox_set_background_color(keycmd, &colors.clear);
-    textbox_reset(keycmd);
-	
-	
-
+    textbox_reset(keycmd);	
 }
 
 
@@ -136,6 +135,7 @@ static void autocompletion_update_lines(AutoCompletion *ac, struct autocompletio
     }
 
     Layout *lines_lt = layout_add_child(ac->inner_layout);
+    layout_set_name(lines_lt, "ac_tl_cntnr");
 
     lines_lt->y.type = STACK;
     lines_lt->y.value = 12.0;
@@ -297,13 +297,31 @@ void autocompletion_draw(AutoCompletion *ac)
 
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.grey));
     geom_draw_rounded_rect(main_win->rend, &ac->outer_layout->rect, STD_CORNER_RAD);
+    /* layout_draw(main_win, ac->outer_layout); */
 }
+
+
+#define JDAW_AC_PAGE_SCROLL_AMT 100
+
+/* When selection extends beyond visible list */
+static void autocompletion_page_down(AutoCompletion *ac)
+{
+    layout_scroll(ac->lines->container, 0, -JDAW_AC_PAGE_SCROLL_AMT, false);
+    /* layout_reset(ac->lines->container); */
+}
+/* When selection is before visible list */
+static void autocompletion_page_up(AutoCompletion *ac)
+{
+    layout_scroll(ac->lines->container, 0, JDAW_AC_PAGE_SCROLL_AMT, false);
+    /* layout_reset(ac->lines->container); */
+}
+
 
 void autocompletion_reset_selection(AutoCompletion *ac, int new_sel)
 {
     int old_sel = ac->selection;
     if (!ac->lines) return;
-    if (new_sel >= ac->lines->num_items) {
+    if (new_sel >= (int64_t)ac->lines->num_items) {
 	new_sel = ac->lines->num_items - 1;
     } else if (new_sel < -1) {
 	new_sel = -1;
@@ -317,9 +335,32 @@ void autocompletion_reset_selection(AutoCompletion *ac, int new_sel)
 	if (new_sel >=0) {
 	    Textbox *new = ac->lines->items[new_sel].tb;
 	    textbox_set_background_color(new, &highlighted_line);
+	    if (new->layout->rect.y + new->layout->rect.h  > ac->inner_layout->rect.y + ac->inner_layout->rect.h) {
+		autocompletion_page_down(ac);
+	    } else if (new->layout->rect.y < ac->entry->tb->layout->rect.y + ac->entry->tb->layout->rect.h) {
+		autocompletion_page_up(ac);
+	    }
 	}
     }
+}
 
+
+
+void autocompletion_reset_layout(AutoCompletion *ac)
+{
+    /* fprintf(stderr, "Ac reset layout\n"); */
+    layout_set_default_dims(main_win->ac.outer_layout);
+    layout_force_reset(main_win->ac.outer_layout);
+    layout_pad(main_win->ac.inner_layout, 20, 16);
+    layout_force_reset(main_win->ac.inner_layout);
+    layout_size_to_fit_children_v(main_win->ac.inner_layout, true, 0);
+    layout_size_to_fit_children_v(main_win->ac.outer_layout, true, 20);
+    if (ac->entry && ac->entry->tb)
+	textbox_reset(ac->entry->tb);
+    if (ac->lines)
+	textlines_layout_reset(ac->lines);
+    /* layout_force_reset(main_win->ac.inner_layout); */
+    /* textlines_reset_layout(ac->lines); */
 }
 void autocompletion_escape()
 {

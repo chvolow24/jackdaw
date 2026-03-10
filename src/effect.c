@@ -481,7 +481,7 @@ float effect_chain_buf_apply(EffectChain *ec, float *restrict L, float *restrict
     pthread_mutex_lock(&ec->effect_chain_lock);
     for (int i=0; i<ec->num_effects; i++) {
 	Effect *e = ec->effects[i];
-	if (e->active && (e->operate_on_empty_buf || fabs(input_amp) > amp_epsilon)) {
+	if (e->active && (e->operate_on_empty_buf || fabs(output) > amp_epsilon)) {
 	    output = effect_buf_apply(e, L, R, len, input_amp);
 	}
     }

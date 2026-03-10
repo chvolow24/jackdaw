@@ -26,6 +26,12 @@ extern Window *main_win;
 
 extern struct colors colors;
 
+const char *effect_channel_mode_str[] = {
+    "Stereo",
+    "Mid only",
+    "Side only"
+};
+
 /* NOTE: cannot edit order (serialization) */
 static const char *effect_type_strings[] = {
     "Equalizer",
@@ -317,6 +323,15 @@ Effect *effect_chain_add_effect(EffectChain *ec, EffectType type)
     endpoint_set_default_value(&e->active_ep, (Value){.bool_v = true});
     api_endpoint_register(&e->active_ep, &e->api_node);
 
+    endpoint_init(
+	&e->channel_mode_ep,
+	&e->channel_mode,
+	JDAW_INT,
+	"", "",
+	JDAW_THREAD_MAIN,
+	NULL, NULL, NULL,
+	NULL, NULL, NULL, NULL);
+
     user_event_push(
 	undo_add_effect, redo_add_effect,
 	NULL, dispose_forward_add_effect,
@@ -424,18 +439,11 @@ static int add_effect_form(void *mod_v, void *nullarg)
     }
     return 0;
 }
-static int mid_side_mode = false;
 
-void effect_toggle_mid_side_mode()
-{
-    int new = (mid_side_mode + 1) % 3;
-    mid_side_mode = new;
-    status_set_alertstr("Mid side mode %s\n", new == 0 ? "STEREO" : new == 1 ? "MID" : "SIDE");
-}
 static float effect_buf_apply(Effect *e, float *restrict buf_L, float *restrict buf_R, int len, float input_amp)
 {
     /* if (!e->active) return input_amp; */
-    if (mid_side_mode != 0) {
+    if (e->channel_mode != EFFECT_CH_MODE_STEREO) {
 	for (int i=0; i<len; i++) {
 	    float mid = (buf_L[i] + buf_R[i]) / 2;
 	    float side = (buf_L[i] - buf_R[i]) / 2;
@@ -445,15 +453,15 @@ static float effect_buf_apply(Effect *e, float *restrict buf_L, float *restrict 
     }
     float *save_buf_L = buf_L;
     float *save_buf_R = buf_R;
-    if (mid_side_mode == 1) {
+    if (e->channel_mode == EFFECT_CH_MODE_MID) {
 	buf_R = NULL;
-    } else if (mid_side_mode == 2) {
+    } else if (e->channel_mode == EFFECT_CH_MODE_SIDE) {
 	buf_L = NULL;
     }
     float ret = e->buf_apply(e->obj, buf_L, buf_R, len, input_amp);
     buf_R = save_buf_R;
     buf_L = save_buf_L;
-    if (mid_side_mode != 0) {
+    if (e->channel_mode != EFFECT_CH_MODE_STEREO) {
 	for (int i=0; i<len; i++) {
 	    float mid = buf_L[i];
 	    float side = buf_R[i];

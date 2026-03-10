@@ -74,11 +74,7 @@ extern Project *proj;
 
 extern void user_global_quit(void *);
 extern void open_file(const char *filepath);
-/* void user_piano_roll_quantize(void *nullarg); */
 
-/* void effect_chain_open_tabview(EffectChain *ec); */
-
-void effect_toggle_mid_side_mode();
 void loop_project_main()
 {
     Session *session = session_get();
@@ -228,9 +224,6 @@ void loop_project_main()
 			    
 		/* } */
 		switch (e.key.keysym.scancode) {
-		case SDL_SCANCODE_Y:
-		    effect_toggle_mid_side_mode();
-		    break;
 		case SDL_SCANCODE_LGUI:
 		case SDL_SCANCODE_RGUI:
 		case SDL_SCANCODE_LCTRL:

@@ -37,11 +37,20 @@ typedef enum effect_type {
     EFFECT_REVERB,
     NUM_EFFECT_TYPES
 } EffectType;
+
+typedef enum effect_channel_mode {
+    EFFECT_CH_MODE_STEREO,
+    EFFECT_CH_MODE_MID,
+    EFFECT_CH_MODE_SIDE,
+} EffectChannelMode;
+
 typedef struct effect_chain EffectChain;
 typedef struct project Project;
 typedef struct effect {
     void *obj;
     EffectType type;
+    EffectChannelMode channel_mode;
+    Endpoint channel_mode_ep;
     float (*buf_apply)(void *effect, float *restrict buf_L, float *restrict buf_R, int len, float input_amp);
     bool operate_on_empty_buf;
     Page *page;

@@ -7,16 +7,49 @@
 #include "endpoint_callbacks.h"
 #include "session.h"
 
+float schroeder_buf_apply_mono(Schroeder *sch, float *restrict in, int len)
+{
+    float output_amp = 0.0f;
+    for (int32_t i=0; i<len; i++) {
+	float dry_L = in[i];
+	float reverb_in_L;
+	if (sch->predelay_len > 0) {
+	    reverb_in_L = sch->predelay_buf[0][sch->predelay_index];	    
+	    sch->predelay_buf[0][sch->predelay_index] = dry_L;
+	    sch->predelay_index++;
+	    if (sch->predelay_index >= sch->predelay_len) {
+		sch->predelay_index -= sch->predelay_len;
+	    }
+	} else {
+	    reverb_in_L = dry_L;
+	}
+	float allpassed_L = allpass_group_sample(&sch->series_aps[0], reverb_in_L);
+	float intermed_L = 0.0f;    
+	for (int i=0; i<SCHROEDER_NUM_PARALLEL_LOP_DELAYS; i++) {
+	    intermed_L += lop_delay_sample(&sch->parallel_lop_delays[0][i], allpassed_L) / SCHROEDER_NUM_PARALLEL_LOP_DELAYS;
+	}
+	in[i] = dry_L * (1 - sch->wet) + sch->wet * intermed_L;
+	output_amp += fabs(in[i]);
+    }
+    return output_amp;
+
+}
+
 float schroeder_buf_apply(void *sch_v, float *restrict in_L, float *restrict in_R, int len, float input_amp)
 {
     Schroeder *sch = sch_v;
     float output_amp = 0.0f;
+    if (!in_R) {
+	return schroeder_buf_apply_mono(sch, in_L, len);
+    } else if (!in_L) {
+	return schroeder_buf_apply_mono(sch, in_R, len);
+    }
     for (int32_t i=0; i<len; i++) {
 	float dry_L = in_L[i];
 	float dry_R = in_R[i];
 	float reverb_in_L, reverb_in_R;
 	if (sch->predelay_len > 0) {
-	    reverb_in_L = sch->predelay_buf[0][sch->predelay_index];
+	    reverb_in_L = sch->predelay_buf[0][sch->predelay_index];	    
 	    reverb_in_R = sch->predelay_buf[1][sch->predelay_index];
 	    sch->predelay_buf[0][sch->predelay_index] = dry_L;
 	    sch->predelay_buf[1][sch->predelay_index] = dry_R;
@@ -165,12 +198,8 @@ void schroeder_init_freeverb(Schroeder *sch)
 	441 * sr / 44100,
 	341 * sr / 44100
     };
-    int32_t lens_r[4];
-    for (int i=0; i<4; i++) {
-	lens_r[i] = lens[i];
-    }
     allpass_group_init(&sch->series_aps[0], 4, lens, sch->allpass_coeff);
-    allpass_group_init(&sch->series_aps[1], 4, lens_r, sch->allpass_coeff);
+    allpass_group_init(&sch->series_aps[1], 4, lens, sch->allpass_coeff);
     int32_t lop_lens[8] = {
 	1617 * sr / 44100,
 	1557 * sr / 44100,

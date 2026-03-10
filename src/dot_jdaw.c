@@ -1360,8 +1360,6 @@ static int jdaw_read_reverb(FILE *f, Schroeder *sch)
     return 0;
 }
 
-
-
 static int jdaw_read_clipref(FILE *f, Track *track)
 {
     char hdr_buffer[7];

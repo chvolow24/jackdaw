@@ -40,10 +40,10 @@ static Page *add_saturation_page(Saturation *s, EffectChain *ec, TabView *tv);
 static Page *add_compressor_page(Compressor *c, EffectChain *ec, TabView *tv);
 static Page *add_reverb_page(Schroeder *sch, EffectChain *ec, TabView *tv);
 
+extern const char *effect_channel_mode_str[];
 
 static Page *effect_add_page(Effect *e, TabView *tv)
 {
-    /* Track *t = e->track; */
     Page *p = NULL;
     switch(e->type) {
     case EFFECT_EQ:
@@ -70,6 +70,40 @@ static Page *effect_add_page(Effect *e, TabView *tv)
     p->linked_obj = e;
     p->linked_obj_type = PAGE_EFFECT;
     e->page = p;
+    Layout *channel_mode_selector = layout_add_child(p->layout);
+    channel_mode_selector->x.type = REVREL;
+    channel_mode_selector->x.value = 20;
+    channel_mode_selector->y.value = 20;
+    channel_mode_selector->w.value = 150;
+    channel_mode_selector->h.value = 150;
+    Layout *label_lt = layout_add_child(channel_mode_selector);
+    label_lt->h.value = 40;
+    label_lt->w.type = SCALE;
+    label_lt->w.value = 1.0;
+    layout_set_name(label_lt, "ch_mode_label");
+
+    Layout *radio_lt = layout_add_child(channel_mode_selector);
+    radio_lt->y.type = STACK;
+    /* radio_lt->y.value = 0; */
+    radio_lt->h.type = COMPLEMENT;
+    radio_lt->w.type = SCALE;
+    radio_lt->w.value = 1.0;
+    layout_set_name(radio_lt, "ch_mode_radio");
+    layout_reset(channel_mode_selector);
+
+    PageElParams params;
+    params.textbox_p.text_size = 16;
+    params.textbox_p.font = main_win->mono_bold_font;
+    params.textbox_p.win = main_win;
+    params.textbox_p.set_str = "Channel mode";
+    page_add_el(p, EL_TEXTBOX, params, "ch_mode_label", "ch_mode_label");
+    
+    params.radio_p.text_size = 14;
+    params.radio_p.text_color = p->text_color;
+    params.radio_p.item_names = effect_channel_mode_str;
+    params.radio_p.num_items = 3;
+    params.radio_p.ep = &e->channel_mode_ep;
+    page_add_el(p, EL_RADIO, params, "ch_mode_radio", "ch_mode_radio");
     return p;
 }
 

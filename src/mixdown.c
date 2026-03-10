@@ -272,11 +272,6 @@ static float get_track_mixdown_chunk(Track *track, float *restrict L, float *res
 
 extern Window *main_win;
 
-static bool freeverb_init = false;
-static Schroeder freeverb;
-
-Schroeder *freeverb_p = &freeverb;
-
 /* 
 Sum track samples over a chunk of timeline and return an array of samples. from_mark_in indicates that samples
 should be collected from the in mark rather than from the play head.
@@ -327,15 +322,6 @@ void get_mixdown_chunk(Timeline* tl, float *restrict mixdown_L, float *restrict 
 	float track_chunk_R[len_sframes];
 
         float track_chunk_amp = get_track_mixdown_chunk(track, track_chunk_L, track_chunk_R, start_pos_sframes, len_sframes, step);
-
-	if (t == 0 && !freeverb_init) {
-	    schroeder_init_freeverb(&freeverb);
-	    freeverb_init = true;
-	}
-	if (t == 0) {
-	    schroeder_buf_apply(&freeverb, track_chunk_L, track_chunk_R, len_sframes, 1.0);
-	}
-
 	    	
 	if (track_chunk_amp > AMP_EPSILON) { /* Checks if any clip audio available */
 	    audio_in_track = true;

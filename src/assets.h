@@ -23,6 +23,7 @@
 #define EQ_LT_PATH LAYOUT_PATH "track_settings_eq.xml"
 #define SATURATION_LT_PATH LAYOUT_PATH "track_settings_saturation.xml"
 #define COMPRESSOR_LT_PATH LAYOUT_PATH "track_settings_compressor.xml"
+#define REVERB_LT_PATH LAYOUT_PATH "reverb.xml"
 #define CLICK_TRACK_SETTINGS_LT_PATH LAYOUT_PATH "click_track_settings.xml"
 #define METRONOME_PAGE_LT_PATH LAYOUT_PATH "metronome_page.xml"
 #define LOADING_SCREEN_LT_PATH LAYOUT_PATH "loading_screen.xml"

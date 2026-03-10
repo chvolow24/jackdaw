@@ -20,17 +20,20 @@
 #include "page.h"
 #include "project.h"
 #include "session.h"
+#include "schroeder.h"
 
 extern Window *main_win;
 
 extern struct colors colors;
 
+/* NOTE: cannot edit order (serialization) */
 static const char *effect_type_strings[] = {
     "Equalizer",
     "FIR Filter",
     "Delay",
     "Saturation",
-    "Compressor"
+    "Compressor",
+    "Reverb",
 };
 
 const char *effect_type_str(EffectType type)
@@ -291,6 +294,13 @@ Effect *effect_chain_add_effect(EffectChain *ec, EffectType type)
 	e->buf_apply = compressor_buf_apply_stereo;
 	e->operate_on_empty_buf = true;
 	break;
+    case EFFECT_REVERB:
+	e->obj = calloc(1, sizeof(Schroeder));
+	((Schroeder *)e->obj)->effect = e;
+	schroeder_init_freeverb(e->obj);
+	e->buf_apply = schroeder_buf_apply;
+	e->operate_on_empty_buf = true;
+	break;
     default:
 	break;
     }
@@ -488,6 +498,9 @@ static void effect_silence(Effect *e)
     case EFFECT_DELAY:
 	delay_line_clear(e->obj);
 	break;
+    case EFFECT_REVERB:
+	schroeder_clear(e->obj);
+	break;
     default:
 	break;
     }
@@ -610,6 +623,9 @@ void effect_destroy(Effect *e)
 	break;
     case EFFECT_COMPRESSOR:
 	/* compressor_deinit(((Compressor *)e->obj); */
+	break;
+    case EFFECT_REVERB:
+	fprintf(stderr, "TODO: reverb deinit\n");
 	break;
     default:
 	break;

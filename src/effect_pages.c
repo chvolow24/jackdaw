@@ -6,6 +6,7 @@
 #include "page.h"
 #include "project.h"
 #include "saturation.h"
+#include "schroeder.h"
 #include "session.h"
 
 #define LABEL_STD_FONT_SIZE 12
@@ -29,6 +30,7 @@ static SDL_Color page_colors[] = {
     {43, 43, 55, 255},
     {100, 40, 40, 255},
     {94, 58, 61, 255},
+    {34, 77, 99, 255}
 };
 
 static Page *add_eq_page(EQ *eq, EffectChain *ec, TabView *tv);
@@ -36,6 +38,8 @@ static Page *add_fir_filter_page(FIRFilter *f, EffectChain *ec, TabView *tv);
 static Page *add_delay_page(DelayLine *dl, EffectChain *ec, TabView *tv);
 static Page *add_saturation_page(Saturation *s, EffectChain *ec, TabView *tv);
 static Page *add_compressor_page(Compressor *c, EffectChain *ec, TabView *tv);
+static Page *add_reverb_page(Schroeder *sch, EffectChain *ec, TabView *tv);
+
 
 static Page *effect_add_page(Effect *e, TabView *tv)
 {
@@ -56,6 +60,9 @@ static Page *effect_add_page(Effect *e, TabView *tv)
 	break;
     case EFFECT_COMPRESSOR:
 	p = add_compressor_page(e->obj, e->effect_chain, tv);
+	break;
+    case EFFECT_REVERB:
+	p = add_reverb_page(e->obj, e->effect_chain, tv);
 	break;
     default:
 	break;
@@ -765,6 +772,63 @@ static Page *add_compressor_page(Compressor *c, EffectChain *ec, TabView *tv)
     /* create_track_selection_area(page, track); */
     return page;
 
+}
+
+static Page *add_reverb_page(Schroeder *sch, EffectChain *ec, TabView *tv)
+{
+    Page *page = tabview_add_page(
+	tv,
+	sch->effect->name,
+	REVERB_LT_PATH,
+	page_colors + 5,
+	&colors.white,
+	main_win);
+
+    PageElParams p;
+    p.toggle_p.ep = &sch->effect->active_ep;
+    PageEl *el = page_add_el(page, EL_TOGGLE, p, "track_settings_toggle_reverb", "toggle_reverb");
+
+    p.textbox_p.set_str = "Reverb on";
+    p.textbox_p.font = main_win->mono_bold_font;
+    p.textbox_p.text_size = LABEL_STD_FONT_SIZE;
+    p.textbox_p.win = main_win;
+    page_add_el(page, EL_TEXTBOX, p, "", "toggle_label");
+
+    p.textbox_p.set_str = "Decay time";
+    page_add_el(page, EL_TEXTBOX, p, "", "decay_time_label");
+
+    p.textbox_p.set_str = "Brightness";
+    page_add_el(page, EL_TEXTBOX, p, "", "brightness_label");
+
+    p.textbox_p.set_str = "Stereo spread";
+    page_add_el(page, EL_TEXTBOX, p, "", "stereo_spread_label");
+
+    p.textbox_p.set_str = "Pre-delay";
+    page_add_el(page, EL_TEXTBOX, p, "", "predelay_label");
+
+
+    p.textbox_p.set_str = "Wet / dry";
+    page_add_el(page, EL_TEXTBOX, p, "", "wet_label");
+
+    p.slider_p.orientation = SLIDER_HORIZONTAL;
+    p.slider_p.style = SLIDER_FILL;
+
+    page_el_params_slider_from_ep(&p, &sch->decay_time_ep);
+    page_add_el(page, EL_SLIDER, p, "decay_time_slider", "decay_time_slider");
+
+    page_el_params_slider_from_ep(&p, &sch->brightness_ep);
+    page_add_el(page, EL_SLIDER, p, "brightness_slider", "brightness_slider");
+    
+    page_el_params_slider_from_ep(&p, &sch->stereo_spread_ep);
+    page_add_el(page, EL_SLIDER, p, "stereo_spread_slider", "stereo_spread_slider");
+
+    page_el_params_slider_from_ep(&p, &sch->predelay_ep);
+    page_add_el(page, EL_SLIDER, p, "predelay_slider", "predelay_slider");
+
+    page_el_params_slider_from_ep(&p, &sch->wet_ep);
+    page_add_el(page, EL_SLIDER, p, "wet_slider", "wet_slider");
+    
+    return page;
 }
 
 

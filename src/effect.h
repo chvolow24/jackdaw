@@ -34,6 +34,7 @@ typedef enum effect_type {
     EFFECT_DELAY,
     EFFECT_SATURATION,
     EFFECT_COMPRESSOR,
+    EFFECT_REVERB,
     NUM_EFFECT_TYPES
 } EffectType;
 typedef struct effect_chain EffectChain;

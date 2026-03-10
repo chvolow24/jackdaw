@@ -144,6 +144,7 @@ int endpoint_init(
 
 void endpoint_set_allowed_range(Endpoint *ep, Value min, Value max);
 void endpoint_set_default_value(Endpoint *ep, Value default_val);
+void endpoint_write_default(Endpoint *ep);
 /* int endpoint_add_callback( */
 /*     Endpoint *ep, */
 /*     EndptCb fn, */

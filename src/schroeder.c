@@ -4,9 +4,8 @@
 #include "endpoint.h"
 #include "schroeder.h"
 #include "allpass.h"
-#include "dsp_utils.h"
+#include "endpoint_callbacks.h"
 #include "session.h"
-#include "status.h"
 
 float schroeder_buf_apply(void *sch_v, float *restrict in_L, float *restrict in_R, int len, float input_amp)
 {
@@ -207,9 +206,12 @@ void schroeder_init_freeverb(Schroeder *sch)
 	"decay_time",
 	"Decay time",
 	JDAW_THREAD_DSP,
-	NULL, NULL, decay_time_dsp_cb,
-	sch, NULL, NULL, NULL);
+	page_el_gui_cb, NULL, decay_time_dsp_cb,
+	sch, NULL, &sch->effect->page, "decay_time_slider");
     endpoint_set_allowed_range(&sch->decay_time_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 1.0f});
+    endpoint_set_default_value(&sch->decay_time_ep, (Value){.float_v = 0.75f});
+    endpoint_write_default(&sch->decay_time_ep);
+    api_endpoint_register(&sch->decay_time_ep, &sch->effect->api_node);
 
     endpoint_init(
 	&sch->brightness_ep,
@@ -218,9 +220,12 @@ void schroeder_init_freeverb(Schroeder *sch)
 	"brightness",
 	"Brightness",
 	JDAW_THREAD_DSP,
-	NULL, NULL, brightness_dsp_cb,
-	sch, NULL, NULL, NULL);
+	page_el_gui_cb, NULL, brightness_dsp_cb,
+	sch, NULL, &sch->effect->page, "brightness_slider");
     endpoint_set_allowed_range(&sch->brightness_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 1.0f});
+    endpoint_set_default_value(&sch->brightness_ep, (Value){.float_v = 0.40f});
+    endpoint_write_default(&sch->brightness_ep);
+    api_endpoint_register(&sch->brightness_ep, &sch->effect->api_node);
     
     endpoint_init(
 	&sch->stereo_spread_ep,
@@ -229,9 +234,12 @@ void schroeder_init_freeverb(Schroeder *sch)
 	"stereo_spread",
 	"Stereo spread",
 	JDAW_THREAD_DSP,
-	NULL, NULL, stereo_spread_dsp_cb,
-	sch, NULL, NULL, NULL);
+	page_el_gui_cb, NULL, stereo_spread_dsp_cb,
+	sch, NULL, &sch->effect->page, "stereo_spread_slider");
     endpoint_set_allowed_range(&sch->stereo_spread_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 1.0f});
+    endpoint_set_default_value(&sch->stereo_spread_ep, (Value){.float_v = 1.0f});
+    endpoint_write_default(&sch->stereo_spread_ep);
+    api_endpoint_register(&sch->stereo_spread_ep, &sch->effect->api_node);
 
     endpoint_init(
 	&sch->predelay_ep,
@@ -240,9 +248,13 @@ void schroeder_init_freeverb(Schroeder *sch)
 	"predelay",
 	"Pre-delay",
 	JDAW_THREAD_DSP,
-	NULL, NULL, predelay_dsp_cb,
-	sch, NULL, NULL, NULL);
+	page_el_gui_cb, NULL, predelay_dsp_cb,
+	sch, NULL, &sch->effect->page, "predelay_slider");
     endpoint_set_allowed_range(&sch->predelay_ep, (Value){.float_v = 0.0f}, (Value){.float_v = (double)MAX_PREDELAY_SFRAMES / session_get_sample_rate() * 1000});
+    endpoint_set_default_value(&sch->predelay_ep, (Value){.float_v = 0.0f});
+    endpoint_write_default(&sch->predelay_ep);
+    endpoint_set_label_fn(&sch->predelay_ep, label_msec);
+    api_endpoint_register(&sch->predelay_ep, &sch->effect->api_node);
 
     endpoint_init(
 	&sch->wet_ep,
@@ -251,18 +263,13 @@ void schroeder_init_freeverb(Schroeder *sch)
 	"wet",
 	"Wet",
 	JDAW_THREAD_DSP,
-	NULL, NULL, NULL,
-	NULL, NULL, NULL, NULL);
+	page_el_gui_cb, NULL, NULL,
+	NULL, NULL, &sch->effect->page, "wet_slider");
     endpoint_set_allowed_range(&sch->wet_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 1.0f});
-
-
-/*
-endpoint_init(Endpoint *ep, void *val, ValType t, const
-char *local_id, const char *display_name, enum
-jdaw_thread owner_thread, EndptCb gui_cb
-, EndptCb proj_cb, EndptCb dsp_cb, void *xarg1, void *xarg2, void *xarg3, void *xarg4) -> int
-*/
-	
+    endpoint_set_default_value(&sch->wet_ep, (Value){.float_v = 0.25f});
+    endpoint_write_default(&sch->wet_ep);
+    endpoint_set_label_fn(&sch->wet_ep, label_dry_wet_mix);
+    api_endpoint_register(&sch->wet_ep, &sch->effect->api_node);
 }
 
 /* void schroeder_set_allpass_coeff(Schroeder *sch, float new) */

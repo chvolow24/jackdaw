@@ -806,8 +806,7 @@ static Page *add_reverb_page(Schroeder *sch, EffectChain *ec, TabView *tv)
     p.textbox_p.set_str = "Pre-delay";
     page_add_el(page, EL_TEXTBOX, p, "", "predelay_label");
 
-
-    p.textbox_p.set_str = "Wet / dry";
+    p.textbox_p.set_str = "Dry / wet";
     page_add_el(page, EL_TEXTBOX, p, "", "wet_label");
 
     p.slider_p.orientation = SLIDER_HORIZONTAL;
@@ -826,6 +825,7 @@ static Page *add_reverb_page(Schroeder *sch, EffectChain *ec, TabView *tv)
     page_add_el(page, EL_SLIDER, p, "predelay_slider", "predelay_slider");
 
     page_el_params_slider_from_ep(&p, &sch->wet_ep);
+    p.slider_p.style = SLIDER_TICK;
     page_add_el(page, EL_SLIDER, p, "wet_slider", "wet_slider");
     
     return page;

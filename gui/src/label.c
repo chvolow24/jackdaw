@@ -247,8 +247,21 @@ void label_msec(char *dst, size_t dstsize, Value v, ValType t)
 void label_int_plus_one(char *dst, size_t dstsize, Value v, ValType t)
 {
     int plusone = v.int_v + 1;
-    snprintf(dst, dstsize, "%d", plusone);
-    
+    snprintf(dst, dstsize, "%d", plusone);   
+}
+
+void label_dry_wet_mix(char *dst, size_t dstsize, Value v, ValType t)
+{
+    v = jdaw_val_scale(v, 100, t);
+    jdaw_val_to_str(dst, dstsize - 6, v, t, 1);
+    strcat(dst, "% wet");
+}
+
+void label_percent(char *dst,  size_t dstsize, Value v, ValType t)
+{
+    v = jdaw_val_scale(v, 100, t);
+    jdaw_val_to_str(dst, dstsize - 2, v, t, 1);
+    strcat(dst, "%");
 }
 
 /* void label_freq_raw_to_hz(char *dst, size_t dstsize, double raw) */

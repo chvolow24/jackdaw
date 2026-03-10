@@ -82,6 +82,16 @@ void endpoint_set_default_value(Endpoint *ep, Value default_val)
     ep->default_val = default_val;
 }
 
+/* Convenience function to be used at init time */
+void endpoint_write_default(Endpoint *ep)
+{
+    if (!ep->has_default_val) {
+	log_tmp(LOG_WARN, "Endpoint %s has no default value.\n", ep->local_id);
+	return;
+    }
+    endpoint_write(ep, ep->default_val, true, true, true, false);    
+}
+
 void endpoint_set_label_fn(Endpoint *ep, LabelStrFn fn)
 {
     ep->label_fn = fn;

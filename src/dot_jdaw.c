@@ -25,6 +25,7 @@
 #include "midi_file.h"
 #include "midi_io.h"
 #include "project.h"
+#include "schroeder.h"
 #include "session.h"
 #include "tempo.h"
 #include "transport.h"
@@ -297,6 +298,7 @@ static void jdaw_write_delay(FILE *f, DelayLine *dl);
 static void jdaw_write_saturation(FILE *f, Saturation *s);
 static void jdaw_write_eq(FILE *f, EQ *eq);
 static void jdaw_write_compressor(FILE *f, Compressor *compressor);
+static void jdaw_write_reverb(FILE *f, Schroeder *schroeder);
 
 static void jdaw_write_effect(FILE *f, Effect *e)
 {
@@ -321,6 +323,9 @@ static void jdaw_write_effect(FILE *f, Effect *e)
 	break;
     case EFFECT_COMPRESSOR:
 	jdaw_write_compressor(f, e->obj);
+	break;
+    case EFFECT_REVERB:
+	jdaw_write_reverb(f, e->obj);
 	break;
     default:
 	break;
@@ -394,6 +399,18 @@ static void jdaw_write_compressor(FILE *f, Compressor *c)
     float_ser40_le(f, c->m);
     float_ser40_le(f, c->makeup_gain);
 }
+
+static void jdaw_write_reverb(FILE *f, Schroeder *sch)
+{
+    fwrite(&sch->effect->active, 1, 1, f);
+    api_node_serialize(f, &sch->effect->api_node);
+    /* float_ser40_le(f, c->attack_time); */
+    /* float_ser40_le(f, c->release_time); */
+    /* float_ser40_le(f, c->threshold); */
+    /* float_ser40_le(f, c->m); */
+    /* float_ser40_le(f, c->makeup_gain); */
+}
+
 
 
 
@@ -1207,6 +1224,7 @@ static int jdaw_read_delay(FILE *f, DelayLine *dl);
 static int jdaw_read_saturation(FILE *f, Saturation *s);
 static int jdaw_read_eq(FILE *f, EQ *eq);
 static int jdaw_read_compressor(FILE *f, Compressor *c);
+static int jdaw_read_reverb(FILE *f, Schroeder *sch);
 
 static int jdaw_read_effect(FILE *f, EffectChain *ec)
 {
@@ -1242,6 +1260,9 @@ static int jdaw_read_effect(FILE *f, EffectChain *ec)
 	break;
     case EFFECT_COMPRESSOR:
 	jdaw_read_compressor(f, e->obj);
+	break;
+    case EFFECT_REVERB:
+	jdaw_read_reverb(f, e->obj);
 	break;
     default:
 	break;
@@ -1331,6 +1352,14 @@ static int jdaw_read_compressor(FILE *f, Compressor *c)
     c->makeup_gain = float_deser40_le(f);
     return 0;
 }
+
+static int jdaw_read_reverb(FILE *f, Schroeder *sch)
+{
+    sch->effect->active = uint8_deser(f);
+    api_node_deserialize(f, &sch->effect->api_node);
+    return 0;
+}
+
 
 
 static int jdaw_read_clipref(FILE *f, Track *track)

@@ -165,6 +165,8 @@ void timeline_rescale(Timeline *tl, double sfpp_scale_factor, bool on_mouse)
     /* tl->display_offset_sframes += (timeline_get_abs_w_sframes(tl, offset_draw_delta)); */
 
     timeline_reset(tl, true);
+
+    fprintf(stderr, "SFPP: %f\n", tl->timeview.sample_frames_per_pixel);
     /* Track *track = NULL; */
     /* for (int i=0; i<tl->num_tracks; i++) { */
     /*     track = tl->tracks[i]; */

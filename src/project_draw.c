@@ -430,6 +430,8 @@ static bool internal_tl_needs_redraw = false;
 /*     va_end(ap); */
 /* } */
 
+
+void waveform_draw_with_ck_data(WaveformData *wd, int32_t start_in_clip, int32_t draw_len, SDL_Rect *waveform_container, int min_x, int max_x, double sfpp, SDL_Color *draw_color, float gain);
 void clipref_draw_waveform(ClipRef *cr)
 {
     /* condpr(cr, "\nCall to cr wf draw. Redraw? %d Texture? %p\n", cr->waveform_redraw, cr->waveform_texture); */
@@ -539,7 +541,11 @@ void clipref_draw_waveform(ClipRef *cr)
 	SDL_Rect waveform_container = {0, 0, onscreen_rect.w, onscreen_rect.h};
 
 	clock_t c = clock();
-	waveform_draw_all_channels_generic((void **)channels, JDAW_FLOAT, num_channels, wf_len, &waveform_container, 0, onscreen_rect.w, cr->track->tl->timeview.sample_frames_per_pixel, &colors.black, cr->gain);
+	if (clip->waveform.init_len == clip->len_sframes) {
+	    waveform_draw_with_ck_data(&clip->waveform, start_in_clip, wf_len, &waveform_container, 0, onscreen_rect.w, cr->track->tl->timeview.sample_frames_per_pixel, &colors.black, cr->gain);
+	} else {
+	    waveform_draw_all_channels_generic((void **)channels, JDAW_FLOAT, num_channels, wf_len, &waveform_container, 0, onscreen_rect.w, cr->track->tl->timeview.sample_frames_per_pixel, &colors.black, cr->gain);
+	}
 	FRAME_WF_DRAW_TIME += ((double)clock() - c) / CLOCKS_PER_SEC;
 	SDL_SetRenderTarget(main_win->rend, saved_targ);
 	/* condpr(cr, "Drew wf fresh\n"); */

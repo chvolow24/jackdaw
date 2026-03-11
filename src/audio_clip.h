@@ -26,6 +26,22 @@
 typedef struct clip_ref ClipRef;
 typedef struct track Track;
 typedef struct audio_conn AudioConn;
+typedef struct clip Clip;
+
+typedef struct waveform_chunk {
+    float min;
+    float max;
+} WaveformChunk;
+
+typedef struct waveform_data {
+    int32_t init_len;
+    Clip *source_clip;
+    int num_channels;
+    int32_t num_ck64;
+    WaveformChunk *ck64[2];
+    WaveformChunk *ck512[2];
+} WaveformData;
+
 
 typedef struct clip {
     char name[MAX_NAMELENGTH];
@@ -47,7 +63,9 @@ typedef struct clip {
     Track *target;
     bool recording;
     AudioConn *recorded_from;
+    WaveformData waveform;
 } Clip;
+
 
 
 /* mandatory after alloc */

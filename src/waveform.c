@@ -16,6 +16,7 @@
     * incl. multi-channel audio
  *****************************************************************************************************************/
 
+#include "audio_clip.h"
 #include "color.h"
 #include "logscale.h"
 #include "session.h"
@@ -682,5 +683,92 @@ void waveform_draw_all_channels_generic(void **channels, ValType type, uint8_t n
     for (uint8_t i=0; i<num_channels; i++) {
 	waveform_draw_channel_generic(channels[i], type,  buflen, rect->x, rect->w, channel_h / 2, center_y, min_x, max_x, sfpp, color, gain);
 	center_y += channel_h;
+    }
+}
+
+void waveform_draw_with_ck_data(WaveformData *wd, const int32_t start_in_clip, int32_t draw_len, SDL_Rect *waveform_container, int min_x, int max_x, double sfpp, SDL_Color *draw_color, float gain)
+{
+    SDL_SetRenderDrawColor(main_win->rend, sdl_colorp_expand(draw_color));
+    int channel_h = waveform_container->h / wd->num_channels;
+    int center_y = waveform_container->y + channel_h / 2;
+    int32_t index_divider;
+    int32_t max_chunk;
+    if (sfpp < 64) {
+	return;
+    } else if (sfpp < 512) {
+	index_divider = 64;
+	max_chunk = wd->num_ck64 - 1;
+    } else {
+	index_divider = 512;
+	max_chunk = wd->num_ck64 / 8 - 1;
+    }
+
+    int32_t chunks_per_pixel = sfpp / index_divider;
+    WaveformChunk *sel_chunks_L = sfpp < 512 ? wd->ck64[0] : wd->ck512[0];
+    WaveformChunk *sel_chunks_R = sfpp < 512 ? wd->ck64[1] : wd->ck512[1];
+    double start_in_clip_d = start_in_clip;
+    for (int x = min_x; x < max_x; x++) {
+	int32_t first_chunk_index = start_in_clip_d / index_divider;
+	float min = 1.0;
+	float max = -1.0;
+	for (int32_t i=0; i<chunks_per_pixel; i++) {
+	    int32_t chunk_i = first_chunk_index + i;
+	    if (chunk_i > max_chunk) break;
+	    WaveformChunk ck = sel_chunks_L[chunk_i];
+	    min = fminf(min, ck.min);
+	    max = fmaxf(max, ck.max);
+	}
+	min *= gain;
+	max *= gain;
+	bool overshoot = false;
+	if (min < -1) {
+	    overshoot = true;
+	    SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 255);
+	    min = -1;
+	}
+	if (max > 1) {
+	    overshoot = true;
+	    SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 255);
+	    max = 1;
+	}
+	SDL_RenderDrawLine(main_win->rend, x, center_y - max * channel_h / 2, x, center_y - min * channel_h / 2);
+	start_in_clip_d += sfpp;
+	if (overshoot) {
+	    SDL_SetRenderDrawColor(main_win->rend, sdl_colorp_expand(draw_color));
+	}
+    }
+    if (wd->num_channels > 1) {
+	center_y += channel_h;
+	start_in_clip_d = start_in_clip;
+	for (int x = min_x; x < max_x; x++) {
+	    int32_t first_chunk_index = start_in_clip_d / index_divider;
+	    float min = 1.0;
+	    float max = -1.0;
+	    for (int32_t i=0; i<chunks_per_pixel; i++) {
+		int32_t chunk_i = first_chunk_index + i;
+		if (chunk_i > max_chunk) break;
+		WaveformChunk ck = sel_chunks_R[chunk_i];
+		min = fminf(min, ck.min);
+		max = fmaxf(max, ck.max);
+	    }
+	    min *= gain;
+	    max *= gain;
+	    bool overshoot = false;
+	    if (min < -1) {
+		overshoot = true;
+		SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 255);
+		min = -1;
+	    }
+	    if (max > 1) {
+		overshoot = true;
+		SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 255);
+		max = 1;
+	    }
+	    SDL_RenderDrawLine(main_win->rend, x, center_y - max * channel_h / 2, x, center_y - min * channel_h / 2);
+	    start_in_clip_d += sfpp;
+	    if (overshoot) {
+		SDL_SetRenderDrawColor(main_win->rend, sdl_colorp_expand(draw_color));
+	    }
+	}
     }
 }

@@ -45,7 +45,7 @@ extern Window *main_win;
 /* Type: `void (*)(Endpoint *) (aka void (*)(struct endpoint *))`   */
 
 
-float compressor_buf_apply(void *compressor_v, float *buf, int len, int channel, float input_amp)
+float compressor_buf_apply_mono(void *compressor_v, float *buf, int len, int channel, float input_amp)
 {
     Compressor *c = compressor_v;
     /* if (!c->active) return input_amp; */
@@ -73,11 +73,55 @@ float compressor_buf_apply(void *compressor_v, float *buf, int len, int channel,
 
 float compressor_buf_apply_stereo(void *compressor_v, float *restrict L, float *restrict R, int len, float input_amp)
 {
-    if (L)
-	input_amp = compressor_buf_apply(compressor_v, L, len, 0, input_amp);
-    if (R)
-	input_amp = compressor_buf_apply(compressor_v, R, len, 1, input_amp);
-    return input_amp;
+    Compressor *c = compressor_v;
+    /* if (!c->active) return input_amp; */
+    float amp_scalar;
+    float env = 0.0f;
+    float output_amp = 0.0f;
+    for (int i=0; i<len; i++) {
+	float env_input;
+	if (L && R) {
+	    env_input = fmaxf(fabsf(L[i]), fabsf(R[i]));
+	    /* env_input = fabs(L[i]) > fabs(R[i]) ? L[i] : R[i]; */
+	} else if (L) {
+	    env_input = L[i];
+	} else {
+	    env_input = R[i];
+	}
+	
+	env = envelope_follower_sample(&c->ef[0], env_input);
+	float overshoot = env - c->threshold;
+	if (overshoot > 0.0f) {
+	    overshoot *= c->m;
+	    amp_scalar = (c->threshold + overshoot) / env;
+	    if (L) {
+		L[i] *= amp_scalar;
+		L[i] *= c->makeup_gain;
+	    }
+	    if (R) {
+		R[i] *= amp_scalar;
+		R[i] *= c->makeup_gain;
+	    }
+	} else {
+	    if (L)
+		L[i] *= c->makeup_gain;
+	    if (R)
+		R[i] *= c->makeup_gain;
+	}
+	if (L) output_amp += fabs(L[i]);
+	if (R) output_amp += fabs(R[i]);
+	/* output_amp += fabs(L[i]) + fabs(R[i]); */
+	
+    }
+    c->gain_scalar[0] = amp_scalar;
+    c->env[0] = env;
+    return output_amp;
+    /* return output_amp;    */
+    /* if (L) */
+    /* 	input_amp = compressor_buf_apply_mono(compressor_v, L, len, 0, input_amp); */
+    /* if (R) */
+    /* 	input_amp = compressor_buf_apply_mono(compressor_v, R, len, 1, input_amp); */
+    /* return input_amp; */
 }
 
 void compressor_set_times_msec(Compressor *c, double attack_msec, double release_msec, double sample_rate)

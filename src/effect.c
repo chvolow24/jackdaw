@@ -13,6 +13,7 @@
 #include "color.h"
 #include "delay_line.h"
 #include "effect.h"
+#include "endpoint_callbacks.h"
 #include "error.h"
 #include "fir_filter.h"
 #include "log.h"
@@ -329,8 +330,9 @@ Effect *effect_chain_add_effect(EffectChain *ec, EffectType type)
 	JDAW_INT,
 	"", "",
 	JDAW_THREAD_MAIN,
-	NULL, NULL, NULL,
-	NULL, NULL, NULL, NULL);
+	page_el_gui_cb, NULL, NULL,
+	NULL, NULL, &e->page, "ch_mode_radio");
+    
 
     user_event_push(
 	undo_add_effect, redo_add_effect,

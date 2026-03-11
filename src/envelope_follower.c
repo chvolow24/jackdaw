@@ -25,7 +25,7 @@ void envelope_follower_set_times_msec(EnvelopeFollower *e, double attack_msec, d
 float envelope_follower_sample(EnvelopeFollower *e, float in)
 {
     float out;
-    in = fabs(in);
+    in = fabsf(in);
     if (in > e->prev_out) {
 	out =  in * e->attack_coeff + (1 - e->attack_coeff) * e->prev_out;
     } else {

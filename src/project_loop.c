@@ -115,7 +115,15 @@ void loop_project_main()
 		break;
 	    case SDL_WINDOWEVENT:
 		if (e.window.event == SDL_WINDOWEVENT_RESIZED || e.window.event == SDL_WINDOWEVENT_MAXIMIZED) {
-		    window_resize_passive(main_win, e.window.data1, e.window.data2);
+		    int w, h;
+		    if (e.window.event == SDL_WINDOWEVENT_MAXIMIZED) {
+			SDL_GetWindowSize(main_win->win, &w, &h);
+		    } else {
+			w = e.window.data1;
+			h = e.window.data2;
+		    }
+		    ACTIVE_TL->needs_redraw = true;
+		    window_resize_passive(main_win, w, h);
 		    ACTIVE_TL->needs_redraw = true;
 		} else if (e.window.event == SDL_WINDOWEVENT_DISPLAY_CHANGED) {
 		    int rw = 0, rh = 0, ww = 0, wh = 0;

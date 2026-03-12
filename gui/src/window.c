@@ -39,12 +39,14 @@ Window *window_create(int w, int h, const char *name)
     Window *window = calloc(1, sizeof(Window));
     SDL_Window *win = SDL_CreateWindow(name, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, w, h, (Uint32)DEFAULT_WINDOW_FLAGS);
     if (!win) {
+	log_tmp(LOG_ERROR, "Error creating window: %s", SDL_GetError());
         fprintf(stderr, "Error creating window: %s", SDL_GetError());
         exit(1);
     }
 
     SDL_Renderer *rend = SDL_CreateRenderer(win, -1, (Uint32)DEFAULT_RENDER_FLAGS);
     if (!rend) {
+	log_tmp(LOG_ERROR, "Error creating renderer: %s", SDL_GetError());
         fprintf(stderr, "Error creating renderer: %s", SDL_GetError());
     }
 
@@ -74,6 +76,7 @@ Window *window_create(int w, int h, const char *name)
     window->canvas = SDL_CreateTexture(rend, 0, SDL_TEXTUREACCESS_TARGET, window->w_pix, window->h_pix);
     /* window->canvas = SDL_CreateTexture(rend, 0, SDL_TEXTUREACCESS_TARGET, window->w_pix * window->dpi_scale_factor, window->h_pix * window->dpi_scale_factor); */
     if (!window->canvas) {
+	log_tmp(LOG_ERROR, "Error: failed to create canvas texture. %s\n", SDL_GetError());
 	fprintf(stderr, "Error: failed to create canvas texture. %s\n", SDL_GetError());
 	exit(1);
     }
@@ -193,6 +196,7 @@ void window_auto_resize(Window *win)
 	SDL_DestroyTexture(win->canvas);
 	win->canvas = SDL_CreateTexture(win->rend, 0, SDL_TEXTUREACCESS_TARGET, win->w_pix * win->dpi_scale_factor, win->h_pix * win->dpi_scale_factor);
 	if (!win->canvas) {
+	    log_tmp(LOG_ERROR, "Error: failed to create canvas texture. %s\n", SDL_GetError());
 	    fprintf(stderr, "Error: failed to create canvas texture. %s\n", SDL_GetError());
 	    //exit(1);
 	}

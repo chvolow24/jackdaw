@@ -374,6 +374,17 @@ ClipRef *clipref_at_cursor()
     return NULL;
 }
 
+ClipRef *clipref_at_point_in_track(Track *track, int x)
+{
+    
+    for (int i=0; i<track->num_clips; i++) {
+	SDL_Rect cliprect = track->clips[i]->layout->rect;
+	if (cliprect.x <= x && cliprect.x + cliprect.w > x) {
+	    return track->clips[i];
+	}
+    }
+}
+
 ClipRef *clipref_at_cursor_in_track(Track *track)
 {
     for (int i=track->num_clips-1; i>=0; i--) {
@@ -618,8 +629,8 @@ void clipref_destroy_no_displace(ClipRef *cr)
     pthread_mutex_destroy(&cr->lock);
     /* SDL_DestroyMutex(cr->lock); */
     textbox_destroy(cr->label);
-    if (cr->waveform_texture)
-	SDL_DestroyTexture(cr->waveform_texture);
+    /* if (cr->waveform_texture) */
+    /* 	SDL_DestroyTexture(cr->waveform_texture); */
     free(cr);
 }
 

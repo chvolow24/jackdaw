@@ -207,6 +207,7 @@ struct waveform_params {
     uint32_t len;
     SDL_Color *background_color;
     SDL_Color *plot_color;
+    WaveformData *wd;
 };
 
 struct canvas_params {

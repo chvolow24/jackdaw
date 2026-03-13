@@ -189,6 +189,7 @@ static void session_init_output_panel(Page *output, Session *session)
     p.waveform_p.len = DEFAULT_FOURIER_LEN_SFRAMES;
     p.waveform_p.type = JDAW_FLOAT;
     p.waveform_p.channels = output_L;
+    p.waveform_p.wd = NULL;
     page_add_el(
 	output,
 	EL_WAVEFORM,
@@ -583,13 +584,23 @@ static void source_area_draw(void *arg1, void *arg2)
     int32_t abs_w = timeview_get_w_sframes(&session->source_mode.timeview, source_clip_rect->w);
     if (clip) { /* Draw src clip waveform */
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.black));
-	uint8_t num_channels = clip->channels;
-	float *channels[num_channels];
-	channels[0] = clip->L + offset_left;
-	if (num_channels > 1) {
-	    channels[1] = clip->R + offset_left;
-	}
-	waveform_draw_all_channels(channels, num_channels, abs_w, source_clip_rect);
+/*
+waveform_draw_with_ck_data(WaveformData *wd, const int32_t start_in_clip, int32_t draw_len, SDL_Rect *waveform_container, double sfpp, SDL_Color *draw_color, float gain) -> void
+*/
+	waveform_draw_with_ck_data(&clip->waveform, offset_left, abs_w, source_clip_rect, session->source_mode.timeview.sample_frames_per_pixel, &colors.black, 1.0);
+	/* uint8_t num_channels = clip->channels; */
+	/* float *channels[num_channels]; */
+	/* channels[0] = clip->L + offset_left; */
+	/* if (num_channels > 1) { */
+	/*     channels[1] = clip->R + offset_left; */
+	/* } */
+	/* int channel_h = source_clip_rect->h / 2; */
+	/* int center_y = source_clip_rect->y + channel_h / 2; */
+	/* for (int i=0; i<num_channels; i++) { */
+	/*     waveform_draw_channel(channels[i], abs_w, source_clip_rect->x, source_clip_rect->x + source_clip_rect->w, channel_h, center_y, session->source_mode.timeview.sample_frames_per_pixel, &colors.black, 1.0); */
+	/*     center_y += channel_h; */
+	/* } */
+	/* waveform_draw_all_channels(channels, num_channels, abs_w, source_clip_rect); */
     } else if (mclip) { /* Draw notes */
 	/* midi_clipref */
     }

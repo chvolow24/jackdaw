@@ -107,7 +107,7 @@ static bool mouse_triage_click_audiorect(Timeline *tl, uint8_t button)
 	for (uint8_t i=0; i<tl->num_tracks; i++) {
 	    Track *track = tl->tracks[i];
 	    if (SDL_PointInRect(&main_win->mousep, &track->inner_layout->rect)) {
-		ClipRef *cr = clipref_at_cursor_in_track(track);
+		ClipRef *cr = clipref_at_point_in_track(track, main_win->mousep.x);
 		if (cr && cr->type == CLIP_AUDIO) {
 		    session_get()->dragged_component.component = cr;
 		    session_get()->dragged_component.type = DRAG_CLIPREF_GAIN;

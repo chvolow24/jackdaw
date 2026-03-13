@@ -50,9 +50,9 @@ typedef struct clip_ref {
     Textbox *label;
 
     /* Audio only */
-    SDL_Texture *waveform_texture;
-    SDL_Texture *old_texture;
-    pthread_mutex_t waveform_texture_lock;
+    /* SDL_Texture *waveform_texture; */
+    /* SDL_Texture *old_texture; */
+    /* pthread_mutex_t waveform_texture_lock; */
     pthread_mutex_t lock;
     bool waveform_redraw;
 
@@ -92,6 +92,7 @@ ClipRef *clipref_at_cursor_not_dragging();
 ClipRef *clipref_before_cursor(int32_t *pos_dst);
 ClipRef *clipref_after_cursor(int32_t *pos_dst);
 ClipRef *clipref_at_cursor_in_track(Track *track);
+ClipRef *clipref_at_point_in_track(Track *track, int x);
 void clipref_bring_to_front();
 void clipref_rename(ClipRef *cr);
 bool clipref_marked(Timeline *tl, ClipRef *cr);

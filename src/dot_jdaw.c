@@ -172,7 +172,8 @@ static void jdaw_write_clip(FILE *f, Clip *clip, int index)
     uint8_t index_8 = (uint8_t)index;
     uint8_ser(f, &index_8);
     uint8_ser(f, &clip->channels);
-    uint32_ser_le(f, &clip->len_sframes);
+    uint32_t len_sframes = clip->len_sframes;
+    uint32_ser_le(f, &len_sframes);
 
     fwrite(hdr_data, 1, 4, f);
 
@@ -774,8 +775,8 @@ static int jdaw_read_clip(FILE *f, Project *proj)
             clip->L[i] = (float)interleaved_clip_samples[i] / INT16_MAX;
         }
     }
-    
     free(interleaved_clip_samples);
+    clip_init_or_update_waveform(clip);
     return 0;
 }
 

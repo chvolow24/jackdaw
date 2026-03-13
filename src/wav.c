@@ -333,8 +333,6 @@ int32_t wav_load(const char *filename, float **L, float **R)
     return buf_len_sframes;
 }
 
-void audio_clip_initialize_waveform(Clip *clip);
-
 ClipRef *wav_load_to_track(Track *track, const char *filename, int32_t start_pos) {
     if (track->num_clips == MAX_TRACK_CLIPS) return NULL;
     Session *session = session_get();
@@ -462,7 +460,8 @@ ClipRef *wav_load_to_track(Track *track, const char *filename, int32_t start_pos
     final_buffer = NULL;
     src_buf = NULL;
     /* free(wav_cvt.buf); */
-    audio_clip_initialize_waveform(clip);
+    /* audio_clip_initialize_waveform(clip); */
+    clip_init_or_update_waveform(clip);
     ClipRef *cr = clipref_create(track, start_pos, CLIP_AUDIO, clip);
     if (!cr) return NULL;
     cr->end_in_clip = clip->len_sframes;

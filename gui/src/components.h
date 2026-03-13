@@ -2,6 +2,7 @@
 #define JDAW_GUI_COMPONENTS
 
 /* #include "endpoint.h" */
+#include "audio_clip.h"
 #include "label.h"
 #include "layout.h"
 #include "symbol.h"
@@ -122,6 +123,7 @@ typedef struct waveform {
     uint32_t len;
     SDL_Color *background_color;
     SDL_Color *plot_color;
+    WaveformData *wd;
 } Waveform;
 
 typedef struct slider {
@@ -350,7 +352,8 @@ Waveform *waveform_create(
     uint8_t num_channels,
     uint32_t len,
     SDL_Color *background_color,
-    SDL_Color *plot_color);
+    SDL_Color *plot_color,
+    WaveformData *wd);
 void waveform_destroy(Waveform *w);
 void waveform_draw(Waveform *w);
 

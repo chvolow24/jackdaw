@@ -961,6 +961,7 @@ static void copy_device_buf_to_clips(AudioDevice *dev)
     for (int c=0; c<dev->spec.channels; c++) {
 	if (clips[c]) {
 	    clips[c]->write_bufpos_sframes = clips[c]->len_sframes;
+	    clip_init_or_update_waveform(clips[c]);
 	}
     }
 }
@@ -979,6 +980,7 @@ void copy_conn_buf_to_clip(Clip *clip, enum audio_conn_type type)
 	memcpy(clip->L + clip->write_bufpos_sframes, pdconn->rec_buffer_L, pdconn->write_bufpos_sframes * sizeof(float));
 	memcpy(clip->R + clip->write_bufpos_sframes, pdconn->rec_buffer_R, pdconn->write_bufpos_sframes * sizeof(float));
 	clip->write_bufpos_sframes = clip->len_sframes;
+	clip_init_or_update_waveform(clip);
     }
 	break;
     case JACKDAW: {
@@ -990,6 +992,7 @@ void copy_conn_buf_to_clip(Clip *clip, enum audio_conn_type type)
 	memcpy(clip->R + clip->write_bufpos_sframes, jconn->rec_buffer_R, jconn->write_bufpos_sframes * sizeof(float));
 	clip->write_bufpos_sframes = clip->len_sframes;
 	jconn->write_bufpos_sframes = 0;
+	clip_init_or_update_waveform(clip);
     }
 	break;
     default:
@@ -1232,29 +1235,31 @@ void transport_recording_update_cliprects()
     for (int i=session->proj.active_clip_index; i<session->proj.num_clips; i++) {
 	/* fprintf(stdout, "updating %d/%d\n", i, proj->num_clips); */
 	Clip *clip = session->proj.clips[i];
-	int32_t orig_len = clip->len_sframes;
+	/* int32_t orig_len = clip->len_sframes; */
 
+	int32_t clipref_len;
 	if (!clip->recorded_from) continue; /* E.g. wav loaded during recording */
 	switch(clip->recorded_from->type) {
 	case DEVICE:
 	    /* Handled in buf to clip */
-	    clip->len_sframes = ((AudioDevice *)clip->recorded_from->obj)->write_bufpos_samples / ((AudioDevice *)clip->recorded_from->obj)->spec.channels + clip->write_bufpos_sframes;
+	    clipref_len = ((AudioDevice *)clip->recorded_from->obj)->write_bufpos_samples / ((AudioDevice *)clip->recorded_from->obj)->spec.channels + clip->write_bufpos_sframes;
 	    /* fprintf(stderr, "Reset clip len in MAIN: %d\n", clip->len_sframes); */
 	    break;
 	case PURE_DATA:
-	    clip->len_sframes = ((PdConn *)clip->recorded_from->obj)->write_bufpos_sframes + clip->write_bufpos_sframes;
+	    clipref_len = ((PdConn *)clip->recorded_from->obj)->write_bufpos_sframes + clip->write_bufpos_sframes;
 	    break;
 	case JACKDAW:
-	    clip->len_sframes = ((JDAWConn *)clip->recorded_from->obj)->write_bufpos_sframes + clip->write_bufpos_sframes;
+	    clipref_len = ((JDAWConn *)clip->recorded_from->obj)->write_bufpos_sframes + clip->write_bufpos_sframes;
 	    break;
 	}
 
 	for (uint16_t j=0; j<clip->num_refs; j++) {
 	    ClipRef *cr = clip->refs[j];
-	    cr->end_in_clip = clip->len_sframes;
+	    cr->end_in_clip = clipref_len;
 	    clipref_reset(cr, false);
 	}
-	clip->len_sframes = orig_len;
+	/* clip->len_sframes = orig_len; */
+	/* fprintf(stderr, "Reset clip len in MAIN to orig len: %d\n", clip->len_sframes); */
     }
     for (int i=session->proj.active_midi_clip_index; i<session->proj.num_midi_clips; i++) {
 	/* fprintf(stdout, "updating %d/%d\n", i, proj->num_clips); */

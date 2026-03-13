@@ -397,303 +397,358 @@ double waveform_freq_plot_amp_from_y_abs(struct freq_plot *fp, int abs_y, int ar
     return waveform_freq_plot_amp_from_y_rel(fp, abs_y - fp->container->rect.y, arr_i, linear_plot);
 }
 
-static void waveform_draw_channel(float *channel, uint32_t buflen, int start_x, int w, int amp_h_max, int center_y)
-{
-    float sfpp = (double) buflen / w;
+/* static void waveform_draw_channel(float *channel, uint32_t buflen, int start_x, int w, int amp_h_max, int center_y) */
+/* { */
+/*     float sfpp = (double) buflen / w; */
     
-    if (sfpp <= 0) {
-	fprintf(stderr, "Error in waveform_draw_channel: sfpp<=0\n");
-	breakfn();
-	return;
-    }
+/*     if (sfpp <= 0) { */
+/* 	fprintf(stderr, "Error in waveform_draw_channel: sfpp<=0\n"); */
+/* 	breakfn(); */
+/* 	return; */
+/*     } */
 
-    if (sfpp > SFPP_THRESHOLD) {
-	/* float avg_amp_neg, avg_amp_pos; */
-	float max_amp_neg, max_amp_pos;
-	int x = start_x;
-	/* int amp_y = center_y; */
-	float sample_i = 0.0f;
-	while (x < start_x + w && sample_i + sfpp < buflen) {
-	    /* Early exit conditions (offscreen) */
-	    if (x < 0) {
-		sample_i+=sfpp*(0-x);
-		x=0;
-		continue;
-	    } else if (x > main_win->w_pix) {
-		break;
-	    }
+/*     if (sfpp > SFPP_THRESHOLD) { */
+/* 	/\* float avg_amp_neg, avg_amp_pos; *\/ */
+/* 	float max_amp_neg, max_amp_pos; */
+/* 	int x = start_x; */
+/* 	/\* int amp_y = center_y; *\/ */
+/* 	float sample_i = 0.0f; */
+/* 	while (x < start_x + w && sample_i + sfpp < buflen) { */
+/* 	    /\* Early exit conditions (offscreen) *\/ */
+/* 	    if (x < 0) { */
+/* 		sample_i+=sfpp*(0-x); */
+/* 		x=0; */
+/* 		continue; */
+/* 	    } else if (x > main_win->w_pix) { */
+/* 		break; */
+/* 	    } */
 	    
-	    /* Get avg amplitude value */
-	    max_amp_neg = 0;
-	    max_amp_pos = 0;
-	    int sfpp_safe = (int)sfpp < SFPP_SAFE ? (int)sfpp : SFPP_SAFE;
-	    for (int i=0; i<sfpp_safe; i++) {
-		if (sample_i + i >= buflen) {
-		    break;
-		}
-		float sample = channel[(int)sample_i + i];
-		if (sample > max_amp_pos) {
-		    max_amp_pos = sample;
-		} else if (sample < max_amp_neg) {
-		    max_amp_neg = sample;
-		}
-	    }
-	    /* avg_amp_neg /= sfpp_safe; */
-	    /* avg_amp_pos /= sfpp_safe; */
-	    /* for (int i=0; i<(int)sfpp; i++) { */
-	    /* 	if (sample_i + i >= buflen) { */
-	    /* 	    break; */
-	    /* 	} */
-	    /* 	float sample; */
-	    /* 	/\* fprintf(stdout, "wav i=%d\n", i); *\/ */
-	    /* 	if ((sample = channel[(int)sample_i + i]) < 0) { */
-	    /* 	    avg_amp_neg += sample; */
-	    /* 	} else { */
-	    /* 	    avg_amp_pos += sample; */
-	    /* 	} */
-	    /* 	/\* avg_amp += fabs(channel[(int)sample_i + i]); *\/ */
-	    /* } */
-	    /* avg_amp_neg /= sfpp; */
-	    /* avg_amp_pos /= sfpp; */
-	    if (max_amp_neg < -1.0f || max_amp_pos > 1.0f) {
-		SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 255);
-		SDL_RenderDrawLine(main_win->rend, x, center_y - amp_h_max, x, center_y + amp_h_max);
-		SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 255);
-	    } else {
-		int y_offset_pos = max_amp_pos * amp_h_max;
-		int y_offset_neg = max_amp_neg * amp_h_max;
-		SDL_RenderDrawLine(main_win->rend, x, center_y + y_offset_neg, x, center_y + y_offset_pos);
-	    }
-	    sample_i+=sfpp;
-	    x++;
-	}
-    } else {
-	float avg_amp = 0;
-	int x = start_x;
-	/* int sample_y = center_y; */
-	int last_sample_y = center_y;
-	float sample_i = 0.0f;
-	while (x < start_x + w && sample_i + sfpp < buflen) {
-	    avg_amp = 0;
-	    if (x < 0) {
-		sample_i+=sfpp;
-		x++;
-		continue;
-	    } else if (x > main_win->w_pix) {
-		break;
-	    }
-	    if (sfpp > 1) {
-		for (int i=0; i<(int)sfpp; i++) {
-		    if (sample_i + i >= buflen) {
-			break;
-		    }
-		    avg_amp += channel[(int)sample_i + i];
-		    /* fprintf(stdout, "\t->avg amp + %f\n", channel[(int)(sample_i) + i]); */
-		}
-		avg_amp /= sfpp;
-	    } else {
-		avg_amp = channel[(int)sample_i];
-	    }
-	    int sample_y = center_y + avg_amp * amp_h_max;
-	    if (x == start_x) {last_sample_y = sample_y;}
-	    if (fabs(avg_amp) > 1.0f) {
-		SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 255);
-		SDL_RenderDrawLine(main_win->rend, x-1, center_y - amp_h_max, x-1, center_y + amp_h_max);
-		SDL_RenderDrawLine(main_win->rend, x, center_y - amp_h_max, x, center_y + amp_h_max);
-		SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 255);
-		last_sample_y = avg_amp > 0 ? center_y + amp_h_max : center_y - amp_h_max;
-	    } else {
-		/* if (channel == proj->output_L && sample_i < 10) { */
-		/*     fprintf(stdout, "\t->sfpp: %f, avgamp: %f, y_off: %d\n", sfpp, avg_amp, (int)(avg_amp * amp_h_max)); */
-		/* } */
-		SDL_RenderDrawLine(main_win->rend, x-1, last_sample_y, x, sample_y);
-		last_sample_y = sample_y;
-	    }
-	    sample_i+=sfpp;
-	    x++;
-	}
+/* 	    /\* Get avg amplitude value *\/ */
+/* 	    max_amp_neg = 0; */
+/* 	    max_amp_pos = 0; */
+/* 	    int sfpp_safe = (int)sfpp < SFPP_SAFE ? (int)sfpp : SFPP_SAFE; */
+/* 	    for (int i=0; i<sfpp_safe; i++) { */
+/* 		if (sample_i + i >= buflen) { */
+/* 		    break; */
+/* 		} */
+/* 		float sample = channel[(int)sample_i + i]; */
+/* 		if (sample > max_amp_pos) { */
+/* 		    max_amp_pos = sample; */
+/* 		} else if (sample < max_amp_neg) { */
+/* 		    max_amp_neg = sample; */
+/* 		} */
+/* 	    } */
+/* 	    /\* avg_amp_neg /= sfpp_safe; *\/ */
+/* 	    /\* avg_amp_pos /= sfpp_safe; *\/ */
+/* 	    /\* for (int i=0; i<(int)sfpp; i++) { *\/ */
+/* 	    /\* 	if (sample_i + i >= buflen) { *\/ */
+/* 	    /\* 	    break; *\/ */
+/* 	    /\* 	} *\/ */
+/* 	    /\* 	float sample; *\/ */
+/* 	    /\* 	/\\* fprintf(stdout, "wav i=%d\n", i); *\\/ *\/ */
+/* 	    /\* 	if ((sample = channel[(int)sample_i + i]) < 0) { *\/ */
+/* 	    /\* 	    avg_amp_neg += sample; *\/ */
+/* 	    /\* 	} else { *\/ */
+/* 	    /\* 	    avg_amp_pos += sample; *\/ */
+/* 	    /\* 	} *\/ */
+/* 	    /\* 	/\\* avg_amp += fabs(channel[(int)sample_i + i]); *\\/ *\/ */
+/* 	    /\* } *\/ */
+/* 	    /\* avg_amp_neg /= sfpp; *\/ */
+/* 	    /\* avg_amp_pos /= sfpp; *\/ */
+/* 	    if (max_amp_neg < -1.0f || max_amp_pos > 1.0f) { */
+/* 		SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 255); */
+/* 		SDL_RenderDrawLine(main_win->rend, x, center_y - amp_h_max, x, center_y + amp_h_max); */
+/* 		SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 255); */
+/* 	    } else { */
+/* 		int y_offset_pos = max_amp_pos * amp_h_max; */
+/* 		int y_offset_neg = max_amp_neg * amp_h_max; */
+/* 		SDL_RenderDrawLine(main_win->rend, x, center_y + y_offset_neg, x, center_y + y_offset_pos); */
+/* 	    } */
+/* 	    sample_i+=sfpp; */
+/* 	    x++; */
+/* 	} */
+/*     } else { */
+/* 	float avg_amp = 0; */
+/* 	int x = start_x; */
+/* 	/\* int sample_y = center_y; *\/ */
+/* 	int last_sample_y = center_y; */
+/* 	float sample_i = 0.0f; */
+/* 	while (x < start_x + w && sample_i + sfpp < buflen) { */
+/* 	    avg_amp = 0; */
+/* 	    if (x < 0) { */
+/* 		sample_i+=sfpp; */
+/* 		x++; */
+/* 		continue; */
+/* 	    } else if (x > main_win->w_pix) { */
+/* 		break; */
+/* 	    } */
+/* 	    if (sfpp > 1) { */
+/* 		for (int i=0; i<(int)sfpp; i++) { */
+/* 		    if (sample_i + i >= buflen) { */
+/* 			break; */
+/* 		    } */
+/* 		    avg_amp += channel[(int)sample_i + i]; */
+/* 		    /\* fprintf(stdout, "\t->avg amp + %f\n", channel[(int)(sample_i) + i]); *\/ */
+/* 		} */
+/* 		avg_amp /= sfpp; */
+/* 	    } else { */
+/* 		avg_amp = channel[(int)sample_i]; */
+/* 	    } */
+/* 	    int sample_y = center_y + avg_amp * amp_h_max; */
+/* 	    if (x == start_x) {last_sample_y = sample_y;} */
+/* 	    if (fabs(avg_amp) > 1.0f) { */
+/* 		SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 255); */
+/* 		SDL_RenderDrawLine(main_win->rend, x-1, center_y - amp_h_max, x-1, center_y + amp_h_max); */
+/* 		SDL_RenderDrawLine(main_win->rend, x, center_y - amp_h_max, x, center_y + amp_h_max); */
+/* 		SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 255); */
+/* 		last_sample_y = avg_amp > 0 ? center_y + amp_h_max : center_y - amp_h_max; */
+/* 	    } else { */
+/* 		/\* if (channel == proj->output_L && sample_i < 10) { *\/ */
+/* 		/\*     fprintf(stdout, "\t->sfpp: %f, avgamp: %f, y_off: %d\n", sfpp, avg_amp, (int)(avg_amp * amp_h_max)); *\/ */
+/* 		/\* } *\/ */
+/* 		SDL_RenderDrawLine(main_win->rend, x-1, last_sample_y, x, sample_y); */
+/* 		last_sample_y = sample_y; */
+/* 	    } */
+/* 	    sample_i+=sfpp; */
+/* 	    x++; */
+/* 	} */
 	
-    }
-}
+/*     } */
+/* } */
 
 
 /* TODO: rename function and deprecate old one */
-static void waveform_draw_channel_generic(float *channel, ValType type, uint32_t buflen, int start_x, int w, int amp_h_max, int center_y, int min_x, int max_x, double sfpp, SDL_Color *color, float gain)
-{
-    /* float sfpp = (double) buflen / w; */
-    if (sfpp <= 0) {
-	fprintf(stderr, "Error in waveform_draw_channel: sfpp<=0\n");
-	breakfn();
-	return;
-    }
-    /* Session *session = session_get(); */
-    /* sfpp = ACTIVE_TL->timeview.sample_frames_per_pixel; */
+/* static void waveform_draw_channel_generic(float *channel, ValType type, uint32_t buflen, int start_x, int w, int amp_h_max, int center_y, int min_x, int max_x, double sfpp, SDL_Color *color, float gain) */
+/* { */
+/*     /\* float sfpp = (double) buflen / w; *\/ */
+/*     if (sfpp <= 0) { */
+/* 	fprintf(stderr, "Error in waveform_draw_channel: sfpp<=0\n"); */
+/* 	breakfn(); */
+/* 	return; */
+/*     } */
+/*     /\* Session *session = session_get(); *\/ */
+/*     /\* sfpp = ACTIVE_TL->timeview.sample_frames_per_pixel; *\/ */
 
-    SDL_SetRenderDrawColor(main_win->rend, sdl_colorp_expand(color));
-    if (sfpp > SFPP_THRESHOLD) {
-	float max_amp_neg, max_amp_pos;
-	int x = start_x;
-	/* int amp_y = center_y; */
-	/* float sample_i = 0.0f; */
-	double sample_i = 0.0;
-	/* fprintf(stderr, "OVER THRESH, sfpp = %f, start x  = %d\n", sfpp, start_x); */
-	/* int iters = -1; */
-	while (x < start_x + w && sample_i + sfpp < buflen) {
-	    /* N.B.: the below v computation of the sample index was designed to
-	       avoid cumulative fp error resulting from repeatedly incrementing
-	       the index by sfpp. However, this resulted in waveforms that morphed
-	       oddly as the clip end bound changed (or when cutting a clip, etc.)
-	    */
-	    /* sample_i = buflen * ((double)(x - start_x) / w); */
+/*     SDL_SetRenderDrawColor(main_win->rend, sdl_colorp_expand(color)); */
+/*     if (sfpp > SFPP_THRESHOLD) { */
+/* 	float max_amp_neg, max_amp_pos; */
+/* 	int x = start_x; */
+/* 	/\* int amp_y = center_y; *\/ */
+/* 	/\* float sample_i = 0.0f; *\/ */
+/* 	double sample_i = 0.0; */
+/* 	/\* fprintf(stderr, "OVER THRESH, sfpp = %f, start x  = %d\n", sfpp, start_x); *\/ */
+/* 	/\* int iters = -1; *\/ */
+/* 	while (x < start_x + w && sample_i + sfpp < buflen) { */
+/* 	    /\* N.B.: the below v computation of the sample index was designed to */
+/* 	       avoid cumulative fp error resulting from repeatedly incrementing */
+/* 	       the index by sfpp. However, this resulted in waveforms that morphed */
+/* 	       oddly as the clip end bound changed (or when cutting a clip, etc.) */
+/* 	    *\/ */
+/* 	    /\* sample_i = buflen * ((double)(x - start_x) / w); *\/ */
 	    
-	    /* Early exit conditions (offscreen) */
-	    if (x < min_x) {
-		sample_i+=sfpp*(0-x);
-		x=min_x;
-		continue;
-	    } else if (x > max_x) {
-		break;
-	    }
+/* 	    /\* Early exit conditions (offscreen) *\/ */
+/* 	    if (x < min_x) { */
+/* 		sample_i+=sfpp*(0-x); */
+/* 		x=min_x; */
+/* 		continue; */
+/* 	    } else if (x > max_x) { */
+/* 		break; */
+/* 	    } */
 	    
-	    max_amp_neg = 0;
-	    max_amp_pos = 0;
+/* 	    max_amp_neg = 0; */
+/* 	    max_amp_pos = 0; */
 	    
-	    int sfpp_safe = round(sfpp) < SFPP_SAFE ? round(sfpp) : SFPP_SAFE;
-	    /* int sfpp_safe = round(sfpp); */
-	    /* iters++; */
-	    /* if (iters < 3) { */
-	    /* 	fprintf(stderr, "\tsample_i: %f, sfpp safe %d\n", sample_i, sfpp_safe); */
-	    /* } */
+/* 	    int sfpp_safe = round(sfpp) < SFPP_SAFE ? round(sfpp) : SFPP_SAFE; */
+/* 	    /\* int sfpp_safe = round(sfpp); *\/ */
+/* 	    /\* iters++; *\/ */
+/* 	    /\* if (iters < 3) { *\/ */
+/* 	    /\* 	fprintf(stderr, "\tsample_i: %f, sfpp safe %d\n", sample_i, sfpp_safe); *\/ */
+/* 	    /\* } *\/ */
 
-	    for (int i=0; i<sfpp_safe; i++) {
-		int sample_i_rounded = (int)round(sample_i) + i;
-		if (sample_i_rounded >= buflen) {
-		    break;
-		}
-		float sample = gain * channel[sample_i_rounded];
-		if (sample > max_amp_pos) {
-		    max_amp_pos = sample;
-		} else if (sample < max_amp_neg) {
-		    max_amp_neg = sample;
-		}
-	    }
-	    /* avg_amp_neg /= sfpp_safe; */
-	    /* avg_amp_pos /= sfpp_safe; */
-	    /* for (int i=0; i<(int)sfpp; i++) { */
-	    /* 	if (sample_i + i >= buflen) { */
-	    /* 	    break; */
-	    /* 	} */
-	    /* 	float sample; */
-	    /* 	/\* fprintf(stdout, "wav i=%d\n", i); *\/ */
-	    /* 	if ((sample = channel[(int)sample_i + i]) < 0) { */
-	    /* 	    avg_amp_neg += sample; */
-	    /* 	} else { */
-	    /* 	    avg_amp_pos += sample; */
-	    /* 	} */
-	    /* 	/\* avg_amp += fabs(channel[(int)sample_i + i]); *\/ */
-	    /* } */
-	    /* avg_amp_neg /= sfpp; */
-	    /* avg_amp_pos /= sfpp; */
-	    if (max_amp_neg < -1.0f || max_amp_pos > 1.0f) {
-		SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 255);
-		SDL_RenderDrawLine(main_win->rend, x, center_y - amp_h_max, x, center_y + amp_h_max);
-		SDL_SetRenderDrawColor(main_win->rend, sdl_colorp_expand(color));
-		/* SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 255); */
-	    } else {
-		int y_offset_pos = max_amp_pos * amp_h_max;
-		int y_offset_neg = max_amp_neg * amp_h_max;
-		SDL_RenderDrawLine(main_win->rend, x, center_y + y_offset_neg, x, center_y + y_offset_pos);
-	    }
-	    sample_i+=sfpp;
-	    x++;
-	}
-    } else {
-	float avg_amp = 0;
-	int x = start_x;
-	/* int sample_y = center_y; */
-	int last_sample_y = center_y;
-	double sample_i = 0.0;
-	while (x < start_x + w && sample_i + sfpp < buflen) {
-	    sample_i = buflen * ((double)(x - start_x) / w);
-	    avg_amp = 0;
-	    if (x < min_x) {
-		sample_i+=sfpp;
-		x++;
-		continue;
-	    } else if (x > max_x) {
-		break;
-	    }
-	    if (sfpp > 1) {
-		for (int i=0; i<(int)round(sfpp); i++) {
-		    if (sample_i + i >= buflen) {
-			break;
-		    }
-		    avg_amp += channel[(int)round(sample_i) + i];
-		    /* fprintf(stdout, "\t->avg amp + %f\n", channel[(int)(sample_i) + i]); */
-		}
-		avg_amp /= round(sfpp);
-	    } else {
-		avg_amp = channel[(int)round(sample_i)];
-	    }
-	    avg_amp *= gain;
-	    int sample_y = center_y + avg_amp * amp_h_max;
-	    /* int sample_y; */
-	    if (x == start_x) {last_sample_y = sample_y;}
-	    if (fabs(avg_amp) > 1.0f) {
-		SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 255);
-		SDL_RenderDrawLine(main_win->rend, x-1, center_y - amp_h_max, x-1, center_y + amp_h_max);
-		SDL_RenderDrawLine(main_win->rend, x, center_y - amp_h_max, x, center_y + amp_h_max);
-		SDL_SetRenderDrawColor(main_win->rend, sdl_colorp_expand(color));
-		/* SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 255); */
-		last_sample_y = avg_amp > 0 ? center_y + amp_h_max : center_y - amp_h_max;
-	    } else {
-		/* if (channel == proj->output_L && sample_i < 10) { */
-		/*     fprintf(stdout, "\t->sfpp: %f, avgamp: %f, y_off: %d\n", sfpp, avg_amp, (int)(avg_amp * amp_h_max)); */
-		/* } */
-		SDL_RenderDrawLine(main_win->rend, x-1, last_sample_y, x, sample_y);
-		last_sample_y = sample_y;
-	    }
-	    /* sample_i+=sfpp; */
-	    x++;
-	}
+/* 	    for (int i=0; i<sfpp_safe; i++) { */
+/* 		int sample_i_rounded = (int)round(sample_i) + i; */
+/* 		if (sample_i_rounded >= buflen) { */
+/* 		    break; */
+/* 		} */
+/* 		float sample = gain * channel[sample_i_rounded]; */
+/* 		if (sample > max_amp_pos) { */
+/* 		    max_amp_pos = sample; */
+/* 		} else if (sample < max_amp_neg) { */
+/* 		    max_amp_neg = sample; */
+/* 		} */
+/* 	    } */
+/* 	    /\* avg_amp_neg /= sfpp_safe; *\/ */
+/* 	    /\* avg_amp_pos /= sfpp_safe; *\/ */
+/* 	    /\* for (int i=0; i<(int)sfpp; i++) { *\/ */
+/* 	    /\* 	if (sample_i + i >= buflen) { *\/ */
+/* 	    /\* 	    break; *\/ */
+/* 	    /\* 	} *\/ */
+/* 	    /\* 	float sample; *\/ */
+/* 	    /\* 	/\\* fprintf(stdout, "wav i=%d\n", i); *\\/ *\/ */
+/* 	    /\* 	if ((sample = channel[(int)sample_i + i]) < 0) { *\/ */
+/* 	    /\* 	    avg_amp_neg += sample; *\/ */
+/* 	    /\* 	} else { *\/ */
+/* 	    /\* 	    avg_amp_pos += sample; *\/ */
+/* 	    /\* 	} *\/ */
+/* 	    /\* 	/\\* avg_amp += fabs(channel[(int)sample_i + i]); *\\/ *\/ */
+/* 	    /\* } *\/ */
+/* 	    /\* avg_amp_neg /= sfpp; *\/ */
+/* 	    /\* avg_amp_pos /= sfpp; *\/ */
+/* 	    if (max_amp_neg < -1.0f || max_amp_pos > 1.0f) { */
+/* 		SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 255); */
+/* 		SDL_RenderDrawLine(main_win->rend, x, center_y - amp_h_max, x, center_y + amp_h_max); */
+/* 		SDL_SetRenderDrawColor(main_win->rend, sdl_colorp_expand(color)); */
+/* 		/\* SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 255); *\/ */
+/* 	    } else { */
+/* 		int y_offset_pos = max_amp_pos * amp_h_max; */
+/* 		int y_offset_neg = max_amp_neg * amp_h_max; */
+/* 		SDL_RenderDrawLine(main_win->rend, x, center_y - y_offset_neg, x, center_y - y_offset_pos); */
+/* 	    } */
+/* 	    sample_i+=sfpp; */
+/* 	    x++; */
+/* 	} */
+/*     } else { */
+/* 	float avg_amp = 0; */
+/* 	int x = start_x; */
+/* 	/\* int sample_y = center_y; *\/ */
+/* 	int last_sample_y = center_y; */
+/* 	double sample_i = 0.0; */
+/* 	while (x < start_x + w && sample_i + sfpp < buflen) { */
+/* 	    sample_i = buflen * ((double)(x - start_x) / w); */
+/* 	    avg_amp = 0; */
+/* 	    if (x < min_x) { */
+/* 		sample_i+=sfpp; */
+/* 		x++; */
+/* 		continue; */
+/* 	    } else if (x > max_x) { */
+/* 		break; */
+/* 	    } */
+/* 	    if (sfpp > 1) { */
+/* 		for (int i=0; i<(int)round(sfpp); i++) { */
+/* 		    if (sample_i + i >= buflen) { */
+/* 			break; */
+/* 		    } */
+/* 		    avg_amp += channel[(int)round(sample_i) + i]; */
+/* 		    /\* fprintf(stdout, "\t->avg amp + %f\n", channel[(int)(sample_i) + i]); *\/ */
+/* 		} */
+/* 		avg_amp /= round(sfpp); */
+/* 	    } else { */
+/* 		avg_amp = channel[(int)round(sample_i)]; */
+/* 	    } */
+/* 	    avg_amp *= gain; */
+/* 	    int sample_y = center_y - avg_amp * amp_h_max; */
+/* 	    /\* int sample_y; *\/ */
+/* 	    if (x == start_x) {last_sample_y = sample_y;} */
+/* 	    if (fabs(avg_amp) > 1.0f) { */
+/* 		SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 255); */
+/* 		SDL_RenderDrawLine(main_win->rend, x-1, center_y - amp_h_max, x-1, center_y + amp_h_max); */
+/* 		SDL_RenderDrawLine(main_win->rend, x, center_y - amp_h_max, x, center_y + amp_h_max); */
+/* 		SDL_SetRenderDrawColor(main_win->rend, sdl_colorp_expand(color)); */
+/* 		/\* SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 255); *\/ */
+/* 		last_sample_y = avg_amp > 0 ? center_y + amp_h_max : center_y - amp_h_max; */
+/* 	    } else { */
+/* 		/\* if (channel == proj->output_L && sample_i < 10) { *\/ */
+/* 		/\*     fprintf(stdout, "\t->sfpp: %f, avgamp: %f, y_off: %d\n", sfpp, avg_amp, (int)(avg_amp * amp_h_max)); *\/ */
+/* 		/\* } *\/ */
+/* 		SDL_RenderDrawLine(main_win->rend, x-1, last_sample_y, x, sample_y); */
+/* 		last_sample_y = sample_y; */
+/* 	    } */
+/* 	    /\* sample_i+=sfpp; *\/ */
+/* 	    x++; */
+/* 	} */
 	
-    }
-}
+/*     } */
+/* } */
 
-void waveform_draw_all_channels(float **channels, uint8_t num_channels, uint32_t buflen, SDL_Rect *rect)
-{
-    int channel_h = rect->h / num_channels;
-    int center_y = rect->y + channel_h / 2;
-    for (uint8_t i=0; i<num_channels; i++) {
-	/* fprintf(stdout, "DRAW ALL CHANNELS: channels? %p, %p\n", channels[0], channels[1]); */
-	/* fprintf(stdout, "Drawing channel w %d, x %d, buflen %ul\n", rect->w, rect->x, buflen); */
-	waveform_draw_channel(channels[i], buflen, rect->x, rect->w, channel_h / 2, center_y);
-	/* if (proj && channels == &proj->output_L) { */
-	/*     fprintf(stdout, "rect h? %d, maxamp h? %d\n", rect->h, channel_h / 2); */
-	/* } */
-	center_y += channel_h;
-    }
-}
+/* void waveform_draw_all_channels(float **channels, uint8_t num_channels, uint32_t buflen, SDL_Rect *rect) */
+/* { */
+/*     int channel_h = rect->h / num_channels; */
+/*     int center_y = rect->y + channel_h / 2; */
+/*     for (uint8_t i=0; i<num_channels; i++) { */
+/* 	/\* fprintf(stdout, "DRAW ALL CHANNELS: channels? %p, %p\n", channels[0], channels[1]); *\/ */
+/* 	/\* fprintf(stdout, "Drawing channel w %d, x %d, buflen %ul\n", rect->w, rect->x, buflen); *\/ */
+/* 	waveform_draw_channel(channels[i], buflen, rect->x, rect->w, channel_h / 2, center_y); */
+/* 	/\* if (proj && channels == &proj->output_L) { *\/ */
+/* 	/\*     fprintf(stdout, "rect h? %d, maxamp h? %d\n", rect->h, channel_h / 2); *\/ */
+/* 	/\* } *\/ */
+/* 	center_y += channel_h; */
+/*     } */
+/* } */
 
 /* TODO: rename and deprecate old function */
-void waveform_draw_all_channels_generic(void **channels, ValType type, uint8_t num_channels, uint32_t buflen, SDL_Rect *rect, int min_x, int max_x, double sfpp, SDL_Color *color, float gain)
+/* void waveform_draw_all_channels_generic(void **channels, ValType type, uint8_t num_channels, uint32_t buflen, SDL_Rect *rect, int min_x, int max_x, double sfpp, SDL_Color *color, float gain) */
+/* { */
+/*     int channel_h = rect->h / num_channels; */
+/*     int center_y = rect->y + channel_h / 2; */
+/*     for (uint8_t i=0; i<num_channels; i++) { */
+/* 	waveform_draw_channel_generic(channels[i], type,  buflen, rect->x, rect->w, channel_h / 2, center_y, min_x, max_x, sfpp, color, gain); */
+/* 	center_y += channel_h; */
+/*     } */
+/* } */
+
+static bool check_clip(float *min, float *max)
 {
-    int channel_h = rect->h / num_channels;
-    int center_y = rect->y + channel_h / 2;
-    for (uint8_t i=0; i<num_channels; i++) {
-	waveform_draw_channel_generic(channels[i], type,  buflen, rect->x, rect->w, channel_h / 2, center_y, min_x, max_x, sfpp, color, gain);
-	center_y += channel_h;
+    bool clipped = false;
+    float *pts[2] = {min, max};
+    for (int i=0; i<2; i++) {
+	if (*pts[i] > 1.0f) {
+	    *pts[i] = 1.0f;
+	    clipped = true;
+	} else if (*pts[i] < -1.0f) {
+	    *pts[i] = -1.0f;
+	    clipped = true;
+	}
+    }
+    return clipped;
+}
+
+void waveform_draw_channel(float *buf, int32_t len, int start_x, int max_x, int channel_h, int center_y, double sfpp, SDL_Color *color, float gain)
+{
+    SDL_SetRenderDrawColor(main_win->rend, 60, 60, 60, 255);
+    SDL_RenderDrawLine(main_win->rend, start_x, center_y, max_x, center_y);
+    SDL_SetRenderDrawColor(main_win->rend, sdl_colorp_expand(color));
+    double index_d = 0.0;
+    for (int x = start_x; x <= max_x; x++) {
+	int32_t index = floor(index_d);
+	int32_t end_index = ceil(index_d + sfpp);
+	float min = 1.0;
+	float max = -1.0;
+	while (index < end_index && index < len) {
+	    min = fminf(min, buf[index]);
+	    max = fmaxf(max, buf[index]);
+	    index++;
+	}
+	min *= gain;
+	max *= gain;
+	bool clipped = check_clip(&min, &max);
+	if (clipped) {
+	    SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 255);
+	}
+	SDL_RenderDrawLine(main_win->rend, x, center_y - max * channel_h / 2, x, center_y - min * channel_h / 2);
+	if (clipped) {
+	    SDL_SetRenderDrawColor(main_win->rend, sdl_colorp_expand(color));
+	}
+	index_d += sfpp;
     }
 }
 
-void waveform_draw_with_ck_data(WaveformData *wd, const int32_t start_in_clip, int32_t draw_len, SDL_Rect *waveform_container, int min_x, int max_x, double sfpp, SDL_Color *draw_color, float gain)
+void waveform_draw_with_ck_data(WaveformData *wd, const int32_t start_in_clip, int32_t draw_len, SDL_Rect *waveform_container, double sfpp, SDL_Color *draw_color, float gain)
 {
     SDL_SetRenderDrawColor(main_win->rend, sdl_colorp_expand(draw_color));
+    /* fprintf(stderr, "Channel h (%d / %d) == %d\n", waveform_container->h, wd->num_channels, waveform_container->h / wd->num_channels); */
+    int min_x = waveform_container->x;
+    int max_x = waveform_container->x + waveform_container->w - 1;
     int channel_h = waveform_container->h / wd->num_channels;
     int center_y = waveform_container->y + channel_h / 2;
     int32_t index_divider;
     int32_t max_chunk;
     if (sfpp < 64) {
+	/* fprintf(stderr, "OLD draw\n"); */
+	waveform_draw_channel(wd->clip->L + start_in_clip, draw_len, min_x, max_x, channel_h, center_y, sfpp, draw_color, gain);
+	if (wd->clip->R) {
+	    waveform_draw_channel(wd->clip->R + start_in_clip, draw_len, min_x, max_x, channel_h, center_y + channel_h, sfpp, draw_color, gain);
+	}
+        /* waveform_draw_channel_generic(wd->clip->L + start_in_clip, JDAW_FLOAT, draw_len, min_x, max_x, channel_h, center_y, min_x, max_x, sfpp, draw_color, gain); */
 	return;
     } else if (sfpp < 512) {
 	index_divider = 64;
@@ -702,8 +757,10 @@ void waveform_draw_with_ck_data(WaveformData *wd, const int32_t start_in_clip, i
 	index_divider = 512;
 	max_chunk = wd->num_ck64 / 8 - 1;
     }
+    /* fprintf(stderr, "ck data draw (index div %d)\n", index_divider); */
 
-    int32_t chunks_per_pixel = sfpp / index_divider;
+    pthread_mutex_lock(&wd->lock);
+    int32_t chunks_per_pixel = ceil(sfpp / index_divider);
     WaveformChunk *sel_chunks_L = sfpp < 512 ? wd->ck64[0] : wd->ck512[0];
     WaveformChunk *sel_chunks_R = sfpp < 512 ? wd->ck64[1] : wd->ck512[1];
     double start_in_clip_d = start_in_clip;
@@ -720,20 +777,25 @@ void waveform_draw_with_ck_data(WaveformData *wd, const int32_t start_in_clip, i
 	}
 	min *= gain;
 	max *= gain;
-	bool overshoot = false;
-	if (min < -1) {
-	    overshoot = true;
+	/* bool overshoot = false; */
+	/* if (min < -1) { */
+	/*     overshoot = true; */
+	/*     SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 255); */
+	/*     min = -1; */
+	/* } */
+	/* if (max > 1) { */
+	/*     overshoot = true; */
+	/*     SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 255); */
+	/*     max = 1; */
+	/* } */
+	bool clipped = check_clip(&min, &max);
+	if (clipped) {
 	    SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 255);
-	    min = -1;
 	}
-	if (max > 1) {
-	    overshoot = true;
-	    SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 255);
-	    max = 1;
-	}
+
 	SDL_RenderDrawLine(main_win->rend, x, center_y - max * channel_h / 2, x, center_y - min * channel_h / 2);
 	start_in_clip_d += sfpp;
-	if (overshoot) {
+	if (clipped) {
 	    SDL_SetRenderDrawColor(main_win->rend, sdl_colorp_expand(draw_color));
 	}
     }
@@ -753,22 +815,27 @@ void waveform_draw_with_ck_data(WaveformData *wd, const int32_t start_in_clip, i
 	    }
 	    min *= gain;
 	    max *= gain;
-	    bool overshoot = false;
-	    if (min < -1) {
-		overshoot = true;
+	    /* bool overshoot = false; */
+	    /* if (min < -1) { */
+	    /* 	overshoot = true; */
+	    /* 	SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 255); */
+	    /* 	min = -1; */
+	    /* } */
+	    /* if (max > 1) { */
+	    /* 	overshoot = true; */
+	    /* 	SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 255); */
+	    /* 	max = 1; */
+	    /* } */
+	    bool clipped = check_clip(&min, &max);
+	    if (clipped) {
 		SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 255);
-		min = -1;
-	    }
-	    if (max > 1) {
-		overshoot = true;
-		SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 255);
-		max = 1;
 	    }
 	    SDL_RenderDrawLine(main_win->rend, x, center_y - max * channel_h / 2, x, center_y - min * channel_h / 2);
 	    start_in_clip_d += sfpp;
-	    if (overshoot) {
+	    if (clipped) {
 		SDL_SetRenderDrawColor(main_win->rend, sdl_colorp_expand(draw_color));
 	    }
 	}
     }
+    pthread_mutex_unlock(&wd->lock);
 }

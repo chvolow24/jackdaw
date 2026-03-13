@@ -21,6 +21,7 @@
 #define JDAW_AUDIO_CLIP_H
 
 #include <pthread.h>
+#include <stdatomic.h>
 #include "textbox.h"
 
 typedef struct clip_ref ClipRef;
@@ -35,11 +36,12 @@ typedef struct waveform_chunk {
 
 typedef struct waveform_data {
     int32_t init_len;
-    Clip *source_clip;
+    Clip *clip;
     int num_channels;
     int32_t num_ck64;
     WaveformChunk *ck64[2];
     WaveformChunk *ck512[2];
+    pthread_mutex_t lock;
 } WaveformData;
 
 
@@ -47,7 +49,7 @@ typedef struct clip {
     char name[MAX_NAMELENGTH];
     bool deleted;
     uint8_t channels;
-    uint32_t len_sframes;
+    _Atomic uint32_t len_sframes;
     /* ClipRef *refs[MAX_CLIP_REFS]; */
     /* uint16_t num_refs; */
     
@@ -77,5 +79,8 @@ Clip *clip_create(AudioConn *dev, Track *target);
 void clip_destroy(Clip *clip);
 void clip_destroy_no_displace(Clip *clip);
 void clip_split_stereo_to_mono(Clip *to_split, Clip **new_L, Clip **new_R);
+/* void clip_initialize_waveform(Clip *clip); */
+
+void clip_init_or_update_waveform(Clip *clip);
 
 #endif

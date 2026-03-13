@@ -150,39 +150,32 @@ void clip_split_stereo_to_mono(Clip *to_split, Clip **new_L, Clip **new_R)
     session->proj.active_clip_index+=2;
 }
 
-
-
-/* Waveform ops */
-
-void audio_clip_initialize_waveform(Clip *clip)
+/* Assumes realloc has been done */
+static void clip_waveform_append(Clip *clip, int32_t start_in_clip, int32_t len_sframes)
 {
-    fprintf(stderr, "Loading chunks...\n");
-    clip->waveform.init_len = clip->len_sframes;
-    clip->waveform.num_channels = clip->channels;
-    clip->waveform.num_ck64 = clip->len_sframes / 64;
-    clip->waveform.ck64[0] = malloc(clip->waveform.num_ck64 * sizeof(WaveformChunk));
-    if (clip->R) {
-	clip->waveform.ck64[1] = malloc(clip->waveform.num_ck64 * sizeof(WaveformChunk));
-    }
-    int32_t num_ck512 = clip->waveform.num_ck64 / 8;
-    if (num_ck512) {
-	clip->waveform.ck512[0] = malloc(num_ck512 * sizeof(WaveformChunk));
-	if (clip->R) {
-	    clip->waveform.ck512[1] = malloc(num_ck512 * sizeof(WaveformChunk));
+    int32_t ck64_i = start_in_clip / 64;
+    float ck512_Lmin = 1.0f;
+    float ck512_Lmax = -1.0f;
+    float ck512_Rmin = 1.0f;
+    float ck512_Rmax = -1.0f;
+    int32_t ck512_i = ck64_i / 8;
+    int32_t mod = ck64_i % 8;
+    if (mod != 0) {
+	for (int32_t i=ck64_i - mod; i<ck64_i; i++) {
+	    WaveformChunk Lck = clip->waveform.ck64[0][i];
+	    ck512_Lmin = fminf(ck512_Lmin, Lck.min);
+	    ck512_Lmax = fmaxf(ck512_Lmax, Lck.max);
+	    if (clip->R) {
+		WaveformChunk Rck = clip->waveform.ck64[1][i];
+		ck512_Rmin = fminf(ck512_Rmin, Rck.min);
+		ck512_Rmax = fmaxf(ck512_Rmax, Rck.max);
+	    }
 	}
     }
-    int32_t chunk_i = 0;
-    int32_t ck512_i = 0;
-    float ck512_Lmin = 1.0;
-    float ck512_Lmax = -1.0;
-    float ck512_Rmin = 1.0;
-    float ck512_Rmax = -1.0;
-
-    int32_t start_in_clip = 0;
     int32_t ck_len;
-    while ((ck_len = clip->len_sframes - start_in_clip) > 0) {
+    while ((ck_len = len_sframes - start_in_clip) > 0) {
 	ck_len = 64 < ck_len ? 64 : ck_len;
-	WaveformChunk *Lck = clip->waveform.ck64[0] + chunk_i;
+	WaveformChunk *Lck = clip->waveform.ck64[0] + ck64_i;
 	float min = 1.0;
 	float max = -1.0;
 	for (int32_t i=0; i<ck_len; i++) {
@@ -196,7 +189,7 @@ void audio_clip_initialize_waveform(Clip *clip)
 	ck512_Lmax = fmaxf(max, ck512_Lmax);
 	
 	if (clip->channels > 1) {	
-	    WaveformChunk *Rck = clip->waveform.ck64[1] + chunk_i;
+	    WaveformChunk *Rck = clip->waveform.ck64[1] + ck64_i;
 	    min = 1.0;
 	    max = -1.0;
 	    for (int32_t i=0; i<ck_len; i++) {
@@ -208,9 +201,9 @@ void audio_clip_initialize_waveform(Clip *clip)
 	    ck512_Rmin = fminf(min, ck512_Rmin);
 	    ck512_Rmax = fmaxf(max, ck512_Rmax);
 	}
-	chunk_i++;
+	ck64_i++;
 	start_in_clip += ck_len;
-	if (chunk_i % 8 == 0) {
+	if (ck64_i % 8 == 0) {
 	    WaveformChunk *Lck512 = clip->waveform.ck512[0] + ck512_i;
 	    Lck512->min = ck512_Lmin;
 	    Lck512->max = ck512_Lmax;
@@ -226,13 +219,110 @@ void audio_clip_initialize_waveform(Clip *clip)
 	    ck512_i++;
 	}
     }
+}
 
-    fprintf(stderr, "DONE loading %d chunks (%d 512):\n", chunk_i, ck512_i);
-    /* for (int i=0; i<chunk_i; i++) { */
-    /* 	fprintf(stderr, "\t(%d) L: %f, %f\n", i, clip->waveform.ck64[0][i].min, clip->waveform.ck64[0][i].max); */
-    /* 	if (clip->R) { */
-    /* 	    fprintf(stderr, "\t(%d) R: %f, %f\n", i, clip->waveform.ck64[1][i].min, clip->waveform.ck64[1][i].max); */
+
+/* Waveform ops */
+void clip_init_or_update_waveform(Clip *clip)
+{
+    int32_t len_sframes = clip->len_sframes;
+    fprintf(stderr, "AT call to update/init, init len vs clip len: %d %d\n", clip->waveform.init_len, len_sframes);
+    if (clip->waveform.init_len == len_sframes) {
+	return;
+    }
+    int32_t start_in_clip = 0;
+    clip->waveform.clip = clip;
+    clip->waveform.num_channels = clip->channels;
+    if (clip->waveform.init_len == 0) {
+	pthread_mutex_init(&clip->waveform.lock, NULL);
+	pthread_mutex_lock(&clip->waveform.lock);
+	clip->waveform.init_len = len_sframes;
+	clip->waveform.num_ck64 = ceil((double)len_sframes / 64);    
+	clip->waveform.ck64[0] = malloc(clip->waveform.num_ck64 * sizeof(WaveformChunk));
+	if (clip->R) {
+	    clip->waveform.ck64[1] = malloc(clip->waveform.num_ck64 * sizeof(WaveformChunk));
+	}
+	int32_t num_ck512 = clip->waveform.num_ck64 / 8;
+	if (num_ck512) {
+	    clip->waveform.ck512[0] = malloc(num_ck512 * sizeof(WaveformChunk));
+	    if (clip->R) {
+		clip->waveform.ck512[1] = malloc(num_ck512 * sizeof(WaveformChunk));
+	    }
+	}
+    } else {
+	/* Reinit */
+	pthread_mutex_lock(&clip->waveform.lock);
+	start_in_clip = clip->waveform.init_len;
+	clip->waveform.init_len = len_sframes;
+	clip->waveform.num_ck64 = ceil((double)len_sframes / 64);
+	clip->waveform.ck64[0] = realloc(clip->waveform.ck64[0], clip->waveform.num_ck64 * sizeof(WaveformChunk));
+	if (clip->R) {
+	    clip->waveform.ck64[1] = realloc(clip->waveform.ck64[1], clip->waveform.num_ck64 * sizeof(WaveformChunk));
+	}
+	int32_t num_ck512 = clip->waveform.num_ck64 / 8;
+	if (num_ck512) {
+	    clip->waveform.ck512[0] = realloc(clip->waveform.ck512[0], num_ck512 * sizeof(WaveformChunk));
+	    if (clip->R) {
+		clip->waveform.ck512[1] = realloc(clip->waveform.ck512[1], num_ck512 * sizeof(WaveformChunk));
+	    }
+	}	
+    }
+    clip_waveform_append(clip, start_in_clip, len_sframes);
+    pthread_mutex_unlock(&clip->waveform.lock);
+    return;
+    /* int32_t ck64_i = 0; */
+    /* int32_t ck512_i = 0; */
+    /* float ck512_Lmin = 1.0; */
+    /* float ck512_Lmax = -1.0; */
+    /* float ck512_Rmin = 1.0; */
+    /* float ck512_Rmax = -1.0; */
+
+    /* /\* int32_t start_in_clip = 0; *\/ */
+    /* int32_t ck_len; */
+    /* while ((ck_len = len_sframes - start_in_clip) > 0) { */
+    /* 	ck_len = 64 < ck_len ? 64 : ck_len; */
+    /* 	WaveformChunk *Lck = clip->waveform.ck64[0] + ck64_i; */
+    /* 	float min = 1.0; */
+    /* 	float max = -1.0; */
+    /* 	for (int32_t i=0; i<ck_len; i++) { */
+    /* 	    min = fminf(clip->L[start_in_clip + i], min); */
+    /* 	    max = fmaxf(clip->L[start_in_clip + i], max); */
+    /* 	} */
+    /* 	Lck->min = min; */
+    /* 	Lck->max = max; */
+
+    /* 	ck512_Lmin = fminf(min, ck512_Lmin); */
+    /* 	ck512_Lmax = fmaxf(max, ck512_Lmax); */
+	
+    /* 	if (clip->channels > 1) {	 */
+    /* 	    WaveformChunk *Rck = clip->waveform.ck64[1] + ck64_i; */
+    /* 	    min = 1.0; */
+    /* 	    max = -1.0; */
+    /* 	    for (int32_t i=0; i<ck_len; i++) { */
+    /* 		min = fminf(clip->R[start_in_clip + i], min); */
+    /* 		max = fmaxf(clip->R[start_in_clip + i], max); */
+    /* 	    } */
+    /* 	    Rck->min = min; */
+    /* 	    Rck->max = max; */
+    /* 	    ck512_Rmin = fminf(min, ck512_Rmin); */
+    /* 	    ck512_Rmax = fmaxf(max, ck512_Rmax); */
+    /* 	} */
+    /* 	ck64_i++; */
+    /* 	start_in_clip += ck_len; */
+    /* 	if (ck64_i % 8 == 0) { */
+    /* 	    WaveformChunk *Lck512 = clip->waveform.ck512[0] + ck512_i; */
+    /* 	    Lck512->min = ck512_Lmin; */
+    /* 	    Lck512->max = ck512_Lmax; */
+    /* 	    if (clip->R) { */
+    /* 		WaveformChunk *Rck512 = clip->waveform.ck512[1] + ck512_i; */
+    /* 		Rck512->min = ck512_Rmin; */
+    /* 		Rck512->max = ck512_Rmax; */
+    /* 	    } */
+    /* 	    ck512_Lmin = 1.0; */
+    /* 	    ck512_Lmax = -1.0; */
+    /* 	    ck512_Rmin = 1.0; */
+    /* 	    ck512_Rmax = -1.0; */
+    /* 	    ck512_i++; */
     /* 	} */
     /* } */
-    
 }

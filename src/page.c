@@ -476,7 +476,8 @@ void page_el_set_params(PageEl *el, PageElParams params, Page *page)
 	    params.waveform_p.num_channels,
 	    params.waveform_p.len,
 	    params.waveform_p.background_color,
-	    params.waveform_p.plot_color);
+	    params.waveform_p.plot_color,
+	    params.waveform_p.wd);
 	break;
     case EL_FREQ_PLOT:
 	el->component = (void *)waveform_create_freq_plot(

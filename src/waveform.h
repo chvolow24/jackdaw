@@ -24,6 +24,7 @@
 #define SFPP_THRESHOLD 15.5
 
 #include <pthread.h>
+#include "audio_clip.h"
 #include "logscale.h"
 #include "textbox.h"
 #include "value.h"
@@ -92,7 +93,8 @@ void waveform_destroy_freq_plot(struct freq_plot *fp);
 void waveform_draw_freq_plot(struct freq_plot *fp);
 /* void waveform_draw_all_channels_generic(void **channels, ValType type, uint8_t num_channels, uint32_t buflen, SDL_Rect *rect); */
 /* void waveform_draw_all_channels_generic(void **channels, ValType type, uint8_t num_channels, uint32_t buflen, SDL_Rect *rect, int min_x, int max_x); */
-void waveform_draw_all_channels_generic(void **channels, ValType type, uint8_t num_channels, uint32_t buflen, SDL_Rect *rect, int min_x, int max_x, double sfpp, SDL_Color *color, float gain);
+/* void waveform_draw_all_channels_generic(void **channels, ValType type, uint8_t num_channels, uint32_t buflen, SDL_Rect *rect, int min_x, int max_x, double sfpp, SDL_Color *color, float gain); */
+void waveform_draw_channel(float *buf, int32_t len, int start_x, int max_x, int channel_h, int center_y, double sfpp, SDL_Color *color, float gain);
 
 int waveform_freq_plot_x_abs_from_freq(struct freq_plot *fp, double freq_raw);
 int waveform_freq_plot_y_abs_from_amp(struct freq_plot *fp, double amp, int arr_i, bool linear_plot);
@@ -102,4 +104,6 @@ double waveform_freq_plot_amp_from_y_abs(struct freq_plot *fp, int abs_y, int ar
 /* void waveform_freq_plot_update_linear_plot(struct freq_plot *fp, double calculate_point(double input, void *xarg), void *xarg); */
 void waveform_freq_plot_add_linear_plot(struct freq_plot *fp, int len, double *arr, SDL_Color *color);
 /* void logscale_set_range(struct logscale *l, double min, double max); */
+
+void waveform_draw_with_ck_data(WaveformData *wd, const int32_t start_in_clip, int32_t draw_len, SDL_Rect *waveform_container, double sfpp, SDL_Color *draw_color, float gain);
 #endif

@@ -978,7 +978,8 @@ Waveform *waveform_create(
     uint8_t num_channels,
     uint32_t len,
     SDL_Color *background_color,
-    SDL_Color *plot_color)
+    SDL_Color *plot_color,
+    WaveformData *wd)
 {
     Waveform *w = calloc(1, sizeof(Waveform));
     w->layout = lt;
@@ -991,6 +992,7 @@ Waveform *waveform_create(
     w->len = len;
     w->background_color = background_color;
     w->plot_color = plot_color;
+    w->wd = wd;
     return w;
 }
 
@@ -1006,8 +1008,15 @@ void waveform_draw(Waveform *w)
    
     SDL_SetRenderDrawColor(main_win->rend, sdl_colorp_expand(w->background_color));
     SDL_RenderFillRect(main_win->rend, &w->layout->rect);
+
+    int channel_h = w->layout->rect.h / w->num_channels;
+    int center_y = w->layout->rect.y + channel_h / 2;
+    for (int i=0; i<w->num_channels; i++) {
+	waveform_draw_channel(w->channels[i], w->len, w->layout->rect.x, w->layout->rect.x + w->layout->rect.w, channel_h, center_y, (double)w->len / w->layout->rect.w, w->plot_color, 1.0);
+	center_y += channel_h;
+    }
     /* SDL_SetRenderDrawColor(main_win->rend, sdl_colorp_expand(w->plot_color)); */
-    waveform_draw_all_channels_generic(w->channels, w->type, w->num_channels, w->len, &w->layout->rect, 0, main_win->w_pix, (double)w->len / w->layout->rect.w, w->plot_color, 1.0);
+    /* waveform_draw_all_channels_generic(w->channels, w->type, w->num_channels, w->len, &w->layout->rect, 0, main_win->w_pix, (double)w->len / w->layout->rect.w, w->plot_color, 1.0); */
 
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.dark_grey));
     SDL_RenderDrawRect(main_win->rend, &w->layout->rect);

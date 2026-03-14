@@ -651,7 +651,6 @@ int jdaw_read_file(Project *dst, const char *path)
 	    sample_rate,
 	    get_fmt_str(fmt));
 
-    
     project_init(
 	dst,
 	project_name,
@@ -668,7 +667,6 @@ int jdaw_read_file(Project *dst, const char *path)
     
     proj_reading->num_timelines = 0;
 
-    /* fprintf(stderr, "Reading %d clips...\n", num_clips); */
     for (int i=0; i<num_clips; i++) {
     /* while (num_clips > 0) { */
 	session_loading_screen_update("Reading audio clips...", 0.8 * (float)i / num_clips);
@@ -688,14 +686,12 @@ int jdaw_read_file(Project *dst, const char *path)
     }
 
     session_loading_screen_update("Reading timelines...", 0.9);
-    /* fprintf(stderr, "Reading Timelines...\n"); */
     while (num_timelines > 0) {
 	if (jdaw_read_timeline(f, proj_reading) != 0) {
 	    goto jdaw_parse_error;
 	}
 	num_timelines--;
     }
-
     /* timeline_reset(proj->timelines[0]); */
     fclose(f);
     session_loading_screen_deinit();
@@ -1013,7 +1009,6 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
     if (!read_file_version_older_than("00.16")) {
 	minimized = uint8_deser(f);
     }
-    
     if (muted) {
 	track_mute(track);
     }
@@ -1290,7 +1285,6 @@ static int jdaw_read_fir_filter(FILE *f, FIRFilter *filter)
     bandwidth = float_deser40_le(f);
     impulse_response_len = uint16_deser_le(f);
     if (impulse_response_len > proj_reading->fourier_len_sframes) {
-	fprintf(stderr, "IR LEN: %d fourier: %d\n", impulse_response_len, proj_reading->fourier_len_sframes);
 	impulse_response_len = proj_reading->fourier_len_sframes;
     }
 
@@ -1378,6 +1372,7 @@ static int jdaw_read_clipref(FILE *f, Track *track)
     uint8_t clipref_namelen = uint8_deser(f);
     char clipref_name[clipref_namelen + 1];
     fread(clipref_name, 1, clipref_namelen, f);
+    if (clipref_namelen >= MAX_NAMELENGTH) clipref_namelen = MAX_NAMELENGTH - 1;
     clipref_name[clipref_namelen] = '\0';
     bool clipref_home = uint8_deser(f);
 
@@ -1412,7 +1407,7 @@ static int jdaw_read_clipref(FILE *f, Track *track)
     }
     cr->home = clipref_home;
 
-    strncpy(cr->name, clipref_name, clipref_namelen + 1);
+    snprintf(cr->name, clipref_namelen + 1,  "%s", clipref_name);
     cr->tl_pos = int32_deser_le(f);
     cr->start_in_clip = uint32_deser_le(f);
     cr->end_in_clip = uint32_deser_le(f);

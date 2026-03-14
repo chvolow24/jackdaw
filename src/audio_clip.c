@@ -58,6 +58,15 @@ Clip *clip_create(AudioConn *conn, Track *target)
     return clip;
 }
 
+void waveform_data_deinit(WaveformData *wd)
+{
+    if (wd->ck64[0]) free(wd->ck64[0]);
+    if (wd->ck64[1]) free(wd->ck64[1]);
+    if (wd->ck512[0]) free(wd->ck512[0]);
+    if (wd->ck512[1]) free(wd->ck512[1]);
+    pthread_mutex_destroy(&wd->lock);
+    memset(wd, 0, sizeof(WaveformData));
+}
 
 void clip_destroy_no_displace(Clip *clip)
 {
@@ -71,6 +80,7 @@ void clip_destroy_no_displace(Clip *clip)
 	session->source_mode.src_clip = NULL;
     }
     
+    waveform_data_deinit(&clip->waveform);
     if (clip->L) free(clip->L);
     if (clip->R) free(clip->R);
 
@@ -114,6 +124,7 @@ void clip_destroy(Clip *clip)
     /* fprintf(stdout, "\t->num displaced: %d\n", num_displaced); */
     proj->num_clips--;
     proj->active_clip_index = proj->num_clips;
+    waveform_data_deinit(&clip->waveform);
     if (clip->L) free(clip->L);
     if (clip->R) free(clip->R);
 
@@ -226,7 +237,6 @@ static void clip_waveform_append(Clip *clip, int32_t start_in_clip, int32_t len_
 void clip_init_or_update_waveform(Clip *clip)
 {
     int32_t len_sframes = clip->len_sframes;
-    fprintf(stderr, "AT call to update/init, init len vs clip len: %d %d\n", clip->waveform.init_len, len_sframes);
     if (clip->waveform.init_len == len_sframes) {
 	return;
     }

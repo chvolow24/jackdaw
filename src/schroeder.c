@@ -384,8 +384,14 @@ void schroeder_init_freeverb(Schroeder *sch)
 
 void schroeder_clear(Schroeder *sch)
 {
-    /* TODO: lop_delay clear, allpass clear */
-    fprintf(stderr, "TODO: lop_delay clear, allpass clear\n");
+    /* /\* TODO: lop_delay clear, allpass clear *\/ */
+    /* fprintf(stderr, "TODO: lop_delay clear, allpass clear\n"); */
+    allpass_group_clear(sch->series_aps);
+    allpass_group_clear(sch->series_aps + 1);
+    for (int32_t i=0; i<SCHROEDER_NUM_PARALLEL_LOP_DELAYS; i++) {
+	lop_delay_clear(sch->parallel_lop_delays[0] + i);
+	lop_delay_clear(sch->parallel_lop_delays[1] + i);
+    }
 }
 
 

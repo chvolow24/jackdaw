@@ -55,6 +55,16 @@ float lop_delay_sample(LopDelay *ld, float in)
     return delay_out;
 }
 
+void lop_delay_clear(LopDelay *ld)
+{
+    memset(ld->mem, 0, sizeof(float) * ld->len);
+}
+
+void allpass_clear(Allpass *ap)
+{
+    memset(ap->mem, 0, sizeof(float) * ap->len);
+}
+
 float allpass_group_sample(AllpassGroup *ag, float in)
 {
     for (int i=0; i<ag->num_filters; i++) {
@@ -63,6 +73,12 @@ float allpass_group_sample(AllpassGroup *ag, float in)
     return in;
 }
 
+void allpass_group_clear(AllpassGroup *ag)
+{
+    for (int i=0; i<ag->num_filters; i++) {
+	allpass_clear(ag->filters + i);
+    }
+}
 
 void allpass_group_init(AllpassGroup *ag, int num_filters, int32_t *lens_samples, float coeff)
 {

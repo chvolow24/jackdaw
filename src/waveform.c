@@ -743,7 +743,6 @@ void waveform_draw_with_ck_data(WaveformData *wd, const int32_t start_in_clip, i
     int32_t index_divider;
     int32_t max_chunk;
     if (sfpp < 64) {
-	/* fprintf(stderr, "OLD draw\n"); */
 	waveform_draw_channel(wd->clip->L + start_in_clip, draw_len, min_x, max_x, channel_h, center_y, sfpp, draw_color, gain);
 	if (wd->clip->R) {
 	    waveform_draw_channel(wd->clip->R + start_in_clip, draw_len, min_x, max_x, channel_h, center_y + channel_h, sfpp, draw_color, gain);
@@ -757,7 +756,6 @@ void waveform_draw_with_ck_data(WaveformData *wd, const int32_t start_in_clip, i
 	index_divider = 512;
 	max_chunk = wd->num_ck64 / 8 - 1;
     }
-    /* fprintf(stderr, "ck data draw (index div %d)\n", index_divider); */
 
     pthread_mutex_lock(&wd->lock);
     int32_t chunks_per_pixel = ceil(sfpp / index_divider);

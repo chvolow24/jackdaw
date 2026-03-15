@@ -150,11 +150,38 @@ void clip_split_stereo_to_mono(Clip *to_split, Clip **new_L, Clip **new_R)
     
     (*new_L)->L = malloc(to_split->len_sframes * sizeof(float));
     (*new_R)->L = malloc(to_split->len_sframes * sizeof(float));
-    
+	
     memcpy((*new_L)->L, to_split->L, to_split->len_sframes * sizeof(float));
     memcpy((*new_R)->L, to_split->R, to_split->len_sframes * sizeof(float));
 
+    pthread_mutex_init(&(*new_L)->waveform.lock, NULL);
+    pthread_mutex_init(&(*new_R)->waveform.lock, NULL);
 
+    (*new_L)->waveform.num_channels = 1;
+    (*new_R)->waveform.num_channels = 1;
+    (*new_L)->waveform.clip = *new_L;
+    (*new_R)->waveform.clip = *new_R;
+    (*new_L)->waveform.init_len = to_split->waveform.init_len;
+    (*new_R)->waveform.init_len = to_split->waveform.init_len;
+    (*new_L)->waveform.num_ck64 = to_split->waveform.num_ck64;
+    (*new_R)->waveform.num_ck64 = to_split->waveform.num_ck64;
+    (*new_L)->waveform.ck64[0] = malloc(sizeof(WaveformChunk) * to_split->waveform.num_ck64);
+    (*new_R)->waveform.ck64[0] = malloc(sizeof(WaveformChunk) * to_split->waveform.num_ck64);
+    memcpy((*new_L)->waveform.ck64[0], to_split->waveform.ck64[0], sizeof(WaveformChunk) * to_split->waveform.num_ck64);
+    memcpy((*new_R)->waveform.ck64[0], to_split->waveform.ck64[1], sizeof(WaveformChunk) * to_split->waveform.num_ck64);
+    int32_t num_ck512 = to_split->waveform.num_ck64 / 8;
+    if (num_ck512) {
+	(*new_L)->waveform.ck512[0] = malloc(sizeof(WaveformChunk) * num_ck512);
+	(*new_R)->waveform.ck512[0] = malloc(sizeof(WaveformChunk) * num_ck512);
+	memcpy((*new_L)->waveform.ck512[0], to_split->waveform.ck512[0], sizeof(WaveformChunk) * num_ck512);
+	memcpy((*new_R)->waveform.ck512[0], to_split->waveform.ck512[1], sizeof(WaveformChunk) * num_ck512);
+    }
+    
+    /* (*new_L)->waveform.ck64[0] = to_split->waveform.ck64[0]; */
+    /* (*new_L)->waveform.ck512[0] = to_split->waveform.ck512[0]; */
+    /* (*new_R)->waveform.ck64[0] = to_split->waveform.ck64[1]; */
+    /* (*new_R)->waveform.ck512[0] = to_split->waveform.ck512[1]; */
+    
     (*new_L)->len_sframes = to_split->len_sframes;
     (*new_R)->len_sframes = to_split->len_sframes;
     Session *session = session_get();
@@ -233,13 +260,15 @@ static void clip_waveform_append(Clip *clip, int32_t start_in_clip, int32_t len_
 }
 
 
+static void waveform_data_init(WaveformData *wd)
+{
+
+}
+
 /* Waveform ops */
 void clip_init_or_update_waveform(Clip *clip)
 {
     int32_t len_sframes = clip->len_sframes;
-    if (clip->waveform.init_len == len_sframes) {
-	return;
-    }
     int32_t start_in_clip = 0;
     clip->waveform.clip = clip;
     clip->waveform.num_channels = clip->channels;

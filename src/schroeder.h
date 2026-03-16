@@ -24,12 +24,15 @@ typedef struct schroeder {
     int32_t predelay_sframes;
     
 
-    float decay_time; // lop_delay_coeff = 0.5 + (sqrt(decay_time)) / 2 
+    float lop_delay_coeff_raw; // lop_delay_coeff = exp(delay_len_scalar * ln(lop_delay_coeff_raw));
+    float decay_time; // lop_delay_coeff_raw = 0.5 + (sqrt(decay_time)) / 2
     float brightness; // lop_coeff = brightness
+    float delay_len_scalar; // range 0->1
     float predelay_msec;
     Endpoint decay_time_ep;
     Endpoint brightness_ep;
     Endpoint stereo_spread_ep;
+    Endpoint delay_len_scalar_ep;
     Endpoint predelay_ep;
     Endpoint wet_ep;
     /* int num_parallel_lop_delays;     */

@@ -836,6 +836,9 @@ static Page *add_reverb_page(Schroeder *sch, EffectChain *ec, TabView *tv)
 
     p.textbox_p.set_str = "Stereo spread";
     page_add_el(page, EL_TEXTBOX, p, "", "stereo_spread_label");
+    
+    p.textbox_p.set_str = "Room size";
+    page_add_el(page, EL_TEXTBOX, p, "", "delay_len_scalar_label");
 
     p.textbox_p.set_str = "Pre-delay";
     page_add_el(page, EL_TEXTBOX, p, "", "predelay_label");
@@ -851,6 +854,9 @@ static Page *add_reverb_page(Schroeder *sch, EffectChain *ec, TabView *tv)
 
     page_el_params_slider_from_ep(&p, &sch->brightness_ep);
     page_add_el(page, EL_SLIDER, p, "brightness_slider", "brightness_slider");
+
+    page_el_params_slider_from_ep(&p, &sch->delay_len_scalar_ep);
+    page_add_el(page, EL_SLIDER, p, "delay_len_scalar_slider", "delay_len_scalar_slider");
     
     page_el_params_slider_from_ep(&p, &sch->stereo_spread_ep);
     page_add_el(page, EL_SLIDER, p, "stereo_spread_slider", "stereo_spread_slider");

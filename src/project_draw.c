@@ -542,7 +542,8 @@ void clipref_draw_waveform(ClipRef *cr)
 	/* SDL_Rect waveform_container = {onscreen_rect.x, onscreen_rect.y, onscreen_rect.w, onscreen_rect.h}; */
 
 	/* clock_t c = clock(); */
-	if (clip->waveform.init_len == clip->len_sframes) {
+	if (clip->waveform.init_len > 0) {
+	/* if (clip->waveform.init_len == clip->len_sframes) { */
 	    /* glob_onscreen_rect = onscreen_rect; */
 	    waveform_draw_with_ck_data(&clip->waveform, start_in_clip, wf_len, &onscreen_rect, cr->track->tl->timeview.sample_frames_per_pixel, &colors.black, cr->gain);
 	} else {

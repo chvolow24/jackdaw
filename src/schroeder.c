@@ -158,13 +158,17 @@ void decay_time_dsp_cb(Endpoint *ep)
     Schroeder *sch = ep->xarg1;
     float raw = ep->current_write_val.float_v;
     /* sch->lop_delay_coeff = 0.5 + sqrt(raw) / 2; */
-    schroeder_set_lop_delay_coeff(sch, 0.5 + sqrt(raw) / 2);
+    sch->lop_delay_coeff_raw = 0.6 + 2 * sqrt(raw) / 5;
+    sch->lop_delay_coeff = expf(sch->delay_len_scalar * logf(sch->lop_delay_coeff_raw));
+    schroeder_set_lop_delay_coeff(sch, sch->lop_delay_coeff);
 }
 
 void brightness_dsp_cb(Endpoint *ep)
 {
     Schroeder *sch = ep->xarg1;
     float raw = ep->current_write_val.float_v;
+    /* float lop_coeff = expf(sqrtf(sch->delay_len_scalar) * logf(raw)); */
+    /* fprintf(stderr, "Lop coeff %f (br %f)\n ", lop_coeff, raw); */
     schroeder_set_lop_coeff(sch, raw);
     /* sch->lop_coeff =  */
 }
@@ -177,6 +181,20 @@ void stereo_spread_dsp_cb(Endpoint *ep)
     sch->panscale_right = 0.5f - raw / 2;
 }
 
+void delay_len_scalar_dsp_cb(Endpoint *ep)
+{
+    Schroeder *sch = ep->xarg1;
+    sch->lop_delay_coeff = expf(sch->delay_len_scalar * logf(sch->lop_delay_coeff_raw));
+    schroeder_set_lop_delay_coeff(sch, sch->lop_delay_coeff);
+    /* float lop_coeff = exp(sqrtf(sch->delay_len_scalar) * logf(sch->brightness)); */
+    /* schroeder_set_lop_coeff(sch, lop_coeff); */
+
+    for (int i=0; i<SCHROEDER_NUM_PARALLEL_LOP_DELAYS; i++) {
+	lop_delay_set_len(sch->parallel_lop_delays[0] + i, sch->delay_len_scalar);
+	lop_delay_set_len(sch->parallel_lop_delays[1] + i, sch->delay_len_scalar);
+    }
+}
+
 void predelay_dsp_cb(Endpoint *ep)
 {
     Schroeder *sch = ep->xarg1;
@@ -184,7 +202,6 @@ void predelay_dsp_cb(Endpoint *ep)
     sch->predelay_index = 0;
     sch->predelay_len = (double)raw / 1000 * session_get_sample_rate();
 }
-
 
 void schroeder_init_freeverb(Schroeder *sch)
 {
@@ -220,6 +237,7 @@ void schroeder_init_freeverb(Schroeder *sch)
 	1223 * sr / 44100,
 	1103 * sr / 44100	
     };
+
     for (int i=0; i<8; i++) {
 	lop_delay_init(sch->parallel_lop_delays[0] + i, lop_lens[i], sch->lop_delay_coeff, sch->lop_coeff);
 	lop_delay_init(sch->parallel_lop_delays[1] + i, lop_lens_r[i], sch->lop_delay_coeff, sch->lop_coeff);
@@ -269,6 +287,21 @@ void schroeder_init_freeverb(Schroeder *sch)
     endpoint_set_default_value(&sch->stereo_spread_ep, (Value){.float_v = 1.0f});
     endpoint_write_default(&sch->stereo_spread_ep);
     api_endpoint_register(&sch->stereo_spread_ep, &sch->effect->api_node);
+
+    endpoint_init(
+	&sch->delay_len_scalar_ep,
+	&sch->delay_len_scalar,
+	JDAW_FLOAT,
+	"delay_len_scalar",
+	"Delay length scalar",
+	JDAW_THREAD_DSP,
+	page_el_gui_cb, NULL, delay_len_scalar_dsp_cb,
+	sch, NULL, &sch->effect->page, "delay_len_scalar_slider");
+    endpoint_set_allowed_range(&sch->delay_len_scalar_ep, (Value){.float_v = 0.01f}, (Value){.float_v = 1.0f});
+    endpoint_set_default_value(&sch->delay_len_scalar_ep, (Value){.float_v = 1.0f});
+    endpoint_write_default(&sch->delay_len_scalar_ep);
+    api_endpoint_register(&sch->delay_len_scalar_ep, &sch->effect->api_node);
+	
 
     endpoint_init(
 	&sch->predelay_ep,
@@ -384,14 +417,13 @@ void schroeder_init_freeverb(Schroeder *sch)
 
 void schroeder_clear(Schroeder *sch)
 {
-    /* /\* TODO: lop_delay clear, allpass clear *\/ */
-    /* fprintf(stderr, "TODO: lop_delay clear, allpass clear\n"); */
     allpass_group_clear(sch->series_aps);
     allpass_group_clear(sch->series_aps + 1);
     for (int32_t i=0; i<SCHROEDER_NUM_PARALLEL_LOP_DELAYS; i++) {
 	lop_delay_clear(sch->parallel_lop_delays[0] + i);
 	lop_delay_clear(sch->parallel_lop_delays[1] + i);
     }
+    memset(sch->predelay_buf, 0, sizeof(float) * MAX_PREDELAY_SFRAMES * 2);
 }
 
 

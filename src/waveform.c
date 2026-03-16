@@ -359,7 +359,7 @@ double waveform_freq_plot_amp_from_y_abs(struct freq_plot *fp, int abs_y, int ar
 
 static bool check_clip(float *min, float *max)
 {
-    bool clipped;
+    bool clipped = false;
     float *pts[2] = {min, max};
     for (int i=0; i<2; i++) {
 	if (*pts[i] > 1.0f) {

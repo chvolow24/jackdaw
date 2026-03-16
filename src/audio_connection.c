@@ -25,7 +25,7 @@
 /* #define DEVICE_BUFLEN_SECONDS 2 /\* TODO: reduce, and write to clip during recording *\/ */
 #define DEVICE_BUFLEN_CHUNKS 64
 
-#define PD_BUFLEN_CHUNKS 1024
+#define PD_BUFLEN_CHUNKS 64
 
 
 static void set_default_index(Session *session, int iscapture)

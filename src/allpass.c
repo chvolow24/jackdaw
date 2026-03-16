@@ -24,6 +24,7 @@ void allpass_init(Allpass *ap, int32_t len, float coeff)
 void lop_delay_init(LopDelay *ld, int32_t len, float delay_coeff, float lop_coeff)
 {
     ld->mem = calloc(len, sizeof(float));
+    ld->init_len = len;
     ld->len = len;
     ld->delay_coeff = delay_coeff;
     ld->lop_coeff = lop_coeff;
@@ -55,8 +56,14 @@ float lop_delay_sample(LopDelay *ld, float in)
     return delay_out;
 }
 
+void lop_delay_set_len(LopDelay *ld, double scale_init_len)
+{
+    ld->len = ld->init_len * scale_init_len;
+}
+
 void lop_delay_clear(LopDelay *ld)
 {
+    ld->lop_mem_out = 0.0f;
     memset(ld->mem, 0, sizeof(float) * ld->len);
 }
 

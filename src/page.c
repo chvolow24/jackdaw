@@ -147,7 +147,7 @@ Page *tabview_add_page(
 }
 
 static void tabview_deselect_el(TabView *tv);
-static void tabview_select_el(TabView *tv);
+/* static void tabview_select_el(TabView *tv); */
 
 Page *tabview_select_tab(TabView *tv, int i)
 {
@@ -1079,12 +1079,12 @@ static void page_el_deselect(PageEl *el)
     }
 }
 
-static void tabview_select_el(TabView *tv)
-{
-    Page *current = tv->tabs[tv->current_tab];
-    if (current->num_selectable == 0) return;
-    page_el_select(current->selectable_els[current->selected_i]);   
-}
+/* static void tabview_select_el(TabView *tv) */
+/* { */
+/*     Page *current = tv->tabs[tv->current_tab]; */
+/*     if (current->num_selectable == 0) return; */
+/*     page_el_select(current->selectable_els[current->selected_i]);    */
+/* } */
 static void tabview_deselect_el(TabView *tv)
 {
     Page *current = tv->tabs[tv->current_tab];

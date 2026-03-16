@@ -10,8 +10,7 @@
 #define MAX_PREDELAY_SFRAMES 22050
 
 typedef struct schroeder {
-    Effect *effect;
-    
+    Effect *effect;    
     float wet;
     float stereo_spread; // range 0->1
     float panscale_left; // (0.5f + stereo_spread / 2)

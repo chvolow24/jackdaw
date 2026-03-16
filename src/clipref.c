@@ -375,14 +375,14 @@ ClipRef *clipref_at_cursor()
 }
 
 ClipRef *clipref_at_point_in_track(Track *track, int x)
-{
-    
+{    
     for (int i=0; i<track->num_clips; i++) {
 	SDL_Rect cliprect = track->clips[i]->layout->rect;
 	if (cliprect.x <= x && cliprect.x + cliprect.w > x) {
 	    return track->clips[i];
 	}
     }
+    return NULL;
 }
 
 ClipRef *clipref_at_cursor_in_track(Track *track)

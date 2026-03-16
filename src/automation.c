@@ -385,7 +385,7 @@ static int add_auto_form(void *mod_v, void *nullarg)
     ModalEl *el;
     /* AutomationType t = 0; */
     Track *track = NULL;
-    APINode *node = NULL;
+    /* APINode *node = NULL; */
     int ep_index = -1;
     Endpoint *auto_selection_ep = NULL;
     for (uint8_t i=0; i<modal->num_els; i++) {
@@ -395,7 +395,7 @@ static int add_auto_form(void *mod_v, void *nullarg)
 	    ep_index = ((RadioButton *)el->obj)->selected_item;
 	    /* t = ((RadioButton *)el->obj)->selected_item; */
 	    track = ((RadioButton *)el->obj)->ep->xarg1;
-	    node = ((RadioButton *)el->obj)->ep->xarg2;
+	    /* node = ((RadioButton *)el->obj)->ep->xarg2; */
 	    break;
 	default:
 	    break;

@@ -260,11 +260,6 @@ static void clip_waveform_append(Clip *clip, int32_t start_in_clip, int32_t len_
 }
 
 
-static void waveform_data_init(WaveformData *wd)
-{
-
-}
-
 /* Waveform ops */
 void clip_init_or_update_waveform(Clip *clip)
 {

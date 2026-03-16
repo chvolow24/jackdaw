@@ -158,8 +158,9 @@ void decay_time_dsp_cb(Endpoint *ep)
     Schroeder *sch = ep->xarg1;
     float raw = ep->current_write_val.float_v;
     /* sch->lop_delay_coeff = 0.5 + sqrt(raw) / 2; */
-    sch->lop_delay_coeff_raw = 0.6 + 2 * sqrt(raw) / 5;
-    sch->lop_delay_coeff = expf(sch->delay_len_scalar * logf(sch->lop_delay_coeff_raw));
+    sch->lop_delay_coeff_raw = 0.6 + 2 * sqrtf(raw) / 5;
+    sch->lop_delay_coeff = powf(sch->lop_delay_coeff_raw, sqrtf(sch->delay_len_scalar));
+    /* sch->lop_delay_coeff = expf(sch->delay_len_scalar * logf(sch->lop_delay_coeff_raw)); */
     schroeder_set_lop_delay_coeff(sch, sch->lop_delay_coeff);
 }
 
@@ -184,7 +185,8 @@ void stereo_spread_dsp_cb(Endpoint *ep)
 void delay_len_scalar_dsp_cb(Endpoint *ep)
 {
     Schroeder *sch = ep->xarg1;
-    sch->lop_delay_coeff = expf(sch->delay_len_scalar * logf(sch->lop_delay_coeff_raw));
+    sch->lop_delay_coeff = powf(sch->lop_delay_coeff_raw, sqrtf(sch->delay_len_scalar));
+    /* sch->lop_delay_coeff = expf(sch->delay_len_scalar * logf(sch->lop_delay_coeff_raw)); */
     schroeder_set_lop_delay_coeff(sch, sch->lop_delay_coeff);
     /* float lop_coeff = exp(sqrtf(sch->delay_len_scalar) * logf(sch->brightness)); */
     /* schroeder_set_lop_coeff(sch, lop_coeff); */
@@ -201,6 +203,13 @@ void predelay_dsp_cb(Endpoint *ep)
     float raw = ep->current_write_val.float_v;
     sch->predelay_index = 0;
     sch->predelay_len = (double)raw / 1000 * session_get_sample_rate();
+}
+
+void delay_len_scalar_labelfn(char *dst, size_t dstsize, Value val, ValType t)
+{
+    static const int max_roomsize_m = 17;
+    snprintf(dst, dstsize, "%.2fm", val.float_v * max_roomsize_m);
+    
 }
 
 void schroeder_init_freeverb(Schroeder *sch)
@@ -299,6 +308,7 @@ void schroeder_init_freeverb(Schroeder *sch)
 	sch, NULL, &sch->effect->page, "delay_len_scalar_slider");
     endpoint_set_allowed_range(&sch->delay_len_scalar_ep, (Value){.float_v = 0.01f}, (Value){.float_v = 1.0f});
     endpoint_set_default_value(&sch->delay_len_scalar_ep, (Value){.float_v = 1.0f});
+    endpoint_set_label_fn(&sch->delay_len_scalar_ep, delay_len_scalar_labelfn);
     endpoint_write_default(&sch->delay_len_scalar_ep);
     api_endpoint_register(&sch->delay_len_scalar_ep, &sch->effect->api_node);
 	

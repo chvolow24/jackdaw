@@ -177,9 +177,9 @@ bool filter_tabs_onclick(SDL_Point p, Canvas *self, void *draw_arg1, void *draw_
 int filter_active_toggle(void *self, void *target);
 void filter_type_selector_canvas_draw(void *draw_arg1, void *draw_arg2);
 int filter_type_button_action(void *self, void *target);
-static void create_track_selection_area(Page *page, Track *track);
-static int next_track(void *self_v, void *target);
-static int previous_track(void *self_v, void *target);
+/* static void create_track_selection_area(Page *page, Track *track); */
+/* static int next_track(void *self_v, void *target); */
+/* static int previous_track(void *self_v, void *target); */
 static double unscale_freq(double scaled);
 
 static Page *add_eq_page(EQ *eq, EffectChain *ec, TabView *tv)
@@ -820,7 +820,7 @@ static Page *add_reverb_page(Schroeder *sch, EffectChain *ec, TabView *tv)
 
     PageElParams p;
     p.toggle_p.ep = &sch->effect->active_ep;
-    PageEl *el = page_add_el(page, EL_TOGGLE, p, "track_settings_toggle_reverb", "toggle_reverb");
+    page_add_el(page, EL_TOGGLE, p, "track_settings_toggle_reverb", "toggle_reverb");
 
     p.textbox_p.set_str = "Reverb on";
     p.textbox_p.font = main_win->mono_bold_font;
@@ -878,33 +878,33 @@ static Page *add_reverb_page(Schroeder *sch, EffectChain *ec, TabView *tv)
 
 
 
-static void create_track_selection_area(Page *page, Track *track)
-{
-    PageElParams p;
-    p.textbox_p.font = main_win->mono_bold_font;
-    p.textbox_p.win = main_win;
-    p.textbox_p.text_size = 16;
-    p.textbox_p.set_str = track->name;
-    PageEl *el = page_add_el(page, EL_TEXTBOX, p, "track_settings_name_tb", "track_name");
-    Textbox *tb = el->component;
-    textbox_set_align(tb, CENTER_LEFT);
-    textbox_size_to_fit_h(tb, 5);
-    /* layout_reset(tb->layout->parent); */
-    textbox_reset_full(tb);
+/* static void create_track_selection_area(Page *page, Track *track) */
+/* { */
+/*     PageElParams p; */
+/*     p.textbox_p.font = main_win->mono_bold_font; */
+/*     p.textbox_p.win = main_win; */
+/*     p.textbox_p.text_size = 16; */
+/*     p.textbox_p.set_str = track->name; */
+/*     PageEl *el = page_add_el(page, EL_TEXTBOX, p, "track_settings_name_tb", "track_name"); */
+/*     Textbox *tb = el->component; */
+/*     textbox_set_align(tb, CENTER_LEFT); */
+/*     textbox_size_to_fit_h(tb, 5); */
+/*     /\* layout_reset(tb->layout->parent); *\/ */
+/*     textbox_reset_full(tb); */
 
-    p.button_p.set_str = "p↑";
-    p.button_p.font = main_win->mono_bold_font;
-    p.button_p.win = main_win;
-    p.button_p.text_size = 16;
-    p.button_p.background_color = &colors.light_grey;
-    p.button_p.text_color = &colors.black;
-    p.button_p.action = previous_track;
-    el = page_add_el(page, EL_BUTTON, p, "track_settings_prev_track", "track_previous");
+/*     p.button_p.set_str = "p↑"; */
+/*     p.button_p.font = main_win->mono_bold_font; */
+/*     p.button_p.win = main_win; */
+/*     p.button_p.text_size = 16; */
+/*     p.button_p.background_color = &colors.light_grey; */
+/*     p.button_p.text_color = &colors.black; */
+/*     p.button_p.action = previous_track; */
+/*     el = page_add_el(page, EL_BUTTON, p, "track_settings_prev_track", "track_previous"); */
 
-    p.button_p.set_str = "n↓";
-    p.button_p.action = next_track;
-    el = page_add_el(page, EL_BUTTON, p, "track_settings_next_track", "track_next");
-}
+/*     p.button_p.set_str = "n↓"; */
+/*     p.button_p.action = next_track; */
+/*     el = page_add_el(page, EL_BUTTON, p, "track_settings_next_track", "track_next"); */
+/* } */
 
 
 void filter_tabs_canvas_draw(void *draw_arg1, void *draw_arg2)
@@ -977,25 +977,25 @@ int filter_type_button_action(void *self, void *target)
     return 0;
 }
 
-void user_tl_track_selector_up(void *);
-void user_tl_track_selector_down(void *);
+/* void user_tl_track_selector_up(void *); */
+/* void user_tl_track_selector_down(void *); */
 
-void user_tl_track_open_settings(void *);
-static int previous_track(void *self_v, void *target)
-{
-    user_tl_track_open_settings(NULL);
-    user_tl_track_selector_up(NULL);
-    user_tl_track_open_settings(NULL);
-    return 0;
-}
+/* void user_tl_track_open_settings(void *); */
+/* static int previous_track(void *self_v, void *target) */
+/* { */
+/*     user_tl_track_open_settings(NULL); */
+/*     user_tl_track_selector_up(NULL); */
+/*     user_tl_track_open_settings(NULL); */
+/*     return 0; */
+/* } */
 
-static int next_track(void *self_v, void *target)
-{
-    user_tl_track_open_settings(NULL);
-    user_tl_track_selector_down(NULL);
-    user_tl_track_open_settings(NULL);
-    return 0;
-}
+/* static int next_track(void *self_v, void *target) */
+/* { */
+/*     user_tl_track_open_settings(NULL); */
+/*     user_tl_track_selector_down(NULL); */
+/*     user_tl_track_open_settings(NULL); */
+/*     return 0; */
+/* } */
 
 static double unscale_freq(double scaled)
 {

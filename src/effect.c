@@ -479,25 +479,25 @@ static float effect_buf_apply(Effect *e, float *restrict buf_L, float *restrict 
 float effect_chain_buf_apply(EffectChain *ec, float *restrict L, float *restrict R, int len, float input_amp)
 {
     static float amp_epsilon = 1e-7f;
-    float output = input_amp;
+    float running_amp = input_amp;
     if (len > ec->chunk_len_sframes) {
 	int index = 0;
 	while (index < len) {
-	    output = effect_chain_buf_apply(ec, L + index, R + index, ec->chunk_len_sframes, output);
+	    running_amp = effect_chain_buf_apply(ec, L + index, R + index, ec->chunk_len_sframes, running_amp);
 	    index += ec->chunk_len_sframes;
 	}
-	return output;
+	return running_amp;
 	
     }
     pthread_mutex_lock(&ec->effect_chain_lock);
     for (int i=0; i<ec->num_effects; i++) {
 	Effect *e = ec->effects[i];
-	if (e->active && (e->operate_on_empty_buf || fabs(output) > amp_epsilon)) {
-	    output = effect_buf_apply(e, L, R, len, input_amp);
+	if (e->active && (e->operate_on_empty_buf || fabs(running_amp) > amp_epsilon)) {
+	    running_amp = effect_buf_apply(e, L, R, len, running_amp);
 	}
     }
     pthread_mutex_unlock(&ec->effect_chain_lock);
-    return output;
+    return running_amp;
 }
 
 static void effect_silence(Effect *e)

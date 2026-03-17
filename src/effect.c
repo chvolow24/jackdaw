@@ -636,6 +636,7 @@ void effect_destroy(Effect *e)
 	/* compressor_deinit(((Compressor *)e->obj); */
 	break;
     case EFFECT_REVERB:
+	schroeder_deinit(e->obj);
 	fprintf(stderr, "TODO: reverb deinit\n");
 	break;
     default:

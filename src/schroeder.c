@@ -436,5 +436,14 @@ void schroeder_clear(Schroeder *sch)
     memset(sch->predelay_buf, 0, sizeof(float) * MAX_PREDELAY_SFRAMES * 2);
 }
 
+void schroeder_deinit(Schroeder *sch)
+{
+    allpass_group_deinit(&sch->series_aps[0]);
+    allpass_group_deinit(&sch->series_aps[1]);
+    for (int i=0; i<SCHROEDER_NUM_PARALLEL_LOP_DELAYS; i++) {
+	lop_delay_deinit(sch->parallel_lop_delays[0] + i);
+	lop_delay_deinit(sch->parallel_lop_delays[1] + i);
+    }
+}
 
 

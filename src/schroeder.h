@@ -44,7 +44,7 @@ void schroeder_init_freeverb(Schroeder *sch);
 float schroeder_buf_apply(void *sch_v, float *restrict in_L, float *restrict in_R, int len, float input_amp);
 
 void schroeder_clear(Schroeder *sch);
-
+void schroeder_deinit(Schroeder *sch);
 
 
 

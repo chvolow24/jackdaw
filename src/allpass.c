@@ -67,6 +67,11 @@ void lop_delay_clear(LopDelay *ld)
     memset(ld->mem, 0, sizeof(float) * ld->len);
 }
 
+void lop_delay_deinit(LopDelay *ld)
+{
+    free(ld->mem);
+}
+
 void allpass_clear(Allpass *ap)
 {
     memset(ap->mem, 0, sizeof(float) * ap->len);
@@ -95,6 +100,19 @@ void allpass_group_init(AllpassGroup *ag, int num_filters, int32_t *lens_samples
     for (int i=0; i<num_filters; i++) {
 	allpass_init(ag->filters + i, lens_samples[i], coeff);
     }
+}
+
+void allpass_deinit(Allpass *ap)
+{
+    free(ap->mem);
+}
+
+void allpass_group_deinit(AllpassGroup *ag)
+{
+    for (int i=0; i<ag->num_filters; i++) {
+	allpass_deinit(ag->filters + i);
+    }
+    free(ag->filters);
 }
 
 void allpass_group_init_schroeder(AllpassGroup *ag)

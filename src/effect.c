@@ -203,9 +203,10 @@ void effect_chain_block_type(EffectChain *ec, EffectType type)
 void effect_chain_deinit(EffectChain *ec)
 {
     pthread_mutex_lock(&ec->effect_chain_lock);
+    int num_to_destroy = ec->num_effects;
     ec->num_effects = 0;
     pthread_mutex_unlock(&ec->effect_chain_lock);
-    for (int i=0; i<ec->num_effects; i++) {
+    for (int i=0; i<num_to_destroy; i++) {
 	effect_destroy(ec->effects[i]);
     }
     if (ec->effects) {
@@ -637,7 +638,6 @@ void effect_destroy(Effect *e)
 	break;
     case EFFECT_REVERB:
 	schroeder_deinit(e->obj);
-	fprintf(stderr, "TODO: reverb deinit\n");
 	break;
     default:
 	break;

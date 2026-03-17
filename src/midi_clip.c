@@ -95,6 +95,11 @@ void midi_clip_destroy(MIDIClip *mc, bool displace_in_proj)
 	proj->num_midi_clips--;
 	proj->active_midi_clip_index = proj->num_midi_clips;
     }
+    for (int i=0; i<MIDI_NUM_CONTROLLERS; i++) {
+	if (mc->controllers[i].changes) free(mc->controllers[i].changes);
+	if (mc->controllers[i].changes_precise) free(mc->controllers[i].changes_precise);
+    }
+    if (mc->pitch_bend.changes) free(mc->pitch_bend.changes);
 
     pthread_mutex_destroy(&mc->notes_arr_lock);
     free(mc->refs);

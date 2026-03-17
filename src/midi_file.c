@@ -747,7 +747,7 @@ int midi_file_open(const char *filepath, bool automatically_add_tracks)//, MIDIC
 	    
 	    MIDIClip *mclip = mclips[i];
 	    if (mclip->num_notes == 0) {
-		midi_clip_destroy(mclip);
+		midi_clip_destroy(mclip, true);
 		if (dst_tracks[i]->added_from_midi_filepath == filepath) {
 		    track_destroy(dst_tracks[i], true);
 		}

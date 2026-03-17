@@ -69,7 +69,7 @@ MIDIClip *midi_clip_create(MIDIDevice *device, Track *target)
 
 }
 
-void midi_clip_destroy(MIDIClip *mc)
+void midi_clip_destroy(MIDIClip *mc, bool displace_in_proj)
 {
     if (mc->recorded_from && mc->recorded_from->current_clip == mc) {
 	mc->recorded_from->current_clip = NULL;
@@ -82,17 +82,19 @@ void midi_clip_destroy(MIDIClip *mc)
     if (mc == session->source_mode.src_clip) {
 	session->source_mode.src_clip = NULL;
     }
-    bool displace = false;
-    Project *proj = &session->proj;
-    for (uint16_t i=0; i<proj->num_midi_clips; i++) {
-	if (proj->midi_clips[i] == mc) {
-	    displace = true;
-	} else if (displace && i > 0) {
-	    proj->midi_clips[i-1] = proj->midi_clips[i];
+    if (displace_in_proj) {
+	bool displace = false;
+	Project *proj = &session->proj;
+	for (uint16_t i=0; i<proj->num_midi_clips; i++) {
+	    if (proj->midi_clips[i] == mc) {
+		displace = true;
+	    } else if (displace && i > 0) {
+		proj->midi_clips[i-1] = proj->midi_clips[i];
+	    }
 	}
+	proj->num_midi_clips--;
+	proj->active_midi_clip_index = proj->num_midi_clips;
     }
-    proj->num_midi_clips--;
-    proj->active_midi_clip_index = proj->num_midi_clips;
 
     pthread_mutex_destroy(&mc->notes_arr_lock);
     free(mc->refs);

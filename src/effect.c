@@ -30,7 +30,8 @@ extern struct colors colors;
 const char *effect_channel_mode_str[] = {
     "Stereo",
     "Mid only",
-    "Side only"
+    "Side only",
+    "Mid / Side"
 };
 
 /* NOTE: cannot edit order (serialization) */

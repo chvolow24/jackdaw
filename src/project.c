@@ -348,7 +348,7 @@ void project_deinit(Project *proj)
 	clip_destroy_no_displace(proj->clips[i]);
     }
     for (uint16_t i=0; i<proj->num_midi_clips; i++) {
-	midi_clip_destroy(proj->midi_clips[i]);
+	midi_clip_destroy(proj->midi_clips[i], false);
     }
 
     for (uint8_t i=0; i<proj->num_timelines; i++) {

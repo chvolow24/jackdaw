@@ -101,7 +101,7 @@ static Page *effect_add_page(Effect *e, TabView *tv)
     params.radio_p.text_size = 14;
     params.radio_p.text_color = p->text_color;
     params.radio_p.item_names = effect_channel_mode_str;
-    params.radio_p.num_items = 3;
+    params.radio_p.num_items = 4;
     params.radio_p.ep = &e->channel_mode_ep;
     page_add_el(p, EL_RADIO, params, "ch_mode_radio", "ch_mode_radio");
     return p;

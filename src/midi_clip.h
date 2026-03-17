@@ -121,7 +121,7 @@ void midi_clip_add_pitch_bend(MIDIClip *mclip, PmEvent e, int32_t pos);
 int midi_clipref_output_chunk(ClipRef *cr, PmEvent *event_buf, int event_buf_max_len, int32_t chunk_tl_start, int32_t chunk_tl_end);
 
 /* Destroys all refs */
-void midi_clip_destroy(MIDIClip *mc);
+void midi_clip_destroy(MIDIClip *mc, bool displace_in_proj);
 
 /* Allocates an array at dst, return number of events */
 uint32_t midi_clip_get_all_events(MIDIClip *mclip, PmEvent **dst);

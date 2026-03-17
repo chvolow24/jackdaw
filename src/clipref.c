@@ -511,7 +511,7 @@ static void clipref_check_and_remove_from_clipboard_and_piano_roll(ClipRef *cr)
 }
 
 /* void midi_clipref_destroy(MIDIClipRef *mcr); */
-void midi_clip_destroy(MIDIClip *mc);
+void midi_clip_destroy(MIDIClip *mc, bool displace_in_proj);
 /* void clipref_destroy(ClipRef *cr); */
 void clipref_destroy(ClipRef *cr, bool displace_in_clip)
 {
@@ -566,7 +566,7 @@ void clipref_destroy(ClipRef *cr, bool displace_in_clip)
 	    }
 	    mclip->num_refs--;
 	    if (mclip->num_refs == 0) {
-		midi_clip_destroy(mclip);
+		midi_clip_destroy(mclip, true);
 	    }
 	    /* midi_clipref_destroy(cr->obj); */
 	}
@@ -620,7 +620,7 @@ void clipref_destroy_no_displace(ClipRef *cr)
 	}
 	mclip->num_refs--;
 	if (mclip->num_refs == 0) {
-	    midi_clip_destroy(mclip);
+	    midi_clip_destroy(mclip, true);
 	}
 
 	

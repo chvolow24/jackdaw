@@ -42,6 +42,7 @@ typedef enum effect_channel_mode {
     EFFECT_CH_MODE_STEREO,
     EFFECT_CH_MODE_MID,
     EFFECT_CH_MODE_SIDE,
+    EFFECT_CH_MODE_MID_SIDE
 } EffectChannelMode;
 
 typedef struct effect_chain EffectChain;

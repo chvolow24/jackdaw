@@ -751,14 +751,20 @@ int clipref_split_stereo_to_mono(ClipRef *cr, ClipRef **new_L_dst, ClipRef **new
 	fprintf(stderr, "Error: cannot split midi clip\n");
 	return -1;
     }
+    
     Clip *clip = cr->source_clip;
+    if (clip->recording) {
+	status_set_errstr("Cannot split clip while still recording.\n");
+	return 0;
+    }
     if (clip->channels != 2) {
-	fprintf(stderr, "Error: clip must have two channels to be split\n");
+	status_set_errstr("Clip must have two channels to be split.\n");
 	return 0;
     }
     Track *t = cr->track;
     if (t->tl_rank == t->tl->num_tracks - 1) {
-	fprintf(stderr, "Error: No room to split clip reference. Create a new track below.\n");
+	status_set_errstr("No room to split clip reference. Create a new track below.\n");
+	/* fprintf(stderr, "Error: No room to split clip reference. Create a new track below.\n"); */
 	return 0;
     }
     

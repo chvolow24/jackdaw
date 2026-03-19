@@ -126,6 +126,10 @@ typedef struct session Session;
 int audio_io_get_connections(Session *session, int iscapture);
 int audioconn_open(Session *session, AudioConn *conn);
 void audioconn_close(AudioConn *conn);
+
+/* Does not clear or reset playback artifacts, but calls SDL_CloseAudioDevice to guarantee callback has exited */
+void audioconn_halt(AudioConn *conn);
+
 /* Returns 0 on success; 1 on harmless error (redundancy); -1 on fatal error (device not open) */
 int audioconn_start_playback(AudioConn *conn);
 void audioconn_stop_playback(AudioConn *conn);

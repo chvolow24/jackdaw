@@ -36,6 +36,7 @@ typedef struct lop_delay {
 
 typedef struct allpass {
     float *mem;
+    int32_t init_len;
     int32_t len;
     float coeff;
     int32_t mem_index;
@@ -51,6 +52,7 @@ void allpass_init(Allpass *ap, int32_t len, float coeff);
 float allpass_sample(Allpass *ap, float in);
 
 void allpass_group_init(AllpassGroup *ag, int num_filters, int32_t *lens_samples, float coeff);
+void allpass_group_set_len(AllpassGroup *ag, float scalar);
 /* void allpass_group_init_schroeder(AllpassGroup *ag); */
 float allpass_group_sample(AllpassGroup *ag, float in);
 void lop_delay_set_len(LopDelay *ld, double scale_init_len);

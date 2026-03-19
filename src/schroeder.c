@@ -44,6 +44,7 @@ float schroeder_buf_apply(void *sch_v, float *restrict in_L, float *restrict in_
     } else if (!in_L) {
 	return schroeder_buf_apply_mono(sch, in_R, len);
     }
+
     for (int32_t i=0; i<len; i++) {
 	float dry_L = in_L[i];
 	float dry_R = in_R[i];
@@ -195,6 +196,8 @@ void delay_len_scalar_dsp_cb(Endpoint *ep)
 	lop_delay_set_len(sch->parallel_lop_delays[0] + i, sch->delay_len_scalar);
 	lop_delay_set_len(sch->parallel_lop_delays[1] + i, sch->delay_len_scalar);
     }
+    allpass_group_set_len(sch->series_aps, sch->delay_len_scalar);
+    allpass_group_set_len(sch->series_aps + 1, sch->delay_len_scalar);
 }
 
 void predelay_dsp_cb(Endpoint *ep)
@@ -207,13 +210,16 @@ void predelay_dsp_cb(Endpoint *ep)
 
 void delay_len_scalar_labelfn(char *dst, size_t dstsize, Value val, ValType t)
 {
-    static const int max_roomsize_m = 17;
-    snprintf(dst, dstsize, "%.2fm", val.float_v * max_roomsize_m);
-    
+    static const float max_roomsize_m = 13.25f;
+    snprintf(dst, dstsize, "%.2f sq m", powf(val.float_v * max_roomsize_m, 2.0f));    
 }
 
 void schroeder_init_freeverb(Schroeder *sch)
 {
+    /* static bool do_allpass_scale = false; */
+    /* sch->_TEST_DO_AP_SCALE = do_allpass_scale; */
+    /* do_allpass_scale = !do_allpass_scale; */
+    
     sch->allpass_coeff = 0.5;
     sch->lop_coeff = 0.5;
     sch->lop_delay_coeff = 0.87;

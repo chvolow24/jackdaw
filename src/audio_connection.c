@@ -392,6 +392,13 @@ void jdaw_conn_close(JDAWConn *jconn)
     }
 }
 
+void audioconn_halt(AudioConn *conn)
+{
+    if (conn->type == DEVICE) {
+	SDL_CloseAudioDevice(((AudioDevice *)conn->obj)->id);
+    }
+}
+
 void audioconn_close(AudioConn *conn)
 {
     if (!conn->open) {

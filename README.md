@@ -233,6 +233,7 @@ You will be prompted to enter a project name (which must include the `.jdaw` ext
 	4. [Delay line](#delay-line)
 	5. [Saturation](#saturation)
 	6. [Compressor](#compressor)
+	7. [Reverb](#reverb)
 12. [Automation](#automation)
     1. [Adding keyframes with the mouse](#adding-keyframes-with-the-mouse)
 	2. [Writing (adding keyframes automatically)](#writing-adding-keyframes-automatically)
@@ -786,6 +787,14 @@ A standard digital peak-sensing compressor. Details of dynamic range compression
 In the visualization, the x position of the blue dot represents the current amplitude envelope value, and the y position represents the corresponding output amplitude (before make-up gain is applied). The color gradient reflects the amount of gain reduction currently applied by the compressor.
 
 <img src="https://jackdaw-audio.net/static/sync_gifs/comp.gif" width="80%" />
+
+### Reverb
+
+Jackdaw's reverb effect is a Schroeder reverberator based on (but not identical to) the Freeverb algorithm by "Jezar at Dreampoint", as described by Julius Orion Smith III [here](https://ccrma.stanford.edu/~jos/pasp/Freeverb.html).
+
+**`Decay time`** parameter
+
+
 
 ## Automation
 

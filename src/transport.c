@@ -1065,6 +1065,11 @@ void transport_stop_recording()
 
 	}
     }
+    /* Calls SDL_CloseAudioDevice to guarantee that record callback is no longer running */
+    for (int i=0; i<num_conns_to_close; i++) {
+	audioconn_halt(conns_to_close[i]);
+	/* audioconn_close(conns_to_close[--num_conns_to_close]); */
+    }
 
     for (int i=0; i<num_devices_to_dump; i++) {
 	copy_device_buf_to_clips(devices_to_dump[i]);

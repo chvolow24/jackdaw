@@ -16,6 +16,7 @@
 void allpass_init(Allpass *ap, int32_t len, float coeff)
 {
     ap->mem = calloc(len, sizeof(float));
+    ap->init_len = len;
     ap->len = len;
     ap->coeff = coeff;
     ap->mem_index = len - 1;
@@ -75,6 +76,15 @@ void lop_delay_deinit(LopDelay *ld)
 void allpass_clear(Allpass *ap)
 {
     memset(ap->mem, 0, sizeof(float) * ap->len);
+}
+
+void allpass_group_set_len(AllpassGroup *ag, float scalar)
+{
+    if (scalar > 1.0) return;
+    if (scalar < 0.0) return;
+    for (int i=0; i<ag->num_filters; i++) {
+	ag->filters[i].len = ag->filters[i].init_len * scalar;
+    }
 }
 
 float allpass_group_sample(AllpassGroup *ag, float in)

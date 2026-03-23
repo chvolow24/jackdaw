@@ -78,12 +78,14 @@ typedef struct mode_subcat {
 
 typedef struct mode {
     const char *name;
+    const char *display_name;
     ModeSubcat *subcats[MAX_MODE_SUBCATS];
     uint8_t num_subcats;
     InputMode im;
 } Mode;
 
 const char *input_mode_str(InputMode im);
+const char *input_mode_display_str(InputMode im);
 InputMode input_mode_from_str(char *str);
 
 

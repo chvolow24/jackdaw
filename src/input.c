@@ -371,6 +371,8 @@ static int check_next_line_indent(FILE *f)
     
 }
 
+static const char *menu_helper_str =
+    "n, p................next/prev\nl, j................column left/right\n<ret>...............select\nm...................dismiss\n";
 static Layout *create_menu_layout()
 {
     Layout *menu_lt = layout_add_child(main_win->layout);
@@ -391,7 +393,7 @@ static void create_menu_from_mode_subcat(void *sc_v)
 	UserFn *fn = sc->fns[i];
 	menu_item_add(sctn, fn->fn_display_name, fn->annotation, fn->do_fn, NULL);
     }
-    menu_add_header(m, sc->name, "n  -  next item\np  -  previous item\nh  -  go back (dismiss)\n<ret>  -  select item");
+    menu_add_header(m, sc->name, menu_helper_str);
     window_add_menu(main_win, m);
     /* if (main_win->modes[main_win->num_modes - 1] != MENU_NAV) { */
     /* 	window_push_mode(main_win, MENU_NAV); */
@@ -415,7 +417,7 @@ void input_create_menu_from_mode(InputMode im)
 	    ModeSubcat *sc = mode->subcats[i];
 	    menu_item_add(sctn, sc->name, ">", create_menu_from_mode_subcat, sc);
 	}
-	menu_add_header(m, "", "n  -  next item\np  -  previous item\nh  -  go back (dismiss)\n<ret>  -  select item");
+	menu_add_header(m, NULL, menu_helper_str);
 	window_add_menu(main_win, m);
 	/* if (main_win->modes[main_win->num_modes - 1] != MENU_NAV) { */
 	/*     window_push_mode(main_win, MENU_NAV); */
@@ -489,24 +491,24 @@ Menu *input_create_master_menu()
 	    if (im == MODE_GLOBAL) {
 		c = menu_column_add(m, NULL);
 	    } else {
-		c = menu_column_add(m, mode->name);
+		c = menu_column_add(m, mode->display_name);
 	    }
-	    MenuSection *sctn = menu_section_add(c, mode->name);
+	    MenuSection *sctn = menu_section_add(c, mode->display_name);
 	    for (uint8_t i=0; i<mode->subcats[0]->num_fns; i++) {
 		if (c->layout->rect.h > main_win->h_pix * 0.75) {
 		    c = menu_column_add(m, "(cont'd)");
-		    sctn = menu_section_add(c, mode->name);
+		    sctn = menu_section_add(c, mode->display_name);
 		}
 		UserFn *fn = mode->subcats[0]->fns[i];
 		menu_item_add(sctn, fn->fn_display_name, fn->annotation, fn->do_fn, NULL);
 	    }
 	} else {
-	    c = menu_column_add(m, mode->name);
-	    MenuSection *sctn = menu_section_add(c, mode->name);
+	    c = menu_column_add(m, mode->display_name);
+	    MenuSection *sctn = menu_section_add(c, mode->display_name);
 	    for (int i=0; i<mode->num_subcats; i++) {
 		if (c->layout->rect.h > main_win->h_pix * 0.75) {
 		    c = menu_column_add(m, "(cont'd)");
-		    sctn = menu_section_add(c, mode->name);
+		    sctn = menu_section_add(c, mode->display_name);
 		}
 		ModeSubcat *sc = mode->subcats[i];	   
 		menu_item_add(sctn, sc->name, ">", create_menu_from_mode_subcat, sc);
@@ -519,7 +521,7 @@ Menu *input_create_master_menu()
 	}
     }
 
-    menu_add_header(m, "", "n - next item\np - previous item\nl - column right\nj - column left\n<ret> - select\nm - dismiss");
+    menu_add_header(m, NULL, menu_helper_str);
     layout_center_agnostic(m_layout, true, true);
     menu_reset_layout(m);
     return m;
@@ -727,7 +729,7 @@ void input_create_function_reference()
     }
     for (uint8_t i=0; i<NUM_INPUT_MODES; i++) {
 	Mode *mode = MODES[i];
-	fprintf(f, "\n### %s mode\n\n", mode->name);
+	fprintf(f, "\n### %s mode\n\n", mode->display_name);
 	for (uint8_t j=0; j<mode->num_subcats; j++) {
 	    ModeSubcat *sc = mode->subcats[j];
 	    if (mode->num_subcats > 1) {

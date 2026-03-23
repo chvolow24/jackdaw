@@ -31,10 +31,33 @@ static const char *input_mode_strs[] = {
     "piano_roll"
 };
 
+
+static const char *input_mode_display_strs[] = {
+    "Global",
+    "Menu nav",
+    "Timeline",
+    "Source",
+    "Modal",
+    "Text edit",
+    "Tab view",
+    "Autocomplete dropdown",
+    "QWERTY piano",
+    "Piano roll"
+};
+
 const char *input_mode_str(InputMode im)
 {
     if (im < NUM_INPUT_MODES) {
 	return input_mode_strs[im];
+    } else {
+	return "[no mode]";
+    }
+}
+
+const char *input_mode_display_str(InputMode im)
+{
+    if (im < NUM_INPUT_MODES) {
+	return input_mode_display_strs[im];
     } else {
 	return "[no mode]";
     }
@@ -72,6 +95,7 @@ static Mode *mode_create(InputMode im)
 {
     Mode *mode = calloc(1, sizeof(Mode));
     mode->name = input_mode_str(im);
+    mode->display_name = input_mode_display_str(im);
     mode->num_subcats = 0;
     mode->im = im;
     MODES[im] = mode;	

@@ -11,20 +11,20 @@
 #define MENU_STD_SECTION_PAD 16
 #define MENU_STD_COL_LABEL_H 8
 #define MENU_STD_COLUMN_PAD 8
-#define MENU_STD_HEADER_PAD 20
+#define MENU_STD_HEADER_PAD 30
 
 #define MENU_STD_CORNER_RAD STD_CORNER_RAD
 
 
 extern Window *main_win;
 
-SDL_Color menu_std_clr_inner_border = (SDL_Color) {200, 200, 200, 200};
-SDL_Color menu_std_clr_outer_border = (SDL_Color) {10, 10, 10, 220};
-SDL_Color menu_std_clr_bckgrnd = (SDL_Color) {40, 40, 40, 245};
+SDL_Color menu_std_clr_inner_border = (SDL_Color) {200, 200, 200, 255};
+SDL_Color menu_std_clr_outer_border = (SDL_Color) {10, 10, 10, 255};
+SDL_Color menu_std_clr_bckgrnd = (SDL_Color) {40, 40, 40, 255};
 SDL_Color menu_std_clr_txt = (SDL_Color) {255, 255, 255, 255};
-SDL_Color menu_std_clr_annot_txt = (SDL_Color) {200, 200, 200, 250};
-SDL_Color menu_std_clr_highlight = (SDL_Color) {50, 50, 255, 250};
-SDL_Color menu_std_clr_sctn_div = (SDL_Color) {200, 200, 200, 250};
+SDL_Color menu_std_clr_annot_txt = (SDL_Color) {200, 200, 200, 255};
+SDL_Color menu_std_clr_highlight = (SDL_Color) {50, 50, 255, 255};
+SDL_Color menu_std_clr_sctn_div = (SDL_Color) {200, 200, 200, 255};
 
 SDL_Color color_clear = (SDL_Color) {0, 0, 0, 0};
 
@@ -151,7 +151,7 @@ void menu_add_header(Menu *menu, const char *title, const char *description)
     header_lt->w.type = REL;
     header_lt->w.value = menu->layout->w.value - 2 * header_lt->x.value;
     layout_reset(header_lt);
-    TextArea *header = txt_area_create(description, header_lt, menu->font, MENU_TXT_SIZE, menu_std_clr_annot_txt, menu->window);
+    TextArea *header = txt_area_create(description, header_lt, main_win->mono_font, MENU_TXT_SIZE, menu_std_clr_annot_txt, menu->window);
     menu->header = header;
     int header_h = header->layout->h.value;
 

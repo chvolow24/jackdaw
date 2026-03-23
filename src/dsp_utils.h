@@ -61,6 +61,9 @@ void float_buf_mult_const(float *restrict a, float by, int len);
 /* Multiply "a" and "b" into "product" */
 void float_buf_mult_to(float *restrict a, float *restrict b, float *restrict product, int len);
 
+/* Fade dst in, from out (linear) */
+void float_buf_xfade(float *restrict dst, float *restrict from, int len);
+
 /* Convert a linear pan parameter value into a multiplier, depending on channel */
 float pan_scale(float pan, int channel);
 

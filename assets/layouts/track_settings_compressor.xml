@@ -179,7 +179,7 @@
             <Layout name="invu_lbl" type="NORMAL">
               <x>REL 0</x>
               <y>REL 12</y>
-              <w>REL 100</w>
+              <w>REL 68</w>
               <h>PAD 1</h>
               <children>
               </children>
@@ -203,7 +203,7 @@
             <Layout name="outvu_lbl" type="NORMAL">
               <x>REL 0</x>
               <y>REL 12</y>
-              <w>REL 100</w>
+              <w>REL 68</w>
               <h>PAD 1</h>
               <children>
               </children>

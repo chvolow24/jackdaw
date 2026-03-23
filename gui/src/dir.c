@@ -113,6 +113,18 @@ char *path_get_tail(char *pathname)
     /* return tail; */
 }
 
+char *path_get_ext(char *pathname) {
+    if (strlen(pathname) < 1) return NULL;
+    char *dot = pathname + strlen(pathname) - 1;
+    
+    /* char *end = pathname + strlen(pathname) -1); */
+    while (*dot != '.' && dot != pathname) {
+	dot--;
+    }
+    if (dot == pathname) return NULL;
+    return dot + 1;
+}
+
 static DirPath *dirpath_create(const char *dirpath)
 {
     DirPath *dp = calloc(1, sizeof(DirPath));
@@ -134,7 +146,7 @@ static DirPath *dirpath_create(const char *dirpath)
 /* { */
 /*     free(fp); */
 /* } */
-static void dirpath_destroy(DirPath *dp)
+void dirpath_destroy(DirPath *dp)
 {
     for (uint32_t i=0; i<dp->num_entries; i++) {
 	dirpath_destroy(dp->entries[i]);

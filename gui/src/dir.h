@@ -57,7 +57,10 @@ typedef struct filepath {
 } FilePath;
 
 
+DirPath *dirpath_open(const char *dirpath);
+void dirpath_destroy(DirPath *dp);
 char *path_get_tail(char *pathname);
+char *path_get_ext(char *pathname);
 DirNav *dirnav_create(const char *dir_name, Layout *lt, int (*dir_to_tline_filter)(void *dp_v, void *dn_v));
 void dirnav_draw(DirNav *dn);
 void dirnav_destroy(DirNav *dn);

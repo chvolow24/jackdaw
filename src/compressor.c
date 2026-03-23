@@ -361,10 +361,10 @@ void compressor_init(Compressor *c)
     endpoint_set_label_fn(&c->makeup_gain_ep, label_amp_to_dbstr);
     api_endpoint_register(&c->makeup_gain_ep, &c->effect->api_node);
 
-    envelope_follower_set_times_msec(&c->display_ef_in[0], ENV_F_STD_ATTACK_MSEC, ENV_F_STD_RELEASE_MSEC, session->proj.sample_rate);
-    envelope_follower_set_times_msec(&c->display_ef_in[1], ENV_F_STD_ATTACK_MSEC, ENV_F_STD_RELEASE_MSEC, session->proj.sample_rate);
-    envelope_follower_set_times_msec(&c->display_ef_out[0], ENV_F_STD_ATTACK_MSEC, ENV_F_STD_RELEASE_MSEC, session->proj.sample_rate);
-    envelope_follower_set_times_msec(&c->display_ef_out[1], ENV_F_STD_ATTACK_MSEC, ENV_F_STD_RELEASE_MSEC, session->proj.sample_rate);
+    envelope_follower_set_times_msec(&c->display_ef_in[0], ENV_F_STD_ATTACK_MSEC, ENV_F_STD_RELEASE_MSEC * 2, session->proj.sample_rate);
+    envelope_follower_set_times_msec(&c->display_ef_in[1], ENV_F_STD_ATTACK_MSEC, ENV_F_STD_RELEASE_MSEC * 2, session->proj.sample_rate);
+    envelope_follower_set_times_msec(&c->display_ef_out[0], ENV_F_STD_ATTACK_MSEC, ENV_F_STD_RELEASE_MSEC * 2, session->proj.sample_rate);
+    envelope_follower_set_times_msec(&c->display_ef_out[1], ENV_F_STD_ATTACK_MSEC, ENV_F_STD_RELEASE_MSEC * 2, session->proj.sample_rate);
 }
 
 

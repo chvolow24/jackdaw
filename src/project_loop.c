@@ -96,8 +96,6 @@ void loop_project_main()
     bool set_i_state_k = false;
     bool set_i_state_g = false;
 
-    window_push_mode(main_win, MODE_TIMELINE);
-
     bool first_frame = true;
     int wheel_event_recency = 0;
     int play_speed_scroll_recency = 60;

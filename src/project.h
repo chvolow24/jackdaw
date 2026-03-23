@@ -520,4 +520,8 @@ int project_obj_name_completion(Text *txt, void *obj);
 
 /* Clear synth if monitoring */
 void midi_monitor_clear();
+
+/* If passed a directory on command line, open all .wav files inside */
+int load_stems_dir(const char *path, char ***paths_dst);
+
 #endif

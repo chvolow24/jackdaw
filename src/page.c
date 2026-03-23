@@ -10,12 +10,14 @@
 
 #include <stdlib.h>
 #include "color.h"
+#include "components.h"
 #include "geometry.h"
 #include "input.h"
 #include "page.h"
 #include "project.h"
 #include "layout.h"
 #include "layout_xml.h"
+#include "log.h"
 #include "piano.h"
 #include "session.h"
 #include "textbox.h"
@@ -155,9 +157,16 @@ Page *tabview_select_tab(TabView *tv, int i)
     if (i < 0) return NULL;
     tabview_deselect_el(tv);
     tv->tabs[tv->current_tab]->onscreen = false;
+    Page *p = tv->tabs[tv->current_tab];
+    if (p->linked_obj && p->linked_obj_type == PAGE_EFFECT) {
+	((Effect *)p->linked_obj)->page_onscreen = false;
+    }
     tv->current_tab = i;
-    Page *p = tv->tabs[i];
+    p = tv->tabs[i];
     p->onscreen = true;
+    if (p->linked_obj && p->linked_obj_type == PAGE_EFFECT) {
+	((Effect *)p->linked_obj)->page_onscreen = true;
+    }
     /* tabview_select_el(tv); */
     if (tv->ellipsis_right_inserted && i > tv->rightmost_index) {
 	tabview_reset(tv, tv->rightmost_index + 1);
@@ -303,7 +312,10 @@ static void page_el_destroy(PageEl *el)
 	break;
     case EL_DIVIDER:
 	break;
-    }
+    case EL_VU_METER:
+	vu_meter_destroy(el->component);
+	break;
+    }    
     free(el->id);
     free(el);
 }
@@ -319,6 +331,7 @@ void page_destroy(Page *page)
 	switch(page->linked_obj_type) {
 	case PAGE_EFFECT:
 	    ((Effect *)page->linked_obj)->page = NULL;
+	    ((Effect *)page->linked_obj)->page_onscreen = false;
 	    break;
 	}
     }
@@ -561,6 +574,13 @@ void page_el_set_params(PageEl *el, PageElParams params, Page *page)
 	break;
     case EL_DIVIDER: 
 	el->component = params.divider_p.color; /* no component -- just use color */
+	break;
+    case EL_VU_METER:
+	el->component = vu_meter_create(
+	    el->layout,
+	    params.vu_p.horizontal,
+	    params.vu_p.ef_L,
+	    params.vu_p.ef_R);
 	break;
     default:
 	break;
@@ -947,6 +967,9 @@ static void page_el_draw(PageEl *el)
 	}
     }
 	break;
+    case EL_VU_METER:
+	vu_meter_draw(el->component);
+	break;
     default:
 	break;
     }
@@ -1152,6 +1175,11 @@ void tabview_activate(TabView *tv, void *connected_obj, const char *connected_ob
     /* layout_write(stderr, tv->label->layout, 0); */
     window_push_mode(tv->win, MODE_TABVIEW);
     tv->tabs[tv->current_tab]->onscreen = true;
+    Page *p = tv->tabs[tv->current_tab];
+    if (p->linked_obj && p->linked_obj_type == PAGE_EFFECT) {
+	((Effect *)p->linked_obj)->page_onscreen = true;
+    }
+
     /* tabview_select_el(tv); */
     
     /* Page *current = tv->tabs[tv->current_tab]; */
@@ -1468,6 +1496,41 @@ void page_el_params_slider_from_ep(union page_el_params *p, Endpoint *ep)
     p->slider_p.min = ep->min;
     p->slider_p.max = ep->max;
     p->slider_p.create_label_fn = ep->label_fn;
+}
+
+static int ep_dropdown_selfn(Dropdown *d, void *item_arg)
+{
+    int item_index = (int)(long)item_arg;
+    endpoint_write(d->ep, (Value){.int_v = item_index}, true, true, true, true);
+    return 0;
+}
+
+void page_add_dropdown_from_ep(
+    Page *page,
+    Endpoint *ep,
+    int num_items,
+    char *header,
+    const char **names,
+    const char **annots,
+    const char *lt_name)
+{
+    if (ep->val_type != JDAW_INT) {
+	log_tmp(LOG_ERROR, "Endpoint \"%s\" has non-int type, used for dropdown\n", ep->local_id);
+    }
+    void *args[num_items];
+    for (int i=0; i<num_items; i++) {
+	args[i] = (void *)(long)i;
+    }
+    PageElParams p;
+    p.dropdown_p.num_items = num_items;
+    p.dropdown_p.header = header;
+    p.dropdown_p.item_names = names;
+    p.dropdown_p.reset_from = ep->val;
+    p.dropdown_p.item_args = args;
+    p.dropdown_p.selection_fn = ep_dropdown_selfn;
+    p.dropdown_p.item_annotations = annots;
+    PageEl *el = page_add_el(page, EL_DROPDOWN, p, lt_name, lt_name);
+    ((Dropdown *)el->component)->ep = ep;
 }
 
 void page_center_contents(Page *page)

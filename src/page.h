@@ -26,6 +26,7 @@
 #include "layout.h"
 #include "textbox.h"
 #include "value.h"
+#include "vu_meter.h"
 
 #define MAX_ELEMENTS 256
 #define MAX_SELECTABLE 64
@@ -54,7 +55,8 @@ typedef enum page_el_type {
     EL_DROPDOWN,
     EL_STATUS_LIGHT,
     EL_PIANO,
-    EL_DIVIDER
+    EL_DIVIDER,
+    EL_VU_METER
     /* EL_TOGGLE_EP */
 } PageElType;
 
@@ -241,8 +243,8 @@ struct symbol_radio_params {
 
 struct dropdown_params {
     const char *header;
-    char **item_names;
-    char **item_annotations;
+    const char **item_names;
+    const char **item_annotations;
     void **item_args;
     uint8_t num_items;
     int *reset_from;
@@ -257,6 +259,13 @@ struct status_light_params {
 struct divider_params {
     SDL_Color *color;
 };
+
+struct vu_params {
+    bool horizontal;
+    EnvelopeFollower *ef_L;
+    EnvelopeFollower *ef_R;
+};
+
 
 typedef union page_el_params {
     struct slider_params slider_p;
@@ -276,6 +285,7 @@ typedef union page_el_params {
     struct dropdown_params dropdown_p;
     struct status_light_params slight_p;
     struct divider_params divider_p;
+    struct vu_params vu_p;
 } PageElParams;
 
 
@@ -377,6 +387,15 @@ void page_select_el_by_id(Page *page, const char *id);
 
 void page_el_reset(PageEl *el);
 void page_el_params_slider_from_ep(union page_el_params *p, Endpoint *ep);
+
+void page_add_dropdown_from_ep(
+    Page *page,
+    Endpoint *ep,
+    int num_items,
+    char *header,
+    const char **names,
+    const char **annots,
+    const char *lt_name);
 void page_center_contents(Page *page);
 
 #endif

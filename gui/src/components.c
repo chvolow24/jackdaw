@@ -1048,8 +1048,8 @@ void canvas_destroy(Canvas *c)
 Dropdown *dropdown_create(
     Layout *lt,
     const char *header,
-    char **item_names,
-    char **item_annotations,
+    const char **item_names,
+    const char **item_annotations,
     void **item_args,
     uint8_t num_items,
     int *reset_from,
@@ -1063,12 +1063,16 @@ Dropdown *dropdown_create(
 	free(d);
 	return NULL;
     }
+    d->header = header;
+    d->description = header;
     d->reset_from = reset_from;
     d->item_names = calloc(num_items, sizeof(char *));
     memcpy(d->item_names, item_names, num_items * sizeof(char *));
     if (item_annotations) {
 	d->item_annotations = calloc(num_items, sizeof(char *));
 	memcpy(d->item_annotations, item_annotations, num_items * sizeof(char *));
+    } else {
+	d->item_annotations = NULL;
     }
     if (item_args) {
 	d->item_args = calloc(num_items, sizeof(void *));
@@ -1102,6 +1106,8 @@ void dropdown_reset(Dropdown *d)
     }
     /* fprintf(stderr, "Selected item: %d\n", d->selected_item); */
     textbox_set_value_handle(d->tb, d->item_names[d->selected_item]);
+    textbox_size_to_fit_h(d->tb, 20);
+    textbox_reset(d->tb);
 }
 
 void dropdown_draw(Dropdown *d)

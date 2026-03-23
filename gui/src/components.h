@@ -175,6 +175,8 @@ typedef struct dropdown {
     int *reset_from;
     /* bool free_args_on_destroy; */
     int (*selection_fn)(Dropdown *self, void *arg);
+    /* Optional */
+    Endpoint *ep;
 } Dropdown;
 
 typedef struct status_light {
@@ -391,8 +393,8 @@ void canvas_destroy(Canvas *canvas);
 Dropdown *dropdown_create(
     Layout *lt,
     const char *header,
-    char **item_names,
-    char **item_annotations,
+    const char **item_names,
+    const char **item_annotations,
     void **item_args,
     uint8_t num_items,
     int *reset_from,

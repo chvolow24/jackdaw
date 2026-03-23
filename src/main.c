@@ -180,6 +180,8 @@ int main(int argc, char **argv)
     bool invoke_open_jdaw_file = false;
     bool invoke_open_midi_file = false;
     bool invoke_open_jsynth_file = false;
+    char **stems_paths = NULL;
+    int num_stems = 0;
     if (argc > 2) {
 	fprintf(stderr, "Usage: jackdaw [file_to_open]");
         exit(1);
@@ -220,8 +222,11 @@ int main(int argc, char **argv)
 	    invoke_open_jsynth_file = true;
 	} else {
 	unrecognized_arg:
-	    fprintf(stderr, "Error: argument \"%s\" not recognized. Pass a .jdaw, .wav, .mid, or .jsynth file to open that file.\n", argv[1]);
-	    exit(1);
+	    num_stems = load_stems_dir(file_to_open, &stems_paths);
+	    if (num_stems <= 0) {
+		fprintf(stderr, "Error: argument \"%s\" not recognized. Pass a .jdaw, .wav, .mid, or .jsynth file to open that file, or a directory to open stems.\n", argv[1]);
+		exit(1);
+	    }
 	}
     }
 
@@ -293,6 +298,7 @@ int main(int argc, char **argv)
     }
     fprintf(stderr, "\t...done\n");
 
+    window_push_mode(main_win, MODE_TIMELINE);
 
     if (invoke_open_wav_file) {
 	/* Track *track = timeline_add_track(session->proj.timelines[0], -1); */
@@ -336,9 +342,20 @@ int main(int argc, char **argv)
 	    track->synth = synth_create(track);
 	    track->midi_out = track->synth;
 	    synth_read_preset_file(filepath, track->synth);
+	    log_tmp(LOG_DEBUG, "Opening synth in main.c\n");
 	    user_tl_track_open_synth(NULL);
 	}
-	
+    } else if (num_stems > 0) {
+	Timeline *tl = session->proj.timelines[0];
+	for (int i=0; i<num_stems; i++) {
+	    Track *track;
+	    if (i != 0) {
+		track = timeline_add_track(tl, i);
+	    } else {
+		track = tl->tracks[0];
+	    }
+	    wav_load_to_track(track, stems_paths[i], 0);
+	}
     }
     
     loop_project_main();

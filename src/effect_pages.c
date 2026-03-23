@@ -761,8 +761,14 @@ static Page *add_compressor_page(Compressor *c, EffectChain *ec, TabView *tv)
 
     p.textbox_p.set_str = "Level in:";
     tb = (Textbox *)(page_add_el(page, EL_TEXTBOX, p, "", "invu_lbl")->component);
+    textbox_set_align(tb, BOTTOM_LEFT);
+    textbox_reset_full(tb);
+    
     p.textbox_p.set_str = "Level out:";
     tb = (Textbox *)(page_add_el(page, EL_TEXTBOX, p, "", "outvu_lbl")->component);
+    textbox_set_align(tb, BOTTOM_LEFT);
+    textbox_reset_full(tb);
+
 
     
     p.slider_p.create_label_fn = NULL;

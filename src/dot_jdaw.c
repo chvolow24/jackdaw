@@ -54,7 +54,7 @@ const static char hdr_click_segm[] = {'C', 'T', 'S', 'G'};
 const static char hdr_trck_efct[] = {'E', 'F', 'C', 'T'};
 const static char hdr_trck_synth[] = {'S','Y','N','T','H'};
 
-const static char current_file_spec_version[] = {'0','0','.','2','3'};
+const static char current_file_spec_version[] = {'0','0','.','2','4'};
 
 static char read_file_spec_version[6];
 bool read_file_version_older_than(const char *cmp_version)
@@ -306,6 +306,8 @@ static void jdaw_write_effect(FILE *f, Effect *e)
     fwrite(hdr_trck_efct, 1, 4, f);
     uint8_t type_byte = e->type;
     uint8_ser(f, &type_byte);
+    uint8_t channel_mode = e->channel_mode;
+    uint8_ser(f, &channel_mode);
     uint8_t namelen = strlen(e->name);
     uint8_ser(f, &namelen);
     fwrite(e->name, 1, namelen, f);
@@ -1232,7 +1234,15 @@ static int jdaw_read_effect(FILE *f, EffectChain *ec)
     }
 
     EffectType type = (EffectType)uint8_deser(f);
+    EffectChannelMode channel_mode = 0;
+    if (!read_file_version_older_than("00.24")) {
+	channel_mode = (EffectChannelMode)uint8_deser(f);
+    }
     Effect *e = effect_chain_add_effect(ec, type);
+
+    if (!read_file_version_older_than("00.24")) {
+	e->channel_mode = channel_mode;
+    }
 
     char name[256] = {0};
     uint8_t namelen = 0;

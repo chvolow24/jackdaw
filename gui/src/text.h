@@ -80,6 +80,7 @@ typedef enum textalign {
     TOP_RIGHT,
     BOTTOM_LEFT,
     BOTTOM_RIGHT,
+    BOTTOM_CENTER,
     CENTER_LEFT,
     CENTER_RIGHT
 } TextAlign;

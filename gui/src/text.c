@@ -203,6 +203,10 @@ void txt_reset_drawable(Text *txt)
 	txt->text_lt->rect.x = txt->container->rect.x + txt->container->rect.w - txt->text_lt->rect.w - txt->h_pad * txt->win->dpi_scale_factor;
 	txt->text_lt->rect.y = txt->container->rect.y + txt->container->rect.h - txt->text_lt->rect.h - txt->v_pad * txt->win->dpi_scale_factor;
 	break;
+    case BOTTOM_CENTER:
+	txt->text_lt->rect.x = txt->container->rect.x + (int) round((float)txt->container->rect.w / 2.0 - (float) txt->text_lt->rect.w / 2.0);
+	txt->text_lt->rect.y = txt->container->rect.y + txt->container->rect.h - txt->text_lt->rect.h - txt->v_pad * txt->win->dpi_scale_factor;
+	break;
     case CENTER_LEFT:
 	txt->text_lt->rect.x = txt->container->rect.x + txt->h_pad * txt->win->dpi_scale_factor;
 	txt->text_lt->rect.y = txt->container->rect.y + (int) round((float)txt->container->rect.h / 2.0 - (float) txt->text_lt->rect.h / 2.0);

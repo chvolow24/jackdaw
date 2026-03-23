@@ -235,7 +235,7 @@ void txt_reset_all()
 void txt_reset_display_value(Text *txt) 
 {
     int txtw, txth;
-
+    /* if (txt->container->rect.w <= 0) return; */
     TTF_Font *font = ttf_get_font_at_size(txt->font, txt->text_size);
     TTF_SizeUTF8(font, txt->value_handle, &txtw, &txth);
     txt->len = strlen(txt->value_handle);

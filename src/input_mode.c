@@ -133,7 +133,7 @@ static UserFn *create_user_fn(
 static void mode_load_global()
 {
     Mode *mode = mode_create(MODE_GLOBAL);
-    ModeSubcat *mc = mode_add_subcat(mode, "");
+    ModeSubcat *mc = mode_add_subcat(mode, "Global");
     if (!mc) {
 	return;
     }

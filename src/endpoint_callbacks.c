@@ -110,8 +110,9 @@ void track_slider_cb(Endpoint *ep)
 void page_el_gui_cb(Endpoint *ep)
 {
     Page **page_loc = ep->xarg3;
-    char dststr[32];
-    jdaw_val_to_str(dststr, 32, ep->current_write_val, ep->val_type, 2);
+    /* char dststr[32]; */
+    /* jdaw_val_to_str(dststr, 32, ep->current_write_val, ep->val_type, 2); */
+    /* fprintf(stderr, "PAGE EL cb %s\n", dststr); */
     if (!page_loc) {
 	fprintf(stderr, "Error: track settings callback: endpoint does not contain page loc in third xarg\n");
 	return;

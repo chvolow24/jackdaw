@@ -463,7 +463,7 @@ static void add_osc_page(TabView *tv, Track *track)
 	/* dropdown_args[2] += 3; /\* osc2 *\/ */
 	/* dropdown_args[3] += 4; /\* osc3 *\/ */
 	p.dropdown_p.header = NULL;
-	p.dropdown_p.item_names = (char **)osc_names[cfg_i];
+	p.dropdown_p.item_names = osc_names[cfg_i];
 	p.dropdown_p.item_annotations = NULL;
 	p.dropdown_p.item_args = dropdown_args;
 	p.dropdown_p.num_items = 4;

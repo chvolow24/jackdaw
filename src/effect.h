@@ -54,7 +54,10 @@ typedef struct effect {
     Endpoint channel_mode_ep;
     float (*buf_apply)(void *effect, float *restrict buf_L, float *restrict buf_R, int len, float input_amp);
     bool operate_on_empty_buf;
+    /* DO NOT ACCESS outside main thread */
     Page *page;
+    /* Safe to access outside main thread */
+    _Atomic bool page_onscreen;
     EffectChain *effect_chain;
     /* Track *track; */
     char name[MAX_NAMELENGTH];

@@ -29,10 +29,10 @@
       </children>
     </Layout>
     <Layout name="comp_display" type="NORMAL">
-      <x>SCALE 0.624167</x>
-      <y>REL 112</y>
-      <w>ABS 250</w>
-      <h>ABS 250</h>
+      <x>SCALE 0.614167</x>
+      <y>REL 142</y>
+      <w>ABS 240</w>
+      <h>ABS 240</h>
       <children>
       </children>
     </Layout>
@@ -40,7 +40,7 @@
       <x>SCALE 0.060000</x>
       <y>REL 82</y>
       <w>SCALE 0.538333</w>
-      <h>ABS 369</h>
+      <h>ABS 300</h>
       <children>
         <Layout name="slider_area_attack" type="NORMAL">
           <x>REL 0</x>
@@ -164,34 +164,58 @@
         </Layout>
       </children>
     </Layout>
-    <Layout name="track_selection" type="NORMAL">
-      <x>REVREL 10</x>
-      <y>SCALE 0.056632</y>
-      <w>SCALE 0.256667</w>
-      <h>SCALE 0.046200</h>
+    <Layout name="Lt" type="NORMAL">
+      <x>SCALE 0.060000</x>
+      <y>STACK 0</y>
+      <w>REL 646</w>
+      <h>REL 100</h>
       <children>
-        <Layout name="track_name" type="NORMAL">
-          <x>STACK 0</x>
-          <y>REL 0</y>
-          <w>REL 100</w>
-          <h>SCALE 1.000000</h>
+        <Layout name="invu_ctr" type="NORMAL">
+          <x>REL 0</x>
+          <y>STACK 0</y>
+          <w>SCALE 1.000000</w>
+          <h>SCALE 0.500000</h>
           <children>
+            <Layout name="invu_lbl" type="NORMAL">
+              <x>REL 0</x>
+              <y>REL 12</y>
+              <w>REL 100</w>
+              <h>PAD 1</h>
+              <children>
+              </children>
+            </Layout>
+            <Layout name="invu" type="NORMAL">
+              <x>STACK 10</x>
+              <y>REL 0</y>
+              <w>REVREL 10</w>
+              <h>SCALE 1.0</h>
+              <children>
+              </children>
+            </Layout>
           </children>
         </Layout>
-        <Layout name="track_previous" type="NORMAL">
-          <x>STACK 4</x>
-          <y>REL 0</y>
-          <w>REL 100</w>
-          <h>SCALE 1.000000</h>
+        <Layout name="outvu_ctr" type="NORMAL">
+          <x>REL 0</x>
+          <y>STACK 0</y>
+          <w>SCALE 1.000000</w>
+          <h>SCALE 0.500000</h>
           <children>
-          </children>
-        </Layout>
-        <Layout name="track_next" type="NORMAL">
-          <x>STACK 4</x>
-          <y>REL 0</y>
-          <w>REL 100</w>
-          <h>SCALE 1.000000</h>
-          <children>
+            <Layout name="outvu_lbl" type="NORMAL">
+              <x>REL 0</x>
+              <y>REL 12</y>
+              <w>REL 100</w>
+              <h>PAD 1</h>
+              <children>
+              </children>
+            </Layout>
+            <Layout name="outvu" type="NORMAL">
+              <x>STACK 10</x>
+              <y>REL 0</y>
+              <w>REVREL 10</w>
+              <h>SCALE 1.0</h>
+              <children>
+              </children>
+            </Layout>
           </children>
         </Layout>
       </children>

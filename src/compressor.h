@@ -22,6 +22,7 @@
 #include <stdint.h>
 #include "endpoint.h"
 #include "envelope_follower.h"
+#include "vu_meter.h"
 
 typedef struct effect Effect;
 
@@ -45,6 +46,9 @@ typedef struct compressor {
     Endpoint threshold_ep;
     Endpoint ratio_ep;
     Endpoint makeup_gain_ep;
+
+    EnvelopeFollower display_ef_in[2];
+    EnvelopeFollower display_ef_out[2];
 } Compressor;
 
 /* Per-sample operation */

@@ -11,6 +11,7 @@ typedef struct vu_meter {
     float amp_max;
     Layout *layout;
     Textbox *db_labels[6];
+    bool horizontal;
 } VUMeter;
 
 

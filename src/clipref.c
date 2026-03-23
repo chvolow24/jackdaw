@@ -23,6 +23,7 @@
 #define CLIPREF_NAMELABEL_H 20
 #define CLIPREF_NAMELABEL_H_PAD 8
 #define CLIPREF_NAMELABEL_V_PAD 2
+#define CLIPREF_NAMELABEL_W 0.8
 
 #define CLIPREF_GAIN_ADJ_SCALAR 0.02
 
@@ -139,7 +140,7 @@ ClipRef *clipref_create(
     label_lt->x.value = CLIPREF_NAMELABEL_H_PAD;
     label_lt->y.value = CLIPREF_NAMELABEL_V_PAD;
     label_lt->w.type = SCALE;
-    label_lt->w.value = 0.8f;
+    label_lt->w.value = CLIPREF_NAMELABEL_W;
     label_lt->h.value = CLIPREF_NAMELABEL_H;
     cr->label = textbox_create_from_str(
 	cr->name,
@@ -206,7 +207,21 @@ void clipref_reset(ClipRef *cr, bool rescaled)
     cr->layout->rect.h = cr->track->inner_layout->rect.h - 2 * CR_RECT_V_PAD;
     layout_set_values_from_rect(cr->layout);
     layout_reset(cr->layout);
-    textbox_reset_full(cr->label);
+    /* SDL_Rect audio_rect = *session_get()->gui.audio_rect; */
+    /* if (cr->label->layout->rect.x < audio_rect.x) { */
+    /* 	cr->label->layout->rect.x = audio_rect.x + CLIPREF_NAMELABEL_H_PAD / main_win->dpi_scale_factor; */
+    /* 	cr->label->layout->rect.w = cr->layout->rect.x + cr->layout->rect.w - audio_rect.x; */
+    /* 	layout_set_values_from_rect(cr->label->layout); */
+    /* 	cr->label->layout->rect.w -= (1.0 - CLIPREF_NAMELABEL_W); */
+    /* } else { */
+    /* 	cr->label->layout->x.value = CLIPREF_NAMELABEL_H_PAD; */
+    /* 	cr->label->layout->w.value = 0.8f; */
+    /* } */
+    if (rescaled || (cr->type == CLIP_AUDIO && ((Clip *)cr->source_clip)->recording) || (cr->type == CLIP_MIDI && ((MIDIClip *)cr->source_clip)->recording)) {
+	textbox_reset_full(cr->label);
+    } else {
+	textbox_reset(cr->label);
+    }
     /* if (rescaled) { */
     if (cr->type == CLIP_AUDIO) {
 	cr->waveform_redraw = true;

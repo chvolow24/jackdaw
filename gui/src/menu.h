@@ -33,6 +33,7 @@ typedef struct menu_section {
 typedef struct menu_column {
     Menu *menu;
     const char *label;
+    Textbox *label_tb;
     MenuSection *sections[MAX_MENU_SECTIONS];
     uint8_t num_sections;
     uint8_t sel_sctn;

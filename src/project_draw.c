@@ -95,7 +95,8 @@ static void clipref_draw(ClipRef *cr)
 	clipref_reset(cr, false);
     }
     /* Only check horizontal out-of-bounds; track handles vertical */
-    if (cr->layout->rect.x > main_win->w_pix || cr->layout->rect.x + cr->layout->rect.w < 0) {
+    SDL_Rect audio_rect = *session->gui.audio_rect;
+    if (cr->layout->rect.x > main_win->w_pix || cr->layout->rect.x + cr->layout->rect.w < audio_rect.x) {
 	return;
     }
 

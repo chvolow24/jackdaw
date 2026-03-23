@@ -8,6 +8,7 @@
 #include "saturation.h"
 #include "schroeder.h"
 #include "session.h"
+#include "vu_meter.h"
 
 #define LABEL_STD_FONT_SIZE 12
 #define RADIO_STD_FONT_SIZE 14
@@ -42,6 +43,7 @@ static Page *add_reverb_page(Schroeder *sch, EffectChain *ec, TabView *tv);
 
 extern const char *effect_channel_mode_str[];
 
+
 static Page *effect_add_page(Effect *e, TabView *tv)
 {
     Page *p = NULL;
@@ -75,35 +77,47 @@ static Page *effect_add_page(Effect *e, TabView *tv)
     channel_mode_selector->x.value = 20;
     channel_mode_selector->y.value = 20;
     channel_mode_selector->w.value = 150;
-    channel_mode_selector->h.value = 150;
+    channel_mode_selector->h.value = 50;
     Layout *label_lt = layout_add_child(channel_mode_selector);
     label_lt->h.value = 40;
     label_lt->w.type = SCALE;
     label_lt->w.value = 1.0;
     layout_set_name(label_lt, "ch_mode_label");
 
-    Layout *radio_lt = layout_add_child(channel_mode_selector);
-    radio_lt->y.type = STACK;
-    /* radio_lt->y.value = 0; */
-    radio_lt->h.type = COMPLEMENT;
-    radio_lt->w.type = SCALE;
-    radio_lt->w.value = 1.0;
-    layout_set_name(radio_lt, "ch_mode_radio");
+    Layout *dropdown_lt = layout_add_child(channel_mode_selector);
+    dropdown_lt->y.type = STACK;
+    /* dropdown_lt->y.value = 0; */
+    dropdown_lt->h.value = 40;
+    /* dropdown_lt->h.type = COMPLEMENT; */
+    dropdown_lt->w.type = SCALE;
+    dropdown_lt->w.value = 1.0;
+    layout_set_name(dropdown_lt, "ch_mode_dropdown");
     layout_reset(channel_mode_selector);
 
     PageElParams params;
-    params.textbox_p.text_size = 16;
+    params.textbox_p.text_size = 14;
     params.textbox_p.font = main_win->mono_bold_font;
     params.textbox_p.win = main_win;
     params.textbox_p.set_str = "Channel mode";
+    
     page_add_el(p, EL_TEXTBOX, params, "ch_mode_label", "ch_mode_label");
     
-    params.radio_p.text_size = 14;
-    params.radio_p.text_color = p->text_color;
-    params.radio_p.item_names = effect_channel_mode_str;
-    params.radio_p.num_items = 4;
-    params.radio_p.ep = &e->channel_mode_ep;
-    page_add_el(p, EL_RADIO, params, "ch_mode_radio", "ch_mode_radio");
+    /* params.dropdown_p.text_size = 14; */
+    /* params.dropdown_p.text_color = p->text_color; */
+    /* params.dropdown_p.item_names = effect_channel_mode_str; */
+    /* params.dropdown_p.num_items = 4; */
+    /* params.dropdown_p.ep = &e->channel_mode_ep; */
+    /* page_add_el(p, EL_DROPDOWN, params, "ch_mode_dropdown", "ch_mode_dropdown"); */
+    /* params.dropdown_p.header = "OOPSIE DAISY"; */
+    page_add_dropdown_from_ep(
+	p,
+	&e->channel_mode_ep,
+	4,
+	"Channel mode",
+	effect_channel_mode_str,
+	NULL,
+	"ch_mode_dropdown");
+	
     return p;
 }
 
@@ -745,6 +759,11 @@ static Page *add_compressor_page(Compressor *c, EffectChain *ec, TabView *tv)
     textbox_set_align(tb, CENTER_LEFT);
     textbox_reset_full(tb);
 
+    p.textbox_p.set_str = "Level in:";
+    tb = (Textbox *)(page_add_el(page, EL_TEXTBOX, p, "", "invu_lbl")->component);
+    p.textbox_p.set_str = "Level out:";
+    tb = (Textbox *)(page_add_el(page, EL_TEXTBOX, p, "", "outvu_lbl")->component);
+
     
     p.slider_p.create_label_fn = NULL;
     p.slider_p.style = SLIDER_TICK;
@@ -799,6 +818,16 @@ static Page *add_compressor_page(Compressor *c, EffectChain *ec, TabView *tv)
 
     page_add_el(page, EL_CANVAS, p, "", "comp_display");
     
+
+    p.vu_p.ef_L = &c->display_ef_in[0];
+    p.vu_p.ef_R = &c->display_ef_in[1];
+    p.vu_p.horizontal = true;
+    page_add_el(page, EL_VU_METER, p, "", "invu");
+
+    p.vu_p.ef_L = &c->display_ef_out[0];
+    p.vu_p.ef_R = &c->display_ef_out[1];
+    p.vu_p.horizontal = true;
+    page_add_el(page, EL_VU_METER, p, "", "outvu");
 
 
     /* sl->disallow_unsafe_mode = true; */
@@ -932,8 +961,6 @@ static void compressor_canvas_draw(void *draw_arg1, void *draw_arg2)
     Layout *display_lt = draw_arg2;
     compressor_draw(c, &display_lt->rect);
 }
-
-
 
 bool filter_tabs_onclick(SDL_Point p, Canvas *self, void *draw_arg1, void *draw_arg2)
 {

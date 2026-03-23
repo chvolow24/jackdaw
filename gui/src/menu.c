@@ -9,6 +9,7 @@
 #define MENU_STD_ITEM_PAD_V 2
 #define MENU_STD_ITEM_V_SPACING 2
 #define MENU_STD_SECTION_PAD 16
+#define MENU_STD_COL_LABEL_H 8
 #define MENU_STD_COLUMN_PAD 8
 #define MENU_STD_HEADER_PAD 20
 
@@ -52,6 +53,9 @@ static void menu_reset_textboxes(Menu *menu)
 static void menu_column_rectify_sections(MenuColumn *col)
 {
     int y_logical = MENU_STD_SECTION_PAD;
+    if (col->label_tb) {
+	y_logical += col->label_tb->layout->h.value;
+    }
     for (int i=0; i<col->num_sections; i++) {
 	MenuSection *sctn = col->sections[i];
 	sctn->layout->y.value = y_logical;
@@ -85,7 +89,7 @@ static void menu_rectify_columns(Menu *menu)
 
 Menu *menu_create(Layout *layout, Window *window)
 {
-    Menu *menu = malloc(sizeof(Menu));
+    Menu *menu = calloc(1, sizeof(Menu));
     menu->num_columns = 0;
     menu->layout = layout;
     menu->selected = NULL;
@@ -161,7 +165,7 @@ void menu_add_header(Menu *menu, const char *title, const char *description)
 MenuColumn *menu_column_add(Menu *menu, const char *label)
 {
     Layout *content_lt = menu->layout->children[1];
-    MenuColumn *col = malloc(sizeof(MenuColumn));
+    MenuColumn *col = calloc(1, sizeof(MenuColumn));
     col->num_sections = 0;
     col->sel_sctn = 255;
     col->label = label;
@@ -173,6 +177,27 @@ MenuColumn *menu_column_add(Menu *menu, const char *label)
     layout_set_name(col->layout, lt_name);
     col->layout->y.value = 0;
     col->layout->h.value = MENU_STD_SECTION_PAD;
+    if (col->label && strlen(col->label) != 0) {
+	Layout *label_lt = layout_add_child(col->layout);
+	label_lt->w.type = SCALE;
+	label_lt->w.value = 1.0;
+	label_lt->y.value = MENU_STD_SECTION_PAD;
+	label_lt->h.value = MENU_STD_COL_LABEL_H;
+	col->label_tb = textbox_create_from_str(
+	    label,
+	    label_lt,
+	    main_win->bold_font,
+	    MENU_TXT_SIZE,
+	    main_win);
+	col->label_tb->text->align = CENTER_LEFT;
+	textbox_set_trunc(col->label_tb, false);
+	textbox_set_text_color(col->label_tb, &menu_std_clr_txt);
+	textbox_set_background_color(col->label_tb, &colors.clear);
+	textbox_set_border_color(col->label_tb, &colors.clear);
+	textbox_size_to_fit(col->label_tb, MENU_STD_ITEM_PAD_H, MENU_STD_ITEM_PAD_V);
+	col->layout->h.value += label_lt->h.value;// + label_lt->y.value;
+
+    }
     menu->columns[menu->num_columns] = col;
     menu->num_columns++;
     return col;
@@ -254,7 +279,6 @@ MenuItem *menu_item_add(
 
     /* Create and initialize annotation tb */
     if (annotation) {
-	
 	item->annot_tb = textbox_create_from_str(
 	    (char *)annotation,
 	    annot_lt,
@@ -326,6 +350,7 @@ void menu_destroy(Menu *menu)
 {
     for (int c=0; c<menu->num_columns; c++) {
 	MenuColumn *column = menu->columns[c];
+	if (column->label_tb) textbox_destroy(column->label_tb);
 	for (int s=0; s < column->num_sections; s++) {
 	    MenuSection *sctn = column->sections[s];
 	    for (int i=0; i<sctn->num_items; i++) {
@@ -452,6 +477,7 @@ void menu_draw(Menu *menu)
     geom_draw_rounded_rect(rend, &border, MENU_STD_CORNER_RAD - 1);
     for (int i=0; i<menu->num_columns; i++) {
 	MenuColumn *col = menu->columns[i];
+	if (col->label_tb) textbox_draw(col->label_tb);
 	for (int j=0; j<col->num_sections; j++) {
 	    MenuSection *sctn = col->sections[j];
 	    if (j > 0) {

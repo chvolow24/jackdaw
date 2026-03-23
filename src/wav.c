@@ -352,7 +352,6 @@ ClipRef *wav_load_to_track(Track *track, const char *filename, int32_t start_pos
     session_set_loading_screen("Importing WAV...", NULL, true);
 
     SDL_AudioCVT wav_cvt;
-    fprintf(stderr, "LOAD WAV CHANNELS %d\n", wav_spec.channels);
     int ret = SDL_BuildAudioCVT(&wav_cvt, wav_spec.format, channels, wav_spec.freq, proj->fmt, wav_spec.channels, proj->sample_rate);
     uint8_t *final_buffer = NULL;
     int final_buffer_len;

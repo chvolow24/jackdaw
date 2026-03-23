@@ -8,6 +8,7 @@
 
 *****************************************************************************************************************/
 
+#include <stdatomic.h>
 #include <stdio.h>
 #include "compressor.h"
 #include "consts.h"
@@ -52,7 +53,11 @@ float compressor_buf_apply_mono(void *compressor_v, float *buf, int len, int cha
     float amp_scalar;
     float env = 0.0f;
     float output_amp = 0.0f;
+    bool page_onscreen = atomic_load(&c->effect->page_onscreen);
     for (int i=0; i<len; i++) {
+	if (page_onscreen) {
+	    envelope_follower_sample(&c->display_ef_in[channel], buf[i]);
+	}	
 	env = envelope_follower_sample(&c->ef[channel], buf[i]);
 	float overshoot = env - c->threshold;
 	if (overshoot > 0.0f) {
@@ -64,7 +69,9 @@ float compressor_buf_apply_mono(void *compressor_v, float *buf, int len, int cha
 	    buf[i] *= c->makeup_gain;
 	}
 	output_amp += fabs(buf[i]);
-	
+	if (page_onscreen) {
+	    envelope_follower_sample(&c->display_ef_out[channel], buf[i]);
+	}	
     }
     c->gain_scalar[channel] = amp_scalar;
     c->env[channel] = env;
@@ -78,7 +85,16 @@ float compressor_buf_apply_stereo(void *compressor_v, float *restrict L, float *
     float amp_scalar;
     float env = 0.0f;
     float output_amp = 0.0f;
+    bool page_onscreen = c->effect->page_onscreen;
+
     for (int i=0; i<len; i++) {
+	if (page_onscreen) {
+	    if (L)
+		envelope_follower_sample(&c->display_ef_in[0], L[i]);
+	    if (R)
+		envelope_follower_sample(&c->display_ef_in[1], R[i]);
+	}
+
 	float env_input;
 	if (L && R) {
 	    env_input = fmaxf(fabsf(L[i]), fabsf(R[i]));
@@ -110,6 +126,13 @@ float compressor_buf_apply_stereo(void *compressor_v, float *restrict L, float *
 	}
 	if (L) output_amp += fabs(L[i]);
 	if (R) output_amp += fabs(R[i]);
+	if (page_onscreen) {
+	    if (L)
+		envelope_follower_sample(&c->display_ef_out[0], L[i]);
+	    if (R)
+		envelope_follower_sample(&c->display_ef_out[1], R[i]);
+	}
+
 	/* output_amp += fabs(L[i]) + fabs(R[i]); */
 	
     }
@@ -140,6 +163,8 @@ void compressor_set_m(Compressor *c, float m)
     c->m = m;
 }
 
+
+
 void compressor_draw(Compressor *c, SDL_Rect *target)
 {
     SDL_SetRenderDrawColor(main_win->rend, 0, 15, 20, 255);
@@ -149,28 +174,28 @@ void compressor_draw(Compressor *c, SDL_Rect *target)
 
     /* int thresh_x = c->threshold * target->w + target->x; */
     /* int vertex_rel = thresh_x * target->w; */
-    int vertex_rel = c->threshold * target->w;
+    int vertex_rel = sqrt(c->threshold) * target->w;
     int x_vertex = target->x + vertex_rel;
     int y_vertex = target->y + target->h - vertex_rel;
     SDL_RenderDrawLine(main_win->rend, target->x, target->y + target->h, x_vertex, y_vertex);
 
 
-    int end_y = y_vertex - (c->m * (target->w - vertex_rel));
+    int end_y = y_vertex - (sqrt(c->m) * (target->w - vertex_rel));
     SDL_RenderDrawLine(main_win->rend, x_vertex, y_vertex, target->x + target->w, end_y);
 
 
     
 
     bool overdriven = false;
-    float env = c->env[0];
+    float env = sqrt(c->env[0]);
     if (env > 1.0) {
 	env = 1.0;
 	overdriven = true;
     }
     int env_x_rel = env * target->w;
     int env_y;
-    if (env > c->threshold) {
-	env_y = y_vertex - (c->m * (env_x_rel - vertex_rel));
+    if (env > sqrt(c->threshold)) {
+	env_y = y_vertex - (sqrt(c->m) * (env_x_rel - vertex_rel));
     } else {
 	env_y = target->y + target->h - env_x_rel;
     }
@@ -179,26 +204,15 @@ void compressor_draw(Compressor *c, SDL_Rect *target)
     for (int x_rel=vertex_rel; x_rel<target->w; x_rel++) {
 
 	int top_y = target->y + (target->h - x_rel);
-	int btm_y = target->y + target->h - vertex_rel - (x_rel - vertex_rel) * c->m;
+	int btm_y = target->y + target->h - vertex_rel - (x_rel - vertex_rel) * sqrt(c->m);
 	
 	if (under_env && x_rel > env_x_rel) {
 	    under_env = false;
 	    SDL_SetRenderDrawColor(main_win->rend, 245, 245, 255, 50);
 	} else if (under_env) {
 	    int green = 255 - 255 * ((float)btm_y - top_y) / target->w;
-	    /* int green, red; */
-	    /* float prop = ((float)btm_y - top_y) / target->h; */
-	    /* if (prop > 0.5) { */
-	    /* 	red = 255; */
-	    /* 	green = 255 - 255 * (prop - 0.5f) * 2.0f; */
-	    /* } else { */
-	    /* 	green = 255; */
-	    /* 	red = 255 * (prop * 2.0f); */
-	    /* } */
-	    /* int green = 255 - 255.0f *   */
 	    SDL_SetRenderDrawColor(main_win->rend, 255, green, 0, 180);
 	}
-	/* int btm_y = target->y + (x_rel - vertex_rel) * c->m; */
 	SDL_RenderDrawLine(main_win->rend, x_rel + target->x, top_y, x_rel + target->x, btm_y - 1);
     }
 
@@ -347,6 +361,10 @@ void compressor_init(Compressor *c)
     endpoint_set_label_fn(&c->makeup_gain_ep, label_amp_to_dbstr);
     api_endpoint_register(&c->makeup_gain_ep, &c->effect->api_node);
 
+    envelope_follower_set_times_msec(&c->display_ef_in[0], ENV_F_STD_ATTACK_MSEC, ENV_F_STD_RELEASE_MSEC, session->proj.sample_rate);
+    envelope_follower_set_times_msec(&c->display_ef_in[1], ENV_F_STD_ATTACK_MSEC, ENV_F_STD_RELEASE_MSEC, session->proj.sample_rate);
+    envelope_follower_set_times_msec(&c->display_ef_out[0], ENV_F_STD_ATTACK_MSEC, ENV_F_STD_RELEASE_MSEC, session->proj.sample_rate);
+    envelope_follower_set_times_msec(&c->display_ef_out[1], ENV_F_STD_ATTACK_MSEC, ENV_F_STD_RELEASE_MSEC, session->proj.sample_rate);
 }
 
 

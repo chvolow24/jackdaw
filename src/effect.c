@@ -330,10 +330,10 @@ Effect *effect_chain_add_effect(EffectChain *ec, EffectType type)
 	&e->channel_mode_ep,
 	&e->channel_mode,
 	JDAW_INT,
-	"", "",
+	"channel_mode", NULL,
 	JDAW_THREAD_MAIN,
 	page_el_gui_cb, NULL, NULL,
-	NULL, NULL, &e->page, "ch_mode_radio");
+	NULL, NULL, &e->page, "ch_mode_dropdown");
     
 
     user_event_push(

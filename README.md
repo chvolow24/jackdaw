@@ -228,12 +228,13 @@ You will be prompted to enter a project name (which must include the `.jdaw` ext
 10. [Opening and saving files](#opening-and-saving-files)
 11. [Track effects](#track-effects)
     1. [Adding, ordering, and removing effects](#adding-ordering-and-removing-effects)
-	2. [EQ](#eq)
-	3. [FIR Filter](#fir-filter)
-	4. [Delay line](#delay-line)
-	5. [Saturation](#saturation)
-	6. [Compressor](#compressor)
-	7. [Reverb](#reverb)
+	2. [Channel mode](#channel-mode)
+	3. [EQ](#eq)
+	4. [FIR Filter](#fir-filter)
+	5. [Delay line](#delay-line)
+	6. [Saturation](#saturation)
+	7. [Compressor](#compressor)
+	8. [Reverb](#reverb)
 12. [Automation](#automation)
     1. [Adding keyframes with the mouse](#adding-keyframes-with-the-mouse)
 	2. [Writing (adding keyframes automatically)](#writing-adding-keyframes-automatically)
@@ -736,6 +737,25 @@ You can also click the tabs, and click and drag to reorder them.
 
 To remove an effect, simply hit `del` or `backspace` while the effect is selected in the tab view. Associated automation tracks will be removed as well, and will be reinstated if the deletion is undone.
 
+### Channel mode
+
+Every effect can be put into one of four "channel modes":
+
+1. Stereo
+2. Mid only
+3. Side only
+4. Mid / Side
+
+Stereo is the default mode; effect processing occurs on the input left channel and input right channel.
+
+In any of the other modes, [mid-side encoding](https://majormixing.com/what-is-mid-side-encoding/) is applied to the input audio before it is sent to the effect. After the effect processes the audio, the mid and side channels are reprocessed into stereo L and R.
+
+In **Mid only** mode, the left input channel is replaced with the processed mid channel, and the right channel is ignored during effect processing.
+
+In **Side only** mode, the right input channel is replaced with the processed side channel, and the left channel is ignored.
+
+In **Mid / Side** mode, the left channel is replaced with the mid channel, and right is replaced with side. This is equvialent to stereo mode in all effects that process the two channels independently (EQ, FIR Filter, Delay, Saturation, Compressor).
+
 ### EQ
 
 The EQ effect contains 6 configurable filters. Each can be set to one of the following types:
@@ -792,9 +812,23 @@ In the visualization, the x position of the blue dot represents the current ampl
 
 Jackdaw's reverb effect is a Schroeder reverberator based on (but not identical to) the Freeverb algorithm by "Jezar at Dreampoint", as described by Julius Orion Smith III [here](https://ccrma.stanford.edu/~jos/pasp/Freeverb.html).
 
-**`Decay time`** parameter
+**`Decay time`**
+The decay time parameter determines how long it takes the reverb tail to decay. The value determines how much sound is retained with each individual echo (with an adjustment accounting for room size); it could therefore be thought of as 'reflectivity' or the inverse of 'damping'.
 
+**`Brightness`**
+Each echo is lowpass-filtered. The brightness parameter determines how much high-frequency content is retained with each echo.
 
+**`Room size`**
+The room size parameter scales all 24 delay times, creating audible room resonances at smaller sizes. The displayed values (measured in square meters) are based on measured resonance frequencies; these are most meaningful at small room sizes. The maximum value is 175.56 sq m, but the reverb can sound like a larger space depending on how the other parameters are tuned.
+
+**`Stereo spread`**
+How much individual echo channels are panned to the left or right stereo channel, respectively. At 1.0, each echo is sent eclusively to one channel or the other.
+
+**`Pre-delay`**
+The input (dry) signal is delayed by this amount before being sent into the reverberator.
+
+**`Dry / wet`**
+How much of the reverberator output is mixed with the dry signal.
 
 ## Automation
 

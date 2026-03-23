@@ -13,8 +13,8 @@ typedef struct schroeder {
     Effect *effect;    
     float wet;
     float stereo_spread; // range 0->1
-    float panscale_left; // (0.5f + stereo_spread / 2)
-    float panscale_right; // (0.5f - stereo_spread / 2)
+    float panscale_syntonic; // (0.5f + stereo_spread / 2)
+    float panscale_dystonic; // (0.5f - stereo_spread / 2)
     float lop_coeff;
     float lop_delay_coeff;
     float allpass_coeff;

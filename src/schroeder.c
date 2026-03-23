@@ -83,8 +83,8 @@ float schroeder_buf_apply(void *sch_v, float *restrict in_L, float *restrict in_
 		even = true;
 	    }
 	    /* float ster = sch->stereo_spread / 2; // range 0-0.5 */
-	    intermed_L += sch->panscale_left * L_lop + sch->panscale_right * R_lop;
-	    intermed_R += sch->panscale_right * L_lop + sch->panscale_left * R_lop;
+	    intermed_L += sch->panscale_syntonic * L_lop + sch->panscale_dystonic * R_lop;
+	    intermed_R += sch->panscale_dystonic * L_lop + sch->panscale_syntonic * R_lop;
 	}
 	/* *out_L = intermed_L; */
 	/* *out_R = intermed_R; */
@@ -179,8 +179,8 @@ void stereo_spread_dsp_cb(Endpoint *ep)
 {
     Schroeder *sch = ep->xarg1;
     float raw = ep->current_write_val.float_v;
-    sch->panscale_left = 0.5f + raw / 2;
-    sch->panscale_right = 0.5f - raw / 2;
+    sch->panscale_syntonic = 0.5f + raw / 2;
+    sch->panscale_dystonic = 0.5f - raw / 2;
 }
 
 void delay_len_scalar_dsp_cb(Endpoint *ep)

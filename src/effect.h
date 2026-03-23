@@ -40,10 +40,15 @@ typedef enum effect_type {
 
 typedef enum effect_channel_mode {
     EFFECT_CH_MODE_STEREO,
+    EFFECT_CH_MODE_L,
+    EFFECT_CH_MODE_R,
     EFFECT_CH_MODE_MID,
     EFFECT_CH_MODE_SIDE,
-    EFFECT_CH_MODE_MID_SIDE
+    EFFECT_CH_MODE_MID_SIDE,
+    EFFECT_NUM_CH_MODES
 } EffectChannelMode;
+
+#define EFFECT_CH_MODE_DO_ENCODE(ch_mode) (ch_mode > 2)
 
 typedef struct effect_chain EffectChain;
 typedef struct project Project;
@@ -79,6 +84,7 @@ typedef struct effect_chain {
     APINode api_node;
     /* APINode *api_node; /\* Allocated on parent object, e.g. track or synth *\/ */
     const char *obj_name;
+    bool mid_side_encoded;
 } EffectChain;
 
 void effect_chain_init(EffectChain *ec, Project *proj, APINode *parent_node, const char *obj_name, int32_t chunk_len_sframes);

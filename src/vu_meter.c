@@ -270,5 +270,4 @@ void vu_meter_draw(VUMeter *vu)
 
 	}
     }
-    /* layout_draw(main_win, vu->layout); */
 }

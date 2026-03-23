@@ -112,7 +112,7 @@ static Page *effect_add_page(Effect *e, TabView *tv)
     page_add_dropdown_from_ep(
 	p,
 	&e->channel_mode_ep,
-	4,
+	EFFECT_NUM_CH_MODES,
 	"Channel mode",
 	effect_channel_mode_str,
 	NULL,
@@ -818,7 +818,6 @@ static Page *add_compressor_page(Compressor *c, EffectChain *ec, TabView *tv)
 
     page_add_el(page, EL_CANVAS, p, "", "comp_display");
     
-
     p.vu_p.ef_L = &c->display_ef_in[0];
     p.vu_p.ef_R = &c->display_ef_in[1];
     p.vu_p.horizontal = true;

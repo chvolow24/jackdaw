@@ -41,10 +41,10 @@
   - S-<tab>	: menu_previous_item
   - f		: menu_next_item
   - d		: menu_previous_item
-  - <up>	: menu_translate_up
-  - <down>	: menu_translate_down
-  - <left>	: menu_translate_left
-  - <right>	: menu_translate_right
+  - <up>	: menu_previous_item
+  - <down>	: menu_next_item
+  - <left>	: menu_column_left
+  - <right>	: menu_column_right
   - <ret>     	: menu_choose_item
   - k		: menu_choose_item
   - <del>     	: menu_dismiss

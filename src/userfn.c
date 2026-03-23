@@ -684,7 +684,6 @@ void user_menu_nav_column_right(void *nullarg)
 	return;
     }
     if (m->sel_col < m->num_columns - 1) {
-	fprintf(stdout, "Sel col to inc: %d, num: %d\n", m->sel_col, m->num_columns);
 	m->sel_col++;
 	MenuColumn *c = m->columns[m->sel_col];
 	if (c->sel_sctn == 255) {

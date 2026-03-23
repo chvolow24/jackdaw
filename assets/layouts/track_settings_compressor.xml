@@ -167,7 +167,7 @@
     <Layout name="Lt" type="NORMAL">
       <x>SCALE 0.060000</x>
       <y>STACK 0</y>
-      <w>REL 646</w>
+      <w>SCALE 0.754167</w>
       <h>REL 100</h>
       <children>
         <Layout name="invu_ctr" type="NORMAL">
@@ -187,8 +187,8 @@
             <Layout name="invu" type="NORMAL">
               <x>STACK 10</x>
               <y>REL 0</y>
-              <w>REVREL 10</w>
-              <h>SCALE 1.0</h>
+              <w>REVREL 0</w>
+              <h>SCALE 1.000000</h>
               <children>
               </children>
             </Layout>
@@ -211,8 +211,8 @@
             <Layout name="outvu" type="NORMAL">
               <x>STACK 10</x>
               <y>REL 0</y>
-              <w>REVREL 10</w>
-              <h>SCALE 1.0</h>
+              <w>REVREL 0</w>
+              <h>SCALE 1.000000</h>
               <children>
               </children>
             </Layout>

@@ -29,6 +29,8 @@ extern struct colors colors;
 
 const char *effect_channel_mode_str[] = {
     "Stereo",
+    "L only",
+    "R only",
     "Mid only",
     "Side only",
     "Mid / Side"
@@ -446,35 +448,29 @@ static int add_effect_form(void *mod_v, void *nullarg)
 
 static float effect_buf_apply(Effect *e, float *restrict buf_L, float *restrict buf_R, int len, float input_amp)
 {
-    /* if (!e->active) return input_amp; */
-    if (e->channel_mode != EFFECT_CH_MODE_STEREO) {
-	for (int i=0; i<len; i++) {
-	    float mid = (buf_L[i] + buf_R[i]) / 2;
-	    float side = (buf_L[i] - buf_R[i]) / 2;
-	    buf_L[i] = mid;
-	    buf_R[i] = side;
-	}
-    }
-    float *save_buf_L = buf_L;
-    float *save_buf_R = buf_R;
-    if (e->channel_mode == EFFECT_CH_MODE_MID) {
-	buf_R = NULL;
-    } else if (e->channel_mode == EFFECT_CH_MODE_SIDE) {
-	buf_L = NULL;
-    }
     float ret = e->buf_apply(e->obj, buf_L, buf_R, len, input_amp);
-    buf_R = save_buf_R;
-    buf_L = save_buf_L;
-    if (e->channel_mode != EFFECT_CH_MODE_STEREO) {
-	for (int i=0; i<len; i++) {
-	    float mid = buf_L[i];
-	    float side = buf_R[i];
-	    buf_L[i] = mid + side;
-	    buf_R[i] = mid - side;
-	}
-    }
-
     return ret;
+}
+
+
+static void mid_side_encode(float *restrict buf_L, float *restrict buf_R, int32_t len)
+{
+    for (int i=0; i<len; i++) {
+	float mid = (buf_L[i] + buf_R[i]) / 2;
+	float side = (buf_L[i] - buf_R[i]) / 2;
+	buf_L[i] = mid;
+	buf_R[i] = side;
+    }
+}
+
+static void mid_side_decode(float *restrict buf_L, float *restrict buf_R, int32_t len)
+{
+    for (int i=0; i<len; i++) {
+	float mid = buf_L[i];
+	float side = buf_R[i];
+	buf_L[i] = mid + side;
+	buf_R[i] = mid - side;
+    }
 }
 
 float effect_chain_buf_apply(EffectChain *ec, float *restrict L, float *restrict R, int len, float input_amp)
@@ -494,8 +490,25 @@ float effect_chain_buf_apply(EffectChain *ec, float *restrict L, float *restrict
     for (int i=0; i<ec->num_effects; i++) {
 	Effect *e = ec->effects[i];
 	if (e->active && (e->operate_on_empty_buf || fabs(running_amp) > amp_epsilon)) {
-	    running_amp = effect_buf_apply(e, L, R, len, running_amp);
+	    if (!ec->mid_side_encoded && EFFECT_CH_MODE_DO_ENCODE(e->channel_mode)) {
+		mid_side_encode(L, R, len);
+		ec->mid_side_encoded = true;
+	    } else if (ec->mid_side_encoded && !EFFECT_CH_MODE_DO_ENCODE(e->channel_mode)) {
+		mid_side_decode(L, R, len);
+		ec->mid_side_encoded = false;
+	    }
+	    if (e->channel_mode == EFFECT_CH_MODE_L || e->channel_mode == EFFECT_CH_MODE_MID) {
+		running_amp = effect_buf_apply(e, L, NULL, len, running_amp);
+	    } else if (e->channel_mode == EFFECT_CH_MODE_R || e->channel_mode == EFFECT_CH_MODE_SIDE) {
+		running_amp = effect_buf_apply(e, NULL, R, len, running_amp);
+	    } else {
+		running_amp = effect_buf_apply(e, L, R, len, running_amp);
+	    }
 	}
+    }
+    if (ec->mid_side_encoded) {
+	mid_side_decode(L, R, len);
+	ec->mid_side_encoded = false;
     }
     pthread_mutex_unlock(&ec->effect_chain_lock);
     return running_amp;

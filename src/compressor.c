@@ -174,28 +174,28 @@ void compressor_draw(Compressor *c, SDL_Rect *target)
 
     /* int thresh_x = c->threshold * target->w + target->x; */
     /* int vertex_rel = thresh_x * target->w; */
-    int vertex_rel = sqrt(c->threshold) * target->w;
+    int vertex_rel = c->threshold * target->w;
     int x_vertex = target->x + vertex_rel;
     int y_vertex = target->y + target->h - vertex_rel;
     SDL_RenderDrawLine(main_win->rend, target->x, target->y + target->h, x_vertex, y_vertex);
 
 
-    int end_y = y_vertex - (sqrt(c->m) * (target->w - vertex_rel));
+    int end_y = y_vertex - (c->m * (target->w - vertex_rel));
     SDL_RenderDrawLine(main_win->rend, x_vertex, y_vertex, target->x + target->w, end_y);
 
 
     
 
     bool overdriven = false;
-    float env = sqrt(c->env[0]);
+    float env = c->env[0];
     if (env > 1.0) {
 	env = 1.0;
 	overdriven = true;
     }
     int env_x_rel = env * target->w;
     int env_y;
-    if (env > sqrt(c->threshold)) {
-	env_y = y_vertex - (sqrt(c->m) * (env_x_rel - vertex_rel));
+    if (env > c->threshold) {
+	env_y = y_vertex - (c->m * (env_x_rel - vertex_rel));
     } else {
 	env_y = target->y + target->h - env_x_rel;
     }
@@ -204,7 +204,7 @@ void compressor_draw(Compressor *c, SDL_Rect *target)
     for (int x_rel=vertex_rel; x_rel<target->w; x_rel++) {
 
 	int top_y = target->y + (target->h - x_rel);
-	int btm_y = target->y + target->h - vertex_rel - (x_rel - vertex_rel) * sqrt(c->m);
+	int btm_y = target->y + target->h - vertex_rel - (x_rel - vertex_rel) * c->m;
 	
 	if (under_env && x_rel > env_x_rel) {
 	    under_env = false;
@@ -361,10 +361,11 @@ void compressor_init(Compressor *c)
     endpoint_set_label_fn(&c->makeup_gain_ep, label_amp_to_dbstr);
     api_endpoint_register(&c->makeup_gain_ep, &c->effect->api_node);
 
-    envelope_follower_set_times_msec(&c->display_ef_in[0], ENV_F_STD_ATTACK_MSEC, ENV_F_STD_RELEASE_MSEC * 2, session->proj.sample_rate);
-    envelope_follower_set_times_msec(&c->display_ef_in[1], ENV_F_STD_ATTACK_MSEC, ENV_F_STD_RELEASE_MSEC * 2, session->proj.sample_rate);
-    envelope_follower_set_times_msec(&c->display_ef_out[0], ENV_F_STD_ATTACK_MSEC, ENV_F_STD_RELEASE_MSEC * 2, session->proj.sample_rate);
-    envelope_follower_set_times_msec(&c->display_ef_out[1], ENV_F_STD_ATTACK_MSEC, ENV_F_STD_RELEASE_MSEC * 2, session->proj.sample_rate);
+    double sr = session_get_sample_rate();
+    envelope_follower_set_times_msec(&c->display_ef_in[0], 0, ENV_F_STD_RELEASE_MSEC * 2, sr);
+    envelope_follower_set_times_msec(&c->display_ef_in[1], 0, ENV_F_STD_RELEASE_MSEC * 2, sr);
+    envelope_follower_set_times_msec(&c->display_ef_out[0], 0, ENV_F_STD_RELEASE_MSEC * 2, sr);
+    envelope_follower_set_times_msec(&c->display_ef_out[1], 0, ENV_F_STD_RELEASE_MSEC * 2, sr);
 }
 
 

@@ -473,6 +473,8 @@ static void mid_side_decode(float *restrict buf_L, float *restrict buf_R, int32_
     }
 }
 
+static void effect_silence(Effect *e);
+
 float effect_chain_buf_apply(EffectChain *ec, float *restrict L, float *restrict R, int len, float input_amp)
 {
     static float amp_epsilon = 1e-7f;
@@ -489,7 +491,9 @@ float effect_chain_buf_apply(EffectChain *ec, float *restrict L, float *restrict
     pthread_mutex_lock(&ec->effect_chain_lock);
     for (int i=0; i<ec->num_effects; i++) {
 	Effect *e = ec->effects[i];
-	if (e->active && (e->operate_on_empty_buf || fabs(running_amp) > amp_epsilon)) {
+	bool running_amp_nonzero = fabs(running_amp) > amp_epsilon;
+	if (e->active && (e->operate_on_empty_buf || running_amp_nonzero)) {
+	    e->has_proc_state = true;
 	    if (!ec->mid_side_encoded && EFFECT_CH_MODE_DO_ENCODE(e->channel_mode)) {
 		mid_side_encode(L, R, len);
 		ec->mid_side_encoded = true;
@@ -504,6 +508,8 @@ float effect_chain_buf_apply(EffectChain *ec, float *restrict L, float *restrict
 	    } else {
 		running_amp = effect_buf_apply(e, L, R, len, running_amp);
 	    }
+	} else if (e->active && !running_amp_nonzero && e->has_proc_state) {
+	    effect_silence(e);
 	}
     }
     if (ec->mid_side_encoded) {
@@ -529,6 +535,7 @@ static void effect_silence(Effect *e)
     default:
 	break;
     }
+    e->has_proc_state = false;
 }
 
 void effect_chain_silence(EffectChain *ec)

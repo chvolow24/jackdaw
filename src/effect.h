@@ -69,6 +69,8 @@ typedef struct effect {
     bool active;
     Endpoint active_ep;
     APINode api_node;
+    /* effect not silenced */
+    bool has_proc_state;
 } Effect;
 
 typedef struct effect_chain {

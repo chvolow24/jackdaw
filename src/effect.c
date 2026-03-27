@@ -666,6 +666,24 @@ void effect_destroy(Effect *e)
     free(e);
 }
 
+/* Make a copy of EC at "from", de-register API node, and return a pointer to copy */
+EffectChain *effect_chain_stash(EffectChain *from)
+{
+    if (from->num_effects == 0) return NULL;
+    EffectChain *copy = calloc(1, sizeof(EffectChain));
+    memcpy(copy, from, sizeof(EffectChain));
+    api_node_deregister(&from->api_node);
+    return copy;
+}
+
+/* Put contents of stashed back in dst, and re-register API node.
+   dst should be empty, or already stashed itself */
+void effect_chain_unstash(EffectChain *dst, EffectChain *stashed)
+{
+    memcpy(dst, stashed, sizeof(EffectChain));
+    api_node_reregister(&dst->api_node);
+}
+
 /* Legacy function: included for backward compatibility (in .jdaw) */
 Effect *track_add_effect(Track *t, EffectType type)
 {

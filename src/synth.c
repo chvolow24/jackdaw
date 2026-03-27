@@ -2363,31 +2363,35 @@ void synth_write_preset_file(const char *filepath, Synth *s)
     fclose(f);
 }
 
-struct synth_and_preset_path {
+/* struct synth_and_preset_path { */
+/*     Synth *synth; */
+/*     char *preset_path_copy; */
+/* }; */
+
+struct synth_preset_arg{
     Synth *synth;
-    char *preset_path_copy;
+    char *backup_filepath;
+    EffectChain *stashed_ec;
 };
 
 static void synth_read_preset_file_internal(const char *filepath, Synth *s, bool from_undo);
 
-NEW_EVENT_FN(undo_read_synth_preset, "undo read synth preset file")
-    struct synth_and_preset_path *sp = obj1;
-    synth_read_preset_file_internal(obj2, sp->synth, true);
+static char *synth_write_backup_file(Synth *synth)
+{
+    static int backup_file_index = 0;
+    char backup_filename[32] = {0};
+    snprintf(backup_filename, 32, "jackdaw_synth%d.jsynth", backup_file_index);
+    backup_file_index++;
+    char *backup_filepath = create_tmp_file(backup_filename);
+    synth_write_preset_file(backup_filepath, synth);
+    return backup_filepath;
 }
 
-NEW_EVENT_FN(redo_read_synth_preset, "redo read synth preset file")
-    struct synth_and_preset_path *sp = obj1;
-    synth_read_preset_file_internal(sp->preset_path_copy, sp->synth, true);
-}
-
-NEW_EVENT_FN(dispose_read_synth_preset, "")
-    struct synth_and_preset_path *sp = obj1;
-    free(sp->preset_path_copy);
-    char *backup_filepath = obj2;
+static void safe_delete_synth_backup(char *backup_filepath)
+{
     FILE *f = fopen(backup_filepath, "r");
     if (!f) {
         log_tmp(LOG_ERROR, "Unable to delete tmp file at %s; file could not be opened\n", backup_filepath);
-	/* free(backup_filepath); */
 	return;
     }
     char hdr[6];
@@ -2395,14 +2399,54 @@ NEW_EVENT_FN(dispose_read_synth_preset, "")
     if (strncmp(hdr, "JSYNTH", 6) != 0) {
         log_tmp(LOG_ERROR, "Unable to safely delete tmp file at %s; expected JSYNTH hdr not found\n", backup_filepath);
 	fclose(f);
-	/* free(backup_filepath); */
-	return;	
+	return;
     }
     fclose(f);
     if (remove(backup_filepath) != 0) {
 	log_tmp(LOG_ERROR, "Unable to remove tmp file at %s: %s\n", backup_filepath, strerror(errno));
     }
+    free(backup_filepath);
 }
+
+NEW_EVENT_FN(undo_redo_read_synth_preset, "undo/redo read synth preset file")
+    struct synth_preset_arg *sp = obj1;
+    EffectChain *new_stashed_ec = effect_chain_stash(&sp->synth->effect_chain);
+    memset(&sp->synth->effect_chain, 0, sizeof(EffectChain));
+    char *new_backup_filepath = synth_write_backup_file(sp->synth);
+    synth_read_preset_file_internal(sp->backup_filepath, sp->synth, true);
+    if (sp->stashed_ec) {
+	effect_chain_unstash(&sp->synth->effect_chain, sp->stashed_ec);
+    }
+    free(sp->stashed_ec);
+
+    struct synth_preset_arg *sp_new = malloc(sizeof(struct synth_preset_arg));
+    sp_new->synth = sp->synth;
+    sp_new->backup_filepath = new_backup_filepath;
+    sp_new->stashed_ec = new_stashed_ec;
+    safe_delete_synth_backup(sp->backup_filepath);
+    free(sp);
+    self->obj1 = sp_new;
+
+
+}
+/* NEW_EVENT_FN(undo_read_synth_preset, "undo read synth preset file") */
+/*     struct synth_and_preset_path *sp = obj1; */
+/*     synth_read_preset_file_internal(obj2, sp->synth, true); */
+/* } */
+
+/* NEW_EVENT_FN(redo_read_synth_preset, "redo read synth preset file") */
+/*     struct synth_and_preset_path *sp = obj1; */
+/*     synth_read_preset_file_internal(sp->preset_path_copy, sp->synth, true); */
+/* } */
+
+NEW_EVENT_FN(dispose_read_synth_preset, "")
+    struct synth_preset_arg *sp = obj1;
+    char *backup_filepath = sp->backup_filepath;
+    safe_delete_synth_backup(backup_filepath);
+    if (sp->stashed_ec) free(sp->stashed_ec);
+}
+
+/* Back up synth settings and get a path to the backup file */
 
 
 static void synth_read_preset_file_internal(const char *filepath, Synth *s, bool from_undo)
@@ -2415,35 +2459,33 @@ static void synth_read_preset_file_internal(const char *filepath, Synth *s, bool
 
     fprintf(stderr, "\n\nRead preset %s\n\n", filepath);
     /* Called on main thread, so dsp/playback must be blocked */
-    pthread_mutex_lock(&s->audio_proc_lock);
+
+
     if (!from_undo) {
-	/* Backup the current synth settings for undo */
-	static int backup_file_index = 0;
-	char backup_filename[32] = {0};
-	snprintf(backup_filename, 32, "jackdaw_synth%d.jsynth", backup_file_index);
-	backup_file_index++;
-	char *backup_filepath = create_tmp_file(backup_filename);
-	synth_write_preset_file(backup_filepath, s);
-	/* fprintf(stderr, "\t\t--->Backing up current settings at %s\n", backup_filepath); */
-	struct synth_and_preset_path *sp = malloc(sizeof(struct synth_and_preset_path));
+	pthread_mutex_lock(&s->audio_proc_lock);
+	/* Remove effects from synth */
+	EffectChain *stashed_ec = effect_chain_stash(&s->effect_chain);
+	memset(&s->effect_chain, 0, sizeof(EffectChain));
+
+	/* Backup current settings */
+	char *backup_filepath = synth_write_backup_file(s);
+
+	/* Populate undo arg */
+	struct synth_preset_arg *sp = malloc(sizeof(struct synth_preset_arg));
 	sp->synth = s;
-	sp->preset_path_copy = strdup(filepath);
+	sp->backup_filepath = backup_filepath;
+	sp->stashed_ec = stashed_ec;
 	user_event_push(
-	    undo_read_synth_preset,
-	    redo_read_synth_preset,
+	    undo_redo_read_synth_preset,
+	    undo_redo_read_synth_preset,
+	    /* redo_read_synth_preset, */
 	    dispose_read_synth_preset, dispose_read_synth_preset,
-	    sp,
-	    backup_filepath,
+	    /* dispose_read_synth_preset, dispose_read_synth_preset, */
+	    sp, NULL,
 	    (Value){0}, (Value){0}, (Value){0}, (Value){0},
-	    0, 0, true, true);
+	    0, 0, true, false);
     }
 	
-    /* for (int i=0; i<s->effect_chain.num_effects; i++) { */
-    /* 	api_node_deregister(&s->effect_chain.effects[i]->api_node); */
-    /* } */
-    
-    effect_chain_deinit(&s->effect_chain);
-    /* fprintf(stderr, "\t->set default before deserializing\n"); */
     api_node_set_defaults(&s->api_node);
     
     char hdr[10];
@@ -2478,7 +2520,9 @@ static void synth_read_preset_file_internal(const char *filepath, Synth *s, bool
 	snprintf(s->preset_name, 64, "%s", last_slash_pos);
 	
     }
-    pthread_mutex_unlock(&s->audio_proc_lock);
+    if (!from_undo) {
+	pthread_mutex_unlock(&s->audio_proc_lock);
+    }
     timeline_check_set_midi_monitoring();
     fclose(f);
 }

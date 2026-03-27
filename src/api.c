@@ -151,6 +151,7 @@ void api_node_deregister(APINode *node)
     api_node_deregister_internal(node, true);
 }
 
+
 static APIHashNode **api_endpoint_get_hash_node_incl_deregistered(const char *route);
 
 static void api_node_reregister_internal(APINode *node, bool reinsert_into_parent)

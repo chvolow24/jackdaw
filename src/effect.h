@@ -107,4 +107,12 @@ void effect_chain_silence(EffectChain *ec);
 void effect_delete(Effect *e, bool from_undo);
 void effect_destroy(Effect *e);
 
+/* Make a copy of EC at "from", de-register API node, and return a pointer to copy */
+EffectChain *effect_chain_stash(EffectChain *from);
+
+/* Put contents of stashed back in dst, and re-register API node.
+   dst should be empty, or already stashed itself */
+void effect_chain_unstash(EffectChain *dst, EffectChain *stashed);
+
+
 #endif

@@ -237,6 +237,8 @@ static void loc_queued_bufs_add(float *chunk_L, float *chunk_R, int len_sframes)
     }
 }
 
+bool _TEST_DO_OVERLAP = true;
+
 void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 {
     Session *session = session_get();
@@ -276,17 +278,38 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 	    get_source_mode_chunk(0, chunk_L, len_sframes, session->source_mode.src_play_pos_sframes, session->source_mode.src_play_speed);
 	    get_source_mode_chunk(1, chunk_R, len_sframes, session->source_mode.src_play_pos_sframes, session->source_mode.src_play_speed);
 	} else {
+	    int chunks_to_read = 1;
+	    if (tl->audio_wait_discontinuity && tl->buf_read_pos + len_sframes % (RING_BUF_LEN_FFT_CHUNKS * proj->chunk_size_sframes)  == tl->dsp_discontinuity_rb_loc) {
+		chunks_to_read = 2;
+	    }
 	    int wait_count = 0;
-	    while (sem_trywait(tl->readable_chunks) != 0) {
-		wait_count++;
-		if (wait_count > 100) {
-		    transport_log("Playback callback early exit (can't wait on readable chunks)\n");
-		    return;
+	    for (int i=0; i<chunks_to_read; i++) {
+		while (sem_trywait(tl->readable_chunks) != 0) {
+		    wait_count++;
+		    if (wait_count > 100) {
+			transport_log("Playback callback early exit (can't wait on readable chunks)\n");
+			return;
+		    }
 		}
 	    }
-	    memcpy(chunk_L, tl->buf_L + tl->buf_read_pos, sizeof(float) * len_sframes);
-	    memcpy(chunk_R, tl->buf_R + tl->buf_read_pos, sizeof(float) * len_sframes);
-	    tl->buf_read_pos += len_sframes;
+	    if (tl->audio_wait_discontinuity && tl->buf_read_pos + len_sframes % (RING_BUF_LEN_FFT_CHUNKS * proj->chunk_size_sframes)  == tl->dsp_discontinuity_rb_loc) {
+		fprintf(stderr, "\t\t=======Audio discontinuity!\n");
+		float chunk_L_pre[len_sframes];
+		float chunk_R_pre[len_sframes];
+		memcpy(chunk_L_pre, tl->buf_L + tl->buf_read_pos, sizeof(float) * len_sframes);
+		memcpy(chunk_R_pre, tl->buf_R + tl->buf_read_pos, sizeof(float) * len_sframes);
+		memcpy(chunk_L, tl->buf_L + tl->buf_read_pos + len_sframes, sizeof(float) * len_sframes);
+		memcpy(chunk_R, tl->buf_R + tl->buf_read_pos + len_sframes, sizeof(float) * len_sframes);
+		if (_TEST_DO_OVERLAP) {
+		    float_buf_xfade(chunk_L, chunk_L_pre, len_sframes);
+		    float_buf_xfade(chunk_R, chunk_R_pre, len_sframes);
+		}
+		tl->audio_wait_discontinuity = false;
+	    } else {
+		memcpy(chunk_L, tl->buf_L + tl->buf_read_pos, sizeof(float) * len_sframes);
+		memcpy(chunk_R, tl->buf_R + tl->buf_read_pos, sizeof(float) * len_sframes);
+	    }
+	    tl->buf_read_pos += len_sframes * chunks_to_read;
 	    if (tl->buf_read_pos >= proj->fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS) {
 		tl->buf_read_pos = 0;
 	    }
@@ -374,26 +397,35 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 
     if (dev->channel_dsts[0].conn->request_playhead_reset) {
 	int32_t saved_write_pos = tl->buf_write_pos;
-	
 	/* Give DSP thread a new starting position */
 	tl->read_pos_sframes = dev->channel_dsts[0].conn->request_playhead_pos;
+	fprintf(stderr, "WAIT DISCONT TRUE\n");
+	tl->dsp_wait_discontinuity = true;
+	
+	/* Populate the overlap buffers */
+	/* if (tl->buf_read_pos < RING_BUF_LEN_FFT_CHUNKS * proj->fourier_len_sframes) { */
+	/*     fprintf(stderr, "SET OVERLAP\n"); */
+	/*     memcpy(tl->jump_overlap_buf_L, tl->buf_L + tl->buf_read_pos, len_sframes * sizeof(float)); */
+	/*     memcpy(tl->jump_overlap_buf_R, tl->buf_R + tl->buf_read_pos, len_sframes * sizeof(float)); */
+	/*     tl->jump_overlap_buf_available = true; */
+	/* } */
 
 	/* "Read" the rest of the mixdown buffer so DSP restarts */
-	while (tl->buf_read_pos != saved_write_pos) {
-	    int semret = sem_trywait(tl->readable_chunks);
-	    if (semret != 0) {
-		error_exit("ERROR: unable to wait on readable chunks! sem_trywait: %s", strerror(errno));
-	    }
-	    tl->buf_read_pos += len_sframes;
-	    sem_post(tl->writable_chunks);
-	    if (tl->buf_read_pos >= proj->fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS) {
-		tl->buf_read_pos = 0;
-	    }
-	}
+	/* while (tl->buf_read_pos != saved_write_pos) { */
+	/*     int semret = sem_trywait(tl->readable_chunks); */
+	/*     if (semret != 0) { */
+	/* 	error_exit("ERROR: unable to wait on readable chunks! sem_trywait: %s", strerror(errno)); */
+	/*     } */
+	/*     tl->buf_read_pos += len_sframes; */
+	/*     sem_post(tl->writable_chunks); */
+	/*     if (tl->buf_read_pos >= proj->fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS) { */
+	/* 	tl->buf_read_pos = 0; */
+	/*     } */
+	/* } */
 
 	/* Reset the dsp chunks info indices */
-	tl->dsp_chunks_info_read_i = 0;
-	tl->dsp_chunks_info_write_i = 0;
+	/* tl->dsp_chunks_info_read_i = 0; */
+	/* tl->dsp_chunks_info_write_i = 0; */
 
 	dev->channel_dsts[0].conn->request_playhead_reset = false;
     }
@@ -444,6 +476,18 @@ static void *transport_dsp_thread_fn(void *arg)
 	
 	/* GET MIXDOWN */
 	get_mixdown_chunk(tl, buf_L, buf_R, len, tl->read_pos_sframes, play_speed);
+
+	/* fprintf(stderr, "\nWRITE to %d, tl %d\n", tl->buf_write_pos, tl->read_pos_sframes); */
+	if (tl->dsp_wait_discontinuity) {
+	    fprintf(stderr, "\tDiscontinuity at %d\n", tl->buf_write_pos);
+	    for (int i=0; i<10; i++) {
+		fprintf(stderr, "\t\tmixdown L, R: (%d) %f %f\n", i, buf_L[i], buf_R[i]);
+	    }
+	    tl->dsp_discontinuity_rb_loc = tl->buf_write_pos;
+	    tl->dsp_wait_discontinuity = false;
+	    tl->audio_wait_discontinuity = true;
+	}
+
 	/* get_mixdown_chunk(tl, buf_L, 0, len, tl->read_pos_sframes, play_speed); */
 	/* get_mixdown_chunk(tl, buf_R, 1, len, tl->read_pos_sframes, play_speed); */
 	
@@ -490,6 +534,7 @@ static void *transport_dsp_thread_fn(void *arg)
 	memcpy(tl->buf_R + tl->buf_write_pos, buf_R, sizeof(float) * len);
 	memcpy(tl->proj->output_L, buf_L, sizeof(float) * len);
 	memcpy(tl->proj->output_R, buf_R, sizeof(float) * len);
+
 
 	for (uint16_t i=tl->proj->active_clip_index; i<tl->proj->num_clips; i++) {
 	    Clip *clip = tl->proj->clips[i];
@@ -655,6 +700,7 @@ void transport_execute_playhead_jump(Timeline *tl, int32_t new_pos)
     Session *session = session_get();
     if (session->playback.playing) {
 	/* To be handled in playback thread */
+	fprintf(stderr, "EXECUTE PLAYHEAD JUMP Read pos: %d, play pos: %d (new %d)(buf %d, %d)\n", tl->read_pos_sframes, tl->play_pos_sframes, new_pos, tl->buf_read_pos, tl->buf_write_pos);
 	session->audio_io.playback_conn->request_playhead_reset = true;
 	session->audio_io.playback_conn->request_playhead_pos = new_pos;
     } else {

@@ -68,7 +68,6 @@ void float_buf_mult_const(float *restrict a, float by, int len)
 void float_buf_xfade(float *restrict dst, float *restrict from, int len)
 {
     for (int i=0; i<len; i++) {
-	fprintf(stderr, "\ti: %d %f vs %f\n", i, dst[i], from[i]);
 	float prop = (float)i/len;
 	dst[i] = prop * dst[i] + (1 - prop) * from[i];
     }

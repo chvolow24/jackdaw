@@ -28,13 +28,11 @@
 #include "automation.h"
 #include "components.h"
 #include "effect.h"
-#include "eq.h"
 #include "endpoint.h"
 #include "grab.h"
 #include "midi_clip.h"
 #include "tempo.h"
 #include "timeview.h"
-#include "saturation.h"
 #include "synth.h"
 #include "textbox.h"
 
@@ -302,6 +300,14 @@ typedef struct timeline {
     struct dsp_chunk_info *dsp_chunks_info;
     int dsp_chunks_info_read_i;
     int dsp_chunks_info_write_i;
+
+    float *jump_overlap_buf_L; // alloc chunk size
+    float *jump_overlap_buf_R; // alloc chunk size
+    _Atomic bool jump_overlap_buf_available;
+    _Atomic bool dsp_wait_discontinuity;
+    _Atomic bool audio_wait_discontinuity;
+    _Atomic int32_t dsp_discontinuity_rb_loc;
+    
     
     
     Track *tracks[MAX_TRACKS];  

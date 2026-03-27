@@ -225,6 +225,8 @@ uint8_t project_add_timeline(Project *proj, char *name)
     
     new_tl->buf_L = calloc(1, sizeof(float) * proj->fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS);
     new_tl->buf_R = calloc(1, sizeof(float) * proj->fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS);
+    new_tl->jump_overlap_buf_L = calloc(1, sizeof(float) * proj->chunk_size_sframes);
+    new_tl->jump_overlap_buf_R = calloc(1, sizeof(float) * proj->chunk_size_sframes);
     new_tl->buf_write_pos = 0;
     new_tl->buf_read_pos = 0;
     char buf[128];
@@ -312,6 +314,8 @@ static void timeline_destroy(Timeline *tl, bool displace_in_proj)
     }
     if (tl->buf_L) free(tl->buf_L);
     if (tl->buf_R) free(tl->buf_R);
+    if (tl->jump_overlap_buf_L) free(tl->jump_overlap_buf_L);
+    if (tl->jump_overlap_buf_R) free(tl->jump_overlap_buf_R);
 
     /* if (tl->timecode_tb) textbox_destroy(tl->timecode_tb); */
     /* if (tl->loop_play_lemniscate) textbox_destroy(tl->loop_play_lemniscate); */

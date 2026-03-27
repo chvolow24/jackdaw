@@ -16,7 +16,6 @@
     * in-progress animations and updates
  *****************************************************************************************************************/
 
-
 #include <time.h>
 #include "SDL_events.h"
 #include "audio_connection.h"
@@ -37,7 +36,6 @@
 #include "project.h"
 #include "project_draw.h"
 #include "screenrecord.h"
-#include "schroeder.h"
 #include "session_endpoint_ops.h"
 #include "session.h"
 #include "settings.h"
@@ -53,9 +51,8 @@
 #define IDLE_AFTER_N_FRAMES 1000
 
 extern Window *main_win;
-
-
-extern Project *proj;
+extern bool _TEST_DO_OVERLAP;
+/* extern Project *proj; */
 
 /* extern pthread_t DSP_THREAD_ID; */
 
@@ -230,6 +227,9 @@ void loop_project_main()
 			    
 		/* } */
 		switch (e.key.keysym.scancode) {
+		case SDL_SCANCODE_6:
+		    _TEST_DO_OVERLAP = !_TEST_DO_OVERLAP;
+		    break;
 		case SDL_SCANCODE_LGUI:
 		case SDL_SCANCODE_RGUI:
 		case SDL_SCANCODE_LCTRL:

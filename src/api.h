@@ -76,11 +76,16 @@ int api_endpoint_get_route_until(Endpoint *ep, char *dst, size_t dst_size, APINo
 int api_endpoint_get_display_route_until(Endpoint *ep, char *dst, size_t dst_size, APINode *until);
 void api_node_register(APINode *node, APINode *parent, char *obj_name, const char *fixed_name);
 /* void api_node_register(APINode *node, APINode *parent, char *obj_name); */
+
+/* Use if node state (i.e. its children) should remain intact; otherwise use api_node_clear() */
 void api_node_deregister(APINode *node);
+
 void api_node_reregister(APINode *node);
-/* void api_node_deregister(APINode *node); */
+
+/* De-register API node AND clear its contents for re-use */
+void api_node_clear(APINode *node);
+
 void api_node_renamed(APINode *node);
-/* static void api_endpoint_get_route(Endpoint *ep, char *dst, size_t dst_size); */
 
 void api_node_set_defaults(APINode *node);
 

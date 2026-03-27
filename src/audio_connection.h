@@ -115,7 +115,7 @@ typedef struct audio_conn {
     void *obj; /* AudioDevice, PdConn, or JDAWConn */    
     struct conn_channel_cfg channel_cfg;
     bool is_default;
-    
+
     bool request_playhead_reset;
     int32_t request_playhead_pos;
 } AudioConn;

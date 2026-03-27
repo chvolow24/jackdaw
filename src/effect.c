@@ -205,6 +205,8 @@ void effect_chain_block_type(EffectChain *ec, EffectType type)
 void effect_chain_deinit(EffectChain *ec)
 {
     pthread_mutex_lock(&ec->effect_chain_lock);
+    api_node_clear(&ec->api_node);
+    /* api_node_deregister(&ec->api_node); */
     int num_to_destroy = ec->num_effects;
     ec->num_effects = 0;
     pthread_mutex_unlock(&ec->effect_chain_lock);

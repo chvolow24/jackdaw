@@ -2416,8 +2416,8 @@ NEW_EVENT_FN(undo_redo_read_synth_preset, "undo/redo read synth preset file")
     synth_read_preset_file_internal(sp->backup_filepath, sp->synth, true);
     if (sp->stashed_ec) {
 	effect_chain_unstash(&sp->synth->effect_chain, sp->stashed_ec);
+	free(sp->stashed_ec);
     }
-    free(sp->stashed_ec);
 
     struct synth_preset_arg *sp_new = malloc(sizeof(struct synth_preset_arg));
     sp_new->synth = sp->synth;

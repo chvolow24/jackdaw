@@ -75,6 +75,12 @@ extern Project *proj;
 extern void user_global_quit(void *);
 extern void open_file(const char *filepath);
 
+int incr_num_parallel_lop_delays(int by);
+void toggle_do_allpass();
+void toggle_alternate_sign();
+void toggle_do_flutter_reduction();
+void cycle_allpass_version();
+
 void loop_project_main()
 {
     Session *session = session_get();
@@ -230,6 +236,24 @@ void loop_project_main()
 			    
 		/* } */
 		switch (e.key.keysym.scancode) {
+		case SDL_SCANCODE_1:
+		    cycle_allpass_version();
+		    break;
+		case SDL_SCANCODE_2:
+		    toggle_do_flutter_reduction();
+		    break;
+		case SDL_SCANCODE_3:
+		    toggle_alternate_sign();
+		    break;
+		case SDL_SCANCODE_4:
+		    toggle_do_allpass();
+		    break;
+		case SDL_SCANCODE_5:
+		    incr_num_parallel_lop_delays(-1);
+		    break;
+		case SDL_SCANCODE_6:
+		    incr_num_parallel_lop_delays(1);
+		    break;
 		case SDL_SCANCODE_LGUI:
 		case SDL_SCANCODE_RGUI:
 		case SDL_SCANCODE_LCTRL:

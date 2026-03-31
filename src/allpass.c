@@ -95,6 +95,18 @@ float allpass_group_sample(AllpassGroup *ag, float in)
     return in;
 }
 
+float allpass_group_feedback_sample(AllpassGroup *ag, float in)
+{
+    float inner_input = ag->mem[ag->mem_index];
+    float inner_output = allpass_group_sample(ag, inner_input);
+    ag->mem[ag->mem_index] = in + ag->coeff * inner_output;
+    
+    ag->mem_index++;
+    if (ag->mem_index >= ag->len) ag->mem_index = 0;
+
+    return -ag->coeff * in + (1 - ag->coeff * ag->coeff) * inner_output;    
+}
+
 void allpass_group_clear(AllpassGroup *ag)
 {
     for (int i=0; i<ag->num_filters; i++) {
@@ -110,6 +122,14 @@ void allpass_group_init(AllpassGroup *ag, int num_filters, int32_t *lens_samples
     for (int i=0; i<num_filters; i++) {
 	allpass_init(ag->filters + i, lens_samples[i], coeff);
     }
+}
+/* Initialize an outer feedback/feedforward design */
+void allpass_group_feedback_init(AllpassGroup *ag, int32_t len, float g)
+{
+    ag->mem = calloc(len, sizeof(float));
+    ag->init_len = len;
+    ag->len = len;
+    ag->coeff = g;
 }
 
 void allpass_deinit(Allpass *ap)

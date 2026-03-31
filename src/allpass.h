@@ -45,6 +45,15 @@ typedef struct allpass {
 typedef struct allpass_group {
     int num_filters;
     Allpass *filters;
+
+    /* Below values only relevant for the design described here:
+       https://valhalladsp.com/2009/05/30/schroeder-reverbs-the-forgotten-algorithm/
+    */
+    float coeff;
+    int32_t init_len;
+    int32_t len;
+    float *mem;
+    int32_t mem_index;
 } AllpassGroup;
 
 
@@ -52,9 +61,15 @@ void allpass_init(Allpass *ap, int32_t len, float coeff);
 float allpass_sample(Allpass *ap, float in);
 
 void allpass_group_init(AllpassGroup *ag, int num_filters, int32_t *lens_samples, float coeff);
+
+void allpass_group_feedback_init(AllpassGroup *ag, int32_t len, float g);
 void allpass_group_set_len(AllpassGroup *ag, float scalar);
 /* void allpass_group_init_schroeder(AllpassGroup *ag); */
 float allpass_group_sample(AllpassGroup *ag, float in);
+
+/* https://valhalladsp.com/2009/05/30/schroeder-reverbs-the-forgotten-algorithm/ */
+float allpass_group_feedback_sample(AllpassGroup *ag, float in);
+
 void lop_delay_set_len(LopDelay *ld, double scale_init_len);
 void allpass_group_clear(AllpassGroup *ag);
 void allpass_group_deinit(AllpassGroup *ag);

@@ -2457,10 +2457,6 @@ static void synth_read_preset_file_internal(const char *filepath, Synth *s, bool
 	return;
     }
 
-    fprintf(stderr, "\n\nRead preset %s\n\n", filepath);
-    /* Called on main thread, so dsp/playback must be blocked */
-
-
     if (!from_undo) {
 	pthread_mutex_lock(&s->audio_proc_lock);
 	/* Remove effects from synth */
@@ -2485,7 +2481,8 @@ static void synth_read_preset_file_internal(const char *filepath, Synth *s, bool
 	    (Value){0}, (Value){0}, (Value){0}, (Value){0},
 	    0, 0, true, false);
     }
-	
+
+    /* Some (newer) params may not be specified in jsynth file, so set defaults for all first */
     api_node_set_defaults(&s->api_node);
     
     char hdr[10];

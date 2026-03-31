@@ -20,6 +20,7 @@ typedef struct schroeder {
     float allpass_coeff;
     AllpassGroup series_aps[2];
     LopDelay parallel_lop_delays[2][SCHROEDER_NUM_PARALLEL_LOP_DELAYS];
+    AllpassGroup flutter_reduction[2][SCHROEDER_NUM_PARALLEL_LOP_DELAYS];
     int32_t predelay_sframes;
     
 

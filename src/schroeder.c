@@ -34,10 +34,180 @@ float schroeder_buf_apply_mono(Schroeder *sch, float *restrict in, int len)
     return output_amp;
 
 }
+static bool _TEST_DO_ALLPASS = true;
+static int _TEST_NUM_PARALLEL_LOP_DELAYS = 4;
+static bool _TEST_DO_FLUTTER_REDUCTION = false;
+int incr_num_parallel_lop_delays(int by)
+{
+    int new = _TEST_NUM_PARALLEL_LOP_DELAYS + by;
+    if (new > SCHROEDER_NUM_PARALLEL_LOP_DELAYS) {
+	new = SCHROEDER_NUM_PARALLEL_LOP_DELAYS;
+    } else if (new < 0) {
+	new = 0;
+    }
+    _TEST_NUM_PARALLEL_LOP_DELAYS = new;
+    fprintf(stderr, "PARALLEL: %d\n", _TEST_NUM_PARALLEL_LOP_DELAYS);
+    return _TEST_NUM_PARALLEL_LOP_DELAYS;
+}
+void toggle_do_allpass()
+{
+    _TEST_DO_ALLPASS = !_TEST_DO_ALLPASS;
+    fprintf(stderr, "Allpass %s\n", _TEST_DO_ALLPASS ? "ON" : "Off");
+}
+
+bool _TEST_ALTERNATE_SIGN = true;
+void toggle_alternate_sign()
+{
+    _TEST_ALTERNATE_SIGN = !_TEST_ALTERNATE_SIGN;
+    fprintf(stderr, "%sAlternate sign\n", _TEST_ALTERNATE_SIGN ? "" : "DO NOT ");
+}
+void toggle_do_flutter_reduction()
+{
+    _TEST_DO_FLUTTER_REDUCTION = !_TEST_DO_FLUTTER_REDUCTION;
+    fprintf(stderr, "flutter reduction %s\n", _TEST_DO_FLUTTER_REDUCTION ? "ON" : "off");
+}
+
+float lop_delay_sample_cheat(LopDelay *ld, float in)
+{
+    float out = ld->mem[ld->mem_index];
+    ld->mem[ld->mem_index] = in;
+    ld->mem_index++;
+    if (ld->mem_index >= ld->len) {
+	ld->mem_index = 0;
+    }
+    return out;
+}
+
+/* float schroeder_buf_apply( void *sch_v, float *restrict in_L, float *restrict in_R, int len, float input_amp) */
+/* { */
+/*     Schroeder *sch = sch_v; */
+/*     float output_amp = 0.0f; */
+/*     if (!in_R) { */
+/* 	return schroeder_buf_apply_mono(sch, in_L, len); */
+/*     } else if (!in_L) { */
+/* 	return schroeder_buf_apply_mono(sch, in_R, len); */
+/*     } */
+
+/*     static const float mm[8][8] = { */
+/* 	{ 0.35355339f,  0.35355339f,  0.35355339f,  0.35355339f,  0.35355339f,  0.35355339f,  0.35355339f,  0.35355339f }, */
+/* 	{ 0.35355339f, -0.35355339f,  0.35355339f, -0.35355339f,  0.35355339f, -0.35355339f,  0.35355339f, -0.35355339f }, */
+/* 	{ 0.35355339f,  0.35355339f, -0.35355339f, -0.35355339f,  0.35355339f,  0.35355339f, -0.35355339f, -0.35355339f }, */
+/* 	{ 0.35355339f, -0.35355339f, -0.35355339f,  0.35355339f,  0.35355339f, -0.35355339f, -0.35355339f,  0.35355339f }, */
+/* 	{ 0.35355339f,  0.35355339f,  0.35355339f,  0.35355339f, -0.35355339f, -0.35355339f, -0.35355339f, -0.35355339f }, */
+/* 	{ 0.35355339f, -0.35355339f,  0.35355339f, -0.35355339f, -0.35355339f,  0.35355339f, -0.35355339f,  0.35355339f }, */
+/* 	{ 0.35355339f,  0.35355339f, -0.35355339f, -0.35355339f, -0.35355339f, -0.35355339f,  0.35355339f,  0.35355339f }, */
+/* 	{ 0.35355339f, -0.35355339f, -0.35355339f,  0.35355339f, -0.35355339f,  0.35355339f,  0.35355339f, -0.35355339f } */
+/*     }; */
+
+/*     static float lop_ins[2][SCHROEDER_NUM_PARALLEL_LOP_DELAYS] = {0}; */
+/*     static float lop_ins_next[2][SCHROEDER_NUM_PARALLEL_LOP_DELAYS] = {0}; */
+/*     for (int32_t i=0; i<len; i++) { */
+/* 	float dry_L = in_L[i]; */
+/* 	float dry_R = in_R[i];/// _TEST_NUM_PARALLEL_LOP_DELAYS; */
+/* 	float L_lop, R_lop, intermed_L, intermed_R; */
+/* 	intermed_L = 0.0f; */
+/* 	intermed_R = 0.0f; */
+/* 	bool even = true; */
+/* 	bool swap_channels = false; */
+/* 	for (int i=0; i<_TEST_NUM_PARALLEL_LOP_DELAYS; i++) { */
+/* 	/\* for (int i=0; i<SCHROEDER_NUM_PARALLEL_LOP_DELAYS; i++) { *\/ */
+/* 	    /\* fprintf(stderr, "I: %d -- %d, %d\n", i, even, swap_channels); *\/ */
+/* 	    /\* lop_ins[0][i] = 0.5 * dry_L + 0.5 * lop_ins[0][i]; *\/ */
+/* 	    /\* lop_ins[1][i] = 0.5 * dry_L + 0.5 * lop_ins[1][i]; *\/ */
+/* 	    float L_in = dry_L; */
+/* 	    float R_in = dry_R; */
+/* 	    for (int j=0; j<_TEST_NUM_PARALLEL_LOP_DELAYS; j++) { */
+/* 		L_in += mm[j][i] * lop_ins[0][j]; */
+/* 		R_in += mm[j][i] * lop_ins[1][j]; */
+/* 	    } */
+/* 	    L_lop = sch->decay_time * 2 * lop_delay_sample_cheat(&sch->parallel_lop_delays[0][i], L_in); */
+/* 	    R_lop = sch->decay_time * 2 * lop_delay_sample_cheat(&sch->parallel_lop_delays[1][i], R_in); */
+/* 	    if (_TEST_DO_FLUTTER_REDUCTION) { */
+/* 		L_lop = allpass_group_sample(sch->flutter_reduction[0] + i, L_lop); */
+/* 		R_lop = allpass_group_sample(sch->flutter_reduction[1] + i, R_lop); */
+/* 	    } */
+/* 	    /\* if (swap_channels) { *\/ */
+/* 	    /\* 	float swap = L_lop; *\/ */
+/* 	    /\* 	L_lop = R_lop; *\/ */
+/* 	    /\* 	R_lop = swap; *\/ */
+/* 	    /\* } *\/ */
+/* 	    /\* /\\* float ster = sch->stereo_spread / 2; // range 0-0.5 *\\/ *\/ */
+/* 	    /\* if (_TEST_ALTERNATE_SIGN) { *\/ */
+/* 	    /\* 	int sign = even ? 1 : -1; *\/ */
+/* 	    /\* 	L_lop *= sign; *\/ */
+/* 	    /\* 	R_lop *= sign; *\/ */
+/* 	    /\* } *\/ */
+/* 	    /\* L_lop = allpass_group_sample(&sch->series_aps[0], L_lop); *\/ */
+/* 	    /\* R_lop = allpass_group_sample(&sch->series_aps[1], R_lop); *\/ */
+
+/* 	    intermed_L += sch->panscale_syntonic * L_lop + sch->panscale_dystonic * R_lop; */
+/* 	    intermed_R += sch->panscale_dystonic * L_lop + sch->panscale_syntonic * R_lop; */
+
+/* 	    lop_ins_next[0][i] = L_lop; */
+/* 	    lop_ins_next[1][i] = R_lop; */
+/* 	    if (!even) { */
+/* 		swap_channels = !swap_channels; */
+/* 	    } */
+/* 	    even = !even; */
+/* 	} */
+
+/* 	memcpy(lop_ins, lop_ins_next, sizeof(float) * 8 * 2); */
+/* 	intermed_L = allpass_group_sample(&sch->series_aps[0], intermed_L); */
+/* 	intermed_R = allpass_group_sample(&sch->series_aps[1], intermed_R); */
+
+
+/* 	in_L[i] = dry_L * (1 - sch->wet) + sch->wet * intermed_L; */
+/* 	in_R[i] = dry_R * (1 - sch->wet) + sch->wet * intermed_R; */
+/* 	output_amp += fabs(in_L[i]); */
+/* 	output_amp += fabs(in_R[i]); */
+/*     } */
+/*     return output_amp; */
+
+/* } */
+
+static int _TEST_ALLPASS_VERSION = 0;
+static Schroeder *glob_sch = NULL;
+#define MAX_ALLPASS_VERSION 5
+void cycle_allpass_version()
+{
+    _TEST_ALLPASS_VERSION++;
+    if (_TEST_ALLPASS_VERSION > MAX_ALLPASS_VERSION) _TEST_ALLPASS_VERSION = 0;
+    if (glob_sch) {
+	float coeff = (float)_TEST_ALLPASS_VERSION / MAX_ALLPASS_VERSION - 0.01;
+	glob_sch->series_aps[0].coeff = coeff;
+	glob_sch->series_aps[1].coeff = coeff;
+	fprintf(stderr, "AP version; %d, coeff %f\n", _TEST_ALLPASS_VERSION, coeff);
+    } else {
+	fprintf(stderr, "AP version; %d\n", _TEST_ALLPASS_VERSION);
+    }
+}
+
+float allpass_test(void *sch_v, float *restrict in_L, float *restrict in_R, int len, float input_amp)
+{
+    Schroeder *sch = sch_v;
+    glob_sch = sch;
+    for (int32_t i=0; i<len; i++) {
+	switch (_TEST_ALLPASS_VERSION) {
+	case 1:
+	    in_L[i] = allpass_group_sample(&sch->series_aps[0], in_L[i]);
+	    in_R[i] = allpass_group_sample(&sch->series_aps[1], in_R[i]);
+	    break;
+	default:
+	    in_L[i] = allpass_group_feedback_sample(&sch->series_aps[0], in_L[i]);
+	    in_R[i] = allpass_group_feedback_sample(&sch->series_aps[1], in_R[i]);
+	    break;
+	}
+    }
+    return 1.0;
+}
 
 float schroeder_buf_apply(void *sch_v, float *restrict in_L, float *restrict in_R, int len, float input_amp)
 {
+    /* if (_TEST_ALLPASS_VERSION != 0) { */
+    /* 	return allpass_test(sch_v, in_L, in_R, len, input_amp); */
+    /* } */
     Schroeder *sch = sch_v;
+    glob_sch = sch;
     float output_amp = 0.0f;
     if (!in_R) {
 	return schroeder_buf_apply_mono(sch, in_L, len);
@@ -63,28 +233,48 @@ float schroeder_buf_apply(void *sch_v, float *restrict in_L, float *restrict in_
 	    reverb_in_R = dry_R;;
 	}
 	/* schroeder_sample(sch, in_L[i], in_R[i], in_L + i, in_R + i); */
-	float allpassed_L = allpass_group_sample(&sch->series_aps[0], reverb_in_L);
-	float allpassed_R = allpass_group_sample(&sch->series_aps[1], reverb_in_R);
+	float allpassed_L = _TEST_ALLPASS_VERSION == 0 ? allpass_group_sample(&sch->series_aps[0], reverb_in_L) : allpass_group_feedback_sample(&sch->series_aps[0], reverb_in_L);
+	float allpassed_R = _TEST_ALLPASS_VERSION == 0 ? allpass_group_sample(&sch->series_aps[1], reverb_in_R) : allpass_group_feedback_sample(&sch->series_aps[1], reverb_in_R);
+	if (!_TEST_DO_ALLPASS) {
+	    allpassed_L = reverb_in_L;
+	    allpassed_R = reverb_in_R;
+	}
 	float intermed_L = 0.0f;
 	float intermed_R = 0.0f;
     
 	float L_lop;
 	float R_lop;
+	/* bool even = true; */
+	bool swap_channels = false;
 	bool even = true;
-	for (int i=0; i<SCHROEDER_NUM_PARALLEL_LOP_DELAYS; i++) {
-	    L_lop = lop_delay_sample(&sch->parallel_lop_delays[0][i], allpassed_L) / SCHROEDER_NUM_PARALLEL_LOP_DELAYS;
-	    R_lop = lop_delay_sample(&sch->parallel_lop_delays[1][i], allpassed_R) / SCHROEDER_NUM_PARALLEL_LOP_DELAYS;
-	    if (even) {
+	int divisor = _TEST_ALTERNATE_SIGN ? _TEST_NUM_PARALLEL_LOP_DELAYS * 0.9 : _TEST_NUM_PARALLEL_LOP_DELAYS;
+	for (int i=0; i<_TEST_NUM_PARALLEL_LOP_DELAYS; i++) {
+	/* for (int i=0; i<SCHROEDER_NUM_PARALLEL_LOP_DELAYS; i++) { */
+	    /* fprintf(stderr, "I: %d -- %d, %d\n", i, even, swap_channels); */
+	    L_lop = lop_delay_sample(&sch->parallel_lop_delays[0][i], allpassed_L) / divisor;
+	    R_lop = lop_delay_sample(&sch->parallel_lop_delays[1][i], allpassed_R) / divisor;
+	    if (_TEST_DO_FLUTTER_REDUCTION) {
+		L_lop = allpass_group_sample(sch->flutter_reduction[0] + i, L_lop);
+		R_lop = allpass_group_sample(sch->flutter_reduction[1] + i, R_lop);
+	    }
+	    if (swap_channels) {
 		float swap = L_lop;
 		L_lop = R_lop;
 		R_lop = swap;
-		even = false;
-	    } else {
-		even = true;
 	    }
 	    /* float ster = sch->stereo_spread / 2; // range 0-0.5 */
+	    if (_TEST_ALTERNATE_SIGN) {
+		int sign = even ? 1 : -1;
+		L_lop *= sign;
+		R_lop *= sign;
+	    }
 	    intermed_L += sch->panscale_syntonic * L_lop + sch->panscale_dystonic * R_lop;
 	    intermed_R += sch->panscale_dystonic * L_lop + sch->panscale_syntonic * R_lop;
+	    if (!even) {
+		swap_channels = !swap_channels;
+	    }
+	    even = !even;
+
 	}
 	/* *out_L = intermed_L; */
 	/* *out_R = intermed_R; */
@@ -232,6 +422,11 @@ void schroeder_init_freeverb(Schroeder *sch)
     };
     allpass_group_init(&sch->series_aps[0], 4, lens, sch->allpass_coeff);
     allpass_group_init(&sch->series_aps[1], 4, lens, sch->allpass_coeff);
+
+    allpass_group_feedback_init(&sch->series_aps[0], 1277, 0.5);
+    allpass_group_feedback_init(&sch->series_aps[1], 1277, 0.5);
+    /* allpass_group_init(&sch->series_aps[1], 4, lens, sch->allpass_coeff); */
+
     int32_t lop_lens[8] = {
 	1617 * sr / 44100,
 	1557 * sr / 44100,
@@ -253,9 +448,17 @@ void schroeder_init_freeverb(Schroeder *sch)
 	1103 * sr / 44100	
     };
 
+    int32_t fl_r_lens[4] = {
+	13 * sr / 44100,
+	23 * sr / 44100,
+	53 * sr / 44100,
+	71 * sr / 44100,
+    };
     for (int i=0; i<8; i++) {
 	lop_delay_init(sch->parallel_lop_delays[0] + i, lop_lens[i], sch->lop_delay_coeff, sch->lop_coeff);
 	lop_delay_init(sch->parallel_lop_delays[1] + i, lop_lens_r[i], sch->lop_delay_coeff, sch->lop_coeff);
+	allpass_group_init(sch->flutter_reduction[0] + i, 4, fl_r_lens, 0.5);
+	allpass_group_init(sch->flutter_reduction[1] + i, 4, fl_r_lens, 0.5);
     }
 
 

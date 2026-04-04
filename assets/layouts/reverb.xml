@@ -4,13 +4,13 @@
   <w>SCALE 1.000000</w>
   <h>SCALE 1.000000</h>
   <children>
-    <Layout name="toggle_area" type="NORMAL">
-      <x>SCALE 0.060000</x>
-      <y>SCALE 0.056464</y>
+    <Layout name="er" type="NORMAL">
+      <x>SCALE 0.325833</x>
+      <y>SCALE 0.056130</y>
       <w>REL 303</w>
       <h>REL 20</h>
       <children>
-        <Layout name="toggle_reverb" type="NORMAL">
+        <Layout name="er_tgl" type="NORMAL">
           <x>REL 0</x>
           <y>REL 0</y>
           <w>REL 20</w>
@@ -18,7 +18,7 @@
           <children>
           </children>
         </Layout>
-        <Layout name="toggle_label" type="NORMAL">
+        <Layout name="er_lbl" type="NORMAL">
           <x>REL 37</x>
           <y>REL 0</y>
           <w>REL 266</w>
@@ -28,19 +28,11 @@
         </Layout>
       </children>
     </Layout>
-    <Layout name="filter_type" type="NORMAL">
-      <x>SCALE 0.622500</x>
-      <y>REL 82</y>
-      <w>SCALE 0.287500</w>
-      <h>ABS 267</h>
-      <children>
-      </children>
-    </Layout>
     <Layout name="slider_area" type="NORMAL">
       <x>SCALE 0.060000</x>
-      <y>REL 82</y>
+      <y>REL 68</y>
       <w>SCALE 0.523333</w>
-      <h>ABS 267</h>
+      <h>ABS 400</h>
       <children>
         <Layout name="slider_area_cutoff" type="NORMAL">
           <x>REL 0</x>
@@ -90,7 +82,7 @@
             </Layout>
           </children>
         </Layout>
-	<Layout name="slider_area_amp" type="NORMAL">
+        <Layout name="slider_area_amp" type="NORMAL">
           <x>REL 0</x>
           <y>STACK 0</y>
           <w>SCALE 1.000000</w>
@@ -138,7 +130,7 @@
             </Layout>
           </children>
         </Layout>
-	<Layout name="slider_area_stereo_offset" type="NORMAL">
+        <Layout name="slider_area_stereo_offset" type="NORMAL">
           <x>REL 0</x>
           <y>STACK 0</y>
           <w>SCALE 1.000000</w>
@@ -161,8 +153,8 @@
               </children>
             </Layout>
           </children>
-	</Layout>
-	<Layout name="slider_area_stereo_offset" type="NORMAL">
+        </Layout>
+        <Layout name="slider_area_stereo_offset" type="NORMAL">
           <x>REL 0</x>
           <y>STACK 0</y>
           <w>SCALE 1.000000</w>
@@ -185,16 +177,7 @@
               </children>
             </Layout>
           </children>
-	</Layout>
-
-      </children>
-    </Layout>
-    <Layout name="waveform" type="NORMAL">
-      <x>SCALE 0.060000</x>
-      <y>SCALE 0.557692</y>
-      <w>SCALE 0.850000</w>
-      <h>SCALE 0.367308</h>
-      <children>
+        </Layout>
       </children>
     </Layout>
     <Layout name="track_selection" type="NORMAL">
@@ -224,6 +207,30 @@
           <y>REL 0</y>
           <w>REL 100</w>
           <h>SCALE 1.000000</h>
+          <children>
+          </children>
+        </Layout>
+      </children>
+    </Layout>
+    <Layout name="toggle_area" type="NORMAL">
+      <x>SCALE 0.060000</x>
+      <y>SCALE 0.056464</y>
+      <w>REL 303</w>
+      <h>REL 20</h>
+      <children>
+        <Layout name="toggle_reverb" type="NORMAL">
+          <x>REL 0</x>
+          <y>REL 0</y>
+          <w>REL 20</w>
+          <h>REL 20</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="toggle_label" type="NORMAL">
+          <x>REL 37</x>
+          <y>REL 0</y>
+          <w>REL 266</w>
+          <h>REL 20</h>
           <children>
           </children>
         </Layout>

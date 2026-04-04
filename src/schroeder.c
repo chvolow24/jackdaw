@@ -44,6 +44,7 @@ float schroeder_buf_apply(void *sch_v, float *restrict in_L, float *restrict in_
     } else if (!in_L) {
 	return schroeder_buf_apply_mono(sch, in_R, len);
     }
+    const bool mute_early_reflections = !sch->early_reflections;
 
     for (int32_t i=0; i<len; i++) {
 	float dry_L = in_L[i];
@@ -71,27 +72,36 @@ float schroeder_buf_apply(void *sch_v, float *restrict in_L, float *restrict in_
 	float L_lop;
 	float R_lop;
 	bool even = true;
-	bool swap_channels = false;
+	/* bool swap_channels = false; */
 	for (int i=0; i<SCHROEDER_NUM_PARALLEL_LOP_DELAYS; i++) {
 	    L_lop = lop_delay_sample(&sch->parallel_lop_delays[0][i], allpassed_L) / SCHROEDER_NUM_PARALLEL_LOP_DELAYS;
 	    R_lop = lop_delay_sample(&sch->parallel_lop_delays[1][i], allpassed_R) / SCHROEDER_NUM_PARALLEL_LOP_DELAYS;
-	    if (even) {
+	    /* if (even) { */
+	    /* 	float swap = L_lop; */
+	    /* 	L_lop = R_lop; */
+	    /* 	R_lop = swap; */
+	    /* } */
+	    if (mute_early_reflections) {
+		if (!even) {
+		    L_lop *= -1;
+		    R_lop *= -1;
+		}
+	    }
+	    if (i >= 4) {
 		float swap = L_lop;
 		L_lop = R_lop;
-		R_lop = swap;
-	    }
-	    if (even) {
-		L_lop *= -1;
-		R_lop *= -1;
+		R_lop = swap;		
 	    }
 	    /* float ster = sch->stereo_spread / 2; // range 0-0.5 */
 	    intermed_L += sch->panscale_syntonic * L_lop + sch->panscale_dystonic * R_lop;
 	    intermed_R += sch->panscale_dystonic * L_lop + sch->panscale_syntonic * R_lop;
 
-	    if (!even) {
-		swap_channels = !swap_channels;
+	    /* if (!even) { */
+	    /* 	swap_channels = !swap_channels; */
+	    /* } */
+	    if (mute_early_reflections) {
+		even = !even;
 	    }
-	    even = !even;
 	}
 	/* *out_L = intermed_L; */
 	/* *out_R = intermed_R; */
@@ -231,14 +241,25 @@ void schroeder_init_freeverb(Schroeder *sch)
     sch->lop_coeff = 0.5;
     sch->lop_delay_coeff = 0.87;
     int32_t sr = session_get_sample_rate();
-    int32_t lens[4] = {
-	225 * sr / 44100,
+    int32_t lens[6] = {
 	556 * sr / 44100,
 	441 * sr / 44100,
-	341 * sr / 44100
+	341 * sr / 44100,
+	225 * sr / 44100,
+	197 * sr / 44100,
+	151 * sr / 44100
+	
     };
-    allpass_group_init(&sch->series_aps[0], 4, lens, sch->allpass_coeff);
-    allpass_group_init(&sch->series_aps[1], 4, lens, sch->allpass_coeff);
+    int32_t lens_r[6] = {
+	577 * sr / 44100,
+	421 * sr / 44100,
+	383 * sr / 44100,
+	233 * sr / 44100,
+	179 * sr / 44100,
+	149 * sr / 44100,
+    };
+    allpass_group_init(&sch->series_aps[0], 6, lens, sch->allpass_coeff);
+    allpass_group_init(&sch->series_aps[1], 6, lens_r, sch->allpass_coeff);
     int32_t lop_lens[8] = {
 	1617 * sr / 44100,
 	1557 * sr / 44100,
@@ -341,6 +362,19 @@ void schroeder_init_freeverb(Schroeder *sch)
     endpoint_set_label_fn(&sch->predelay_ep, label_msec);
     api_endpoint_register(&sch->predelay_ep, &sch->effect->api_node);
 
+    endpoint_init(
+	&sch->early_reflections_ep,
+	&sch->early_reflections,
+	JDAW_BOOL,
+	"early_reflections",
+	"Early reflections",
+	JDAW_THREAD_DSP,
+	page_el_gui_cb, NULL, NULL,
+	NULL, NULL, &sch->effect->page, "er_tgl");
+    endpoint_set_default_value(&sch->early_reflections_ep, (Value){.bool_v = false});
+    endpoint_write_default(&sch->early_reflections_ep);
+    api_endpoint_register(&sch->early_reflections_ep, &sch->effect->api_node);
+    
     endpoint_init(
 	&sch->wet_ep,
 	&sch->wet,

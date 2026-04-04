@@ -54,7 +54,7 @@ float lop_delay_sample(LopDelay *ld, float in)
     if (ld->mem_index < 0) {
 	ld->mem_index += ld->len;
     }
-    return delay_out;
+    return lop_out;
 }
 
 void lop_delay_set_len(LopDelay *ld, double scale_init_len)

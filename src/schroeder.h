@@ -28,11 +28,14 @@ typedef struct schroeder {
     float brightness; // lop_coeff = brightness
     float delay_len_scalar; // range 0->1
     float predelay_msec;
+    bool early_reflections;
     Endpoint decay_time_ep;
     Endpoint brightness_ep;
     Endpoint stereo_spread_ep;
     Endpoint delay_len_scalar_ep;
     Endpoint predelay_ep;
+    Endpoint early_reflections_ep;
+    
     Endpoint wet_ep;
     /* int num_parallel_lop_delays;     */
     int32_t predelay_index;

@@ -35,7 +35,7 @@ float schroeder_buf_apply_mono(Schroeder *sch, float *restrict in, int len)
 
 }
 static bool _TEST_DO_ALLPASS = true;
-static int _TEST_NUM_PARALLEL_LOP_DELAYS = 4;
+static int _TEST_NUM_PARALLEL_LOP_DELAYS = 8;
 static bool _TEST_DO_FLUTTER_REDUCTION = false;
 int incr_num_parallel_lop_delays(int by)
 {
@@ -170,16 +170,29 @@ static Schroeder *glob_sch = NULL;
 #define MAX_ALLPASS_VERSION 5
 void cycle_allpass_version()
 {
-    _TEST_ALLPASS_VERSION++;
-    if (_TEST_ALLPASS_VERSION > MAX_ALLPASS_VERSION) _TEST_ALLPASS_VERSION = 0;
     if (glob_sch) {
-	float coeff = (float)_TEST_ALLPASS_VERSION / MAX_ALLPASS_VERSION - 0.01;
-	glob_sch->series_aps[0].coeff = coeff;
-	glob_sch->series_aps[1].coeff = coeff;
-	fprintf(stderr, "AP version; %d, coeff %f\n", _TEST_ALLPASS_VERSION, coeff);
-    } else {
-	fprintf(stderr, "AP version; %d\n", _TEST_ALLPASS_VERSION);
+	int num_filters = glob_sch->series_aps[0].num_filters;
+	if (num_filters == 4) {
+	    glob_sch->series_aps[0].num_filters = 6;
+	    glob_sch->series_aps[1].num_filters = 6;
+	    fprintf(stderr, "6 filters\n");
+	} else {
+	    glob_sch->series_aps[0].num_filters = 4;
+	    glob_sch->series_aps[1].num_filters = 4;
+	    fprintf(stderr, "4 filters\n");
+	}
+
     }
+    /* _TEST_ALLPASS_VERSION++; */
+    /* if (_TEST_ALLPASS_VERSION > MAX_ALLPASS_VERSION) _TEST_ALLPASS_VERSION = 0; */
+    /* if (glob_sch) { */
+    /* 	float coeff = (float)_TEST_ALLPASS_VERSION / MAX_ALLPASS_VERSION - 0.01; */
+    /* 	glob_sch->series_aps[0].coeff = coeff; */
+    /* 	glob_sch->series_aps[1].coeff = coeff; */
+    /* 	fprintf(stderr, "AP version; %d, coeff %f\n", _TEST_ALLPASS_VERSION, coeff); */
+    /* } else { */
+    /* 	fprintf(stderr, "AP version; %d\n", _TEST_ALLPASS_VERSION); */
+    /* } */
 }
 
 float allpass_test(void *sch_v, float *restrict in_L, float *restrict in_R, int len, float input_amp)
@@ -245,9 +258,10 @@ float schroeder_buf_apply(void *sch_v, float *restrict in_L, float *restrict in_
 	float L_lop;
 	float R_lop;
 	/* bool even = true; */
-	bool swap_channels = false;
+	/* bool swap_channels = false; */
 	bool even = true;
-	int divisor = _TEST_ALTERNATE_SIGN ? _TEST_NUM_PARALLEL_LOP_DELAYS * 0.9 : _TEST_NUM_PARALLEL_LOP_DELAYS;
+	/* int divisor = _TEST_ALTERNATE_SIGN ? _TEST_NUM_PARALLEL_LOP_DELAYS * 0.9 : _TEST_NUM_PARALLEL_LOP_DELAYS; */
+	int divisor = _TEST_NUM_PARALLEL_LOP_DELAYS;
 	for (int i=0; i<_TEST_NUM_PARALLEL_LOP_DELAYS; i++) {
 	/* for (int i=0; i<SCHROEDER_NUM_PARALLEL_LOP_DELAYS; i++) { */
 	    /* fprintf(stderr, "I: %d -- %d, %d\n", i, even, swap_channels); */
@@ -257,22 +271,41 @@ float schroeder_buf_apply(void *sch_v, float *restrict in_L, float *restrict in_
 		L_lop = allpass_group_sample(sch->flutter_reduction[0] + i, L_lop);
 		R_lop = allpass_group_sample(sch->flutter_reduction[1] + i, R_lop);
 	    }
-	    if (swap_channels) {
+	    if (_TEST_ALTERNATE_SIGN) {
+		if (!even) {
+		    L_lop *= -1;
+		    R_lop *= -1;
+		}
+		/* if (even) { */
+		/*     L_lop *= -1; */
+		/*     R_lop *= -1; */
+		/* } else { */
+		/*     /\* R_lop *= -1; *\/ */
+		/* } */
+	    }
+
+	    if (i < 4) {
 		float swap = L_lop;
 		L_lop = R_lop;
-		R_lop = swap;
+		R_lop = swap;		
+		
 	    }
+	    /* if (!even) { */
+	    /* 	float swap = L_lop; */
+	    /* 	L_lop = R_lop; */
+	    /* 	R_lop = swap;		 */
+	    /* } */
+	    /* if (swap_channels) { */
+	    /* 	float swap = L_lop; */
+	    /* 	L_lop = R_lop; */
+	    /* 	R_lop = swap; */
+	    /* } */
 	    /* float ster = sch->stereo_spread / 2; // range 0-0.5 */
-	    if (_TEST_ALTERNATE_SIGN) {
-		int sign = even ? 1 : -1;
-		L_lop *= sign;
-		R_lop *= sign;
-	    }
 	    intermed_L += sch->panscale_syntonic * L_lop + sch->panscale_dystonic * R_lop;
 	    intermed_R += sch->panscale_dystonic * L_lop + sch->panscale_syntonic * R_lop;
-	    if (!even) {
-		swap_channels = !swap_channels;
-	    }
+	    /* if (!even) { */
+	    /* 	swap_channels = !swap_channels; */
+	    /* } */
 	    even = !even;
 
 	}
@@ -414,14 +447,26 @@ void schroeder_init_freeverb(Schroeder *sch)
     sch->lop_coeff = 0.5;
     sch->lop_delay_coeff = 0.87;
     int32_t sr = session_get_sample_rate();
-    int32_t lens[4] = {
-	225 * sr / 44100,
+    int32_t lens[6] = {
 	556 * sr / 44100,
 	441 * sr / 44100,
-	341 * sr / 44100
+	341 * sr / 44100,
+	225 * sr / 44100,
+	197 * sr / 44100,
+	151 * sr / 44100,
+	/* 101 * sr / 44100, */
+	/* 71 * sr / 44100 */
     };
-    allpass_group_init(&sch->series_aps[0], 4, lens, sch->allpass_coeff);
-    allpass_group_init(&sch->series_aps[1], 4, lens, sch->allpass_coeff);
+    int32_t lens_r[6] = {
+	577 * sr / 44100,
+	421 * sr / 44100,
+	383 * sr / 44100,
+	233 * sr / 44100,
+	179 * sr / 44100,
+	149 * sr / 44100,	
+    };
+    allpass_group_init(&sch->series_aps[0], 6, lens, sch->allpass_coeff);
+    allpass_group_init(&sch->series_aps[1], 6, lens_r, sch->allpass_coeff);
 
     allpass_group_feedback_init(&sch->series_aps[0], 1277, 0.5);
     allpass_group_feedback_init(&sch->series_aps[1], 1277, 0.5);

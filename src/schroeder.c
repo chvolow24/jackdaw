@@ -76,35 +76,28 @@ float schroeder_buf_apply(void *sch_v, float *restrict in_L, float *restrict in_
 	for (int i=0; i<SCHROEDER_NUM_PARALLEL_LOP_DELAYS; i++) {
 	    L_lop = lop_delay_sample(&sch->parallel_lop_delays[0][i], allpassed_L) / SCHROEDER_NUM_PARALLEL_LOP_DELAYS;
 	    R_lop = lop_delay_sample(&sch->parallel_lop_delays[1][i], allpassed_R) / SCHROEDER_NUM_PARALLEL_LOP_DELAYS;
-	    /* if (even) { */
-	    /* 	float swap = L_lop; */
-	    /* 	L_lop = R_lop; */
-	    /* 	R_lop = swap; */
-	    /* } */
+	    
 	    if (mute_early_reflections) {
 		if (!even) {
 		    L_lop *= -1;
 		    R_lop *= -1;
 		}
 	    }
-	    if (i >= 4) {
+	    
+	    if (i < 4) {
+		/* if ((i/2) % 2 == 0) { */
 		float swap = L_lop;
 		L_lop = R_lop;
 		R_lop = swap;		
 	    }
-	    /* float ster = sch->stereo_spread / 2; // range 0-0.5 */
+
 	    intermed_L += sch->panscale_syntonic * L_lop + sch->panscale_dystonic * R_lop;
 	    intermed_R += sch->panscale_dystonic * L_lop + sch->panscale_syntonic * R_lop;
 
-	    /* if (!even) { */
-	    /* 	swap_channels = !swap_channels; */
-	    /* } */
 	    if (mute_early_reflections) {
 		even = !even;
 	    }
 	}
-	/* *out_L = intermed_L; */
-	/* *out_R = intermed_R; */
 
 	in_L[i] = dry_L * (1 - sch->wet) + sch->wet * intermed_L;
 	in_R[i] = dry_R * (1 - sch->wet) + sch->wet * intermed_R;

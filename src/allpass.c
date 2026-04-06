@@ -8,6 +8,7 @@
 
 *****************************************************************************************************************/
 
+#include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -59,7 +60,16 @@ float lop_delay_sample(LopDelay *ld, float in)
 
 void lop_delay_set_len(LopDelay *ld, double scale_init_len)
 {
-    ld->len = ld->init_len * scale_init_len;
+    float saved[ld->len];
+    memcpy(saved, ld->mem, sizeof(saved));
+    int32_t new_len = ld->init_len * scale_init_len;
+    double prop = (double)ld->len / new_len;
+    for (int i=0; i<new_len; i++) {
+	int old_i = round((double)i * prop);
+	if (old_i >= ld->len) old_i = ld->len - 1;
+	ld->mem[i] = saved[old_i];
+    }
+    ld->len = new_len;
 }
 
 void lop_delay_clear(LopDelay *ld)

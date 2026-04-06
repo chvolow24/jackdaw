@@ -228,7 +228,7 @@ You will be prompted to enter a project name (which must include the `.jdaw` ext
 10. [Opening and saving files](#opening-and-saving-files)
 11. [Track effects](#track-effects)
     1. [Adding, ordering, and removing effects](#adding-ordering-and-removing-effects)
-	2. [Channel mode](#channel-mode)
+	2. [Channel modes](#channel-modes)
 	3. [EQ](#eq)
 	4. [FIR Filter](#fir-filter)
 	5. [Delay line](#delay-line)
@@ -737,24 +737,24 @@ You can also click the tabs, and click and drag to reorder them.
 
 To remove an effect, simply hit `del` or `backspace` while the effect is selected in the tab view. Associated automation tracks will be removed as well, and will be reinstated if the deletion is undone.
 
-### Channel mode
+### Channel modes
 
 Every effect can be put into one of four "channel modes":
 
 1. Stereo
-2. Mid only
-3. Side only
-4. Mid / Side
+2. L only
+3. R only
+4. Mid only
+5. Side only
+6. Mid / Side
 
-Stereo is the default mode; effect processing occurs on the input left channel and input right channel.
-
-In any of the other modes, [mid-side encoding](https://majormixing.com/what-is-mid-side-encoding/) is applied to the input audio before it is sent to the effect. After the effect processes the audio, the mid and side channels are reprocessed into stereo L and R.
+If the channel mode is one of `Mid only`, `Side only`, or `Mid-side`, the two stereo input Left and Right channels are replaced with Mid and Side channels before being passed to the effect.
 
 In **Mid only** mode, the left input channel is replaced with the processed mid channel, and the right channel is ignored during effect processing.
 
 In **Side only** mode, the right input channel is replaced with the processed side channel, and the left channel is ignored.
 
-In **Mid / Side** mode, the left channel is replaced with the mid channel, and right is replaced with side. This is equvialent to stereo mode in all effects that process the two channels independently (EQ, FIR Filter, Delay, Saturation, Compressor).
+In **Mid / Side** mode, the left channel is replaced with the mid channel, and right is replaced with side. This is equvialent to stereo mode in all effects that process the two channels independently (EQ, FIR Filter, Saturation, Compressor).
 
 ### EQ
 
@@ -829,6 +829,11 @@ The input (dry) signal is delayed by this amount before being sent into the reve
 
 **`Dry / wet`**
 How much of the reverberator output is mixed with the dry signal.
+
+**`Early reflections`**
+When disabled (the default), phase cancellation removes a "phantom dry" signal from the output of the reverb. When enabled, that signal is heard.
+
+You can read about the reverb in more detail at https://charlie-volow.com/blog/posts/jackdaw_reverb.html.
 
 ## Automation
 

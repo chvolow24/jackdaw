@@ -760,7 +760,7 @@ void session_set_default_out(void *nullarg)
 		&(conn->index));
 	}
     }
-    menu_add_header(menu,"", "Select the default audio output.\n\n'n' to select next item; 'p' to select previous item.");
+    menu_add_header(menu,"", "Select the default audio output.\n\n'n' to select next item; 'p' to select previous.");
     /* menu_reset_layout(menu); */
     window_add_menu(main_win, menu);
 }

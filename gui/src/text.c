@@ -755,13 +755,18 @@ static int txt_area_create_line(TextArea *txtarea, char **line_start, int w)
 	while (*cursor != ' ' && *cursor != '\n' && *cursor != '-' && *cursor != '\0') {
 	    cursor++;
 	}
+	/* fprintf(stderr, "Save word end: %d\n", *cursor); */
         save_word_end = *cursor;
-	
+	/* fprintf(stderr, "Line start: %s\n", *line_start); */
 	switch (save_word_end) {
 	case '\0':
 	case '\n':
 	    *cursor = '\0';
 	    if (cursor - *line_start != 0)  {
+		TTF_SizeUTF8(font, *line_start, &line_w, &line_h);
+		if (line_w > w) {
+		    goto word_overflow;
+		}
 		txt_area_make_line(txtarea, *line_start);
 		/* surface = TTF_RenderText_Blended(font,  *line_start, txtarea->color); */
 		/* if (!surface) { */
@@ -775,6 +780,8 @@ static int txt_area_create_line(TextArea *txtarea, char **line_start, int w)
 		/* txtarea->line_widths[txtarea->num_lines] = line_w; */
 		/* txtarea->line_textures[txtarea->num_lines] = texture; */
 		/* txtarea->num_lines++; */
+	    } else {
+		txt_area_make_line(txtarea, " ");
 	    }
 	    *cursor = save_word_end;
 	    *line_start = cursor + 1;
@@ -788,6 +795,7 @@ static int txt_area_create_line(TextArea *txtarea, char **line_start, int w)
 	    *cursor = '\0';
 	    TTF_SizeUTF8(font, *line_start, &line_w, &line_h);
 	    if (line_w > w) {
+	    word_overflow:
 		save_last_word_end = *last_word_boundary;
 		*last_word_boundary = '\0';
 		if (cursor - *line_start != 0)  {

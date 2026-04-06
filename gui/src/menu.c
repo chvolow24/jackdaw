@@ -1,5 +1,6 @@
 #include "color.h"
 #include "geometry.h"
+#include "layout.h"
 #include "menu.h"
 #include "text.h"
 #include "textbox.h"
@@ -152,12 +153,15 @@ void menu_add_header(Menu *menu, const char *title, const char *description)
     header_lt->w.value = menu->layout->w.value - 2 * header_lt->x.value;
     layout_reset(header_lt);
     TextArea *header = txt_area_create(description, header_lt, main_win->mono_font, MENU_TXT_SIZE, menu_std_clr_annot_txt, menu->window);
+    /* layout_size_to_fit_children_h(header_lt, true, 0); */
+    /* layout_size_to_fit_children_h(menu->layout, true, 0); */
     menu->header = header;
     int header_h = header->layout->h.value;
 
     /* Set y value of content layout */
     menu->layout->children[1]->y.value = header_h + MENU_STD_HEADER_PAD;
     menu->layout->h.value += menu->layout->children[1]->y.value;
+
     layout_reset(menu->layout);
     menu_reset_layout(menu);
 }
@@ -509,6 +513,7 @@ void menu_draw(Menu *menu)
     if (menu->header) {
 	txt_area_draw(menu->header);
     }
+    /* layout_draw(main_win, menu->layout); */
 }
 
 

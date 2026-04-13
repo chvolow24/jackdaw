@@ -64,6 +64,9 @@ void float_buf_mult_to(float *restrict a, float *restrict b, float *restrict pro
 /* Fade dst in, from out (linear) */
 void float_buf_xfade(float *restrict dst, float *restrict from, int len);
 
+/* Mix some of "from" into "dst" */
+void float_buf_mix_in(float *restrict dst, float *restrict from, float amp, int len);
+
 /* Convert a linear pan parameter value into a multiplier, depending on channel */
 float pan_scale(float pan, int channel);
 

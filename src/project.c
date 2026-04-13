@@ -685,6 +685,9 @@ Track *timeline_add_track_with_name(Timeline *tl, const char *track_name, int at
     track->tl = tl;
     strncpy(track->name, track_name, MAX_NAMELENGTH);
 
+    track->buf_L = calloc(tl->proj->fourier_len_sframes, sizeof(float));
+    track->buf_R = calloc(tl->proj->fourier_len_sframes, sizeof(float));
+
     track->channels = tl->proj->channels;
 
     track->clips_alloc_len = 16;
@@ -992,6 +995,7 @@ Track *timeline_add_track_with_name(Timeline *tl, const char *track_name, int at
     track->colorbar = &(layout_get_child_by_name_recursive(track->inner_layout, "colorbar")->rect);
 
     tl->tracks[tl->num_tracks] = track;
+    tl->tracks_proc_order[tl->num_tracks] = track;
     tl->num_tracks++;
 
     track_reset_full(track);
@@ -1887,52 +1891,6 @@ static void timeline_reinsert_track(Track *track)
     timeline_rectify_track_area(tl);
 }
 
-static void track_remove_bus_out(Track *track)
-{
-    if (!track->bus_out) return;
-    for (int i=0; i<track->bus_out->num_bus_ins; i++) {
-	if (track->bus_out->bus_ins[i] == track) {
-	    memmove(track->bus_out->bus_ins + i, track->bus_out->bus_ins + i + 1, (track->bus_out->num_bus_ins - i - 1) * sizeof(Track *));
-	    track->bus_out->num_bus_ins--;
-	    return;
-	}
-    }
-}
-
-void track_set_bus_out(Track *track, Track *bus_out)
-{
-    /* Check for cycles */
-
-    if (track->bus_out == bus_out) return;
-    else if (track->bus_out) track_remove_bus_out(track);
-    
-    Track *test = bus_out;
-    while (test) {
-	if (test == track) {
-	    fprintf(stderr, "Error: circular route\n");
-	    return;
-	}
-	test = test->bus_out;
-    }
-
-    track->bus_out = bus_out;
-    if (bus_out->num_bus_ins + 1 >= bus_out->bus_ins_arrlen) {
-	if (bus_out->bus_ins_arrlen == 0) {
-	    bus_out->bus_ins_arrlen = 4;
-	    bus_out->bus_ins = calloc(bus_out->bus_ins_arrlen, sizeof(Track *));
- 	} else {
-	    bus_out->bus_ins_arrlen *= 2;
-	    bus_out->bus_ins = realloc(bus_out->bus_ins, bus_out->bus_ins_arrlen * sizeof(Track *));
-	}
-    }
-    bus_out->bus_ins[bus_out->num_bus_ins] = track;
-    bus_out->num_bus_ins++;
-	
-    for (int i=0; i<bus_out->num_bus_ins; i++) {
-	fprintf(stderr, "%d Track \"%s\" has bus in: \"%s\"\n", i, bus_out->name, bus_out->bus_ins[i]->name);
-    }
-}
-
 void track_delete(Track *track)
 {
     track->deleted = true;
@@ -1979,6 +1937,9 @@ void track_destroy(Track *track, bool displace)
     }
 
     effect_chain_deinit(&track->effect_chain);
+
+    free(track->buf_L);
+    free(track->buf_R);
     /* for (int i=0; i<track->num_effects; i++) { */
     /* 	effect_destroy(track->effects[i]); */
     /* } */

@@ -51,6 +51,8 @@
 #define MAX_PROJ_CLIPS 2048
 #define MAX_PROJ_MIDI_CLIPS MAX_PROJ_CLIPS
 #define MAX_GRABBED_CLIPS 255
+
+#define TRACK_MAX_AUDIO_ROUTES 16
 /* #define MAX_TRACK_FILTERS 4 */
 /* #define MAX_TRACK_EFFECTS 16 */
 
@@ -93,6 +95,12 @@ enum midi_out_type {
     MIDI_OUT_SYNTH
 };
 
+typedef struct audio_route {
+    Track *dst;
+    Track *src;
+    float amp;
+} AudioRoute;
+
 typedef struct track {
     char name[MAX_NAMELENGTH];
     bool deleted;
@@ -104,6 +112,14 @@ typedef struct track {
     uint8_t channels;
     Timeline *tl; /* Parent timeline */
     uint8_t tl_rank;
+
+    float *buf_L;
+    float *buf_R;
+    int proc_order; /* measures "distance" from Out */
+    AudioRoute routes[TRACK_MAX_AUDIO_ROUTES];
+    AudioRoute *route_ins[TRACK_MAX_AUDIO_ROUTES];
+    int num_routes;
+    int num_route_ins;
 
     ClipRef **clips;
     uint16_t num_clips;
@@ -197,10 +213,10 @@ typedef struct track {
 
 
     /* Routing */
-    Track *bus_out;
-    Track **bus_ins;
-    uint8_t bus_ins_arrlen;
-    uint8_t num_bus_ins;
+    /* Track *bus_out; */
+    /* Track **bus_ins; */
+    /* uint8_t bus_ins_arrlen; */
+    /* uint8_t num_bus_ins; */
 
     const char* added_from_midi_filepath;
 } Track;
@@ -304,7 +320,9 @@ typedef struct timeline {
     int dsp_chunks_info_write_i;
     
     
-    Track *tracks[MAX_TRACKS];  
+    Track *tracks[MAX_TRACKS];
+    Track *tracks_proc_order[MAX_TRACKS];
+    
     uint8_t num_tracks;
 
     ClickTrack *click_tracks[MAX_CLICK_TRACKS];
@@ -453,7 +471,7 @@ void track_set_input(Track *track);
 void track_set_out_builtin_synth(Track *track);
 void track_set_midi_out(Track *track);
 void track_rename(Track *track);
-void track_set_bus_out(Track *track, Track *bus_out);
+/* void track_set_bus_out(Track *track, Track *bus_out); */
 void track_delete(Track *track);
 void track_undelete(Track *track);
 void track_destroy(Track *track, bool displace);

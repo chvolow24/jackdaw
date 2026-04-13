@@ -47,7 +47,7 @@ static float get_track_mixdown_chunk(Track *track, float *restrict L, float *res
     memset(L, '\0', chunk_bytelen);
     if (R)
 	memset(R, '\0', chunk_bytelen);
-    if (track->muted || (track->solo_muted && !track->bus_out)) {
+    if (track->muted || track->solo_muted) {
 	return 0.0f;
     }
 
@@ -210,6 +210,12 @@ static float get_track_mixdown_chunk(Track *track, float *restrict L, float *res
 	}
 	pthread_mutex_unlock(&cr->lock);
     }
+
+    for (int i=0; i<track->num_route_ins; i++) {
+	AudioRoute *r = track->route_ins[i];
+	float_buf_mix_in(track->buf_L, r->src->buf_L, r->amp, output_chunk_len_sframes);
+	float_buf_mix_in(track->buf_R, r->src->buf_R, r->amp, output_chunk_len_sframes);
+    }
     /* clock_gettime(CLOCK_REALTIME, &tspec_end); */
     /* double elapsed_ms = timespec_elapsed_ms(&tspec_start, &tspec_end); */
     /* if (elapsed_ms > 0.04) { */
@@ -311,24 +317,24 @@ void get_mixdown_chunk(Timeline* tl, float *restrict mixdown_L, float *restrict 
     
     for (uint8_t t=0; t<tl->num_tracks; t++) {
 	bool audio_in_track = false;
-        Track *track = tl->tracks[t];
+        Track *track = tl->tracks_proc_order[t];
 
 	/* Track will be processed as a bus in */
-	if (track->bus_out) {
-	    continue;
-	}
+	/* if (track->bus_out) { */
+	/*     continue; */
+	/* } */
 	
-	float track_chunk_L[len_sframes];
-	float track_chunk_R[len_sframes];
+	/* float track_chunk_L[len_sframes]; */
+	/* float track_chunk_R[len_sframes]; */
 
-        float track_chunk_amp = get_track_mixdown_chunk(track, track_chunk_L, track_chunk_R, start_pos_sframes, len_sframes, step);
+        float track_chunk_amp = get_track_mixdown_chunk(track, track->buf_L, track->buf_R, start_pos_sframes, len_sframes, step);
 	    	
 	if (track_chunk_amp > AMP_EPSILON) { /* Checks if any clip audio available */
 	    audio_in_track = true;
 	}
 	if (audio_in_track) {
-	    float_buf_add(mixdown_L, track_chunk_L, len_sframes);
-	    float_buf_add(mixdown_R, track_chunk_R, len_sframes);
+	    float_buf_add(mixdown_L, track->buf_L, len_sframes);
+	    float_buf_add(mixdown_R, track->buf_R, len_sframes);
 	}
     }
 

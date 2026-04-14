@@ -2001,6 +2001,10 @@ void track_destroy(Track *track, bool displace)
     if (track->automation_dropdown) symbol_button_destroy(track->automation_dropdown);
 
     if (track->synth) synth_destroy(track->synth);
+
+    for (int i=0; i<track->num_routes; i++) {
+	audio_route_destroy(track->routes[i]);
+    }
     free(track);
 }
 
@@ -2387,7 +2391,7 @@ bool track_minimize(Track *t)
     }
     layout_reset(t->inner_layout);
     for (int i=0; i<t->num_routes; i++) {
-	textbox_reset(t->routes[i].tl_gui.out_tb);
+	textbox_reset(t->routes[i]->tl_gui.out_tb);
     }
     return t->minimized;
 }

@@ -115,8 +115,8 @@ typedef struct track {
 
     /* Route info */
     int proc_order; /* measures "distance" from Out */
-    AudioRoute routes[TRACK_MAX_AUDIO_ROUTES];
-    AudioRoute *route_ins[TRACK_MAX_AUDIO_ROUTES];
+    AudioRoute *routes[TRACK_MAX_AUDIO_ROUTES]; /* native ptrs */
+    AudioRoute *route_ins[TRACK_MAX_AUDIO_ROUTES]; /* foreign ptrs */
     int num_routes;
     int num_route_ins;
 

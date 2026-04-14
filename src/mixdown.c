@@ -106,7 +106,7 @@ static float get_track_mixdown_chunk(Track *track, float *restrict L, float *res
 	}
     }
 
-    float total_amp = 0.0f;
+    /* float total_amp = 0.0f; */
 
     /* Get data from clip sources */
     for (uint16_t i=0; i<track->num_clips; i++) {
@@ -201,7 +201,7 @@ static float get_track_mixdown_chunk(Track *track, float *restrict L, float *res
 			}
 			sample *= cr->gain;
 			chunk[chunk_i] += sample;
-			total_amp += fabs(chunk[chunk_i]);
+			/* total_amp += fabs(chunk[chunk_i]); */
 		    }
 		    pos_in_clip_sframes += step;
 		    chunk_i++;
@@ -230,7 +230,7 @@ static float get_track_mixdown_chunk(Track *track, float *restrict L, float *res
 	    synth_add_buf(synth, L, R, output_chunk_len_sframes, step, false, 0);
 	    /* synth_add_buf(synth, R, 1, output_chunk_len_sframes, step, false, 0); */
 	    /* synth_add_buf(synth, chunk, channel, output_chunk_len_sframes, start_pos_sframes, false, step); */
-	    total_amp += 1.0;
+	    /* total_amp += 1.0; */
 	}
 	    break;
 	case MIDI_OUT_DEVICE:
@@ -255,7 +255,10 @@ static float get_track_mixdown_chunk(Track *track, float *restrict L, float *res
     /* 	    total_amp += amp; */
     /* 	} */
     /* } */
-    
+    float total_amp = 0.0f;
+    for (int32_t i=0; i<output_chunk_len_sframes; i++) {
+	total_amp += fabs(track->buf_L[i]) + fabs(track->buf_R[i]);
+    }
     total_amp += effect_chain_buf_apply(&track->effect_chain, L, R, output_chunk_len_sframes, total_amp);
     /* total_amp = effect_chain_buf_apply(track->effects, track->num_effects, chunk, output_chunk_len_sframes, channel, total_amp); */
     if (total_amp > AMP_EPSILON) {
@@ -332,7 +335,7 @@ void get_mixdown_chunk(Timeline* tl, float *restrict mixdown_L, float *restrict 
 	if (track_chunk_amp > AMP_EPSILON) { /* Checks if any clip audio available */
 	    audio_in_track = true;
 	}
-	if (audio_in_track) {
+	if (audio_in_track && track->num_routes == 0) {
 	    float_buf_add(mixdown_L, track->buf_L, len_sframes);
 	    float_buf_add(mixdown_R, track->buf_R, len_sframes);
 	}

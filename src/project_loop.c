@@ -231,27 +231,27 @@ void loop_project_main()
 			    
 		/* } */
 		switch (e.key.keysym.scancode) {
-		case SDL_SCANCODE_0: {
-		    Track *track = timeline_selected_track(ACTIVE_TL);
-		    track_add_audio_route(track, ACTIVE_TL->tracks[0], 0.5);
-		}
-		    break;
-		case SDL_SCANCODE_1: {
-		    Track *track = timeline_selected_track(ACTIVE_TL);
-		    track_add_audio_route(track, ACTIVE_TL->tracks[1], 0.5);
-		}
-		    break;
+		/* case SDL_SCANCODE_0: { */
+		/*     Track *track = timeline_selected_track(ACTIVE_TL); */
+		/*     track_add_audio_route(track, ACTIVE_TL->tracks[0], 0.5); */
+		/* } */
+		/*     break; */
+		/* case SDL_SCANCODE_1: { */
+		/*     Track *track = timeline_selected_track(ACTIVE_TL); */
+		/*     track_add_audio_route(track, ACTIVE_TL->tracks[1], 0.5); */
+		/* } */
+		/*     break; */
 
-		case SDL_SCANCODE_2: {
-		    Track *track = timeline_selected_track(ACTIVE_TL);
-		    track_add_audio_route(track, ACTIVE_TL->tracks[2], 0.5);
-		}
-		    break;
-		case SDL_SCANCODE_3: {
-		    Track *track = timeline_selected_track(ACTIVE_TL);
-		    track_add_audio_route(track, ACTIVE_TL->tracks[3], 0.5);
-		}
-		    break;
+		/* case SDL_SCANCODE_2: { */
+		/*     Track *track = timeline_selected_track(ACTIVE_TL); */
+		/*     track_add_audio_route(track, ACTIVE_TL->tracks[2], 0.5); */
+		/* } */
+		/*     break; */
+		/* case SDL_SCANCODE_3: { */
+		/*     Track *track = timeline_selected_track(ACTIVE_TL); */
+		/*     track_add_audio_route(track, ACTIVE_TL->tracks[3], 0.5); */
+		/* } */
+		/*     break; */
 
 
 

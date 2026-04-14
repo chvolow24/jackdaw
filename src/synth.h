@@ -271,8 +271,8 @@ typedef struct synth {
     Endpoint *cc_targets[120];
     Endpoint *aftertouch_target;
 
-    IIRFilter dc_blocker; /* internal use only */
-
+    /* IIRFilter dc_blocker; /\* internal use only *\/ */
+    
     float pitch_bend_cents;
 
     /* Synchronization */

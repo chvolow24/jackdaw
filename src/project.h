@@ -113,8 +113,11 @@ typedef struct track {
     Timeline *tl; /* Parent timeline */
     uint8_t tl_rank;
 
+    /* Mixdown buffers */
     float *buf_L;
     float *buf_R;
+
+    /* Route info */
     int proc_order; /* measures "distance" from Out */
     AudioRoute routes[TRACK_MAX_AUDIO_ROUTES];
     AudioRoute *route_ins[TRACK_MAX_AUDIO_ROUTES];

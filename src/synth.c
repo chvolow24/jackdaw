@@ -392,11 +392,11 @@ Synth *synth_create(Track *track)
     s->resonance = 2.0;
 
     /* double dc_block_coeff = exp(-1.0/(0.0025 * session_get_sample_rate())); */
-    double dc_block_coeff = exp(-1.0/(0.002 * session_get_sample_rate()));
+    double dc_block_coeff = exp(-1.0/(0.01 * session_get_sample_rate()));
     double DC_BLOCK_A[] = {1.0, -1.0};
     double DC_BLOCK_B[] = {dc_block_coeff};
-    iir_init(&s->dc_blocker, 1, 2);
-    iir_set_coeffs(&s->dc_blocker, DC_BLOCK_A, DC_BLOCK_B);
+    /* iir_init(&s->dc_blocker, 1, 2); */
+    /* iir_set_coeffs(&s->dc_blocker, DC_BLOCK_A, DC_BLOCK_B); */
     for (int i=0; i<SYNTH_NUM_BASE_OSCS; i++) {
 	OscCfg *cfg = s->base_oscs + i;
 	cfg->unison.detune_cents = 10;
@@ -2234,21 +2234,25 @@ void synth_add_buf(Synth *s, float *restrict L, float *restrict R, int32_t len, 
 
     /* if (!timed_out) { */
     effect_chain_buf_apply(&s->effect_chain, internal_buf[0], internal_buf[1], len, 1.0);
-    
+
+    float pan_scale_L = pan_scale(s->pan, 0);
+    float pan_scale_R = pan_scale(s->pan, 1);
     for (int i=0; i<len; i++) {
 	/* float dc_blocked = iir_sample(&s->dc_blocker, internal_buf[i], channel); */
 	/* sum += fabs(dc_blocked); */
  	L[i] += tanh(
 	    /* dc_blocked */
-	    iir_sample(&s->dc_blocker, internal_buf[0][i], 0)
+	    internal_buf[0][i]
+	    /* iir_sample(&s->dc_blocker, internal_buf[0][i], 0) */
 	    * s->vol
-	    * pan_scale(s->pan, 0)
+	    * pan_scale_L
 	    );
 	R[i] += tanh(
 	    /* dc_blocked */
-	    iir_sample(&s->dc_blocker, internal_buf[1][i], 1)
+	    /* iir_sample(&s->dc_blocker, internal_buf[1][i], 1) */
+	    internal_buf[1][i]
 	    * s->vol
-	    * pan_scale(s->pan, 1)
+	    * pan_scale_R
 	    );
 
 	/* sum += fabs(buf[i]); */
@@ -2565,7 +2569,7 @@ void synth_destroy(Synth *s)
 	    iir_deinit(&osc->tri_dc_blocker);
 	}
     }
-    iir_deinit(&s->dc_blocker);
+    /* iir_deinit(&s->dc_blocker); */
     adsr_params_deinit(&s->amp_env);
     adsr_params_deinit(&s->noise_amt_env);
     adsr_params_deinit(&s->filter_env);

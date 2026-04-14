@@ -15,6 +15,7 @@
 #include "endpoint.h"
 #include "input.h"
 #include "label.h"
+#include "layout.h"
 #include "midi_clip.h"
 /* #include "project.h" */
 #include "session.h"
@@ -109,7 +110,9 @@ ClipRef *clipref_create(
 
     cr->layout = layout_add_child(track->inner_layout);
     cr->layout->h.type = SCALE;
-    cr->layout->h.value = 0.96;
+    cr->layout->h.value = 0.9;
+    cr->layout->y.type = SCALE;
+    cr->layout->y.value = 0.05;
     /* pthread_mutex_init(&cr->lock, NULL); */
     /* cr->lock = SDL_CreateMutex(); */
     /* SDL_LockMutex(cr->lock); */
@@ -197,15 +200,16 @@ int32_t clipref_len(ClipRef *cr)
 
 void clipref_reset(ClipRef *cr, bool rescaled)
 {
-    cr->layout->rect.x = timeline_get_draw_x(cr->track->tl, cr->tl_pos);
+    cr->layout->x.value = timeline_get_draw_x(cr->track->tl, cr->tl_pos) / main_win->dpi_scale_factor;;
     int32_t cr_len = clipref_len(cr);
     /* uint32_t cr_len = cr->in_mark_sframes >= cr->out_mark_sframes */
     /* 	? cr->clip->len_sframes */
     /* 	: cr->out_mark_sframes - cr->in_mark_sframes; */
-    cr->layout->rect.w = timeline_get_draw_w(cr->track->tl, cr_len);
-    cr->layout->rect.y = cr->track->inner_layout->rect.y + CR_RECT_V_PAD;
-    cr->layout->rect.h = cr->track->inner_layout->rect.h - 2 * CR_RECT_V_PAD;
-    layout_set_values_from_rect(cr->layout);
+    /* cr->layout->rect.w = timeline_get_draw_w(cr->track->tl, cr_len); */
+    cr->layout->w.value = timeline_get_draw_w(cr->track->tl, cr_len) / main_win->dpi_scale_factor;
+    /* cr->layout->rect.y = cr->track->inner_layout->rect.y + CR_RECT_V_PAD; */
+    /* cr->layout->rect.h = cr->track->inner_layout->rect.h - 2 * CR_RECT_V_PAD; */
+    /* layout_set_values_from_rect(cr->layout); */
     layout_reset(cr->layout);
     /* SDL_Rect audio_rect = *session_get()->gui.audio_rect; */
     /* if (cr->label->layout->rect.x < audio_rect.x) { */
@@ -242,7 +246,11 @@ static void clipref_remove_from_track(ClipRef *cr)
 	    track->clips[i - 1] = test;	    
 	}
     }
-    if (displace) track->num_clips--; /* else not found! */
+
+    if (displace) {
+	layout_remove_child(cr->layout);
+	track->num_clips--; /* else not found! */
+    }
 }
 
 /* static void clipref_displace(ClipRef *cr, int displace_by) */
@@ -275,7 +283,8 @@ static void clipref_insert_on_track(ClipRef *cr, Track *target)
     }
     target->clips[target->num_clips] = cr;
     target->num_clips++;
-    cr->track = target;    
+    cr->track = target;
+    layout_reparent(cr->layout, target->inner_layout);
 }
 
 

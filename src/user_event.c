@@ -16,6 +16,7 @@
  *****************************************************************************************************************/
 
 #include <stdlib.h>
+#include "log.h"
 #include "project.h"
 #include "session.h"
 #include "user_event.h"
@@ -163,6 +164,7 @@ UserEvent *user_event_push(
 	while (iter) {
 	    next = iter->next;
 	    if (iter->dispose_forward) {
+		log_tmp(LOG_DEBUG, "user event dispose fwd\n");
 		iter->dispose_forward(
 		    iter,
 		    iter->obj1,
@@ -187,6 +189,8 @@ UserEvent *user_event_push(
 	while (iter) {
 	    next = iter->next;
 	    if (iter->dispose_forward) {
+		/* log_tmp( */
+		log_tmp(LOG_DEBUG, "user_event dispose fwd\n");
 		iter->dispose_forward(
 		    iter,
 		    iter->obj1,
@@ -215,6 +219,7 @@ UserEvent *user_event_push(
     if (history->len > MAX_USER_EVENT_HISTORY_LEN) {
 	UserEvent *old = history->oldest;
 	if (old->dispose) {
+	    log_tmp(LOG_DEBUG, "user event dispose\n");
 	    old->dispose(
 		e,
 		old->obj1,

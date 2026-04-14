@@ -106,6 +106,9 @@ void textbox_pad(Textbox *tb, int pad);
 
 void textbox_draw(Textbox *tb);
 
+/* Don't draw text itself */
+void textbox_draw_background_only(Textbox *tb);
+
 
 void textbox_size_to_fit(Textbox *tb, int w_pad, int v_pad);
 void textbox_size_to_fit_v(Textbox *tb, int v_pad);

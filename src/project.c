@@ -2379,13 +2379,16 @@ bool track_minimize(Track *t)
 	if (t->num_automations > 0) {
 	    track_automations_hide_all(t);
 	}
-	t->layout->h.value = 31.0;
-	t->inner_layout->h.value = 31.0;
+	t->layout->h.value = 32.0; /* TODO: why was this 31? */
+	t->inner_layout->h.value = 32.0; /* TODO: why was this 31? */
     } else {
 	t->layout->h.value = 96.0;
 	t->inner_layout->h.value = 96.0;
     }
-
+    layout_reset(t->inner_layout);
+    for (int i=0; i<t->num_routes; i++) {
+	textbox_reset(t->routes[i].tl_gui.out_tb);
+    }
     return t->minimized;
 }
 

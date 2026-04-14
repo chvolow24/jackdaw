@@ -167,7 +167,7 @@ void textbox_destroy_keep_lt(Textbox *tb)
     free(tb);
 }
 
-void textbox_draw(Textbox *tb)
+void textbox_draw_background_only(Textbox *tb)
 {
     int rad = tb->corner_radius * tb->window->dpi_scale_factor;
     int thickness = tb->border_thickness;
@@ -177,7 +177,6 @@ void textbox_draw(Textbox *tb)
     /* TODO: consider whether this is bad and if rend needs to be on textbox as well */
     SDL_Renderer *rend = tb->text->win->rend;
     SDL_Color *bckgrnd = tb->bckgrnd_clr;
-    SDL_Color *txtclr = &tb->text->color;
     SDL_Color *brdrclr = tb->border_clr;
     SDL_Rect tb_rect = tb->layout->rect;
 
@@ -244,6 +243,14 @@ void textbox_draw(Textbox *tb)
 
 
     
+}
+
+void textbox_draw(Textbox *tb)
+{
+    SDL_Renderer *rend = tb->text->win->rend;
+    SDL_Color *txtclr = &tb->text->color;
+
+    textbox_draw_background_only(tb);
     SDL_SetRenderDrawColor(rend, txtclr->r, txtclr->g, txtclr->b, txtclr->a);
     if (tb->live) {
 	if (strncmp(tb->text->display_value, tb->text->value_handle, tb->text->max_len) != 0) {

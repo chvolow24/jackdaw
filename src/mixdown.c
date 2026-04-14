@@ -212,7 +212,7 @@ static float get_track_mixdown_chunk(Track *track, float *restrict L, float *res
     }
 
     for (int i=0; i<track->num_route_ins; i++) {
-	AudioRoute *r = track->route_ins[i];
+	AudioRoute *r = track->route_ins[i];	
 	float_buf_mix_in(track->buf_L, r->src->buf_L, r->amp, output_chunk_len_sframes);
 	float_buf_mix_in(track->buf_R, r->src->buf_R, r->amp, output_chunk_len_sframes);
     }

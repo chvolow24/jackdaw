@@ -32,6 +32,7 @@
 #include "endpoint.h"
 #include "grab.h"
 #include "midi_clip.h"
+#include "route.h"
 #include "tempo.h"
 #include "timeview.h"
 #include "saturation.h"
@@ -95,11 +96,6 @@ enum midi_out_type {
     MIDI_OUT_SYNTH
 };
 
-typedef struct audio_route {
-    Track *dst;
-    Track *src;
-    float amp;
-} AudioRoute;
 
 typedef struct track {
     char name[MAX_NAMELENGTH];

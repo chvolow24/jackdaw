@@ -509,6 +509,17 @@ int project_obj_name_completion(Text *txt, void *obj)
     return 0;
 }
 
+int track_name_completion(Text *txt, void *obj)
+{
+    /* APINode *node = (APINode *)obj; */
+    Track *track = obj;
+    for (int i=0; i<track->num_route_ins; i++) {
+	textbox_reset_full(track->route_ins[i]->tl_gui.out_tb);
+    }
+    project_obj_name_completion(txt, &track->api_node);
+    return 0;
+}
+
 
 void timeline_rectify_track_area(Timeline *tl)
 {
@@ -677,6 +688,8 @@ static void vol_dsp_cb(Endpoint *ep)
     track->vol = pow(new_ctrl_val, VOL_EXP);
 }
 
+
+
 Track *timeline_add_track_with_name(Timeline *tl, const char *track_name, int at)
 {
     if (tl->num_tracks == MAX_TRACKS) return NULL;
@@ -824,8 +837,8 @@ Track *timeline_add_track_with_name(Timeline *tl, const char *track_name, int at
 	main_win->bold_font,
 	14,
 	NULL,
-	project_obj_name_completion,
-	&track->api_node,
+	track_name_completion,
+	track,
 	main_win);
     /* track->tb_name = textbox_create_from_str( */
     /*     track->name, */

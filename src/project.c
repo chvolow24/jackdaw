@@ -1754,6 +1754,60 @@ void midi_monitor_clear()
     }
 }
 
+static void tl_pr_tracks(Timeline *tl)
+{
+    fprintf(stderr, "Main:\n");
+    for (int i=0; i<tl->num_tracks; i++) {
+	fprintf(stderr, "\t%d) %p\n", i, tl->tracks[i]);
+    }
+    fprintf(stderr, "Proc:\n");
+    for (int i=0; i<tl->num_tracks; i++) {
+	fprintf(stderr, "\t%d) %p\n", i, tl->tracks_proc_order[i]);
+    }
+
+}
+
+TEST_FN_DEF(timeline_track_array_integrity, {
+	for (int i=0; i<tl->num_tracks; i++) {
+	    Track *proc = tl->tracks_proc_order[i];
+	    Track *track = tl->tracks[i];
+	    bool found = false;
+	    for (int j=0; j<tl->num_tracks; j++) {
+		if (tl->tracks[j] == proc) {
+		    if (found) {
+			fprintf(stderr, "Error: track %p appears twice in main array\n", proc);
+			tl_pr_tracks(tl);
+			return 1;
+		    } else {
+			found = true;
+		    }
+		}
+	    }
+	    if (!found) {
+		fprintf(stderr, "Error: track %p not found in main array\n", proc);
+		tl_pr_tracks(tl);
+		return 1;
+	    }
+	    found = false;
+	    for (int j=0; j<tl->num_tracks; j++) {
+		if (tl->tracks_proc_order[j] == track) {
+		    if (found) {
+			fprintf(stderr, "Error: track %p appears twice in main array\n", proc);
+			tl_pr_tracks(tl);
+		    } else {
+			found = true;
+		    }
+		}
+	    }
+	    if (!found) {
+		fprintf(stderr, "Error: track %p not found in main array\n", proc);
+		tl_pr_tracks(tl);
+		return 1;
+	    }
+	}
+	return 0;
+    }, Timeline *tl);
+
 /* Use on the selected track to set session monitoring info */
 bool timeline_check_set_midi_monitoring()
 {
@@ -1867,6 +1921,11 @@ void track_rename(Track *track)
 
 static void timeline_remove_track(Track *track)
 {
+
+    /* Audio routes first */
+    audio_route_track_deleted(track);
+
+    /* Deal with timeline data structures */
     Timeline *tl = track->tl;
     for (uint16_t i=0; i<track->num_clips; i++) {
 	ClipRef *clip = track->clips[i];
@@ -1877,6 +1936,17 @@ static void timeline_remove_track(Track *track)
     }
     Session *session = session_get();
     if (session->dragging) status_stat_drag();
+
+    /* Remove track from proc order array */
+    bool displace = false;
+    for (int i=0; i<tl->num_tracks - 1; i++) {
+	if (tl->tracks_proc_order[i] == track) displace = true;
+	if (displace) {
+	    tl->tracks_proc_order[i] = tl->tracks_proc_order[i + 1];
+	}
+    }
+
+    /* Remove track from main timeline array */
     for (uint8_t i=track->tl_rank + 1; i<tl->num_tracks; i++) {
 	Track *t = tl->tracks[i];
 	tl->tracks[i-1] = t;
@@ -1884,20 +1954,29 @@ static void timeline_remove_track(Track *track)
     }
     layout_remove_child(track->layout);
     tl->num_tracks--;
+    timeline_resort_tracks_proc_order(tl);
+
     if (tl->num_tracks > 0 && tl->track_selector > tl->num_tracks - 1) tl->track_selector = tl->num_tracks - 1;
     timeline_rectify_track_area(tl);
     timeline_rectify_track_indices(tl);
+
+
+    
     /* layout_size_to_fit_children_v(tl->track_area, true, 0); */
 }
 
 static void timeline_reinsert_track(Track *track)
 {
     Timeline *tl = track->tl;
+    audio_route_track_undeleted(track);
     for (int i=tl->num_tracks; i>track->tl_rank; i--) {
 	tl->tracks[i] = tl->tracks[i-1];
     }
     tl->tracks[track->tl_rank] = track;
+    tl->tracks_proc_order[tl->num_tracks] = track;
     tl->num_tracks++;
+
+    timeline_resort_tracks_proc_order(tl);
     layout_insert_child_at(track->layout, tl->track_area, track->layout->index);
     tl->layout_selector = track->layout->index;
     timeline_rectify_track_indices(tl);
@@ -1914,6 +1993,7 @@ void track_delete(Track *track)
     api_node_deregister(&track->api_node);
     timeline_reset(tl, false);
     timeline_check_set_midi_monitoring();
+    
     /* fprintf(stderr, "\nAFTER:\n"); */
     /* api_node_print_all_routes(&tl->api_node); */
 

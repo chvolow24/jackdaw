@@ -4,12 +4,15 @@
 #include "project.h"
 #include "session.h"
 #include "status.h"
+#include "test.h"
 #include "textbox.h"
 #include "user_event.h"
 #include "window.h"
 
 extern Window *main_win;
 extern struct colors colors;
+
+TEST_FN_DECL(timeline_track_array_integrity, Timeline *tl);
 /* static bool audio_route_has_cycle(Track *src, Track *dst) */
 /* { */
 /*     for (int i=0; i<dst->num_routes; i++) { */
@@ -22,6 +25,7 @@ extern struct colors colors;
 /*     } */
 /*     return false; */
 /* } */
+
 
 static int track_proc_order_cmp(const void *a, const void *b)
 {
@@ -38,6 +42,7 @@ void timeline_resort_tracks_proc_order(Timeline *tl)
     for (int i=0; i<tl->num_tracks; i++) {
 	fprintf(stderr, "%d) %s (%d)\n", i, tl->tracks_proc_order[i]->name, tl->tracks_proc_order[i]->proc_order);
     }
+    TEST_FN_CALL(timeline_track_array_integrity, tl);
 }
 
 /* Return -1 if cycle detected */
@@ -89,27 +94,28 @@ void audio_route_destroy(AudioRoute *rt)
     free(rt);
 }
 
-static void audio_route_reinsert(AudioRoute *rt)
+
+/*------ One-sided remove/reinsert functions; no TL resorting --------*/
+
+
+/* Remove from dst->route_ins, not src->routes */
+static void audio_route_remove_from_dst(AudioRoute *rt)
 {
-    /* int dist = longest_distance_to_out(rt->src, rt->src, rt->dst, 0); */
-    /* Reset track processing order */
-    rt->src->routes[rt->src->num_routes] = rt;
-    rt->src->num_routes++;
-
-    rt->dst->route_ins[rt->dst->num_route_ins] = rt;
-    rt->dst->num_route_ins++;
-    /* fprintf(stderr, "Reinserting %s in %s\n", rt->tl_gui.out_tb->layout->name, rt->tl_gui.out_tb->layout->parent->name); */
-    layout_insert_child_at(rt->tl_gui.out_tb->layout, rt->tl_gui.out_tb->layout->cached_parent, rt->tl_gui.out_tb->layout->index);
-
-    track_reset_proc_order(rt->src);
-    timeline_resort_tracks_proc_order(rt->src->tl);
-    /* timeline_update_track_proc_order(t */
-    /* rt->dst-> */
+    bool displace = false;
+    for (int i=0; i<rt->dst->num_route_ins - 1; i++) {
+	if (rt->dst->route_ins[i] == rt) {
+	    displace = true;
+	}
+	if (displace) {
+	    rt->dst->route_ins[i] = rt->dst->route_ins[i + 1];
+	}
+    }
+    rt->dst->num_route_ins--;
 }
 
-static void audio_route_remove(AudioRoute *rt)
+/* Remove from src->routes, not dst->route_ins */
+static void audio_route_remove_from_src(AudioRoute *rt)
 {
-    /* Remove route out */
     bool displace = false;
     for (int i=0; i<rt->src->num_routes - 1; i++) {
 	if (rt->src->routes[i] == rt) {	    
@@ -120,30 +126,97 @@ static void audio_route_remove(AudioRoute *rt)
 	}
     }
     rt->src->num_routes--;
-
-    /* Remove route in */
-    displace = false;
-    for (int i=0; i<rt->dst->num_route_ins - 1; i++) {
-	if (rt->dst->route_ins[i] == rt) {
-	    displace = true;
-	}
-	if (displace) {
-	    rt->dst->route_ins[i] = rt->dst->route_ins[i + 1];
-	}
-    }
     layout_remove_child(rt->tl_gui.out_tb->layout);
-    track_reset_proc_order(rt->src);
-    timeline_resort_tracks_proc_order(rt->src->tl);
 }
+
+static void audio_route_reinsert_on_dst(AudioRoute *rt)
+{
+    rt->dst->route_ins[rt->dst->num_route_ins] = rt;
+    rt->dst->num_route_ins++;
+}
+
+static void audio_route_reinsert_on_src(AudioRoute *rt)
+{
+    rt->src->routes[rt->src->num_routes] = rt;
+    rt->src->num_routes++;
+    layout_insert_child_at(rt->tl_gui.out_tb->layout, rt->tl_gui.out_tb->layout->cached_parent, rt->tl_gui.out_tb->layout->index);
+}
+
+/*------ global route remove / reinsert ------------------------------*/
+
+
+static void audio_route_remove(AudioRoute *rt)
+{
+    audio_route_remove_from_src(rt);
+    audio_route_remove_from_dst(rt);
+   
+    track_reset_proc_order(rt->src);
+    /* timeline_resort_tracks_proc_order(rt->src->tl); */
+}
+
+static void audio_route_reinsert(AudioRoute *rt)
+{
+    audio_route_reinsert_on_src(rt);
+    audio_route_reinsert_on_dst(rt);
+    track_reset_proc_order(rt->src);
+    /* timeline_resort_tracks_proc_order(rt->src->tl); */
+}
+
+
+/*------ track deletion management -----------------------------------*/
+
+void audio_route_track_deleted(Track *track)
+{
+    /* The timeline num tracks value has not been updated */
+    for (int i=0; i<track->num_routes; i++) {	
+	audio_route_remove_from_dst(track->routes[i]);
+	track_reset_proc_order(track->routes[i]->dst);
+    }
+    for (int i=0; i<track->num_route_ins; i++) {
+	audio_route_remove_from_src(track->route_ins[i]);
+	track_reset_proc_order(track->route_ins[i]->src);
+    }
+
+}
+
+/* Call at a high-level (e.g. in response to single user action)
+   Call only after tl->num_tracks has been updated.
+*/
+void audio_route_track_undeleted(Track *track)
+{
+    for (int i=0; i<track->num_routes; i++) {
+	audio_route_reinsert_on_dst(track->routes[i]);
+	track_reset_proc_order(track->routes[i]->dst);
+    }
+    for (int i=0; i<track->num_route_ins; i++) {
+	audio_route_reinsert_on_src(track->route_ins[i]);
+	track_reset_proc_order(track->route_ins[i]->src);
+    }
+    /* timeline_resort_tracks_proc_order(track->tl); */
+}
+
+/*--------------------------------------------------------------------*/
+
+
+
 
 NEW_EVENT_FN(undo_add_audio_route, "undo add audio route")
-    audio_route_remove(obj1);
-}
+{
+    AudioRoute *rt = obj1;
+    audio_route_remove(rt);
+    timeline_resort_tracks_proc_order(rt->src->tl);
+}}
 
 NEW_EVENT_FN(redo_add_audio_route, "redo add audio route")
-    audio_route_reinsert(obj1);
-}
+{
+    AudioRoute *rt = obj1;
+    audio_route_reinsert(rt);
+    timeline_resort_tracks_proc_order(rt->src->tl);
+}}
 
+NEW_EVENT_FN(dispose_forward_add_audio_route, "")
+    audio_route_destroy(obj1);
+}
 
 
 
@@ -225,11 +298,12 @@ void track_add_audio_route(Track *track, Track *dst, float init_amp)
     user_event_push(
 	undo_add_audio_route,
 	redo_add_audio_route,
-	NULL, NULL,
+	NULL, dispose_forward_add_audio_route,
 	r, NULL,
 	(Value){0}, (Value){0},
 	(Value){0}, (Value){0},
 	0, 0, false, false);
+    TEST_FN_CALL(timeline_track_array_integrity, track->tl);
     /* textbox_reset_full(r->tl_gui.out_tb); */
 }
 

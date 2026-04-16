@@ -148,13 +148,29 @@ static void panel_draw(void *layout_v, void *cfg_v)
 /*     SDL_RenderDrawLine(main_win->rend, lt->rect.x, lt->rect.y, lt->rect.x + lt->rect.w, lt->rect.y); */
 /* } */
 
+static SDL_Color synth_page_colors[] = {
+   /* , */
+   /*  {50, 50, 80, 255}, */
+   /*  {43, 43, 55, 255}, */
+   /*  {100, 40, 40, 255}, */
+   /*  {94, 58, 61, 255}, */
+   /*  {34, 77, 99, 255}, */
+
+    {36, 36, 36, 255}, /* oscs */
+    {30, 50, 30, 255}, /* amp env */
+    {85, 80, 110, 255}, /* noise */
+    {80, 45, 40, 255}, /* filter */
+    {30, 80, 80, 255}, /* effects */
+    {60, 60, 100, 255}, /* polyphony */
+    {50, 80, 80, 255}, /* presets */
+};
+
 static void add_osc_page(TabView *tv, Track *track)
 {
     
     Synth *s = track->synth;
     synth_glob = s;
-    static SDL_Color osc_bckgrnd = {36, 36, 36, 255};
-    Page *page = tabview_add_page(tv, "Oscillators", SYNTH_OSCS_LT_PATH, &osc_bckgrnd, &colors.white, main_win);
+    Page *page = tabview_add_page(tv, "Oscillators", SYNTH_OSCS_LT_PATH, &synth_page_colors[0], &colors.white, main_win);
 
     s->osc_page = page;
     /* Fill out layout */
@@ -494,8 +510,8 @@ static void add_osc_page(TabView *tv, Track *track)
 static void add_amp_env_page(TabView *tv, Track *track)
 {
     Synth *s = track->synth;
-    static SDL_Color amp_bckgrnd = {30, 50, 30, 255};
-    Page *page = tabview_add_page(tv, "Amp Envelope", SYNTH_AMP_ENV_LT_PATH, &amp_bckgrnd, &colors.white, main_win);
+    /* static SDL_Color amp_bckgrnd =  */
+    Page *page = tabview_add_page(tv, "Amp Envelope", SYNTH_AMP_ENV_LT_PATH, &synth_page_colors[1], &colors.white, main_win);
 
     s->amp_env_page = page;
     
@@ -546,8 +562,8 @@ static void add_amp_env_page(TabView *tv, Track *track)
 static void add_noise_page(TabView *tv, Track *track)
 {
     Synth *s = track->synth;
-    static SDL_Color noise_bckgrnd = {90, 80, 110, 255};
-    Page *page = tabview_add_page(tv, "Noise", SYNTH_NOISE_LT_PATH, &noise_bckgrnd, &colors.white, main_win);
+
+    Page *page = tabview_add_page(tv, "Noise", SYNTH_NOISE_LT_PATH, &synth_page_colors[2], &colors.white, main_win);
     s->noise_page = page;
     PageElParams p;
     p.textbox_p.font = main_win->mono_bold_font;
@@ -614,8 +630,8 @@ static void add_filter_page(TabView *tv, Track *track)
 
     Synth *s = track->synth;
     /* static SDL_Color filter_bckgrnd = {60, 30, 20, 255}; */
-    static SDL_Color filter_bckgrnd = {80, 45, 40, 255};
-    Page *page = tabview_add_page(tv, "Filter", SYNTH_FILTER_LT_PATH, &filter_bckgrnd, &colors.white, main_win);
+
+    Page *page = tabview_add_page(tv, "Filter", SYNTH_FILTER_LT_PATH, &synth_page_colors[3], &colors.white, main_win);
 
     s->filter_page = page;
 
@@ -735,8 +751,8 @@ static int add_effect_action(void *self, void *target)
 
 static void add_effects_page(TabView *tv, Track *track)
 {
-    static SDL_Color effects_bckgrnd = {50, 80, 40, 255};
-    Page *page = tabview_add_page(tv, "Effects", SYNTH_EFFECTS_LT_PATH, &effects_bckgrnd, &colors.white, main_win);
+    /* static SDL_Color effects_bckgrnd =  */
+    Page *page = tabview_add_page(tv, "Effects", SYNTH_EFFECTS_LT_PATH, &synth_page_colors[4], &colors.white, main_win);
 
     PageElParams p;
 
@@ -811,8 +827,8 @@ static void add_polyphony_page(TabView *tv, Track *track)
 {
 
     Synth *synth = track->synth;
-    static SDL_Color polyphony_bckgrnd = {60, 60, 100, 255};
-    Page *page = tabview_add_page(tv, "Polyphony", SYNTH_POLYPHONY_LT_PATH, &polyphony_bckgrnd, &colors.white, main_win);
+    /* static SDL_Color polyphony_bckgrnd =  */
+    Page *page = tabview_add_page(tv, "Polyphony", SYNTH_POLYPHONY_LT_PATH, &synth_page_colors[5], &colors.white, main_win);
 
     synth->polyphony_page = page;
     PageElParams p;
@@ -863,8 +879,7 @@ static void add_polyphony_page(TabView *tv, Track *track)
 
 static void add_preset_page(TabView *tv, Track *track)
 {
-    static SDL_Color preset_bckgrnd = {50, 80, 80, 255};
-    Page *page = tabview_add_page(tv, "Presets", SYNTH_PRESETS_LT_PATH, &preset_bckgrnd, &colors.white, main_win);
+    Page *page = tabview_add_page(tv, "Presets", SYNTH_PRESETS_LT_PATH, &synth_page_colors[6], &colors.white, main_win);
 
     PageElParams p;
 

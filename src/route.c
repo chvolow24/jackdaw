@@ -31,14 +31,13 @@ static int track_proc_order_cmp(const void *a, const void *b)
 {
     const Track *track_a = *((Track **)a);
     const Track *track_b = *((Track **)b);
-    return track_a->proc_order < track_b->proc_order;
+    return track_b->proc_order - track_a->proc_order;
 }
 
 void timeline_resort_tracks_proc_order(Timeline *tl)
 {
     qsort(tl->tracks_proc_order, tl->num_tracks, sizeof(Track *), track_proc_order_cmp);
 
-    fprintf(stderr, "\n");
     for (int i=0; i<tl->num_tracks; i++) {
 	fprintf(stderr, "%d) %s (%d)\n", i, tl->tracks_proc_order[i]->name, tl->tracks_proc_order[i]->proc_order);
     }
@@ -126,7 +125,8 @@ static void audio_route_remove_from_src(AudioRoute *rt)
 	}
     }
     rt->src->num_routes--;
-    layout_remove_child(rt->tl_gui.out_tb->layout);
+    if (rt->tl_gui.out_tb)
+	layout_remove_child(rt->tl_gui.out_tb->layout);
 }
 
 static void audio_route_reinsert_on_dst(AudioRoute *rt)
@@ -139,7 +139,8 @@ static void audio_route_reinsert_on_src(AudioRoute *rt)
 {
     rt->src->routes[rt->src->num_routes] = rt;
     rt->src->num_routes++;
-    layout_insert_child_at(rt->tl_gui.out_tb->layout, rt->tl_gui.out_tb->layout->cached_parent, rt->tl_gui.out_tb->layout->index);
+    if (rt->tl_gui.out_tb)
+	layout_insert_child_at(rt->tl_gui.out_tb->layout, rt->tl_gui.out_tb->layout->cached_parent, rt->tl_gui.out_tb->layout->index);
 }
 
 /*------ global route remove / reinsert ------------------------------*/
@@ -148,8 +149,7 @@ static void audio_route_reinsert_on_src(AudioRoute *rt)
 static void audio_route_remove(AudioRoute *rt)
 {
     audio_route_remove_from_src(rt);
-    audio_route_remove_from_dst(rt);
-   
+    audio_route_remove_from_dst(rt);   
     track_reset_proc_order(rt->src);
     /* timeline_resort_tracks_proc_order(rt->src->tl); */
 }
@@ -252,7 +252,18 @@ void track_add_audio_route(Track *track, Track *dst, float init_amp)
     r->src = track;
     r->amp = init_amp;
     status_set_alertstr("Established route: %s => %s (%d steps to out)\n", track->name, dst->name, track->proc_order);
-    Layout *parent = layout_get_child_by_name_recursive(track->inner_layout, "outs");
+    Layout *outs_lt = layout_get_child_by_name_recursive(track->inner_layout, "outs");
+    Layout *parent;
+    if (outs_lt->num_children == 0) {
+	parent = layout_add_child(outs_lt);
+	parent->w.type = SCALE;
+	parent->w.value = 1.0;
+	parent->h.type = SCALE;
+	parent->h.value = 1.0;
+	layout_reset(parent);
+    } else {
+	parent = outs_lt->children[0];
+    }
     Layout *out_tb_lt = layout_add_child(parent);
     out_tb_lt->w.type = SCALE;
     out_tb_lt->w.value = 1.0;
@@ -262,6 +273,7 @@ void track_add_audio_route(Track *track, Track *dst, float init_amp)
     out_tb_lt->h.type = SCALE;
     out_tb_lt->h.value = 0.25;
     layout_reset(out_tb_lt);
+    /* if (r->src->num_routes < 3) { */
     r->tl_gui.out_tb = textbox_create_from_str(
 	dst->name,
 	out_tb_lt,
@@ -275,7 +287,30 @@ void track_add_audio_route(Track *track, Track *dst, float init_amp)
 	&dst->color,
 	&colors.white);
     textbox_set_pad(r->tl_gui.out_tb, 4, 2);
-
+    if (r->src->num_routes == 3 && !r->src->route_ellipsis) {
+	Layout *route_ellipsis_lt = layout_add_child(outs_lt);
+	route_ellipsis_lt->y.type = SCALE;
+	route_ellipsis_lt->y.value = 0.75;
+	route_ellipsis_lt->h.type = SCALE;
+	route_ellipsis_lt->h.value = 0.25;
+	route_ellipsis_lt->w.type = SCALE;
+	route_ellipsis_lt->w.value = 1.0;
+	layout_reset(route_ellipsis_lt);
+	r->src->route_ellipsis = textbox_create_from_str(
+	    "...",
+	    route_ellipsis_lt,
+	    main_win->mono_bold_font,
+	    12,
+	    main_win);
+	textbox_style(
+	    r->src->route_ellipsis,
+	    CENTER,
+	    false,
+	    &colors.light_grey,
+	    &colors.black);
+	    
+	
+    }
     /* Reset track processing order */
     /* if (dist > track->proc_order) { */
     /* 	track->proc_order = dist; */

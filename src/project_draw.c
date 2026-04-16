@@ -336,20 +336,34 @@ static void track_draw(Track *track)
 	textbox_draw(track->tb_vol_label);
 	textbox_draw(track->tb_pan_label);
 	textbox_draw(track->tb_input_name);
-
 	
 	slider_draw(track->vol_ctrl);
 	slider_draw(track->pan_ctrl);
 	symbol_button_draw(track->automation_dropdown);
+	
 	for (int i=0; i<track->num_routes; i++) {
 	    textbox_draw(track->routes[i]->tl_gui.out_tb);
+	    if (i == 3 && track->num_routes > 4) {
+		textbox_draw(track->route_ellipsis);
+		break;
+	    }
+	    else if (i == 4) {
+		break;
+	    }	    
+	}
+	if (track->num_routes > 3) {
+
 	}
     } else {
 	for (int i=0; i<track->num_routes; i++) {
 	    textbox_draw_background_only(track->routes[i]->tl_gui.out_tb);
+	    if (i == 3 && track->num_routes > 4) {
+		textbox_draw_background_only(track->route_ellipsis);
+	    } else if (i == 4) {
+		break;
+	    }
 	}
     }
-
 
 automations_draw:
     for (uint8_t i=0; i<track->num_automations; i++) {

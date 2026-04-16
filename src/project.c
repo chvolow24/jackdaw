@@ -2085,6 +2085,7 @@ void track_destroy(Track *track, bool displace)
     for (int i=0; i<track->num_routes; i++) {
 	audio_route_destroy(track->routes[i]);
     }
+    if (track->route_ellipsis) textbox_destroy(track->route_ellipsis);
     free(track);
 }
 

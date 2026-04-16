@@ -119,6 +119,7 @@ typedef struct track {
     AudioRoute *route_ins[TRACK_MAX_AUDIO_ROUTES]; /* foreign ptrs */
     int num_routes;
     int num_route_ins;
+    Textbox *route_ellipsis;
 
     ClipRef **clips;
     uint16_t num_clips;

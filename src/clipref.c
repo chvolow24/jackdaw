@@ -28,7 +28,7 @@
 
 #define CLIPREF_GAIN_ADJ_SCALAR 0.02
 
-#define CR_RECT_V_PAD (4 * main_win->dpi_scale_factor)
+/* #define CR_RECT_V_PAD (4 * main_win->dpi_scale_factor) */
 
 extern Window *main_win;
 extern struct colors colors;
@@ -110,9 +110,9 @@ ClipRef *clipref_create(
 
     cr->layout = layout_add_child(track->inner_layout);
     cr->layout->h.type = SCALE;
-    cr->layout->h.value = 0.9;
+    cr->layout->h.value = 1.0 - 2 * TRACK_PAD_CLIPREFS_SCALE;
     cr->layout->y.type = SCALE;
-    cr->layout->y.value = 0.05;
+    cr->layout->y.value = TRACK_PAD_CLIPREFS_SCALE;
     /* pthread_mutex_init(&cr->lock, NULL); */
     /* cr->lock = SDL_CreateMutex(); */
     /* SDL_LockMutex(cr->lock); */

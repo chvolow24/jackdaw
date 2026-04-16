@@ -253,6 +253,10 @@ void track_add_audio_route(Track *track, Track *dst, float init_amp)
     r->amp = init_amp;
     status_set_alertstr("Established route: %s => %s (%d steps to out)\n", track->name, dst->name, track->proc_order);
     Layout *outs_lt = layout_get_child_by_name_recursive(track->inner_layout, "outs");
+    outs_lt->h.value = 1.0 - 2 * TRACK_PAD_CLIPREFS_SCALE;
+    outs_lt->y.type = SCALE;
+    outs_lt->y.value = TRACK_PAD_CLIPREFS_SCALE;
+    layout_reset(outs_lt);
     Layout *parent;
     if (outs_lt->num_children == 0) {
 	parent = layout_add_child(outs_lt);

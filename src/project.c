@@ -50,7 +50,7 @@
 #define DEFAULT_SFPP 600
 #define MAX_SFPP 96000
 #define CR_RECT_V_PAD (4 * main_win->dpi_scale_factor)
-#define NUM_TRACK_COLORS 7
+#define NUM_TRACK_COLORS 9
 
 /* #define CLIPREF_NAMELABEL_H 20 */
 /* #define CLIPREF_NAMELABEL_H_PAD 8 */
@@ -83,16 +83,28 @@ extern Symbol *SYMBOL_TABLE[];
 
 /* Alternating bright colors to easily distinguish tracks */
 uint8_t track_color_index = 0;
-SDL_Color track_colors[7] = {
-    {5, 100, 115, 255},
-    {38, 125, 240, 255},
-    /* {70, 30, 130, 255}, */
-    {100, 60, 130, 255},
-    /* {171, 38, 38, 255}, */
-    {171, 70, 70, 255},
-    {224, 142, 74, 255},
-    {250, 110, 100, 255},
-    {60, 200, 150, 255}
+/* SDL_Color track_colors[NUM_TRACK_COLORS] = { */
+/*     {5, 100, 115, 255}, */
+/*     {38, 125, 240, 255}, */
+/*     /\* {70, 30, 130, 255}, *\/ */
+/*     {100, 60, 130, 255}, */
+/*     /\* {171, 38, 38, 255}, *\/ */
+/*     {171, 70, 70, 255}, */
+/*     {224, 142, 74, 255}, */
+/*     {250, 110, 100, 255}, */
+/*     {60, 200, 150, 255} */
+/* }; */
+
+SDL_Color track_colors[NUM_TRACK_COLORS] = {
+    {5, 118, 138, 255}, /* mossy green */
+    {171, 70, 70, 255}, /* burnt umber */
+    {224, 142, 74, 255}, /* goldenrod */
+    {237, 98, 87, 255}, /* acid orange */
+    {38, 131, 255, 255}, /* sky blue */
+    {0, 186, 152, 255}, /* pale cactus */
+    {38, 83, 192, 255}, /* blueb */
+    {114, 79, 125, 255}, /* mauve */
+    {109, 189, 13, 255}, /* deep cactus */
 };
 
 uint8_t project_add_timeline(Project *proj, char *name)

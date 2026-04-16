@@ -43,7 +43,7 @@ SDL_Color textentry_text_color = (SDL_Color) {0, 0, 0, 255};
 
 SDL_Color tgl_bckgrnd = {110, 110, 110, 255};
 
-
+/*------ Slider ------------------------------------------------------*/
 
 /* Slider fslider_create(Layout *layout, SliderOrientation orientation, SliderType type, SliderStrFn *fn) */
 Slider *slider_create(
@@ -446,8 +446,7 @@ void slider_nudge_left(Slider *slider)
 /*     proj->pan_changing = false; */
 /* } */
 
-
-/* Button */
+/*------ Button ------------------------------------------------------*/
 
 Button *button_create(
     Layout *lt,
@@ -545,6 +544,7 @@ void button_bind_userfn(
     
 }
 
+
 void symbol_button_destroy(SymbolButton *sbutton)
 {
     free(sbutton);
@@ -569,6 +569,7 @@ void button_press_color_change(
     button->animation = session_queue_animation(NULL, button_end_animation, (void *)button, (void *)return_color, BUTTON_COLOR_CHANGE_STD_DELAY);
 }
 
+/*------ TextEntry ---------------------------------------------------*/
 
 TextEntry *textentry_create(
     Layout *lt,
@@ -627,7 +628,8 @@ void textentry_complete_edit(TextEntry *te)
     txt_stop_editing(te->tb->text);
 }
 
-/* Toggle */
+/*------ Toggle ------------------------------------------------------*/
+
 
 Toggle *toggle_create_from_endpoint(Layout *lt, Endpoint *ep)
 {
@@ -707,9 +709,9 @@ bool toggle_toggle(Toggle *toggle)
     }
 }
 
+/*------ RadioButton -------------------------------------------------*/
 
 
-/* Radio Button */
 RadioButton *radio_button_create(
     Layout *lt,
     int text_size,
@@ -869,8 +871,8 @@ void radio_destroy(RadioButton *rb)
 
 }
 
+/*------ SymbolRadio -------------------------------------------------*/
 
-/* Symbol Radio button */
 
 SymbolRadio *symbol_radio_create(
     Layout *lt,
@@ -966,10 +968,7 @@ void symbol_radio_destroy(SymbolRadio *sr)
 }
 
 
-
-
-
-/* Waveform */
+/*------ Waveform ----------------------------------------------------*/
 
 Waveform *waveform_create(
     Layout *lt,
@@ -1022,7 +1021,7 @@ void waveform_draw(Waveform *w)
     SDL_RenderDrawRect(main_win->rend, &w->layout->rect);
 }
 
-/* Canvas */
+/*------ Canvas ------------------------------------------------------*/
 
 Canvas *canvas_create(Layout *lt, void (*draw_fn)(void *, void *), void *draw_arg1, void *draw_arg2)
 {
@@ -1043,6 +1042,8 @@ void canvas_destroy(Canvas *c)
 {
     free(c);
 }
+
+/*------ Dropdown ----------------------------------------------------*/
 
 
 Dropdown *dropdown_create(
@@ -1185,7 +1186,7 @@ bool dropdown_click(Dropdown *d, Window *win)
     }
 }
 
-/* Status light */
+/*------ StatusLight ------------------------------------------------*/
 
 StatusLight *status_light_create(Layout *lt, void *value, size_t val_size)
 {
@@ -1219,7 +1220,111 @@ void status_light_destroy(StatusLight *sl)
 }
 
 
-/* Mouse functions */
+/*------ PageList ----------------------------------------------------*/
+
+#define PAGE_LIST_INNER_LT_PAD_H 4
+#define PAGE_LIST_INNER_LT_PAD_V 2
+#define PAGE_LIST_ITEM_V_PAD 4
+
+/* Use when page layout defined in file */
+Page *page_create(
+    const char *title,
+    const char *layout_filepath,
+    Layout *parent_lt,
+    SDL_Color *background_color,
+    SDL_Color *text_color,
+    Window *win);
+
+/* Use when page layout already in memory */
+Page *page_create_from_layout(
+    Layout *layout,
+    const char *title,
+    SDL_Color *background_color,
+    SDL_Color *text_color,
+    Window *win);
+void page_reset(Page *page);
+
+void page_list_update(PageList *pl, int num_items)
+{
+    if (pl->pages) {
+	free(pl->pages);
+    }
+    pl->num_items = num_items;
+    pl->pages = calloc(num_items, sizeof(Page *));
+    fprintf(stderr, "Create pl num itsm %d\n", num_items);
+    for (int i=0; i<pl->num_items; i++) {
+	Layout *page_layout = layout_add_child(pl->inner_layout);
+	page_layout->y.type = STACK;
+	page_layout->y.value = PAGE_LIST_ITEM_V_PAD;
+	page_layout->w.type = SCALE;
+	page_layout->w.value = 1.0;
+	page_layout->h.type = ABS;
+	page_layout->h.value = 50;
+	layout_reset(page_layout);
+	void *item = pl->items_loc + i * pl->item_size;
+	if (pl->item_template_filepath) {
+	    pl->pages[i] = page_create(
+		"",
+		pl->item_template_filepath,
+		page_layout,
+		/* TODO: add PL colors */
+		&colors.white,
+		&colors.black,
+		main_win);
+	} else {
+	    pl->pages[i] = page_create_from_layout(
+		page_layout,
+		"",
+		&colors.white,
+		&colors.black,
+		main_win);
+	}
+	page_reset(pl->pages[i]);
+	pl->create_item_page_fn(pl->pages[i], item);
+	page_reset(pl->pages[i]);
+	/* page_reset(pl->pages[i]); */
+	/* pl->pages[i] = pl->create_item_page_fn(page_layout, item); */
+    }
+}
+
+
+PageList *page_list_create(
+    Layout *lt,
+    void *items_loc,
+    int num_items,
+    size_t item_size,
+    const char *item_template_filepath,
+    PageListItemFn create_item_fn)
+    /* Page *(*create_item_page_fn)(void *item, Layout *layout)) */
+{
+    PageList *pl = calloc(1, sizeof(PageList));
+    pl->layout = lt;
+    pl->items_loc = items_loc;
+    pl->num_items = num_items;
+    pl->item_size = item_size;
+    pl->create_item_page_fn = create_item_fn;
+    pl->item_template_filepath = item_template_filepath;
+    Layout *inr = layout_add_child(lt);
+    inr->x.value = PAGE_LIST_INNER_LT_PAD_H;
+    inr->y.value = PAGE_LIST_INNER_LT_PAD_V;
+    inr->w.type = PAD;
+    inr->h.type = PAD;
+    layout_reset(inr);
+    pl->inner_layout = inr;
+    page_list_update(pl, num_items);
+    return pl;
+}
+
+void page_draw(Page *page);
+void page_list_draw(PageList *pl)
+{
+    for (int i=0; i<pl->num_items; i++) {
+	page_draw(pl->pages[i]);
+    }
+    layout_draw(main_win, pl->layout);
+}
+
+/*------ Mouse functions ---------------------------------------------*/
 
 typedef struct click_segment ClickSegment;
 bool click_track_mouse_motion(ClickSegment *s, Window *win);
@@ -1290,6 +1395,7 @@ bool symbol_button_click(SymbolButton *sbutton, Window *win)
     }
     return false;
 }
+
 
 
 void draggable_handle_scroll(Draggable *d, int x, int y)

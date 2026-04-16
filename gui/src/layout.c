@@ -928,16 +928,22 @@ void reset_iterations(LayoutIterator *iter);
 
 
 /* New iterative implementation */
+void breakfn();
 void layout_force_reset(Layout *lt)
 {
     if (lt->hidden) {
 	return;
     }
     Layout *top_parent = lt;
-    
+
+    int iters = 0;
     while (lt) {
 	/* DO CALCS */
-
+	iters++;
+	if (iters > 500) {
+	    breakfn();
+	    /* TESTBREAK; */
+	}
 	if (!set_rect_wh(lt)) {
 	    fprintf(stderr, "Error: failed to set wh on %s\n", lt->name);
 	}
@@ -1243,6 +1249,12 @@ void layout_reparent_all(Layout *old_parent, Layout *new_parent)
 
 void layout_reparent(Layout *child, Layout *parent)
 {
+    if (child == parent) {
+	fprintf(stderr, "Call to make layout %p (%s) own parent\n", child, child->name);
+	breakfn();
+	exit(1);
+	/* ret */
+    }
     child->parent = parent;
     layout_realloc_children_maybe(parent);
     parent->children[parent->num_children] = child;

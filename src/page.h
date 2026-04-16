@@ -328,6 +328,7 @@ Endpoint *tabview_selected_endpoint();
 
 /* Page methods */
 
+/* Use when page layout defined in file */
 Page *page_create(
     const char *title,
     const char *layout_filepath,
@@ -335,6 +336,15 @@ Page *page_create(
     SDL_Color *background_color,
     SDL_Color *text_color,
     Window *win);
+
+/* Use when page layout already in memory */
+Page *page_create_from_layout(
+    Layout *layout,
+    const char *title,
+    SDL_Color *background_color,
+    SDL_Color *text_color,
+    Window *win);
+
 
 void page_destroy(Page *page);
 void page_el_set_params(PageEl *el, PageElParams params, Page *page);

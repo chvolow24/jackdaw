@@ -20,6 +20,7 @@
 
 #define SLIDER_MAX_POINTS_OF_INTEREST 8
 
+
 /*****************************************/
 /************ Definitions ****************/
 /*****************************************/
@@ -185,6 +186,21 @@ typedef struct status_light {
     size_t val_size;
 } StatusLight;
 
+typedef void (*PageListItemFn)(Page *page, void *item);
+#define PageListItemFnDef(name) void name(Page *page, void *item) \
+
+typedef struct page_list {
+    Layout *layout; /* container */
+    Layout *inner_layout; /* has scroll offset */
+    Page **pages;
+    void *items_loc; /* head of array */
+    int num_items;
+    size_t item_size;
+    PageListItemFn create_item_page_fn;
+    /* Page *(*create_item_page_fn)(Layout *layout, void *item); */
+    const char *item_template_filepath;
+    /* void (*create_items_fn)(Page **dst, void *items, int num_items); */
+} PageList;
 
 
 /*****************************************/
@@ -411,5 +427,23 @@ bool dropdown_click(Dropdown *d, Window *win);
 StatusLight *status_light_create(Layout *lt, void *value, size_t val_size);
 void status_light_draw(StatusLight *sl);
 void status_light_destroy(StatusLight *sl);
+
+/* Page list */
+
+/* PageList *page_list_create(Layout *lt, void *items_loc, int num_items, Page **(*create_items_fn)(void *items, int num_items)); */
+
+PageList *page_list_create(
+    Layout *lt,
+    void *items_loc,
+    int num_items,
+    size_t item_size,
+    const char *item_template_filepath,
+    PageListItemFn create_item_page_fn);
+    /* Page *(*create_item_page_fn)(void *item, Layout *layout)); */
+void page_list_draw(PageList *pl);
+void page_list_destroy(PageList *pl);
+void page_list_update(PageList *pl, int num_items);
+void page_list_click(PageList *pl, Window *win);
+void page_list_scroll(PageList *pl, Window *win, int x, int y);
 
 #endif

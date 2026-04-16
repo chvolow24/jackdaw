@@ -228,6 +228,23 @@ void tabview_destroy(TabView *tv)
 }
 /* void layout_write(FILE *f, Layout *lt); */
 
+static Page *page_create_after_layout(
+    const char *title,
+    Layout *layout,
+    SDL_Color *background_color,
+    SDL_Color *text_color,
+    Window *win)
+{
+    Page *page = calloc(1, sizeof(Page));
+    page->layout = layout;
+    page->title = title;
+    page->background_color = background_color;
+    page->text_color = text_color;
+    page->win = win;
+    return page;
+}
+
+/* Old function, provided for compatibility */
 Page *page_create(
     const char *title,
     const char *layout_filepath,
@@ -236,10 +253,6 @@ Page *page_create(
     SDL_Color *text_color,
     Window *win)
 {
-    Page *page = calloc(1, sizeof(Page));
-    page->title = title;
-    page->background_color = background_color;
-    page->text_color = text_color;
     Layout *page_lt;
     if (layout_filepath) {
 	page_lt = layout_read_from_xml(layout_filepath);
@@ -249,15 +262,25 @@ Page *page_create(
     } else {
 	page_lt = layout_create();
     }
-    page->layout = page_lt;
     if (parent_lt) {
 	layout_reparent(page_lt, parent_lt);
     }
-    /* layout_write(stdout, page->layout, 0); */
-    /* layout_reset(page->layout); */
-    page->win = win;
-    return page;
+    return page_create_after_layout(title, page_lt, background_color, text_color, win);   
 }
+
+Page *page_create_from_layout(
+    Layout *layout,
+    const char *title,
+    SDL_Color *background_color,
+    SDL_Color *text_color,
+    Window *win)
+{
+    return page_create_after_layout(title, layout, background_color, text_color, win);
+}
+    
+
+
+
 
 static void page_el_destroy(PageEl *el)
 {

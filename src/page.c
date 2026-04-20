@@ -99,8 +99,8 @@ Page *tabview_add_page(
     TabView *tv,
     const char *page_title,
     const char *layout_filepath,
-    SDL_Color *background_color,
-    SDL_Color *text_color,
+    const SDL_Color *background_color,
+    const SDL_Color *text_color,
     Window *win)
 {
     /* Second child of tab view layout is page container */
@@ -117,6 +117,7 @@ Page *tabview_add_page(
 	background_color,
 	text_color,
 	win);
+    page->tabview = tv;
     tv->tabs[tv->num_tabs] = page;
     if (tv->num_tabs == 0) {
 	tv->layout->children[0]->x.value = TAB_MARGIN_LEFT;
@@ -231,8 +232,8 @@ void tabview_destroy(TabView *tv)
 static Page *page_create_after_layout(
     const char *title,
     Layout *layout,
-    SDL_Color *background_color,
-    SDL_Color *text_color,
+    const SDL_Color *background_color,
+    const SDL_Color *text_color,
     Window *win)
 {
     Page *page = calloc(1, sizeof(Page));
@@ -249,8 +250,8 @@ Page *page_create(
     const char *title,
     const char *layout_filepath,
     Layout *parent_lt,
-    SDL_Color *background_color,
-    SDL_Color *text_color,
+    const SDL_Color *background_color,
+    const SDL_Color *text_color,
     Window *win)
 {
     Layout *page_lt;
@@ -271,8 +272,8 @@ Page *page_create(
 Page *page_create_from_layout(
     Layout *layout,
     const char *title,
-    SDL_Color *background_color,
-    SDL_Color *text_color,
+    const SDL_Color *background_color,
+    const SDL_Color *text_color,
     Window *win)
 {
     return page_create_after_layout(title, layout, background_color, text_color, win);
@@ -338,6 +339,9 @@ static void page_el_destroy(PageEl *el)
     case EL_VU_METER:
 	vu_meter_destroy(el->component);
 	break;
+    case EL_PAGE_LIST:
+	page_list_destroy(el->component);
+	break;
     }    
     free(el->id);
     free(el);
@@ -398,6 +402,9 @@ void page_el_reset(PageEl *el)
     case EL_PIANO:
 	piano_reset(el->component);
 	break;
+    case EL_PAGE_LIST:
+	break;
+	/* page_list_update(e- */
     default:
 	break;
     }
@@ -414,6 +421,7 @@ static inline bool el_is_selectable(PageElType type)
     case EL_SYMBOL_BUTTON:
     case EL_SYMBOL_RADIO:
     case EL_DROPDOWN:
+    case EL_PAGE_LIST:
 	return true;
     default:
 	return false;
@@ -605,6 +613,16 @@ void page_el_set_params(PageEl *el, PageElParams params, Page *page)
 	    params.vu_p.ef_L,
 	    params.vu_p.ef_R);
 	break;
+    case EL_PAGE_LIST:
+	el->component = page_list_create(
+	    el->layout,
+	    params.page_list_p.items_loc,
+	    params.page_list_p.num_items,
+	    params.page_list_p.item_size,
+	    params.page_list_p.item_template_filepath,
+	    params.page_list_p.create_item_page_fn
+	    );
+	break;
     default:
 	break;
     }
@@ -674,6 +692,8 @@ void page_reset(Page *page)
 
 static bool page_element_mouse_motion(PageEl *el, Window *win)
 {
+    /* REPLACED BY DRAGGABLE INTERFACE */
+       
     /* switch (el->type) { */
     /* case EL_TEXTAREA: */
     /* 	break; */
@@ -770,10 +790,10 @@ static bool page_element_mouse_click(PageEl *el, Window *win)
 	return symbol_button_click(el->component, main_win);
     case EL_SYMBOL_RADIO:
 	return symbol_radio_click(el->component, main_win);
-	break;
     case EL_DROPDOWN:
 	return dropdown_click(el->component, main_win);
-	break;
+    case EL_PAGE_LIST:
+	return page_list_click(el->component, main_win);
 
     default:
 	break;
@@ -993,6 +1013,9 @@ static void page_el_draw(PageEl *el)
     case EL_VU_METER:
 	vu_meter_draw(el->component);
 	break;
+    case EL_PAGE_LIST:
+	page_list_draw(el->component);
+	break;
     default:
 	break;
     }
@@ -1005,19 +1028,28 @@ void page_draw(Page *page)
     if (page->background_color) {
 	SDL_SetRenderDrawColor(page->win->rend, sdl_colorp_expand(page->background_color));
 	SDL_Rect temp = page->layout->rect;
-	int r = PAGE_R * page->win->dpi_scale_factor;
-	geom_fill_rounded_rect(page->win->rend, &temp, r);
+	if (page->tabview || !page->page_list) {
+	    int r = PAGE_R * page->win->dpi_scale_factor;
+	    geom_fill_rounded_rect(page->win->rend, &temp, r);
 
-	int brdr = 7 * page->win->dpi_scale_factor;
-	int brdrtt = 2 * brdr;
-	temp.x += brdr;
-	temp.y += brdr;
-	temp.w -= brdrtt;
-	temp.h -= brdrtt;
+	    int brdr = 7 * page->win->dpi_scale_factor;
+	    int brdrtt = 2 * brdr;
+	    temp.x += brdr;
+	    temp.y += brdr;
+	    temp.w -= brdrtt;
+	    temp.h -= brdrtt;
+	    SDL_SetRenderDrawColor(page->win->rend, sdl_color_expand(colors.black));
+	    geom_draw_rounded_rect_thick(page->win->rend, &temp, 7, TAB_R * page->win->dpi_scale_factor);
+
+	} else if (page->page_list) {
+	    int r = page->page_list->item_corner_rad * page->win->dpi_scale_factor;
+	    geom_fill_rounded_rect(page->win->rend, &temp, r);	    
+	}/*  else { */
+	/*     fprintf(stderr, "else condition\n"); */
+	/*     SDL_RenderFillRect(page->win->rend, &temp); */
+	/* } */
 	/* static SDL_Color brdrclr = {25, 25, 25, 255}; */
 
-	SDL_SetRenderDrawColor(page->win->rend, sdl_color_expand(colors.black));
-	geom_draw_rounded_rect_thick(page->win->rend, &temp, 7, TAB_R * page->win->dpi_scale_factor);
     }
     for (uint8_t i=0; i<page->num_elements; i++) {
 	page_el_draw(page->elements[i]);
@@ -1579,6 +1611,11 @@ void page_center_contents(Page *page)
     layout_force_reset(inner);
 }
 
+/* components.c needs to set member without page def */
+void page_set_page_list(Page *page, PageList *pl)
+{
+    page->page_list = pl;
+}
 
 
 

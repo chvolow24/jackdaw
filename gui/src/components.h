@@ -199,6 +199,8 @@ typedef struct page_list {
     PageListItemFn create_item_page_fn;
     /* Page *(*create_item_page_fn)(Layout *layout, void *item); */
     const char *item_template_filepath;
+
+    int item_corner_rad;
     /* void (*create_items_fn)(Page **dst, void *items, int num_items); */
 } PageList;
 
@@ -443,7 +445,7 @@ PageList *page_list_create(
 void page_list_draw(PageList *pl);
 void page_list_destroy(PageList *pl);
 void page_list_update(PageList *pl, int num_items);
-void page_list_click(PageList *pl, Window *win);
+bool page_list_click(PageList *pl, Window *win);
 void page_list_scroll(PageList *pl, Window *win, int x, int y);
 
 #endif

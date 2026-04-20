@@ -22,11 +22,12 @@
 #define JDAW_PAGE_H
 
 #include "components.h"
+#include "envelope_follower.h"
 #include "eq.h"
 #include "layout.h"
 #include "textbox.h"
 #include "value.h"
-#include "vu_meter.h"
+/* #include "vu_meter.h" */
 
 #define MAX_ELEMENTS 256
 #define MAX_SELECTABLE 64
@@ -56,7 +57,8 @@ typedef enum page_el_type {
     EL_STATUS_LIGHT,
     EL_PIANO,
     EL_DIVIDER,
-    EL_VU_METER
+    EL_VU_METER,
+    EL_PAGE_LIST,
     /* EL_TOGGLE_EP */
 } PageElType;
 
@@ -80,13 +82,16 @@ typedef struct page {
     uint8_t num_selectable;
     int selected_i;
     Layout *layout;
-    SDL_Color *background_color;
-    SDL_Color *text_color;
+    const SDL_Color *background_color;
+    const SDL_Color *text_color;
     Window *win;
 
     enum linked_obj_type linked_obj_type;
     void *linked_obj;
     bool onscreen;
+
+    TabView *tabview; /* populated if page has parent tv */
+    PageList *page_list; /* populated if page has parent PageList */
 } Page;
 
 typedef struct tab_view {
@@ -266,6 +271,14 @@ struct vu_params {
     EnvelopeFollower *ef_R;
 };
 
+struct page_list_params {
+    void *items_loc;
+    int num_items;
+    size_t item_size;
+    const char *item_template_filepath;
+    PageListItemFn create_item_page_fn;
+};
+
 
 typedef union page_el_params {
     struct slider_params slider_p;
@@ -286,6 +299,7 @@ typedef union page_el_params {
     struct status_light_params slight_p;
     struct divider_params divider_p;
     struct vu_params vu_p;
+    struct page_list_params page_list_p;
 } PageElParams;
 
 
@@ -303,8 +317,8 @@ Page *tabview_add_page(
     TabView *tv,
     const char *page_title,
     const char *layout_filepath,
-    SDL_Color *background_color,
-    SDL_Color *text_color,
+    const SDL_Color *background_color,
+    const SDL_Color *text_color,
     Window *win);
 
 bool tabview_mouse_click(TabView *tv);
@@ -333,16 +347,16 @@ Page *page_create(
     const char *title,
     const char *layout_filepath,
     Layout *parent_lt,
-    SDL_Color *background_color,
-    SDL_Color *text_color,
+    const SDL_Color *background_color,
+    const SDL_Color *text_color,
     Window *win);
 
 /* Use when page layout already in memory */
 Page *page_create_from_layout(
     Layout *layout,
     const char *title,
-    SDL_Color *background_color,
-    SDL_Color *text_color,
+    const SDL_Color *background_color,
+    const SDL_Color *text_color,
     Window *win);
 
 

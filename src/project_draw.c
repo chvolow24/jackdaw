@@ -853,19 +853,6 @@ static void control_bar_draw()
     }
 }
 
-PageListItemFnDef(test_create_page_item)
-{
-    AudioRoute **item_loc = item;
-    AudioRoute *route = *item_loc;
-    PageElParams p;
-    p.textbox_p.font = main_win->std_font;
-    p.textbox_p.text_size = 12;
-    p.textbox_p.win = main_win;
-    p.textbox_p.set_str = route->src->name;
-    page_add_el(page, EL_TEXTBOX, p, "", "srcname");
-    p.textbox_p.set_str = route->dst->name;
-    page_add_el(page, EL_TEXTBOX, p, "", "dstname");
-};
 
 void project_draw()
 {
@@ -934,22 +921,22 @@ void project_draw()
     /* SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 100); */
     /* SDL_RenderFillRect(main_win->rend, &glob_onscreen_rect); */
     /* fprintf(stderr, "%d, %d, %d, %d\n", glob_onscreen_rect.x, glob_onscreen_rect.y, glob_onscreen_rect.w, glob_onscreen_rect.h); */
-    static PageList *pl = NULL;
-    if (!pl && ACTIVE_TL->num_tracks > 0 && ACTIVE_TL->tracks[0]->num_routes > 2) {
-	Layout *pl_lt = layout_add_child(main_win->layout);
-	layout_set_default_dims(pl_lt);
-	layout_reset(pl_lt);
-	pl = page_list_create(
-	    pl_lt,
-	    ACTIVE_TL->tracks[0]->routes,
-	    ACTIVE_TL->tracks[0]->num_routes,
-	    sizeof(AudioRoute *),
-	    "/testpage.xml",
-	    test_create_page_item);	    	    	    
-    }
-    if (pl) {
-	page_list_draw(pl);
-    }
+    /* static PageList *pl = NULL; */
+    /* if (!pl && ACTIVE_TL->num_tracks > 0 && ACTIVE_TL->tracks[0]->num_routes > 2) { */
+    /* 	Layout *pl_lt = layout_add_child(main_win->layout); */
+    /* 	layout_set_default_dims(pl_lt); */
+    /* 	layout_reset(pl_lt); */
+    /* 	pl = page_list_create( */
+    /* 	    pl_lt, */
+    /* 	    ACTIVE_TL->tracks[0]->routes, */
+    /* 	    ACTIVE_TL->tracks[0]->num_routes, */
+    /* 	    sizeof(AudioRoute *), */
+    /* 	    "/testpage.xml", */
+    /* 	    test_create_page_item);	    	    	     */
+    /* } */
+    /* if (pl) { */
+    /* 	page_list_draw(pl); */
+    /* } */
 
     window_end_draw(main_win);
 }

@@ -76,6 +76,8 @@ extern Project *proj;
 extern void user_global_quit(void *);
 extern void open_file(const char *filepath);
 
+void route_page_open(Track *track);
+
 void loop_project_main()
 {
     Session *session = session_get();
@@ -252,8 +254,10 @@ void loop_project_main()
 		    track_add_audio_route(track, ACTIVE_TL->tracks[3], 0.5);
 		}
 		    break;
-
-
+		case SDL_SCANCODE_9:
+		    route_page_open(timeline_selected_track(ACTIVE_TL));
+		    break;
+		    
 
 		    
 		case SDL_SCANCODE_LGUI:

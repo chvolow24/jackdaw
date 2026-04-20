@@ -101,10 +101,13 @@ SDL_Color track_colors[NUM_TRACK_COLORS] = {
     {224, 142, 74, 255}, /* goldenrod */
     {237, 98, 87, 255}, /* acid orange */
     {38, 131, 255, 255}, /* sky blue */
-    {0, 186, 152, 255}, /* pale cactus */
+    /* {0, 186, 152, 255}, /\* pale cactus *\/ */
+    {0, 161, 129, 255},
     {38, 83, 192, 255}, /* blueb */
-    {114, 79, 125, 255}, /* mauve */
-    {109, 189, 13, 255}, /* deep cactus */
+    /* {114, 79, 125, 255}, /\* mauve *\/ */
+    {150, 80, 117, 255},
+    /* {109, 189, 13, 255}, /\* leaf *\/ */
+    {103, 176, 14, 255}
 };
 
 uint8_t project_add_timeline(Project *proj, char *name)

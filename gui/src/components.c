@@ -1225,6 +1225,7 @@ void status_light_destroy(StatusLight *sl)
 #define PAGE_LIST_INNER_LT_PAD_H 4
 #define PAGE_LIST_INNER_LT_PAD_V 2
 #define PAGE_LIST_ITEM_V_PAD 4
+#define PAGE_LIST_DEFAULT_ITEM_CORNER_R 6
 
 /* Use when page layout defined in file */
 Page *page_create(
@@ -1243,6 +1244,7 @@ Page *page_create_from_layout(
     SDL_Color *text_color,
     Window *win);
 void page_reset(Page *page);
+void page_set_page_list(Page *page, PageList *pl);
 
 void page_list_update(PageList *pl, int num_items)
 {
@@ -1271,6 +1273,8 @@ void page_list_update(PageList *pl, int num_items)
 		&colors.white,
 		&colors.black,
 		main_win);
+	    layout_size_to_fit_children_v(page_layout, true, 0);
+	    layout_reset(page_layout);
 	} else {
 	    pl->pages[i] = page_create_from_layout(
 		page_layout,
@@ -1279,6 +1283,7 @@ void page_list_update(PageList *pl, int num_items)
 		&colors.black,
 		main_win);
 	}
+	page_set_page_list(pl->pages[i], pl);
 	page_reset(pl->pages[i]);
 	pl->create_item_page_fn(pl->pages[i], item);
 	page_reset(pl->pages[i]);
@@ -1287,6 +1292,8 @@ void page_list_update(PageList *pl, int num_items)
     }
 }
 
+
+void page_destroy(Page *page);
 
 PageList *page_list_create(
     Layout *lt,
@@ -1304,6 +1311,7 @@ PageList *page_list_create(
     pl->item_size = item_size;
     pl->create_item_page_fn = create_item_fn;
     pl->item_template_filepath = item_template_filepath;
+    pl->item_corner_rad = PAGE_LIST_DEFAULT_ITEM_CORNER_R;
     Layout *inr = layout_add_child(lt);
     inr->x.value = PAGE_LIST_INNER_LT_PAD_H;
     inr->y.value = PAGE_LIST_INNER_LT_PAD_V;
@@ -1315,13 +1323,31 @@ PageList *page_list_create(
     return pl;
 }
 
+void page_list_destroy(PageList *pl)
+{
+    for (int i=0; i<pl->num_items; i++) {
+	page_destroy(pl->pages[i]);
+    }
+    free(pl->pages);
+    free(pl);
+}
+
 void page_draw(Page *page);
 void page_list_draw(PageList *pl)
 {
+    fprintf(stderr, "Drawing pages (%d)\n", pl->num_items);
     for (int i=0; i<pl->num_items; i++) {
 	page_draw(pl->pages[i]);
     }
-    layout_draw(main_win, pl->layout);
+    /* layout_draw(main_win, pl->layout); */
+}
+
+bool page_list_click(PageList *pl, Window *win)
+{
+    if (SDL_PointInRect(&win->mousep, &pl->layout->rect)) {
+
+    }
+    return false;
 }
 
 /*------ Mouse functions ---------------------------------------------*/

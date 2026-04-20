@@ -41,6 +41,8 @@
 #define PIANO_88_VERTICAL_LT_PATH LAYOUT_PATH "piano_88_vertical.xml"
 #define PIANO_ROLL_LT_PATH LAYOUT_PATH "piano_roll.xml"
 
+#define AUDIO_ROUTES_LT_PATH LAYOUT_PATH "audio_route_page.xml"
+
 #ifdef LAYOUT_BUILD
 #define TTF_PATH "assets/ttf/"
 #else

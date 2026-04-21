@@ -1381,10 +1381,15 @@ void page_list_draw(PageList *pl)
     /* layout_draw(main_win, pl->layout); */
 }
 
+bool page_mouse_click(Page *page, Window *win);
 bool page_list_click(PageList *pl, Window *win)
 {
     if (SDL_PointInRect(&win->mousep, &pl->layout->rect)) {
-
+	for (int i=0; i<pl->num_items; i++) {
+	    if (page_mouse_click(pl->pages[i], win)) {
+		return true;
+	    }
+	}
     }
     return false;
 }

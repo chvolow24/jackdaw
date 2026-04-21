@@ -43,6 +43,7 @@
 
 #define AUDIO_ROUTES_LT_PATH LAYOUT_PATH "audio_route_page.xml"
 #define AUDIO_ROUTE_OUT_TEMPLATE_LT_PATH LAYOUT_PATH "audio_route_out_template.xml"
+#define AUDIO_ROUTE_IN_TEMPLATE_LT_PATH LAYOUT_PATH "audio_route_in_template.xml"
 
 #ifdef LAYOUT_BUILD
 #define TTF_PATH "assets/ttf/"

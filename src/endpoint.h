@@ -70,6 +70,7 @@ typedef void (*EndptCb)(Endpoint *);
 /* }; */
 
 /* typedef struct jackdaw_api Jackdaw_API; */
+typedef enum page_el_type : int PageElType;
 typedef struct api_node APINode;
 typedef struct api_hash_node APIHashNode;
 typedef struct endpoint {
@@ -106,6 +107,9 @@ typedef struct endpoint {
     bool block_undo;
     /* const char *undo_str; */
 
+    PageElType bound_component_type;
+    void *bound_component;
+    
     void *xarg1;
     void *xarg2;
     void *xarg3;

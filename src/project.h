@@ -122,6 +122,8 @@ typedef struct track {
     int num_routes;
     int num_route_ins;
     Textbox *route_ellipsis;
+    bool send_to_out;
+    Endpoint send_to_out_ep;
 
     ClipRef **clips;
     uint16_t num_clips;

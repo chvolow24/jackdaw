@@ -39,7 +39,7 @@
 #define TAB_MARGIN_LEFT (TAB_R * 2)
 #define TAB_H_SPACING 0
 
-typedef enum page_el_type {
+typedef enum page_el_type: int {
     EL_TEXTAREA,
     EL_TEXTBOX,
     EL_TEXTENTRY,

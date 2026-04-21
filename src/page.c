@@ -402,7 +402,12 @@ void page_el_reset(PageEl *el)
     case EL_PIANO:
 	piano_reset(el->component);
 	break;
-    case EL_PAGE_LIST:
+    case EL_PAGE_LIST: {
+	PageList *pl = el->component;
+	for (int i=0; i<pl->num_items; i++) {
+	    page_reset(pl->pages[i]);
+	}
+    }
 	break;
 	/* page_list_update(e- */
     default:
@@ -473,8 +478,8 @@ void page_el_set_params(PageEl *el, PageElParams params, Page *page)
 	    params.textentry_p.completion_target,
 	    page->win);
 	break;
-    case EL_SLIDER:
-	el->component = (void *)slider_create(
+    case EL_SLIDER: {
+	Slider *slider = slider_create(
 	    el->layout,
 	    params.slider_p.ep,
 	    params.slider_p.min,
@@ -491,10 +496,16 @@ void page_el_set_params(PageEl *el, PageElParams params, Page *page)
 	    /* params.slider_p.action, */
 	    /* params.slider_p.target, */
 	    &session->dragged_component);
+	if (slider->ep) {
+	    slider->ep->bound_component_type = EL_SLIDER;
+	    slider->ep->bound_component = slider;
+	}
+	el->component = slider;
 	/* slider_reset(el->component); */
+    }
 	break;
-    case EL_RADIO:
-	el->component = (void *)radio_button_create(
+    case EL_RADIO: {
+	RadioButton *rb = radio_button_create(
 	    el->layout,
 	    params.radio_p.text_size,
 	    params.radio_p.text_color,
@@ -503,6 +514,12 @@ void page_el_set_params(PageEl *el, PageElParams params, Page *page)
 	    /* params.radio_p.action, */
 	    params.radio_p.item_names,
 	    params.radio_p.num_items);
+	if (rb->ep) {
+	    rb->ep->bound_component_type = EL_RADIO;
+	    rb->ep->bound_component = rb;
+	}
+	el->component = rb;
+    }
 	break;
     case EL_TOGGLE:
 	el->component = (void *)toggle_create_from_endpoint(
@@ -1043,7 +1060,8 @@ void page_draw(Page *page)
 
 	} else if (page->page_list) {
 	    int r = page->page_list->item_corner_rad * page->win->dpi_scale_factor;
-	    geom_fill_rounded_rect(page->win->rend, &temp, r);	    
+	    geom_draw_rounded_rect(page->win->rend, &temp, r);
+	    /* geom_fill_rounded_rect(page->win->rend, &temp, r);	     */
 	}/*  else { */
 	/*     fprintf(stderr, "else condition\n"); */
 	/*     SDL_RenderFillRect(page->win->rend, &temp); */
@@ -1056,7 +1074,10 @@ void page_draw(Page *page)
 	if (page->selected_i >= 0
 	    && page->elements[i] == page->selectable_els[page->selected_i]
 	    && page->elements[i]->type != EL_PAGE_LIST /* Do not draw selection around page list */
-	    && !(page->page_list && (page->page_list->selected_item < 0 ||  page->page_list->pages[page->page_list->selected_item] != page))) /* If page is *in* page list, do not draw unless an item is selected */
+	    && !(page->page_list &&
+		 (page->page_list->selected_item < 0
+		  || page->page_list->pages[page->page_list->selected_item] != page
+		  || !page->page_list->selected_on_parent_page))) /* If page is *in* page list, do not draw unless an item is selected */
 	{
 	    SDL_SetRenderDrawColor(page->win->rend, 255, 200, 10, 255);
 	    SDL_Rect r = page->elements[i]->layout->rect;
@@ -1150,7 +1171,10 @@ static void page_el_select(PageEl *el)
     if (!el) return;
     if (el->type == EL_TEXTENTRY) {
 	textentry_edit((TextEntry *)el->component);
+    } else if (el->type == EL_PAGE_LIST) {
+	((PageList *)el->component)->selected_on_parent_page = true;
     }
+
     
 }
 static void page_el_deselect(PageEl *el)
@@ -1158,6 +1182,8 @@ static void page_el_deselect(PageEl *el)
     if (!el) return;
     if (el->type == EL_TEXTENTRY) {
 	textentry_complete_edit((TextEntry *)el->component);
+    } else if (el->type == EL_PAGE_LIST) {
+	((PageList *)el->component)->selected_on_parent_page = false;
     }
 }
 
@@ -1420,21 +1446,17 @@ void tabview_tab_drag(TabView *tv)
 int page_next_escape(Page *page)
 {
     PageEl *sel_el = page->selectable_els[page->selected_i];
-    fprintf(stderr, "PNE on %p\n", page);
     if (sel_el->type == EL_PAGE_LIST) {
 	PageList *pl = sel_el->component;
 	if (pl->num_items == 0) goto move_to_next_el;
 	Page *item_page = pl->pages[pl->selected_item];
 	int cycled = page_next_escape(item_page);
-	fprintf(stderr, "\t->item page cycled\n");
 	if (cycled) {
 	    pl->selected_item++;
 	    if (pl->selected_item >= pl->num_items) {
 		pl->selected_item = 0;
-		fprintf(stderr, "\t->last item!\n");
 		goto move_to_next_el;
 	    } else {
-		fprintf(stderr, "\t->incr item\n");
 		return 0;
 	    }
 	} else {
@@ -1474,6 +1496,9 @@ int page_previous_escape(Page *page)
 		pl->selected_item = 0;
 		goto move_to_prev_el;
 	    } else {
+		Page *sel_item = pl->pages[pl->selected_item];
+		sel_item->selected_i = sel_item->num_selectable - 1;
+		/* pl-pl->selected_item[ */
 		return 0;
 	    }		
 	} else {
@@ -1492,6 +1517,16 @@ move_to_prev_el:
 
     }
     page_el_select(page->selectable_els[page->selected_i]);
+    PageEl *new_sel = page->selectable_els[page->selected_i];
+    if (new_sel->type == EL_PAGE_LIST) {
+	PageList *pl = new_sel->component;
+	pl->selected_item = pl->num_items - 1;
+	if (pl->selected_item >= 0) {
+	    Page *sel_page = pl->pages[pl->selected_item];
+	    sel_page->selected_i = sel_page->num_selectable - 1;
+	}
+	
+    }
     return ret;
 }
 

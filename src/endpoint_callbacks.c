@@ -9,6 +9,7 @@
 *****************************************************************************************************************/
 
 #include "endpoint_callbacks.h"
+#include "components.h"
 #include "modal.h"
 #include "page.h"
 #include "session_endpoint_ops.h"
@@ -145,6 +146,25 @@ void page_el_gui_cb(Endpoint *ep)
 	return;
     }
     page_el_reset(el);
+}
+
+void component_gui_cb(Endpoint *ep)
+{
+    if (!ep->bound_component) {
+	return;
+    }
+    switch (ep->bound_component_type) {
+    case EL_SLIDER:
+	slider_reset(ep->bound_component);
+	break;
+    case EL_RADIO:
+	radio_button_reset_from_endpoint(ep->bound_component);
+	break;
+    case EL_TOGGLE:
+	break;
+    default:
+	break;
+    }
 }
 
 

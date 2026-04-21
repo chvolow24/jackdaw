@@ -1,6 +1,7 @@
 #include "color.h"
 #include "consts.h"
 #include "endpoint.h"
+#include "endpoint_callbacks.h"
 #include "layout.h"
 #include "log.h"
 #include "project.h"
@@ -331,7 +332,7 @@ void track_add_audio_route(Track *track, Track *dst, float init_amp)
 	"amp",
 	"Amp",
 	JDAW_THREAD_DSP,
-	NULL, NULL, rt_vol_dsp_cb,
+	component_gui_cb, NULL, rt_vol_dsp_cb,
 	NULL, NULL, r, NULL);
     endpoint_set_allowed_range(
 	&r->amp_ep,

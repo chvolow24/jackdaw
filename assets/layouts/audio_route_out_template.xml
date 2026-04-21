@@ -1,0 +1,40 @@
+<Layout name="arot" type="NORMAL">
+  <x>REL 0</x>
+  <y>REL 0</y>
+  <w>SCALE 1.000000</w>
+  <h>REL 48</h>
+  <children>
+    <Layout name="amp_s" type="NORMAL">
+      <x>STACK 10</x>
+      <y>REL 10</y>
+      <w>SCALE 0.500000</w>
+      <h>PAD 0</h>
+      <children>
+      </children>
+    </Layout>
+    <Layout name="arw" type="NORMAL">
+      <x>STACK 10</x>
+      <y>REL 10</y>
+      <w>ABS 40</w>
+      <h>PAD 0</h>
+      <children>
+      </children>
+    </Layout>
+    <Layout name="dst" type="NORMAL">
+      <x>STACK 10</x>
+      <y>REL 10</y>
+      <w>SCALE 0.200000</w>
+      <h>PAD 0</h>
+      <children>
+      </children>
+    </Layout>
+    <Layout name="del" type="NORMAL">
+      <x>REVREL 10</x>
+      <y>REL 10</y>
+      <w>REL 50</w>
+      <h>REL 50</h>
+      <children>
+      </children>
+    </Layout>
+  </children>
+</Layout>

@@ -1,0 +1,64 @@
+<Layout name="audio_route_page" type="NORMAL">
+  <x>REL 0</x>
+  <y>REL 0</y>
+  <w>SCALE 1.000000</w>
+  <h>SCALE 1.000000</h>
+  <children>
+    <Layout name="ctr" type="NORMAL">
+      <x>SCALE 0.050000</x>
+      <y>SCALE 0.050000</y>
+      <w>PAD 0</w>
+      <h>PAD 0</h>
+      <children>
+        <Layout name="title" type="NORMAL">
+          <x>REL 0</x>
+          <y>REL 7</y>
+          <w>PAD 1</w>
+          <h>REL 34</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="mro" type="NORMAL">
+          <x>REL 0</x>
+          <y>STACK 7</y>
+          <w>PAD 1</w>
+          <h>REL 38</h>
+          <children>
+            <Layout name="mro_lbl" type="NORMAL">
+              <x>REL 0</x>
+              <y>REL 0</y>
+              <w>REL 200</w>
+              <h>SCALE 1.000000</h>
+              <children>
+              </children>
+            </Layout>
+            <Layout name="mro_tgl" type="NORMAL">
+              <x>STACK 0</x>
+              <y>REL 7</y>
+              <w>REL 24</w>
+              <h>REL 24</h>
+              <children>
+              </children>
+            </Layout>
+          </children>
+        </Layout>
+        <Layout name="rts" type="NORMAL">
+          <x>REL 0</x>
+          <y>STACK 7</y>
+          <w>PAD 1</w>
+          <h>REVREL 70</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="pls" type="NORMAL">
+          <x>REL 24</x>
+          <y>REVREL 32</y>
+          <w>REL 24</w>
+          <h>REL 24</h>
+          <children>
+          </children>
+        </Layout>
+      </children>
+    </Layout>
+  </children>
+</Layout>

@@ -277,6 +277,9 @@ void slider_draw(Slider *s)
 void slider_destroy(Slider *s)
 {
     /* textbox_destroy(s->label); */
+    if (s->ep) {
+	s->ep->bound_component = NULL;
+    }
     label_destroy(s->label);
     layout_destroy(s->layout);
     free(s);
@@ -862,6 +865,9 @@ bool radio_click(RadioButton *rb, Window *Win)
 
 void radio_destroy(RadioButton *rb)
 {
+    if (rb->ep) {
+	rb->ep->bound_component = NULL;
+    }
     for (uint8_t i=0; i<rb->num_items; i++) {
 	textbox_destroy(rb->items[i]);
     }
@@ -1232,16 +1238,16 @@ Page *page_create(
     const char *title,
     const char *layout_filepath,
     Layout *parent_lt,
-    SDL_Color *background_color,
-    SDL_Color *text_color,
+    const SDL_Color *background_color,
+    const SDL_Color *text_color,
     Window *win);
 
 /* Use when page layout already in memory */
 Page *page_create_from_layout(
     Layout *layout,
     const char *title,
-    SDL_Color *background_color,
-    SDL_Color *text_color,
+    const SDL_Color *background_color,
+    const SDL_Color *text_color,
     Window *win);
 void page_reset(Page *page);
 void page_set_page_list(Page *page, PageList *pl);
@@ -1264,7 +1270,7 @@ void page_list_update(PageList *pl, int num_items)
 	page_layout->h.value = 50;
 	layout_reset(page_layout);
 	void *item = pl->items_loc + i * pl->item_size;
-	static const SDL_Color item_bckgrnd = {0, 0, 0, 20};
+	static const SDL_Color item_bckgrnd = {255, 255, 255, 60};
 	if (pl->item_template_filepath) {
 	    pl->pages[i] = page_create(
 		"",
@@ -1272,6 +1278,7 @@ void page_list_update(PageList *pl, int num_items)
 		page_layout,
 		
 		/* TODO: add PL colors */
+		/* NULL, */
 		&item_bckgrnd,
 		/* NULL, */
 		&colors.white,
@@ -1340,9 +1347,37 @@ void page_list_draw(PageList *pl)
 {
     /* SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 255); */
     /* geom_fill_rounded_rect(main_win->rend, &pl->layout->rect, 8); */
+    SDL_Rect saved_cliprect = {0};
+    SDL_RenderGetClipRect(main_win->rend, &saved_cliprect);    
+    SDL_RenderSetClipRect(main_win->rend, &pl->layout->rect);
     for (int i=0; i<pl->num_items; i++) {
 	page_draw(pl->pages[i]);
     }
+    SDL_Rect cmp = {0};
+    if (memcmp(&saved_cliprect, &cmp, sizeof(SDL_Rect)) == 0) {
+	SDL_RenderSetClipRect(main_win->rend, NULL);
+    } else {
+	SDL_RenderSetClipRect(main_win->rend, &saved_cliprect);
+    }
+
+    SDL_Color grey = {0, 0, 0, 80};
+    SDL_Rect rect = pl->layout->rect;
+    const int thickness = 6;
+    const int border_r = 8;
+    int alpha_diff = grey.a / thickness;
+    /* SDL_SetRenderDrawColor(main_win->rend, &colors.grey); */
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(grey));
+    geom_draw_rounded_rect(main_win->rend, &rect, border_r);    
+    for (int i=0; i<thickness - 1; i++) {
+	rect.w -= 2;
+	rect.h -= 2;
+	rect.x++;
+	rect.y++;
+	grey.a -= alpha_diff;
+	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(grey));
+	geom_draw_rounded_rect(main_win->rend, &rect, border_r);
+    }
+
     /* layout_draw(main_win, pl->layout); */
 }
 

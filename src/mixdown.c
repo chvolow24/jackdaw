@@ -335,7 +335,7 @@ void get_mixdown_chunk(Timeline* tl, float *restrict mixdown_L, float *restrict 
 	if (track_chunk_amp > AMP_EPSILON) { /* Checks if any clip audio available */
 	    audio_in_track = true;
 	}
-	if (audio_in_track && track->num_routes == 0) {
+	if (audio_in_track && track->send_to_out) {
 	    float_buf_add(mixdown_L, track->buf_L, len_sframes);
 	    float_buf_add(mixdown_R, track->buf_R, len_sframes);
 	}

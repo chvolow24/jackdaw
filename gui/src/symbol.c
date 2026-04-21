@@ -352,6 +352,21 @@ static void status_off_draw_fn(void *self)
     geom_draw_circle(s->window->rend, center - r, center - r, r);
 }
 
+static void plus_draw_fn(void *self)
+{
+    Symbol *s = self;
+    SDL_SetRenderDrawColor(s->window->rend, 255, 255, 255, 255);
+    SDL_Rect r = {0, 0, s->x_dim_pix, s->y_dim_pix};
+    geom_draw_rounded_rect(s->window->rend, &r, s->corner_rad_pix);
+    /* geom_draw_circle(s->window->rend, 0, 0, s->y_dim_pix / 2); */
+    int pad = SYMBOL_DEFAULT_PAD * s->window->dpi_scale_factor;
+    int thickness = (SYMBOL_DEFAULT_THICKNESS - 1) * s->window->dpi_scale_factor;
+    SDL_Rect horizontal = {pad, r.h / 2 - thickness / 2, r.w - pad * 2, thickness};
+    SDL_Rect vertical = {r.w / 2 - thickness / 2, pad, thickness, r.h - pad * 2};
+    SDL_RenderFillRect(s->window->rend, &horizontal);
+    SDL_RenderFillRect(s->window->rend, &vertical);
+}
+
 void init_symbol_table(Window *win)
 {
     int std_dim = SYMBOL_STD_DIM * win->dpi_scale_factor;
@@ -434,26 +449,24 @@ void init_symbol_table(Window *win)
 	wav_h,
 	std_rad,
 	saw_draw_fn);
-
     SYMBOL_TABLE[SYMBOL_STATUS_ON] = symbol_create(
 	win,
 	std_dim,
 	std_dim,
 	0,
 	status_draw_fn);
-
     SYMBOL_TABLE[SYMBOL_STATUS_OFF] = symbol_create(
 	win,
 	std_dim,
 	std_dim,
 	0,
 	status_off_draw_fn);
-
-
-
-	
-	
-	
+    SYMBOL_TABLE[SYMBOL_PLUS] = symbol_create(
+	win,
+	std_dim,
+	std_dim,
+	std_rad,
+	plus_draw_fn);
 }
 
 

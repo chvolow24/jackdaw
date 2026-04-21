@@ -201,6 +201,7 @@ typedef struct page_list {
     const char *item_template_filepath;
     /* Page *selected_page; */
     int selected_item;
+    bool selected_on_parent_page;
 
     int item_corner_rad;
     /* void (*create_items_fn)(Page **dst, void *items, int num_items); */

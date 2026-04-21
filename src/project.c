@@ -777,6 +777,18 @@ Track *timeline_add_track_with_name(Timeline *tl, const char *track_name, int at
     api_endpoint_register(&track->pan_ep, &track->api_node);
 
 
+    endpoint_init(
+	&track->send_to_out_ep,
+	&track->send_to_out,
+	JDAW_BOOL,
+	"send_to_out",
+	"Send to out",
+	JDAW_THREAD_DSP,
+	NULL, NULL, NULL,
+	NULL, NULL, NULL, NULL);
+    endpoint_set_default_value(&track->send_to_out_ep, (Value){.bool_v = true});
+    endpoint_write_default(&track->send_to_out_ep);
+	
 
     /* track->eq.track = track; */
     /* eq_init(&track->eq); */

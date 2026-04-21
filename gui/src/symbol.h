@@ -43,6 +43,7 @@ enum symbol_id {
     SYMBOL_SAW,
     SYMBOL_STATUS_ON,
     SYMBOL_STATUS_OFF,
+    SYMBOL_PLUS,
     NUM_SYMBOLS
 };
 

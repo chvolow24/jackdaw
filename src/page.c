@@ -894,8 +894,8 @@ void tabview_reset(TabView *tv, uint8_t leftmost_index)
 	tv->rightmost_index = tv->num_tabs - 1;
     }
 
-    /* Page *page = tv->tabs[tv->current_tab]; */
-    /* page_reset(page); */
+    Page *page = tv->tabs[tv->current_tab];
+    page_reset(page);
     ACTIVE_TL->needs_redraw = true;
 }
 
@@ -1053,7 +1053,11 @@ void page_draw(Page *page)
     }
     for (uint8_t i=0; i<page->num_elements; i++) {
 	page_el_draw(page->elements[i]);
-	if (page->selected_i >= 0 && page->elements[i] == page->selectable_els[page->selected_i]) {
+	if (page->selected_i >= 0
+	    && page->elements[i] == page->selectable_els[page->selected_i]
+	    && page->elements[i]->type != EL_PAGE_LIST /* Do not draw selection around page list */
+	    && !(page->page_list && (page->page_list->selected_item < 0 ||  page->page_list->pages[page->page_list->selected_item] != page))) /* If page is *in* page list, do not draw unless an item is selected */
+	{
 	    SDL_SetRenderDrawColor(page->win->rend, 255, 200, 10, 255);
 	    SDL_Rect r = page->elements[i]->layout->rect;
 	    geom_draw_rect_thick(page->win->rend, &r, 1 * page->win->dpi_scale_factor);
@@ -1411,25 +1415,84 @@ void tabview_tab_drag(TabView *tv)
 /* 	textentry_edit((TextEntry *)to->component); */
 /*     } */
 /* } */
-    
-void page_next_escape(Page *page)
+
+/* Return 1 if cycled, or 0 otherwise */
+int page_next_escape(Page *page)
 {
+    PageEl *sel_el = page->selectable_els[page->selected_i];
+    fprintf(stderr, "PNE on %p\n", page);
+    if (sel_el->type == EL_PAGE_LIST) {
+	PageList *pl = sel_el->component;
+	if (pl->num_items == 0) goto move_to_next_el;
+	Page *item_page = pl->pages[pl->selected_item];
+	int cycled = page_next_escape(item_page);
+	fprintf(stderr, "\t->item page cycled\n");
+	if (cycled) {
+	    pl->selected_item++;
+	    if (pl->selected_item >= pl->num_items) {
+		pl->selected_item = 0;
+		fprintf(stderr, "\t->last item!\n");
+		goto move_to_next_el;
+	    } else {
+		fprintf(stderr, "\t->incr item\n");
+		return 0;
+	    }
+	} else {
+	    return 0;
+	}
+	/* if (pl->pages[pl-> */
+    }
+move_to_next_el:
     page_el_deselect(page->selectable_els[page->selected_i]);
     /* check_move_off_textentry(page); */
-    if (page->selected_i < page->num_selectable - 1)
+    int ret = 0;
+    if (page->selected_i < page->num_selectable - 1) {	
 	page->selected_i++;
-    else page->selected_i = 0;
+	ret = 0;
+    }
+    else {
+	page->selected_i = 0;
+	ret = 1;
+    }
 
     page_el_select(page->selectable_els[page->selected_i]);
+    return ret;
 }
 
-void page_previous_escape(Page *page)
+/* Return 1 if cycled, 0 otherwise */
+int page_previous_escape(Page *page)
 {
+    PageEl *sel_el = page->selectable_els[page->selected_i];
+    if (sel_el->type == EL_PAGE_LIST) {
+	PageList *pl = sel_el->component;
+	if (pl->num_items == 0) goto move_to_prev_el;
+	Page *item_page = pl->pages[pl->selected_item];
+	int cycled = page_previous_escape(item_page);
+	if (cycled) {
+	    pl->selected_item--;
+	    if (pl->selected_item == -1) {
+		pl->selected_item = 0;
+		goto move_to_prev_el;
+	    } else {
+		return 0;
+	    }		
+	} else {
+	    return 0;
+	}
+    }
+move_to_prev_el:
     page_el_deselect(page->selectable_els[page->selected_i]);
-    if (page->selected_i > 0)
+    int ret = 0;
+    if (page->selected_i > 0) {
+	ret = 0;
 	page->selected_i--;
-    else page->selected_i = page->num_selectable - 1;
+    } else {
+	ret = 1;
+	page->selected_i = page->num_selectable - 1;
+
+    }
     page_el_select(page->selectable_els[page->selected_i]);
+    return ret;
 }
 
 void page_enter(Page *page)
@@ -1465,18 +1528,27 @@ void page_enter(Page *page)
     case EL_DROPDOWN:
 	dropdown_create_menu(el->component);
 	break;
+    case EL_PAGE_LIST: {
+	PageList *pl = el->component;
+	if (pl->num_items > 0) {
+	    Page *item_page = pl->pages[pl->selected_item];
+	    page_enter(item_page);
+	}
+    }
+	/* page_list_enter(el->component); */
+	break;
     default:
 	break;
     }
 }
-void page_next(Page *page)
-{
+/* void page_next(Page *page) */
+/* { */
 
-}
-void page_previous(Page *page)
-{
+/* } */
+/* void page_previous(Page *page) */
+/* { */
 
-}
+/* } */
 
 void page_right(Page *page)
 {
@@ -1485,6 +1557,14 @@ void page_right(Page *page)
     switch (el->type) {
     case EL_SLIDER:
 	slider_nudge_right((Slider *)el->component);
+	break;
+    case EL_PAGE_LIST: {
+	PageList *pl = el->component;
+	if (pl->num_items > 0) {
+	    Page *item_page = pl->pages[pl->selected_item];
+	    page_right(item_page);
+	}
+    }
 	break;
     default:
 	break;
@@ -1499,6 +1579,15 @@ void page_left(Page *page)
     case EL_SLIDER:
 	slider_nudge_left((Slider *)el->component);
 	break;
+    case EL_PAGE_LIST: {
+	PageList *pl = el->component;
+	if (pl->num_items > 0) {
+	    Page *item_page = pl->pages[pl->selected_item];
+	    page_left(item_page);
+	}
+    }
+	break;
+
     default:
 	break;
     }

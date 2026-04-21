@@ -1264,14 +1264,17 @@ void page_list_update(PageList *pl, int num_items)
 	page_layout->h.value = 50;
 	layout_reset(page_layout);
 	void *item = pl->items_loc + i * pl->item_size;
+	static const SDL_Color item_bckgrnd = {0, 0, 0, 20};
 	if (pl->item_template_filepath) {
 	    pl->pages[i] = page_create(
 		"",
 		pl->item_template_filepath,
 		page_layout,
+		
 		/* TODO: add PL colors */
+		&item_bckgrnd,
+		/* NULL, */
 		&colors.white,
-		&colors.black,
 		main_win);
 	    layout_size_to_fit_children_v(page_layout, true, 0);
 	    layout_reset(page_layout);
@@ -1335,7 +1338,8 @@ void page_list_destroy(PageList *pl)
 void page_draw(Page *page);
 void page_list_draw(PageList *pl)
 {
-    fprintf(stderr, "Drawing pages (%d)\n", pl->num_items);
+    /* SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 255); */
+    /* geom_fill_rounded_rect(main_win->rend, &pl->layout->rect, 8); */
     for (int i=0; i<pl->num_items; i++) {
 	page_draw(pl->pages[i]);
     }

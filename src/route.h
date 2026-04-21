@@ -2,6 +2,7 @@
 #define JDAW_ROUTE_H
 
 #include <stdbool.h>
+#include "endpoint.h"
 #include "textbox.h"
 
 typedef struct track Track;
@@ -15,6 +16,8 @@ typedef struct audio_route {
     Track *dst;
     Track *src;
     float amp;
+    float amp_raw;
+    Endpoint amp_ep;
     /* bool pre_fader; */
     struct route_tl_gui tl_gui;
     

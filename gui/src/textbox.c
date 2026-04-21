@@ -352,7 +352,6 @@ void textbox_reset_full(Textbox *tb)
     } else if (tb->dynamic_resize_v) {
 	textbox_size_to_fit_v(tb, tb->dynamic_v_pad);
     }
-
 }
 
 

@@ -396,10 +396,10 @@ void tabview_draw(TabView *tv);
 void page_activate(Page *page);
 void page_close(Page *page);
 
-void page_next_escape(Page *page);
-void page_previous_escape(Page *page);
-void page_next(Page *page);
-void page_previous(Page *page);
+int page_next_escape(Page *page);
+int page_previous_escape(Page *page);
+/* void page_next(Page *page); */
+/* void page_previous(Page *page); */
 void page_right(Page *page);
 void page_left(Page *page);
 void page_enter(Page *page);

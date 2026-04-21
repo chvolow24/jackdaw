@@ -1,4 +1,6 @@
 #include "color.h"
+#include "consts.h"
+#include "endpoint.h"
 #include "layout.h"
 #include "log.h"
 #include "project.h"
@@ -218,6 +220,13 @@ NEW_EVENT_FN(dispose_forward_add_audio_route, "")
     audio_route_destroy(obj1);
 }
 
+static void rt_vol_dsp_cb(Endpoint *ep)
+{
+    AudioRoute *r = ep->xarg3;
+    float new_ctrl_val = ep->current_write_val.float_v;
+    r->amp = pow(new_ctrl_val, VOL_EXP);
+}
+
 
 
 void track_add_audio_route(Track *track, Track *dst, float init_amp)
@@ -315,11 +324,22 @@ void track_add_audio_route(Track *track, Track *dst, float init_amp)
 	    
 	
     }
-    /* Reset track processing order */
-    /* if (dist > track->proc_order) { */
-    /* 	track->proc_order = dist; */
-    /* 	timeline_update_track_proc_order(track->tl, track);	 */
-    /* } */
+    endpoint_init(
+	&r->amp_ep,
+	&r->amp_raw,
+	JDAW_FLOAT,
+	"amp",
+	"Amp",
+	JDAW_THREAD_DSP,
+	NULL, NULL, rt_vol_dsp_cb,
+	NULL, NULL, r, NULL);
+    endpoint_set_allowed_range(
+	&r->amp_ep,
+	(Value){.float_v=0.0},
+	(Value){.float_v=TRACK_VOL_MAX_PRE_EXP});
+    endpoint_set_default_value(&r->amp_ep, (Value){.float_v = 1.0});
+    endpoint_write_default(&r->amp_ep);
+
 
     /* Add the route to both tracks */
     track->routes[track->num_routes] = r;

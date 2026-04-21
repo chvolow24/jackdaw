@@ -199,6 +199,8 @@ typedef struct page_list {
     PageListItemFn create_item_page_fn;
     /* Page *(*create_item_page_fn)(Layout *layout, void *item); */
     const char *item_template_filepath;
+    /* Page *selected_page; */
+    int selected_item;
 
     int item_corner_rad;
     /* void (*create_items_fn)(Page **dst, void *items, int num_items); */

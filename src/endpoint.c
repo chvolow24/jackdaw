@@ -224,6 +224,9 @@ int endpoint_write(
 	    if (session->playback.playing || session->audio_io.playback_conn->playing) {
 		/* If ep owner assigned to playback thread, run DSP callbacks on that thread */
 		enum jdaw_thread dst_thread = owner == JDAW_THREAD_PLAYBACK ? JDAW_THREAD_PLAYBACK : JDAW_THREAD_DSP;
+		if (dst_thread == JDAW_THREAD_DSP && !session->playback.playing && session->audio_io.playback_conn->playing) {
+		    dst_thread = JDAW_THREAD_PLAYBACK;
+		}
 		int ret = session_queue_callback(session, ep, ep->dsp_callback, dst_thread);
 		if (ret == 3) {
 		    log_tmp(LOG_ERROR, "Error: call to queue callback for ep \"%s\" could not be deferred.\n", ep->local_id);

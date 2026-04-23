@@ -26,6 +26,8 @@
 /*****************************************/
 
 typedef int (*ComponentFn)(void *self, void *target);
+#define ComponentFnDef(name) int name(void *self, void *target)
+
 typedef struct endpoint Endpoint;
 
 typedef struct button {
@@ -162,7 +164,9 @@ typedef struct canvas {
     bool (*on_click)(SDL_Point mousep, Canvas *self, void *xarg1, void *xarg2);
 } Canvas;
 
+
 typedef struct dropdown Dropdown;
+
 typedef struct dropdown {
     Layout *layout;
     Textbox *tb;
@@ -202,8 +206,10 @@ typedef struct page_list {
     /* Page *selected_page; */
     int selected_item;
     bool selected_on_parent_page;
-
     int item_corner_rad;
+
+    int *monitor_num_items;
+    /* void *connected_obj; */
     /* void (*create_items_fn)(Page **dst, void *items, int num_items); */
 } PageList;
 

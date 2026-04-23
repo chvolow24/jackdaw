@@ -15,7 +15,8 @@ enum mod_s_type {
     MODAL_EL_BUTTON,
     MODAL_EL_RADIO,
     MODAL_EL_SLIDER,
-    MODAL_EL_TOGGLE
+    MODAL_EL_TOGGLE,
+    MODAL_EL_DROPDOWN
 };
 
 typedef struct ModalEl {
@@ -79,6 +80,27 @@ ModalEl *modal_add_slider(
 ModalEl *modal_add_toggle(
     Modal *modal,
     Endpoint *ep);
+
+ModalEl *modal_add_dropdown(
+    Modal *modal,
+    const char *header,
+    const char **item_names,
+    const char **item_annotations,
+    void **item_args,
+    uint8_t num_items,
+    int *reset_from,
+    /* bool free_args_on_destroy, */
+    int (*selection_fn)(Dropdown *self, void *arg));
+
+void modal_add_dropdown_from_ep(
+    Modal *modal,
+    Endpoint *ep,
+    int num_items,
+    char *header,
+    const char **names,
+    const char **annots);
+
+
 
 
 void modal_reset(Modal *modal);

@@ -252,6 +252,14 @@ static Page *add_eq_page(EQ *eq, EffectChain *ec, TabView *tv)
     char lt_name[2];
     /* static const char *tab_ids[] = */
     /* 	{"filter_tab1", "filter_tab2", "filter_tab3", "filter_tab4", "filter_tab5", "filter_tab6"}; */
+    static char *tab_label_strs[] = {
+	"1",
+	"2",
+	"3",
+	"4",
+	"5",
+	"6"
+    };
     for (int i=0; i<EQ_DEFAULT_NUM_FILTERS; i++) {
 	Layout *tab_lt = layout_add_child(filter_tabs);
 	tab_lt->h.type = SCALE;
@@ -263,7 +271,8 @@ static Page *add_eq_page(EQ *eq, EffectChain *ec, TabView *tv)
 	/* p.button_p. */
 	p.textbox_p.font = main_win->mono_bold_font;
 	p.textbox_p.text_size = 14;
-	p.textbox_p.set_str = lt_name;
+	/* p.textbox_p.set_str = lt_name; */
+	p.textbox_p.set_str = tab_label_strs[i];
 	p.textbox_p.win = main_win;
 	layout_set_name(tab_lt, lt_name);
 	layout_reset(tab_lt);

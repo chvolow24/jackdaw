@@ -63,7 +63,8 @@ typedef enum page_el_type: int {
 } PageElType;
 
 enum linked_obj_type {
-    PAGE_EFFECT=0
+    PAGE_EFFECT=0,
+    PAGE_ROUTE=1,
 };
 
 typedef struct page_element {

@@ -91,8 +91,13 @@ static bool proposed_route_has_feedback(Track *og_src, Track *src, Track *dst)
     return false;
 }
 
+static void audio_route_remove(AudioRoute *rt);
+
 void audio_route_destroy(AudioRoute *rt)
 {
+    if (!rt->deleted) {
+	audio_route_remove(rt);
+    }
     free(rt);
 }
 
@@ -154,6 +159,7 @@ static void audio_route_remove(AudioRoute *rt)
     audio_route_remove_from_src(rt);
     audio_route_remove_from_dst(rt);   
     track_reset_proc_order(rt->src);
+    rt->deleted = true;
     /* timeline_resort_tracks_proc_order(rt->src->tl); */
 }
 
@@ -162,6 +168,7 @@ static void audio_route_reinsert(AudioRoute *rt)
     audio_route_reinsert_on_src(rt);
     audio_route_reinsert_on_dst(rt);
     track_reset_proc_order(rt->src);
+    rt->deleted = false;
     /* timeline_resort_tracks_proc_order(rt->src->tl); */
 }
 
@@ -367,10 +374,41 @@ void track_add_audio_route(Track *track, Track *dst, float init_amp)
     /* textbox_reset_full(r->tl_gui.out_tb); */
 }
 
+NEW_EVENT_FN(undo_delete_audio_route, "undo delete audio route")
+{
+    AudioRoute *rt = obj1;
+    audio_route_reinsert(rt);
+    timeline_resort_tracks_proc_order(rt->src->tl);    
+}}
 
+NEW_EVENT_FN(redo_delete_audio_route, "redo delete audio route")
+{
+    AudioRoute *rt = obj1;
+    audio_route_remove(rt);
+    timeline_resort_tracks_proc_order(rt->src->tl);    
+
+}}
+
+NEW_EVENT_FN(dispose_delete_audio_route, "")
+{
+    AudioRoute *rt = obj1;
+    audio_route_destroy(rt);
+}}
 
 
 void audio_route_delete(AudioRoute *rt)
 {
+    audio_route_remove(rt);
+    timeline_resort_tracks_proc_order(rt->src->tl);
     
+    user_event_push(
+	undo_delete_audio_route,
+	redo_delete_audio_route,
+	dispose_delete_audio_route, NULL,
+	rt, NULL,
+	(Value){0}, (Value){0},
+	(Value){0}, (Value){0},
+	0, 0, false, false);
+    TEST_FN_CALL(timeline_track_array_integrity, rt->src->tl);
+
 }

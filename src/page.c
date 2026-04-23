@@ -142,9 +142,7 @@ Page *tabview_add_page(
     textbox_reset_full(tab_tb);
     tv->labels[tv->num_tabs] = tab_tb;
     tv->num_tabs++;
-    tabview_reset(tv, tv->leftmost_index);
-
-    
+    tabview_reset(tv, tv->leftmost_index);   
     return page;
 
 }
@@ -359,6 +357,9 @@ void page_destroy(Page *page)
 	case PAGE_EFFECT:
 	    ((Effect *)page->linked_obj)->page = NULL;
 	    ((Effect *)page->linked_obj)->page_onscreen = false;
+	    break;
+	case PAGE_ROUTE:
+	    ((AudioRoute *)page->linked_obj)->page = NULL;
 	    break;
 	}
     }
@@ -1677,7 +1678,7 @@ void page_el_params_slider_from_ep(union page_el_params *p, Endpoint *ep)
     p->slider_p.create_label_fn = ep->label_fn;
 }
 
-static int ep_dropdown_selfn(Dropdown *d, void *item_arg)
+int ep_dropdown_selfn(Dropdown *d, void *item_arg)
 {
     int item_index = (int)(long)item_arg;
     endpoint_write(d->ep, (Value){.int_v = item_index}, true, true, true, true);

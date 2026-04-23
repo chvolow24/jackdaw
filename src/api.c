@@ -530,7 +530,6 @@ static void *server_threadfn(void *arg)
     fprintf(stderr, "Exiting server threadfn\n");
     /* session->server.active = false; */
     return NULL;
-
 }
 
 

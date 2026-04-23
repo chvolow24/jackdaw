@@ -1124,6 +1124,9 @@ void dropdown_draw(Dropdown *d)
 
 void dropdown_destroy(Dropdown *d)
 {
+    if (d->ep) {
+	d->ep->bound_component = NULL;
+    }
     textbox_destroy(d->tb);
     free(d->item_names);
     if (d->item_annotations) free(d->item_annotations);
@@ -1141,6 +1144,9 @@ static void dropdown_item_onclick(void *arg_v)
 {
     struct dropdown_menu_item_arg *arg = arg_v;
     Dropdown *d = arg->d;
+    d->selected_item = arg->index;
+    textbox_set_value_handle(d->tb, d->item_names[arg->index]);
+    /* fprintf(stderr, "ITEM INDEX: %d\n", arg->index); */
     int ret = 0;
     if (d->selection_fn) {
         ret = d->selection_fn(d, arg->inner_arg);
@@ -1250,14 +1256,27 @@ Page *page_create_from_layout(
     const SDL_Color *text_color,
     Window *win);
 void page_reset(Page *page);
+void page_destroy(Page *page);
 void page_set_page_list(Page *page, PageList *pl);
 
 void page_list_update(PageList *pl, int num_items)
 {
     if (pl->pages) {
+	int num_pages = pl->num_items;
+	pl->num_items = 0;
+	for (int i=0; i<num_pages; i++) {
+	    page_destroy(pl->pages[i]);
+	}
 	free(pl->pages);
+	layout_reset(pl->layout);
+	while (pl->inner_layout->num_children > 0) {
+	    layout_destroy(pl->inner_layout->children[0]);
+	}
     }
     pl->num_items = num_items;
+    while (pl->selected_item >= pl->num_items) {
+	pl->selected_item--;
+    }
     pl->pages = calloc(num_items, sizeof(Page *));
     fprintf(stderr, "Create pl num itsm %d\n", num_items);
     for (int i=0; i<pl->num_items; i++) {
@@ -1345,6 +1364,9 @@ void page_list_destroy(PageList *pl)
 void page_draw(Page *page);
 void page_list_draw(PageList *pl)
 {
+    if (pl->monitor_num_items && *pl->monitor_num_items != pl->num_items) {
+	page_list_update(pl, *pl->monitor_num_items);
+    }
     /* SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 255); */
     /* geom_fill_rounded_rect(main_win->rend, &pl->layout->rect, 8); */
     SDL_Rect saved_cliprect = {0};
@@ -1377,6 +1399,7 @@ void page_list_draw(PageList *pl)
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(grey));
 	geom_draw_rounded_rect(main_win->rend, &rect, border_r);
     }
+    
 
     /* layout_draw(main_win, pl->layout); */
 }

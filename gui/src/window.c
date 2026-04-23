@@ -577,12 +577,12 @@ void window_push_modal(Window *win, Modal *modal)
     tl->needs_redraw = true;
     #endif
     
-    if (win->active_tabview) {
-	tabview_close(win->active_tabview);
-    }
-    if (win->active_page) {
-	page_close(win->active_page);
-    }
+    /* if (win->active_tabview) { */
+    /* 	tabview_close(win->active_tabview); */
+    /* } */
+    /* if (win->active_page) { */
+    /* 	page_close(win->active_page); */
+    /* } */
     #ifndef LAYOUT_BUILD
     if (win->ac_active) {
 	autocompletion_escape();

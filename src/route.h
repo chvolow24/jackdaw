@@ -20,7 +20,12 @@ typedef struct audio_route {
     Endpoint amp_ep;
     /* bool pre_fader; */
     struct route_tl_gui tl_gui;
-    
+
+    Page *page;
+    /* Page *page_list_parent */
+    /* PageList *page_list; */
+
+    bool deleted; /* true if route has been removed from tracks */
 } AudioRoute;
 
 

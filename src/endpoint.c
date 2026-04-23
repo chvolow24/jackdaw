@@ -316,6 +316,7 @@ Value endpoint_safe_read(Endpoint *ep, ValType *vt)
 /* PROBLEM: there may be queued value change operations */
 void endpoint_set_owner(Endpoint *ep, enum jdaw_thread thread)
 {
+    fprintf(stderr, "SETTING OWNER of ep %s\n", ep->local_id);
     pthread_mutex_lock(&ep->owner_lock);
     ep->owner_thread = thread;
     pthread_mutex_unlock(&ep->owner_lock);

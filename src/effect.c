@@ -239,6 +239,10 @@ static void effect_chain_realloc_maybe(EffectChain *ec)
 
 Effect *effect_chain_add_effect(EffectChain *ec, EffectType type)
 {
+    if (ec->num_effects >= MAX_TABS) {
+	status_set_errstr("No more than %d effects allowed\n", MAX_TABS);
+	return NULL;
+    }
     if (ec->blocked_types[type]) {
 	status_set_errstr("%s not allowed here", effect_type_strings[type]);
 	return NULL;

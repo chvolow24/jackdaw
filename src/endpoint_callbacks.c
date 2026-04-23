@@ -160,6 +160,9 @@ void component_gui_cb(Endpoint *ep)
     case EL_RADIO:
 	radio_button_reset_from_endpoint(ep->bound_component);
 	break;
+    case EL_DROPDOWN:
+	dropdown_reset(ep->bound_component);
+	break;
     case EL_TOGGLE:
 	break;
     default:

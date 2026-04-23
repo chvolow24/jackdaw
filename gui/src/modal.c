@@ -138,7 +138,9 @@ static void modal_el_destroy(ModalEl *el)
 	case MODAL_EL_TOGGLE:
 	    toggle_destroy(el->obj);
 	    break;
-	    
+	case MODAL_EL_DROPDOWN:
+	    dropdown_destroy(el->obj);
+	    break;	    
 	}
     }
     free (el);
@@ -415,6 +417,65 @@ ModalEl *modal_add_toggle(
     return el;
 }
 
+ModalEl *modal_add_dropdown(
+    Modal *modal,
+    const char *header,
+    const char **item_names,
+    const char **item_annotations,
+    void **item_args,
+    uint8_t num_items,
+    int *reset_from,
+    /* bool free_args_on_destroy, */
+    int (*selection_fn)(Dropdown *self, void *arg))
+{
+    ModalEl *el = modal_add_el(modal);
+    el->layout->w.type = SCALE;
+    el->layout->w.value = 0.6;
+    el->layout->x.type = SCALE;
+    el->layout->x.value = 0.2;
+    modal->selectable_indices[modal->num_selectable] = modal->num_els - 1;
+    modal->num_selectable++;
+    el->type = MODAL_EL_DROPDOWN;
+    el->obj = dropdown_create(
+	el->layout,
+	header,
+	item_names,
+	item_annotations,
+	item_args,
+	num_items,
+	reset_from,
+	/* bool free_args_on_destroy, */
+	selection_fn);
+    return el;
+}
+
+int ep_dropdown_selfn(Dropdown *d, void *item_arg);
+
+void modal_add_dropdown_from_ep(
+    Modal *modal,
+    Endpoint *ep,
+    int num_items,
+    char *header,
+    const char **names,
+    const char **annots)
+{
+    if (ep->val_type != JDAW_INT) {
+	fprintf(stderr, "Error: dropdown EP must have type int\n");
+	return;
+    }
+    void *args[num_items];
+    for (int i=0; i<num_items; i++) {
+	args[i] = (void *)(long)i;
+    }
+    ModalEl *el = modal_add_dropdown(
+	modal, header, names, annots, args, num_items, ep->val, ep_dropdown_selfn);
+    ((Dropdown *)el->obj)->ep = ep;
+    ep->bound_component_type = EL_DROPDOWN;
+    ep->bound_component = el->obj;
+    /* ((Dropdown *)el->component)->ep = ep; */
+}
+
+
 
 
 
@@ -467,6 +528,10 @@ static void modal_el_reset(ModalEl *el)
 	RadioButton *rb = el->obj;
 	if (rb->ep) radio_button_reset_from_endpoint(rb);
     }
+	break;
+    case MODAL_EL_DROPDOWN:
+	dropdown_reset(el->obj);
+	break;
     case MODAL_EL_TOGGLE:
     case MODAL_EL_DIRNAV:
     case MODAL_EL_BUTTON:
@@ -519,6 +584,9 @@ static void modal_el_draw(ModalEl *el)
 	break;
     case MODAL_EL_TOGGLE:
 	toggle_draw(el->obj);
+	break;
+    case MODAL_EL_DROPDOWN:
+	dropdown_draw(el->obj);
 	break;
     }
 }
@@ -646,6 +714,9 @@ void modal_select(Modal *modal)
     case MODAL_EL_TOGGLE:
 	toggle_toggle(current_el->obj);
 	break;
+    case MODAL_EL_DROPDOWN:
+	dropdown_create_menu(current_el->obj);
+	break;
     default:
 	break;
     }
@@ -736,6 +807,9 @@ bool modal_triage_mouse(Modal *modal, SDL_Point *mousep, bool click)
 		break;
 	    case MODAL_EL_TOGGLE:
 		toggle_click(el->obj, main_win);
+		break;
+	    case MODAL_EL_DROPDOWN:
+		dropdown_click(el->obj, main_win);
 		break;
 	    default:
 		break;	

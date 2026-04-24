@@ -38,7 +38,6 @@
 #include "project_draw.h"
 #include "route.h"
 #include "screenrecord.h"
-#include "schroeder.h"
 #include "session_endpoint_ops.h"
 #include "session.h"
 #include "settings.h"
@@ -46,6 +45,7 @@
 #include "thread_safety.h"
 #include "timeline.h"
 #include "transport.h"
+#include "user_event.h"
 #include "window.h"
 
 #define MAX_MODES 8
@@ -253,6 +253,12 @@ void loop_project_main()
 		    Track *track = timeline_selected_track(ACTIVE_TL);
 		    track_add_audio_route(track, ACTIVE_TL->tracks[3], 0.5);
 		}
+		    break;
+		case SDL_SCANCODE_5:
+		    user_event_start_macro();
+		    break;
+		case SDL_SCANCODE_6:
+		    user_event_stop_macro("user-defined action");
 		    break;
 		case SDL_SCANCODE_9:
 		    route_page_open(timeline_selected_track(ACTIVE_TL));

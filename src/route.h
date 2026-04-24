@@ -2,6 +2,7 @@
 #define JDAW_ROUTE_H
 
 #include <stdbool.h>
+#include "api.h"
 #include "endpoint.h"
 #include "textbox.h"
 
@@ -24,6 +25,7 @@ typedef struct audio_route {
     Page *page;
     /* Page *page_list_parent */
     /* PageList *page_list; */
+    APINode api_node;
 
     bool deleted; /* true if route has been removed from tracks */
 } AudioRoute;

@@ -1,3 +1,4 @@
+#include "api.h"
 #include "color.h"
 #include "consts.h"
 #include "endpoint.h"
@@ -40,10 +41,9 @@ static int track_proc_order_cmp(const void *a, const void *b)
 void timeline_resort_tracks_proc_order(Timeline *tl)
 {
     qsort(tl->tracks_proc_order, tl->num_tracks, sizeof(Track *), track_proc_order_cmp);
-
-    for (int i=0; i<tl->num_tracks; i++) {
-	fprintf(stderr, "%d) %s (%d)\n", i, tl->tracks_proc_order[i]->name, tl->tracks_proc_order[i]->proc_order);
-    }
+    /* for (int i=0; i<tl->num_tracks; i++) { */
+    /* 	fprintf(stderr, "%d) %s (%d)\n", i, tl->tracks_proc_order[i]->name, tl->tracks_proc_order[i]->proc_order); */
+    /* } */
     TEST_FN_CALL(timeline_track_array_integrity, tl);
 }
 
@@ -95,9 +95,11 @@ static void audio_route_remove(AudioRoute *rt);
 
 void audio_route_destroy(AudioRoute *rt)
 {
-    if (!rt->deleted) {
-	audio_route_remove(rt);
-    }
+    /* if (!rt->deleted) { */
+    /* 	log_tmp(LOG_ERROR, "Call to destroy route but not deleted (%s -> %s)\n", rt->src->name, rt->dst->name); */
+    /* 	error_exit("Call to destroy route but not deleted\n"); */
+    /* 	audio_route_remove(rt); */
+    /* } */
     free(rt);
 }
 
@@ -160,6 +162,9 @@ static void audio_route_remove(AudioRoute *rt)
     audio_route_remove_from_dst(rt);   
     track_reset_proc_order(rt->src);
     rt->deleted = true;
+    if (rt->src->num_routes == 0) {
+	endpoint_write(&rt->src->send_to_out_ep, (Value){.bool_v = true}, true, true, true, false);
+    }
     /* timeline_resort_tracks_proc_order(rt->src->tl); */
 }
 
@@ -169,6 +174,9 @@ static void audio_route_reinsert(AudioRoute *rt)
     audio_route_reinsert_on_dst(rt);
     track_reset_proc_order(rt->src);
     rt->deleted = false;
+    if (rt->src->num_routes == 1) {
+	endpoint_write(&rt->src->send_to_out_ep, (Value){.bool_v = false}, true, true, true, false);
+    }
     /* timeline_resort_tracks_proc_order(rt->src->tl); */
 }
 
@@ -258,12 +266,8 @@ void track_add_audio_route(Track *track, Track *dst, float init_amp)
     if (proposed_route_has_feedback(track, track, dst)) {
 	status_set_errstr("No feedback audio routes\n");
 	return;
-
     }
-    /* int dist = longest_distance_to_out(track, track, dst, 0); */
     
-    /* if (dist == -1) { */
-    /* } */
     AudioRoute *r = calloc(1, sizeof(AudioRoute));
     r->dst = dst;
     r->src = track;
@@ -332,6 +336,8 @@ void track_add_audio_route(Track *track, Track *dst, float init_amp)
 	    
 	
     }
+
+    api_node_register(&r->api_node, &r->src->audio_routing_api_node, dst->name, NULL);
     endpoint_init(
 	&r->amp_ep,
 	&r->amp_raw,
@@ -347,6 +353,7 @@ void track_add_audio_route(Track *track, Track *dst, float init_amp)
 	(Value){.float_v=TRACK_VOL_MAX_PRE_EXP});
     endpoint_set_default_value(&r->amp_ep, (Value){.float_v = 1.0});
     endpoint_write_default(&r->amp_ep);
+    api_endpoint_register(&r->amp_ep, &r->api_node);
 
 
     /* Add the route to both tracks */
@@ -371,7 +378,11 @@ void track_add_audio_route(Track *track, Track *dst, float init_amp)
 	(Value){0}, (Value){0},
 	0, 0, false, false);
     TEST_FN_CALL(timeline_track_array_integrity, track->tl);
-    /* textbox_reset_full(r->tl_gui.out_tb); */
+
+    /* If src has no previous dsts, do not send to out by default */
+    if (track->num_routes == 1) {
+	endpoint_write(&track->send_to_out_ep, (Value){.bool_v = false}, true, true, true, false);
+    }
 }
 
 NEW_EVENT_FN(undo_delete_audio_route, "undo delete audio route")

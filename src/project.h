@@ -124,6 +124,7 @@ typedef struct track {
     Textbox *route_ellipsis;
     bool send_to_out;
     Endpoint send_to_out_ep;
+    APINode audio_routing_api_node;
 
     ClipRef **clips;
     uint16_t num_clips;

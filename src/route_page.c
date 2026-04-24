@@ -67,9 +67,17 @@ static int add_route_internal(Track *trck, bool from_dst)
     static char from_str[256];
     memset(from_str, 0, sizeof(from_str));
 
-    snprintf(from_str, 256, "from %s", trck->name);
+    if (from_dst) {
+	snprintf(from_str, 256, "to %s", trck->name);
+    } else {
+	snprintf(from_str, 256, "from %s", trck->name);
+    }
     modal_add_header(modal, from_str, &colors.white, 5);
-    modal_add_header(modal, "to:", &colors.white, 5);
+    if (from_dst) {
+	modal_add_header(modal, "from:", &colors.white, 5);
+    } else {
+	modal_add_header(modal, "to:", &colors.white, 5);
+    }
     /* modal_add_dropdown(modal,  */
     const char **options = malloc(sizeof(char *) * trck->tl->num_tracks - 1);
     void **args = malloc(sizeof(void *) * trck->tl->num_tracks - 1);
@@ -269,6 +277,12 @@ static void create_ins_page(TabView *tv, Track *track)
     p.textbox_p.set_str = routes_title;
     page_add_el(page, EL_TEXTBOX, p, "", "title");
 
+    p.sbutton_p.action = add_route_from_dst;
+    p.sbutton_p.background_color = &colors.play_green;
+    p.sbutton_p.symbol_index = SYMBOL_PLUS;
+    p.sbutton_p.target = track;
+    page_add_el(page, EL_SYMBOL_BUTTON, p, "", "pls");
+
     p.page_list_p.item_size = sizeof(AudioRoute *);
     p.page_list_p.item_template_filepath = AUDIO_ROUTE_IN_TEMPLATE_LT_PATH;
     p.page_list_p.num_items = track->num_route_ins;
@@ -278,12 +292,6 @@ static void create_ins_page(TabView *tv, Track *track)
 
     PageList *pl = el->component;
     pl->monitor_num_items = &track->num_route_ins;
-
-    p.sbutton_p.action = add_route_from_dst;
-    p.sbutton_p.background_color = &colors.play_green;
-    p.sbutton_p.symbol_index = SYMBOL_PLUS;
-    p.sbutton_p.target = track;
-    page_add_el(page, EL_SYMBOL_BUTTON, p, "", "pls");
 }
 
 static void create_outs_page(TabView *tv, Track *track)
@@ -310,6 +318,12 @@ static void create_outs_page(TabView *tv, Track *track)
     p.textbox_p.set_str = "Send to main out:";    
     page_add_el(page, EL_TEXTBOX, p, "", "mro_lbl");
 
+    p.sbutton_p.action = add_route;
+    p.sbutton_p.background_color = &colors.play_green;
+    p.sbutton_p.symbol_index = SYMBOL_PLUS;
+    p.sbutton_p.target = track;
+    page_add_el(page, EL_SYMBOL_BUTTON, p, "", "pls");
+
     p.toggle_p.ep = &track->send_to_out_ep;
     page_add_el(page, EL_TOGGLE, p, "mro_tgl", "mro_tgl");
 
@@ -321,12 +335,6 @@ static void create_outs_page(TabView *tv, Track *track)
     PageEl *el = page_add_el(page, EL_PAGE_LIST, p, "", "rts");
     PageList *pl = el->component;
     pl->monitor_num_items = &track->num_routes;
-
-    p.sbutton_p.action = add_route;
-    p.sbutton_p.background_color = &colors.play_green;
-    p.sbutton_p.symbol_index = SYMBOL_PLUS;
-    p.sbutton_p.target = track;
-    page_add_el(page, EL_SYMBOL_BUTTON, p, "", "pls");
 }
 
 void route_page_open(Track *track)
@@ -337,6 +345,7 @@ void route_page_open(Track *track)
     create_outs_page(tv, track);
     
     tabview_activate(tv, track, track->name);
+    tabview_select_tab(tv, 1);
     track->tl->needs_redraw = true;    
 }
 

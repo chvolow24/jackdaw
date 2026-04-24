@@ -529,6 +529,7 @@ int track_name_completion(Text *txt, void *obj)
     /* APINode *node = (APINode *)obj; */
     Track *track = obj;
     for (int i=0; i<track->num_route_ins; i++) {
+	api_node_renamed(&track->route_ins[i]->src->api_node);
 	textbox_reset_full(track->route_ins[i]->tl_gui.out_tb);
     }
     project_obj_name_completion(txt, &track->api_node);
@@ -738,7 +739,8 @@ Track *timeline_add_track_with_name(Timeline *tl, const char *track_name, int at
 
     midi_event_ring_buf_init(&track->note_offs);
     api_node_register(&track->api_node, &track->tl->api_node, track->name, NULL);
-        
+    api_node_register(&track->audio_routing_api_node, &track->api_node, NULL, "Audio routing");
+    
     endpoint_init(
 	&track->vol_ep,
 	&track->vol_ctrl_val,

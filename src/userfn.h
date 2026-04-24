@@ -152,6 +152,11 @@ void user_tl_paste_grabbed_clips(void *nullarg);
 void user_tl_rename_clip_at_cursor(void *nullarg);
 void user_tl_delete_generic(void *nullarg);
 
+void user_tl_audio_routes_out_open_page(void *nullarg);
+void user_tl_audio_routes_in_open_page(void *nullarg);
+void user_tl_audio_route_out_quick_add(void *nullarg);
+void user_tl_audio_route_in_quick_add(void *nullarg);
+
 void user_tl_quantize_notes(void *nullarg);
 void user_tl_adj_quantize_amt(void *nullarg);
 

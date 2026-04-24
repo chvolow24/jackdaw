@@ -13,6 +13,7 @@
 #include "input_mode.h"
 #include "midi_clip.h"
 #include "page.h"
+#include "route_page.h"
 #include "session_endpoint_ops.h"
 #include "input.h"
 /* #include "loading */
@@ -2847,6 +2848,38 @@ void user_tl_delete_generic(void *nullarg)
     }
     tl->needs_redraw = true;
 }
+
+
+void user_tl_audio_routes_out_open_page(void *nullarg)
+{
+    Session *session = session_get();
+    Track *track = timeline_selected_track(ACTIVE_TL);
+    if (track) 
+	route_page_open(track, true);
+}
+void user_tl_audio_routes_in_open_page(void *nullarg)
+{
+    Session *session = session_get();
+    Track *track = timeline_selected_track(ACTIVE_TL);
+    if (track) 
+	route_page_open(track, false);
+}
+void user_tl_audio_route_out_quick_add(void *nullarg)
+{
+    Session *session = session_get();
+    Track *track = timeline_selected_track(ACTIVE_TL);
+    if (track) 
+	route_quick_add(track, false);
+
+}
+void user_tl_audio_route_in_quick_add(void *nullarg)
+{
+    Session *session = session_get();
+    Track *track = timeline_selected_track(ACTIVE_TL);
+    if (track) 
+	route_quick_add(track, true);
+}
+
 
 void user_tl_activate_mqwert(void *nullarg)
 {

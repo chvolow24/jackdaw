@@ -986,7 +986,35 @@ static void mode_load_timeline()
 	user_tl_delete_generic);
     mode_subcat_add_fn(sc, fn);
 
+    /* Audio routing */
+    
+    sc = mode_add_subcat(mode, "Audio routing");
+    
+    fn = create_user_fn(
+	"tl_audio_routes_out_open_page",
+	"Open audio routes out page",
+	user_tl_audio_routes_out_open_page);
+    mode_subcat_add_fn(sc, fn);
+    
+    fn = create_user_fn(
+	"tl_audio_routes_in_open_page",
+	"Open audio routes in page",
+	user_tl_audio_routes_in_open_page);
+    mode_subcat_add_fn(sc, fn);
 
+    fn = create_user_fn(
+	"tl_audio_route_out_quick_add",
+	"Quick add audio route out",
+	user_tl_audio_route_out_quick_add);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+	"tl_audio_route_in_quick_add",
+	"Quick add audio route in",
+	user_tl_audio_route_in_quick_add);
+    mode_subcat_add_fn(sc, fn);
+
+    
     /* Piano roll / MIDI */
 
     sc = mode_add_subcat(mode, "MIDI / piano roll");
@@ -1009,7 +1037,7 @@ static void mode_load_timeline()
     mode_subcat_add_fn(sc, fn);    
 
     /* Source mode */
-
+    
     sc = mode_add_subcat(mode, "Source mode");
     fn = create_user_fn(
 	"tl_load_clip_at_cursor_to_source",

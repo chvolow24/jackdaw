@@ -113,6 +113,11 @@ static int add_route_internal(Track *trck, bool from_dst)
     /* track_add_audio_route(arg->src, arg->dst, 1.0); */
 }
 
+void route_quick_add(Track *trck, bool trck_is_dst)
+{
+    add_route_internal(trck, trck_is_dst);
+}
+
 static ComponentFnDef(add_route)
 {
     Track *src = target;
@@ -337,7 +342,7 @@ static void create_outs_page(TabView *tv, Track *track)
     pl->monitor_num_items = &track->num_routes;
 }
 
-void route_page_open(Track *track)
+void route_page_open(Track *track, bool select_outs_tab)
 {
     Session *session = session_get();
     TabView *tv = tabview_create("Track audio routes", session->gui.layout, main_win);
@@ -345,7 +350,9 @@ void route_page_open(Track *track)
     create_outs_page(tv, track);
     
     tabview_activate(tv, track, track->name);
-    tabview_select_tab(tv, 1);
+    if (select_outs_tab) {
+	tabview_select_tab(tv, 1);
+    }
     track->tl->needs_redraw = true;    
 }
 

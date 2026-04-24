@@ -179,6 +179,10 @@
   - S-w		: tl_write_mixdown_to_wav
   - S-q		: tl_activate_qwerty_piano
   - S-\		: tl_lock_view_to_playhead
+  - A-o		: tl_audio_routes_out_open_page
+  - A-i		: tl_audio_routes_in_open_page
+  - A-S-o	: tl_audio_route_out_quick_add
+  - A-S-i	: tl_audio_route_in_quick_add
 - source:
   - l		: source_play
   - k		: source_pause

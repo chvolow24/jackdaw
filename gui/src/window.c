@@ -544,7 +544,9 @@ void window_clear_higher_modes(Window *win, InputMode called_from_mode)
 		window_pop_modal(win);
 		break;
 	    case MODE_TABVIEW:
-		tabview_close(win->active_tabview);
+		if (win->active_tabview)
+		    tabview_close(win->active_tabview);
+		else window_pop_mode(win);
 		break;
 	    case MODE_SOURCE:
 		source_mode_deactivate();

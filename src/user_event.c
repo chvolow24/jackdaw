@@ -109,7 +109,7 @@ void user_event_history_clear(UserEventHistory *history)
 	    delete->dispose_forward(delete, delete->obj1, delete->obj2, delete->undo_val1, delete->undo_val2, delete->type1, delete->type2);
 	}
 	if (delete == history->next_undo) {
-	    /* undoable = false; */
+	    undoable = false;
 	    redoable = true;
 	}
 	user_event_destroy(delete);
@@ -301,6 +301,9 @@ void user_event_undo_set_value(
 	*(double *)obj1 = old_value.double_pair_v[0];
 	*((double *)obj1 + 1) = old_value.double_pair_v[1];
 	break;
+    case JDAW_PTR:
+	*(void **)obj1 = old_value.ptr_v;
+	break;
     }
 }
 
@@ -345,6 +348,8 @@ void user_event_redo_set_value(
 	*(double *)obj1 = new_value.double_pair_v[0];
 	*((double *)obj1 + 1) = new_value.double_pair_v[1];
 	break;
+    case JDAW_PTR:
+	*(void **)obj1 = new_value.ptr_v;
     }
 }
 
@@ -382,7 +387,18 @@ static void user_event_history_dispose_forward(UserEventHistory *history)
 NEW_EVENT_FN(undo_user_event_macro, "undo (macro)")
 {
     UserEventHistory *h = obj1;
-    while (user_event_do_undo(h) == 0) {}
+    if (!h->always_sequence_order) {
+	while (user_event_do_undo(h) == 0) {}
+    } else {
+	UserEvent *e = h->oldest;
+	while (e) {
+	    e->undo(
+		e, e->obj1, e->obj2, e->undo_val1, e->undo_val2,
+		e->type1, e->type2);
+	    e = e->next;
+	}
+	h->next_undo = NULL;
+    }
     char statstr_fmt[256];
     snprintf(statstr_fmt, 256, "(%d/%d) %s %s", session->history.len - self->index, session->history.len, "undo", h->macro_message); \
     status_set_undostr(statstr_fmt); \
@@ -434,7 +450,7 @@ void user_event_start_macro()
     }
     main->current_macro = calloc(1, sizeof(UserEventHistory));
 }
-void user_event_stop_macro(const char *message)
+void user_event_stop_macro(const char *message, bool always_sequence_order)
 {
     Session *session = session_get();
     UserEventHistory *main = &session->history;
@@ -444,6 +460,7 @@ void user_event_stop_macro(const char *message)
 	return;
     }
     macro->macro_message = message;
+    macro->always_sequence_order = always_sequence_order;
     main->current_macro = NULL;
 
     user_event_push(

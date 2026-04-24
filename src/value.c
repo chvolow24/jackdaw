@@ -133,6 +133,9 @@ Value jdaw_val_from_ptr(void *valptr, ValType vt)
 	ret.double_pair_v[0] = *((double *)valptr);
 	ret.double_pair_v[1] = *((double *)valptr + 1);
 	break;
+    case JDAW_PTR:
+	ret.ptr_v = *(void **)valptr;
+	break;
     default:
 	break;
     }
@@ -262,6 +265,9 @@ Value jdaw_val_add(Value a, Value b, ValType vt)
 	ret.double_pair_v[0] = a.double_pair_v[0] + b.double_pair_v[0];
 	ret.double_pair_v[1] = a.double_pair_v[1] + b.double_pair_v[1];
 	break;
+    case JDAW_PTR:
+	ret.ptr_v = NULL;
+	break;
     default:
 	break;
     }
@@ -306,7 +312,9 @@ Value jdaw_val_sub(Value a, Value b, ValType vt)
 	ret.double_pair_v[0] = a.double_pair_v[0] - b.double_pair_v[0];
 	ret.double_pair_v[1] = a.double_pair_v[1] - b.double_pair_v[1];
 	break;
-
+    case JDAW_PTR:
+	ret.ptr_v = NULL;
+	break;
     default:
 	break;
     }
@@ -351,7 +359,9 @@ Value jdaw_val_mult(Value a, Value b, ValType vt)
 	ret.double_pair_v[0] = a.double_pair_v[0] * b.double_pair_v[0];
 	ret.double_pair_v[1] = a.double_pair_v[1] * b.double_pair_v[1];
 	break;
-
+    case JDAW_PTR:
+	ret.ptr_v = NULL;
+	break;
     default:
 	break;
     }
@@ -440,7 +450,10 @@ Value jdaw_val_div(Value a, Value b, ValType vt)
     case JDAW_DOUBLE_PAIR:
 	ret.double_pair_v[0] = a.double_pair_v[0] / b.double_pair_v[0];
 	ret.double_pair_v[1] = a.double_pair_v[1] / b.double_pair_v[1];
-	break;	
+	break;
+    case JDAW_PTR:
+	ret.ptr_v = NULL;
+	break;
     default:
 	break;
     }
@@ -449,7 +462,7 @@ Value jdaw_val_div(Value a, Value b, ValType vt)
 
 Value jdaw_val_scale(Value a, double scalar, ValType vt)
 {
-        Value ret;
+    Value ret;
     switch (vt) {
     case JDAW_FLOAT:
         ret.float_v = a.float_v * scalar;
@@ -489,7 +502,9 @@ Value jdaw_val_scale(Value a, double scalar, ValType vt)
 	ret.double_pair_v[0] = a.double_pair_v[0] * scalar;
 	ret.double_pair_v[1] = a.double_pair_v[1] * scalar;
 	break;
-
+    case JDAW_PTR:
+	ret.ptr_v = NULL;
+	break;
     default:
 	break;
     }
@@ -535,6 +550,10 @@ double jdaw_val_div_double(Value a, Value b, ValType vt)
 	/* ret.double_pair_v[0] = a.double_pair_v[0] * -1; */
 	/* ret.double_pair_v[1] = a.double_pair_v[1] * -1; */
 	break;
+    case JDAW_PTR:
+	ret = 0.0;
+	break;
+
     }
     return ret;
 }
@@ -1006,6 +1025,10 @@ Value jdaw_val_from_str(const char *str, ValType type)
 	ret.double_pair_v[1] = atof(comma);	
 	free(cpy);
     }
+	break;
+    case JDAW_PTR:
+	ret.ptr_v = NULL;
+	break;
     default:
 	break;
     }
@@ -1054,6 +1077,10 @@ Value jdaw_val_deserialize_OLD(FILE *f, uint8_t size, ValType type)
 	break;
     case JDAW_DOUBLE_PAIR:
 	memset(&ret, '\0', sizeof(ret));
+	break;
+    case JDAW_PTR:
+	ret.ptr_v = NULL;
+	break;
     default:
 	break;
     }

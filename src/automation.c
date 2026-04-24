@@ -2409,6 +2409,7 @@ void automation_path_changed(Automation *a)
 {
     api_endpoint_get_display_route_until(a->endpoint, a->name, MAX_NAMELENGTH, &a->track->api_node);
     /* textbox_set_value_handle(ep->automation->label, ep->automation->label->text->value_handle); */
+    textbox_size_to_fit(a->label, 10, 3);
     textbox_reset_full(a->label);
 
 }

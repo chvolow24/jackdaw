@@ -44,7 +44,8 @@ typedef enum value_type {
     JDAW_INT16,
     JDAW_INT32,
     JDAW_BOOL,
-    JDAW_DOUBLE_PAIR
+    JDAW_DOUBLE_PAIR,
+    JDAW_PTR
 } ValType;
 
 typedef union value {
@@ -59,6 +60,7 @@ typedef union value {
     int32_t int32_v;
     bool bool_v;
     double double_pair_v[2];
+    void *ptr_v;
 } Value;
 
 Value jdaw_val_from_ptr(void *ptr, ValType vt);

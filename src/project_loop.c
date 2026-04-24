@@ -258,7 +258,7 @@ void loop_project_main()
 		    user_event_start_macro();
 		    break;
 		case SDL_SCANCODE_6:
-		    user_event_stop_macro("user-defined action");
+		    user_event_stop_macro("user-defined action", false);
 		    break;
 		case SDL_SCANCODE_9:
 		    route_page_open(timeline_selected_track(ACTIVE_TL));

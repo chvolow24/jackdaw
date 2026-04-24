@@ -79,6 +79,7 @@ typedef struct user_event_history {
     int len;
     UserEventHistory *current_macro;
     const char *macro_message;
+    bool always_sequence_order;
 } UserEventHistory;
 
 
@@ -120,6 +121,6 @@ void user_event_history_clear(UserEventHistory *history);
 void user_event_do_undo_selective(EventFn options[], int num_options);
 
 void user_event_start_macro();
-void user_event_stop_macro(const char *message);
+void user_event_stop_macro(const char *message, bool always_sequence_order);
 
 #endif

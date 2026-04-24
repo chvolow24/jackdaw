@@ -16,6 +16,7 @@
 #include "assets.h"
 #include "audio_clip.h"
 #include "audio_connection.h"
+#include "automation.h"
 #include "clipref.h"
 #include "color.h"
 #include "consts.h"
@@ -489,19 +490,30 @@ extern SDL_Color timeline_marked_bckgrnd;
 /* } */
 
 
-static NEW_EVENT_FN(undo_rename_object, "undo rename object")
+static NEW_EVENT_FN(undo_redo_rename_object, "undo rename object")
+{
     Text *txt = (Text *)obj1;
-    if (txt->cached_value) {
-        free(txt->cached_value);
-    }
-    txt->cached_value = strdup(txt->value_handle);
-    txt_set_value(txt, (char *)obj2);
-}
+    txt_set_value(txt, val1.ptr_v);
+    fprintf(stderr, "RESETTING obj name (val handle %s) to %s\n", txt->value_handle, (char *)val1.ptr_v);
+    /* if (txt->cached_value) { */
+    /*     free(txt->cached_value); */
+    /* } */
+    /* txt->cached_value = strdup(txt->value_handle); */
+    /* fprintf(stderr, "Undo rename, change to %s (cached %s)\n", obj2, txt->cached_value); */
+    /* txt_set_value(txt, (char *)obj2); */
+}}
 
-static NEW_EVENT_FN(redo_rename_object, "redo rename object")
-    Text *txt = (Text *)obj1;
-    txt_set_value(txt, txt->cached_value);
-}
+/* static NEW_EVENT_FN(redo_rename_object, "redo rename object") */
+/* { */
+/*     Text *txt = (Text *)obj1; */
+/*     txt_set_value(txt, val1.ptr_v); */
+/* }} */
+
+static NEW_EVENT_FN(dispose_rename_object, "")
+{
+    free(val1.ptr_v);
+    free(val2.ptr_v);
+}}
 
 int project_obj_name_completion(Text *txt, void *obj)
 {   
@@ -514,25 +526,56 @@ int project_obj_name_completion(Text *txt, void *obj)
     }
     
     user_event_push(
-	undo_rename_object,
-	redo_rename_object,
-	NULL, NULL,
+	undo_redo_rename_object,
+	undo_redo_rename_object,
+	dispose_rename_object, dispose_rename_object,
 	(void *)txt,
 	old_value,
-	nullval, nullval, nullval, nullval,
+	(Value){.ptr_v = strdup(old_value)}, nullval,
+	(Value){.ptr_v = strdup(txt->value_handle)}, nullval,
 	0, 0, false, true);
     return 0;
 }
 
+NEW_EVENT_FN(undo_redo_automation_path_changed, "")
+{
+    fprintf(stderr, "\t->auto path changed\n");
+    automation_path_changed(obj1);
+}}
+
+NEW_EVENT_FN(undo_redo_route_tb_changed, "")
+{
+    fprintf(stderr, "\t->route tb changed (val handle %s)\n", ((Textbox *)obj1)->text->value_handle);
+    textbox_reset_full(obj1);
+}}
+
 int track_name_completion(Text *txt, void *obj)
 {
     /* APINode *node = (APINode *)obj; */
+    user_event_start_macro();
     Track *track = obj;
-    for (int i=0; i<track->num_route_ins; i++) {
-	api_node_renamed(&track->route_ins[i]->src->api_node);
-	textbox_reset_full(track->route_ins[i]->tl_gui.out_tb);
-    }
     project_obj_name_completion(txt, &track->api_node);
+    for (int i=0; i<track->num_route_ins; i++) {
+	textbox_reset_full(track->route_ins[i]->tl_gui.out_tb);
+	user_event_push(
+	    undo_redo_route_tb_changed, undo_redo_route_tb_changed,
+	    NULL, NULL,
+	    track->route_ins[i]->tl_gui.out_tb, NULL,
+	    (Value){0}, (Value){0}, (Value){0}, (Value){0},
+	    0, 0, false, false);
+	for (int j=0; j<track->route_ins[i]->src->num_automations; j++) {
+	    Automation *a = track->route_ins[i]->src->automations[j];
+	    automation_path_changed(a);
+	    user_event_push(
+		undo_redo_automation_path_changed, undo_redo_automation_path_changed,
+		NULL, NULL,
+	        a, NULL,
+		(Value){0}, (Value){0}, (Value){0}, (Value){0},
+		0, 0, false, false);
+
+	}
+    }
+    user_event_stop_macro("rename track", true);
     return 0;
 }
 
@@ -739,7 +782,7 @@ Track *timeline_add_track_with_name(Timeline *tl, const char *track_name, int at
 
     midi_event_ring_buf_init(&track->note_offs);
     api_node_register(&track->api_node, &track->tl->api_node, track->name, NULL);
-    api_node_register(&track->audio_routing_api_node, &track->api_node, NULL, "Audio routing");
+    api_node_register(&track->audio_routing_api_node, &track->api_node, NULL, "Aud rt");
     
     endpoint_init(
 	&track->vol_ep,

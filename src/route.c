@@ -162,6 +162,7 @@ static void audio_route_remove(AudioRoute *rt)
     audio_route_remove_from_dst(rt);   
     track_reset_proc_order(rt->src);
     rt->deleted = true;
+    api_node_deregister(&rt->api_node);
     if (rt->src->num_routes == 0) {
 	endpoint_write(&rt->src->send_to_out_ep, (Value){.bool_v = true}, true, true, true, false);
     }
@@ -174,6 +175,7 @@ static void audio_route_reinsert(AudioRoute *rt)
     audio_route_reinsert_on_dst(rt);
     track_reset_proc_order(rt->src);
     rt->deleted = false;
+    api_node_reregister(&rt->api_node);
     if (rt->src->num_routes == 1) {
 	endpoint_write(&rt->src->send_to_out_ep, (Value){.bool_v = false}, true, true, true, false);
     }

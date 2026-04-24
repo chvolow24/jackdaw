@@ -442,6 +442,9 @@ void api_node_renamed(APINode *an)
 	api_hash_node_destroy(to_delete);
 	ep->hash_node = NULL;
 	api_endpoint_insert_into_table(ep);
+	if (ep->automation) {
+	    automation_path_changed(ep->automation);
+	}
     }
     for (int i=0; i<an->num_children; i++) {
 	api_node_renamed(an->children[i]);

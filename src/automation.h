@@ -235,4 +235,8 @@ TEST_FN_DECL(automation_index, Automation *a);
 
 typedef struct endpoint Endpoint;
 void automation_endpoint_write(Endpoint *ep, Value val, int32_t play_pos);
+
+/* Call to re-set displayed textbox when an object in a's path is renamed */
+void automation_path_changed(Automation *a);
+
 #endif

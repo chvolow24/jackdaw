@@ -2403,3 +2403,12 @@ void automation_endpoint_write(Endpoint *ep, Value val, int32_t play_pos)
 {
     /* automation_do_write(ep->automation, val, play_pos, play_pos + 10000, ep->automation->track->tl->session->playback.play_speed); */
 }
+
+/* Call to re-set displayed textbox when an object in a's path is renamed */
+void automation_path_changed(Automation *a)
+{
+    api_endpoint_get_display_route_until(a->endpoint, a->name, MAX_NAMELENGTH, &a->track->api_node);
+    /* textbox_set_value_handle(ep->automation->label, ep->automation->label->text->value_handle); */
+    textbox_reset_full(a->label);
+
+}

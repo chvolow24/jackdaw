@@ -141,6 +141,9 @@ UserEvent *user_event_push(
     if (!session->proj_initialized) return NULL;
     UserEventHistory *history = &session->history;
     if (history->pause) return NULL;
+    if (history->current_macro) {
+	history = history->current_macro;
+    }
     UserEvent *e = calloc(1, sizeof(UserEvent));
     e->undo = undo_fn;
     e->redo = redo_fn;
@@ -345,3 +348,111 @@ void user_event_redo_set_value(
     }
 }
 
+
+static void user_event_history_dispose(UserEventHistory *history)
+{
+    UserEvent *e = history->oldest;
+    /* fprintf(stderr, "MACRO dispose\n"); */
+    while (e) {
+	/* fprintf(stderr, "\t->dispose sub event\n"); */
+	if (e->dispose) {
+	    e->dispose(e, e->obj1, e->obj2, e->undo_val1, e->undo_val2, e->type1, e->type2);
+	}
+	UserEvent *destroy = e;
+	e = e->next;
+	user_event_destroy(destroy);
+    }
+}
+
+static void user_event_history_dispose_forward(UserEventHistory *history)
+{
+    UserEvent *e = history->oldest;
+    /* fprintf(stderr, "MACRO dispose fwd\n"); */
+    while (e) {
+	/* fprintf(stderr, "\t->dispose fwd sub event\n"); */
+	if (e->dispose_forward) {
+	    e->dispose_forward(e, e->obj1, e->obj2, e->undo_val1, e->undo_val2, e->type1, e->type2);
+	}
+	UserEvent *destroy = e;
+	e = e->next;
+	user_event_destroy(destroy);	
+    }
+}
+
+NEW_EVENT_FN(undo_user_event_macro, "undo (macro)")
+{
+    UserEventHistory *h = obj1;
+    while (user_event_do_undo(h) == 0) {}
+    char statstr_fmt[256];
+    snprintf(statstr_fmt, 256, "(%d/%d) %s %s", session->history.len - self->index, session->history.len, "undo", h->macro_message); \
+    status_set_undostr(statstr_fmt); \
+
+    /* fprintf(stderr, "Done undo %s\n", h->macro_message); */
+}}
+
+NEW_EVENT_FN(redo_user_event_macro, "redo (macro)")
+{
+    UserEventHistory *h = obj1;
+    while (user_event_do_redo(h) == 0) {}
+    char statstr_fmt[256];
+    snprintf(statstr_fmt, 256, "(%d/%d) %s %s", session->history.len - self->index, session->history.len, "redo", h->macro_message); \
+    status_set_undostr(statstr_fmt); \
+
+    /* snprintf(statstr_fmt, 255, "(%d/%d) %s", session->history.len - self->index, session->history.len, statstr); \ */
+    /* status_set_undostr(statstr_fmt); \ */
+
+    /* status_set_undostr(h->macro_message); */
+    /* fprintf(stderr, "Done redo %s\n", h->macro_message); */
+
+}}
+
+NEW_EVENT_FN(dispose_user_event_macro, "")
+{
+    UserEventHistory *h = obj1;
+    user_event_history_dispose(h);
+    /* user_event_history_clear(h); */
+    free(h);
+}}
+
+NEW_EVENT_FN(dispose_forward_user_event_macro, "")
+{
+    UserEventHistory *h = obj1;
+    user_event_history_dispose_forward(h);
+    /* user_event_history_clear(h); */
+    free(h);
+}}
+
+
+
+void user_event_start_macro()
+{
+    Session *session = session_get();
+    UserEventHistory *main = &session->history;
+    if (main->current_macro) {
+	log_tmp(LOG_ERROR, "user_event_start_macro: macro already in progress\n");
+	return;
+    }
+    main->current_macro = calloc(1, sizeof(UserEventHistory));
+}
+void user_event_stop_macro(const char *message)
+{
+    Session *session = session_get();
+    UserEventHistory *main = &session->history;
+    UserEventHistory *macro = main->current_macro;
+    if (!macro) {
+	log_tmp(LOG_ERROR, "user_event_stop_macro: no macro in progress\n");
+	return;
+    }
+    macro->macro_message = message;
+    main->current_macro = NULL;
+
+    user_event_push(
+	undo_user_event_macro,
+	redo_user_event_macro,
+	dispose_user_event_macro,
+	dispose_forward_user_event_macro,
+	macro, NULL,
+	(Value){0}, (Value){0},
+	(Value){0}, (Value){0},
+	0, 0, false, false);
+}

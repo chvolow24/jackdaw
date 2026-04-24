@@ -77,6 +77,8 @@ typedef struct user_event_history {
     UserEvent *oldest;
     UserEvent *next_undo;
     int len;
+    UserEventHistory *current_macro;
+    const char *macro_message;
 } UserEventHistory;
 
 
@@ -116,5 +118,8 @@ void user_event_redo_set_value(
 
 void user_event_history_clear(UserEventHistory *history);
 void user_event_do_undo_selective(EventFn options[], int num_options);
+
+void user_event_start_macro();
+void user_event_stop_macro(const char *message);
 
 #endif

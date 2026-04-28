@@ -25,6 +25,7 @@
 #include "midi_file.h"
 #include "midi_io.h"
 #include "project.h"
+#include "route.h"
 #include "schroeder.h"
 #include "session.h"
 #include "tempo.h"
@@ -39,27 +40,32 @@ extern const char *JACKDAW_VERSION;
 /* extern JDAW_Color black; */
 /* extern JDAW_Color white; */
 
-const static char hdr_jdaw[] = {'J','D','A','W'};
-const static char hdr_version[] = {' ','V','E','R','S','I','O','N'};
-const static char hdr_clip[] = {'C','L','I','P'};
-const static char hdr_mclip[] = {'M','C','L','I','P'};
-const static char hdr_timeline[] = {'T','I','M','E','L','I','N','E'};
-const static char hdr_track[] = {'T','R','C','K'};
-const static char hdr_clipref[] = {'C','L','I','P','R','E','F'};
-const static char hdr_data[] = {'d','a','t','a'};
-const static char hdr_auto[] = {'A', 'U', 'T', 'O'};
-const static char hdr_keyf[] = {'K', 'E', 'Y', 'F'};
-const static char hdr_click[] = {'C', 'L', 'C', 'K'};
-const static char hdr_click_segm[] = {'C', 'T', 'S', 'G'};
-const static char hdr_trck_efct[] = {'E', 'F', 'C', 'T'};
-const static char hdr_trck_synth[] = {'S','Y','N','T','H'};
+const static char hdr_jdaw[] = "JDAW";
+const static char hdr_version[] = " VERSION";
+const static char hdr_clip[] = "CLIP";
+const static char hdr_mclip[] = "MCLIP";
+const static char hdr_timeline[] = "TIMELINE";
+const static char hdr_track[] = "TRCK";
+const static char hdr_clipref[] = "CLIPREF";
+const static char hdr_data[] = "data";
+const static char hdr_auto[] = "AUTO";
+const static char hdr_keyf[] = "KEYF";
+const static char hdr_click[] = "CLCK";
+const static char hdr_click_segm[] = "CTSG";
+const static char hdr_trck_efct[] = "EFCT";
+const static char hdr_trck_synth[] = "SYNTH";
+const static char hdr_aud_rt[] = "AUDRT";
 
-const static char current_file_spec_version[] = {'0','0','.','2','4'};
+const static char current_file_spec_version[] = "00.25";
 
 static char read_file_spec_version[6];
 bool read_file_version_older_than(const char *cmp_version)
 {
     return strncmp(read_file_spec_version, cmp_version, 5) < 0;       
+}
+bool read_file_version_at_or_above(const char *cmp_version)
+{
+    return !read_file_version_older_than(cmp_version);
 }
 
 static void debug_print_bytes_around(FILE *f)
@@ -224,6 +230,7 @@ static void jdaw_write_midi_clip(FILE *f, MIDIClip *mclip)
 
 static void jdaw_write_track(FILE *f, Track *track);
 static void jdaw_write_click_track(FILE *f, ClickTrack *ct);
+static void jdaw_write_tl_audio_routes(FILE *f, Timeline *tl);
 
 static void jdaw_write_timeline(FILE *f, Timeline *tl)
 {
@@ -248,7 +255,7 @@ static void jdaw_write_timeline(FILE *f, Timeline *tl)
 	    jdaw_write_click_track(f, ct);
 	}
     }
-
+    jdaw_write_tl_audio_routes(f, tl);
 }
 
 static void jdaw_write_clipref(FILE *f, ClipRef *cr);
@@ -267,11 +274,12 @@ static void jdaw_write_track(FILE *f, Track *track)
     float_ser40_le(f, track->vol);
     float_ser40_le(f, track->pan);
     
-    /* Write mute and solo values */
     fwrite(&track->muted, 1, 1, f);
     fwrite(&track->solo, 1, 1, f);
     fwrite(&track->solo_muted, 1, 1, f);
     fwrite(&track->minimized, 1, 1, f);
+    fwrite(&track->send_to_out, 1, 1, f);
+    
     uint16_ser_le(f, &track->num_clips);
     for (uint16_t i=0; i<track->num_clips; i++) {
 	jdaw_write_clipref(f, track->clips[i]);
@@ -543,6 +551,28 @@ static void jdaw_write_auto_keyframe(FILE *f, Keyframe *k)
     jdaw_val_serialize(f, k->value, k->automation->val_type);
 }
 
+static void jdaw_write_tl_audio_routes(FILE *f, Timeline *tl)
+{
+    uint16_t route_i = 0;
+    AudioRoute *routes[MAX_TRACKS * TRACK_MAX_AUDIO_ROUTES];
+    for (int i=0; i<tl->num_tracks; i++) {
+	Track *src = tl->tracks[i];
+	for (int j=0; j<src->num_routes; j++) {
+	    routes[route_i] = src->routes[j];
+	    route_i++;
+	}
+    }
+    uint16_ser_le(f, &route_i); /* Write total num routes */
+    for (uint16_t i=0; i<route_i; i++) {
+	fwrite(hdr_aud_rt, 1, sizeof(hdr_aud_rt), f);
+	AudioRoute *rt = routes[i];
+	uint8_ser(f, &rt->src->tl_rank);
+	uint8_ser(f, &rt->dst->tl_rank);
+	float_ser40_le(f, rt->amp_raw);
+    }
+    
+}
+
 
 
 
@@ -567,8 +597,9 @@ int jdaw_read_file(Project *dst, const char *path)
     FILE *f = fopen(path, "r");
     if (!f) {
         fprintf(stderr, "Error: could not find project file at path %s\n", path);
-	/* session_to_set_proj_reading->proj_reading = NULL; */
-        return -1;
+	goto jdaw_parse_error;
+	/* /\* session_to_set_proj_reading->proj_reading = NULL; *\/ */
+        /* return -1; */
     }
     char hdr_buffer[9];
     fread(hdr_buffer, 1, 4, f);
@@ -576,8 +607,9 @@ int jdaw_read_file(Project *dst, const char *path)
     if (strncmp(hdr_buffer, hdr_jdaw, 4) != 0) {
         fprintf(stderr, "Error: unable to read file. 'JDAW' specifier missing %s\n", path);
         /* free(proj); */
+	goto jdaw_parse_error;
 	/* session_to_set_proj_reading->proj_reading = NULL; */
-        return -1;
+        /* return -1; */
     }
 
     /* Check whether " VERSION" specifier exists to get the file spec version. If not, reset buffer position */
@@ -587,8 +619,9 @@ int jdaw_read_file(Project *dst, const char *path)
     hdr_buffer[8] = '\0';
     if (strncmp(hdr_buffer, hdr_version, 8) != 0) {
 	fprintf(stderr, "Error: \"VERSION\" specifier missing in .jdaw file\n");
+	goto jdaw_parse_error;
 	/* session_to_set_proj_reading->proj_reading = NULL; */
-	return -1;
+	/* return -1; */
     }
     fread(read_file_spec_version, 1, 5, f);
     read_file_spec_version[5] = '\0';
@@ -882,6 +915,7 @@ static void local_move_track_down()
 
 static int jdaw_read_track(FILE *f, Timeline *tl);
 static int jdaw_read_click_track(FILE *f, Timeline *tl);
+static int jdaw_read_tl_audio_routes(FILE *f, Timeline *tl);
 static int jdaw_read_timeline(FILE *f, Project *proj_loc)
 {
     char hdr_buffer[8];
@@ -945,6 +979,12 @@ static int jdaw_read_timeline(FILE *f, Project *proj_loc)
 	}
     }
 
+    if (read_file_version_at_or_above("00.25")) {
+	if (jdaw_read_tl_audio_routes(f, tl) != 0) {
+	    return 1;
+	}
+    }
+    
     timeline_reset(tl, true);
     /* if (read_file_spec_version >= 0.15) { */
     /* 	uint8_t num_click_tracks = uint8_deser(f); */
@@ -1007,9 +1047,13 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
     bool solo = uint8_deser(f);
     bool solo_muted = uint8_deser(f);
     bool minimized = false;
+    bool send_to_main_out = true; /* Default */
 
-    if (!read_file_version_older_than("00.16")) {
+    if (read_file_version_at_or_above("00.16")) {
 	minimized = uint8_deser(f);
+    }
+    if (read_file_version_at_or_above("00.25")) {
+	send_to_main_out = uint8_deser(f);
     }
     if (muted) {
 	track_mute(track);
@@ -1022,6 +1066,9 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
     }
     if (minimized) {
 	track_minimize(track);
+    }
+    if (!send_to_main_out) {
+	endpoint_write(&track->send_to_out_ep, (Value){.bool_v = false}, true, true, true, false);
     }
     
     uint16_t num_cliprefs;
@@ -1041,7 +1088,7 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
     }
     track->synth = synth_create(track);
     if (read_file_version_older_than("00.17")) {
-	if (!read_file_version_older_than("00.13")) {
+	if (read_file_version_at_or_above("00.13")) {
 	    uint8_t num_automations = uint8_deser(f);
 	    while (num_automations > 0) {
 		if (jdaw_read_automation(f, track) != 0) {
@@ -1051,7 +1098,7 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
 	    }
 	}
     }
-    if (!read_file_version_older_than("00.11")) {
+    if (read_file_version_at_or_above("00.11")) {
 	if (read_file_version_older_than("00.17")) {
 	    Effect *e;
 	    uint8_t fir_filter_active = uint8_deser(f);
@@ -1116,7 +1163,7 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
 		    fseek(f, 14, SEEK_CUR);
 		}
 	    }
-	    if (!read_file_version_older_than("00.16")) {
+	    if (read_file_version_at_or_above("00.16")) {
 		uint8_t saturation_active = uint8_deser(f);
 		if (saturation_active) {
 		    e = track_add_effect(track, EFFECT_SATURATION);
@@ -1166,7 +1213,7 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
 		}
 		num_automations--;
 	    }
-	    if (!read_file_version_older_than("00.18")) {
+	    if (read_file_version_at_or_above("00.18")) {
 		uint8_t has_synth = uint8_deser(f);
 		if (has_synth) {
 		    /* fprintf(stderr, "Track \"%s\" has synth\n", track->name); */
@@ -1179,7 +1226,7 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
 			fprintf(stderr, "Error: \"SYNTH\" header not found\n");
 			return 1;
 		    }
-		    if (!read_file_version_older_than("00.23")) {
+		    if (read_file_version_at_or_above("00.23")) {
 			/* fprintf(stderr, "\n\nReading synth effect chain....\n"); */
 			jdaw_read_effect_chain(f, proj_reading, &track->synth->effect_chain, &track->synth->api_node, "synth", tl->proj->fourier_len_sframes);
 			track->synth->effect_chain.api_node.do_not_serialize = true;
@@ -1235,18 +1282,18 @@ static int jdaw_read_effect(FILE *f, EffectChain *ec)
 
     EffectType type = (EffectType)uint8_deser(f);
     EffectChannelMode channel_mode = 0;
-    if (!read_file_version_older_than("00.24")) {
+    if (read_file_version_at_or_above("00.24")) {
 	channel_mode = (EffectChannelMode)uint8_deser(f);
     }
     Effect *e = effect_chain_add_effect(ec, type);
 
-    if (!read_file_version_older_than("00.24")) {
+    if (read_file_version_at_or_above("00.24")) {
 	e->channel_mode = channel_mode;
     }
 
     char name[256] = {0};
     uint8_t namelen = 0;
-    if (!read_file_version_older_than("00.22")) {
+    if (read_file_version_at_or_above("00.22")) {
 	namelen = uint8_deser(f);
 	fread(name, 1, namelen, f);
     }
@@ -1273,7 +1320,7 @@ static int jdaw_read_effect(FILE *f, EffectChain *ec)
     default:
 	break;
     }
-    if (!read_file_version_older_than("00.22")) {
+    if (read_file_version_at_or_above("00.22")) {
 	memcpy(e->name, name, namelen + 1);
 	api_node_renamed(&e->api_node);
     }
@@ -1424,7 +1471,7 @@ static int jdaw_read_clipref(FILE *f, Track *track)
     uint32_deser_le(f); /* start ramp len */
     uint32_deser_le(f); /* end ramp len */
 
-    if (!read_file_version_older_than("00.20")) {
+    if (read_file_version_at_or_above("00.20")) {
 	cr->gain = float_deser40_le(f);
 	cr->gain_ctrl = pow(cr->gain, 1.0 / VOL_EXP);
     }
@@ -1604,6 +1651,32 @@ static int jdaw_read_click_segment(FILE *f, ClickTrack *ct, bool *more_segments)
 	click_track_add_segment(ct, start_pos, num_measures, tempo, num_beats, beat_subdivs);
     }
     *more_segments = (bool)uint8_deser(f);
+    return 0;
+}
+
+static int jdaw_read_tl_audio_routes(FILE *f, Timeline *tl)
+{
+    uint16_t total_number = uint16_deser_le(f);
+    for (uint16_t i=0; i<total_number; i++) {
+	char hdr_buf[sizeof(hdr_aud_rt)];
+	fread(hdr_buf, 1, sizeof(hdr_aud_rt), f);
+	if (strncmp(hdr_buf, hdr_aud_rt, sizeof(hdr_aud_rt)) != 0) {
+	    fprintf(stderr, "Error: .jdaw parse error: \"AUDRT\" indicator not found where expected\n");
+	    return 1;
+	}
+	uint8_t src_index = uint8_deser(f);
+	uint8_t dst_index = uint8_deser(f);
+	float amp_raw = float_deser40_le(f);
+	Track *src = tl->tracks[src_index];
+	Track *dst = tl->tracks[dst_index];
+	bool saved_send_to_out = src->send_to_out;
+	AudioRoute *r = track_add_audio_route(src, dst, 1.0);
+	endpoint_write(&r->amp_ep, (Value){.float_v = amp_raw}, true, true, true, false);
+	endpoint_write(&src->send_to_out_ep, (Value){.bool_v = saved_send_to_out}, true, true, true, false);
+	/* endpoint_write( */
+	/* AudioRoute *rt = a */
+	
+    }
     return 0;
 }
 

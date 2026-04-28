@@ -247,27 +247,27 @@ static void rt_vol_dsp_cb(Endpoint *ep)
 
 
 
-void track_add_audio_route(Track *track, Track *dst, float init_amp)
+AudioRoute *track_add_audio_route(Track *track, Track *dst, float init_amp)
 {
     if (!dst || !track) {
 	log_tmp(LOG_ERROR, "Call to track_add_audio_route with one or more null arg: src %p, dst %p\n", track, dst);
-	return;
+	return NULL;
     }
     if (track->num_routes == TRACK_MAX_AUDIO_ROUTES) {
 	status_set_errstr("No more than %d audio routes allowed on track\n", TRACK_MAX_AUDIO_ROUTES);
-	return;
+	return NULL;
     }
 
     for (int i=0; i<track->num_routes; i++) {
 	if (track->routes[i]->dst == dst) {
 	    status_set_errstr("Track \"%s\" already has route to \"%s\"\n", track->name, dst->name);
-	    return;
+	    return NULL;
 	}
     }
 
     if (proposed_route_has_feedback(track, track, dst)) {
 	status_set_errstr("No feedback audio routes\n");
-	return;
+	return NULL;
     }
     
     AudioRoute *r = calloc(1, sizeof(AudioRoute));
@@ -385,6 +385,7 @@ void track_add_audio_route(Track *track, Track *dst, float init_amp)
     if (track->num_routes == 1) {
 	endpoint_write(&track->send_to_out_ep, (Value){.bool_v = false}, true, true, true, false);
     }
+    return r;
 }
 
 NEW_EVENT_FN(undo_delete_audio_route, "undo delete audio route")

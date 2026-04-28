@@ -31,7 +31,7 @@ typedef struct audio_route {
 } AudioRoute;
 
 
-void track_add_audio_route(Track *track, Track *dst, float init_amp);
+AudioRoute *track_add_audio_route(Track *track, Track *dst, float init_amp);
 
 void audio_route_destroy(AudioRoute *rt);
 void audio_route_delete(AudioRoute *rt);

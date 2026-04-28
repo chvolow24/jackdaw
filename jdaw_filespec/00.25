@@ -1,8 +1,9 @@
-/**************************** .JDAW VERSION 00.24 FILE SPEC ***********************************
+/**************************** .JDAW VERSION 00.25 FILE SPEC ***********************************
 
    =========================================================
-    DIFF (new since 00.23)
-	- serialize effect channel mode
+    DIFF (new since 00.24)
+	- serialize audio routes (after tracks done)
+	- serialize track "send to main out"
    =========================================================
 
     ALL INTEGERS SERIALIZED IN LITTLE-ENDIAN BYTE ORDER
@@ -77,6 +78,7 @@ TRCK	      1                 bool			  muted
 TRCK	      1                 bool			  soloed
 TRCK 	      1                 bool			  solo muted
 TRCK	      1			bool			  minimized
+TRCK	      1			bool			  send to main out (audio routing)
 TRCK   	      2                 uint16_t                  num cliprefs
 
 ....................................
@@ -87,9 +89,9 @@ TRCK   	      2                 uint16_t                  num cliprefs
 TRCK	      1			uint8_t			  num_effects
 TRCK	      ???		EffectChain		  track effects
 
-.....................................
+..................................
 ...[TRCK_FX GO HERE; SEE BELOW]...
-.....................................
+..................................
 
 TRCK	      1			uint8_t			  num_automations
 
@@ -120,6 +122,12 @@ CLICK_SEG     5			float			  tempo (bpm)
 CLICK_SEG     1			uint8_t			  num beats
 CLICK_SEG     1-13		uint8_t[]	 	  beat subdiv lens
 CLICK_SEG     1			bool			  more segments
+
+TL            2			uint16_t		  timeline total num audio routes
+
+..................................
+...[AUD_RTs GO HERE; SEE BELOW]...
+..................................
 
 
 .................................................................................
@@ -191,6 +199,12 @@ EQ_FILTER     1			uint8_t			  filter type
 EQ_FILTER     5			double			  freq raw
 EQ_FILTER     5			double			  amp raw
 EQ_FILTER     5			double			  bandwidth scalar
+
+
+AUD_RT	      5			char[5]			  "AUDRT"
+AUD_RT	      1			uint8_t			  src track index
+AUD_RT	      1			uint8_t			  dst track index
+AUD_RT	      5			float			  gain (raw endpoint value -- to be scaled)
 
 
 *********************************************************************************/

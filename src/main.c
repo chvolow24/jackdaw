@@ -141,6 +141,7 @@ static void init()
 static void quit()
 {
     Session *session = session_get();
+    if (main_win->txt_editing) txt_stop_editing(main_win->txt_editing);
     api_quit();
     CANCEL_THREADS = true;
     pd_signal_termination_of_jackdaw();

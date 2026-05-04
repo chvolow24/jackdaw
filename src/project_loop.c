@@ -45,7 +45,6 @@
 #include "thread_safety.h"
 #include "timeline.h"
 #include "transport.h"
-#include "user_event.h"
 #include "window.h"
 
 #define MAX_MODES 8
@@ -405,7 +404,19 @@ void loop_project_main()
 			bool allow_scroll = true;
 			double scroll_x = e.wheel.preciseX * LAYOUT_SCROLL_SCALAR;
 			double scroll_y = e.wheel.preciseY * LAYOUT_SCROLL_SCALAR;
-			if (SDL_PointInRect(&main_win->mousep, session->gui.audio_rect) || SDL_PointInRect(&main_win->mousep, session->gui.console_column_rect)) {
+			if (main_win->active_tabview) {
+			    Page *page = main_win->active_tabview->tabs[main_win->active_tabview->current_tab];
+			    if (SDL_PointInRect(&main_win->mousep, &page->layout->rect)) {
+				for (int i=0; i<page->num_elements; i++) {
+				    PageEl *el = page->elements[i];
+				    if (el->type == EL_PAGE_LIST && SDL_PointInRect(&main_win->mousep, &el->layout->rect)) {
+					PageList *pl = el->component;
+					temp_scrolling_lt = pl->inner_layout;
+					layout_scroll(pl->inner_layout, 0, scroll_y, fingersdown);
+				    }
+				}
+			    }
+			} else if (SDL_PointInRect(&main_win->mousep, session->gui.audio_rect) || SDL_PointInRect(&main_win->mousep, session->gui.console_column_rect)) {
 			    if (main_win->i_state & I_STATE_CMDCTRL) {
 				double scale_factor = pow(SFPP_STEP, e.wheel.y);
 				timeline_rescale(tl, scale_factor, true);
@@ -490,6 +501,7 @@ void loop_project_main()
 		break;
 	    case SDL_FINGERUP:
 		fingersdown = SDL_GetNumTouchFingers(-1);
+		/* fprintf(stderr, "finger UP new num %d, recency %d\n", fingersdown, wheel_event_recency); */
 		if (fingersdown == 0) {
 		    if (wheel_event_recency < 2) {
 			scrolling_lt = temp_scrolling_lt;
@@ -499,7 +511,9 @@ void loop_project_main()
 		break;
 	    case SDL_FINGERDOWN:
 	        fingersdown = SDL_GetNumTouchFingers(-1);
+		/* fprintf(stderr, "Fingers: %d\n", fingersdown); */
 		if (scrolling_lt && wheel_event_recency >= 2) {
+		    /* fprintf(stderr, "HALT\n"); */
 		    layout_halt_scroll(scrolling_lt);
 		    scrolling_lt = NULL;
 		}
@@ -533,7 +547,7 @@ void loop_project_main()
 	    timeline_reset(tl, false);
 	    tl->needs_reset = false;
 	}
-	
+
 	wheel_event_recency++;
 	if (wheel_event_recency == INT_MAX)
 	    wheel_event_recency = 0;
@@ -543,12 +557,15 @@ void loop_project_main()
 	if (scrolling_lt) {
 	    if (animate_step % 1 == 0) {
 		/* fingersdown = SDL_GetNumTouchFingers(-1); */
+		/* fprintf(stderr, "\tcalling scroll step\n"); */
 		if (layout_scroll_step(scrolling_lt) == 0) {
 		    /* scrolling_lt->iterator->scroll_momentum = 0; */
 		    scrolling_lt = NULL;
+		    /* fprintf(stderr, "\t->MOM DONE end\n"); */
 		} else if (fingersdown > 0) {
 		    /* scrolling_lt->iterator->scroll_momentum = 0; */
-		    scrolling_lt = NULL;
+		    /* scrolling_lt = NULL; */
+		    /* fprintf(stderr, "\t->FINGERS end\n"); */
 		}
 		timeline_reset(tl, false);
 	    }

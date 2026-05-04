@@ -95,6 +95,7 @@ typedef struct layout {
     int scroll_offset_h;
     int scroll_momentum_v;
     int scroll_momentum_h;
+    int scroll_index;
     // Layout *complement;
     // bool display;
     // bool internal;

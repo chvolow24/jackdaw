@@ -113,6 +113,7 @@ SDL_Color track_colors[NUM_TRACK_COLORS] = {
 
 uint8_t project_add_timeline(Project *proj, char *name)
 {
+    fprintf(stderr, "PROJ ADD TIMELINE num %d\n", proj->num_timelines);
     if (proj->num_timelines == MAX_PROJ_TIMELINES) {
 	fprintf(stderr, "Error: project has max num timlines\n:");
 	return proj->active_tl_index;
@@ -130,18 +131,13 @@ uint8_t project_add_timeline(Project *proj, char *name)
     new_tl->proj = proj;
     new_tl->index = proj->num_timelines;
     Session *session = session_get();
-    /* Layout *tl_lt = layout_get_child_by_name_recursive(session->gui.layout, "timeline"); */
+    
+    /* tl_lt is not copied */
     Layout *tl_lt = session->gui.timeline_lt;
 
-    /* If loading a file, session proj will have > 0 timelines and we can't use the existing one */
-    if (proj->num_timelines == 0) {
-	new_tl->track_area = layout_get_child_by_name_recursive(tl_lt, "tracks_area");
-	for (int i=0; i<new_tl->track_area->num_children; i++) {
-	    layout_destroy_no_offset(new_tl->track_area->children[i]);
-	}
-	new_tl->track_area->num_children = 0;
-    } else {
-	Layout *track_area_copy = layout_copy(proj->timelines[0]->track_area, session->gui.timeline_lt);
+    Layout *track_area = layout_get_child_by_name_recursive(tl_lt, "tracks_area");
+    if (track_area) {
+	Layout *track_area_copy = layout_copy(track_area, session->gui.timeline_lt);
 	track_area_copy->scroll_offset_h = 0;
 	track_area_copy->scroll_offset_v = 0;
 	track_area_copy->scroll_momentum_h = 0;
@@ -153,9 +149,22 @@ uint8_t project_add_timeline(Project *proj, char *name)
 	track_area_copy->num_children = 0;
 	new_tl->track_area = track_area_copy;
 	timeline_rectify_track_area(new_tl);
-	/* layout_write(stderr, track_area_copy, 0); */
 
+    } else {
+	exit(1);
     }
+    
+    /* /\* If loading a file, session proj will have > 0 timelines and we can't use the existing one *\/ */
+    /* if (proj->num_timelines == 0) { */
+    /* 	new_tl->track_area = layout_get_child_by_name_recursive(tl_lt, "tracks_area"); */
+    /* 	for (int i=0; i<new_tl->track_area->num_children; i++) { */
+    /* 	    layout_destroy_no_offset(new_tl->track_area->children[i]); */
+    /* 	} */
+    /* 	new_tl->track_area->num_children = 0; */
+    /* } else { */
+    /* 	/\* layout_write(stderr, track_area_copy, 0); *\/ */
+
+    /* } */
 
 
     /* TODO:

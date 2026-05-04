@@ -528,6 +528,7 @@ int layout_scroll_step_OLD(Layout *lt)
 
 int layout_scroll_step(Layout *lt)
 {
+    lt->scroll_index++;
     int *momentum;
     int *offset;
     int min_offset;
@@ -541,10 +542,14 @@ int layout_scroll_step(Layout *lt)
 	min_offset = -1 * lt->rect.w  / main_win->dpi_scale_factor + SCROLL_OFFSET_MIN_PAD;
     }
     if (*momentum == 0) return 0;
-    int dampen_addend = *momentum > 0 ? -1 : 1;
-
-    *momentum += dampen_addend;
-
+    int mod = 1 + 10 / (abs(*momentum) + 1);
+    if (mod == 0) mod = 1;
+    
+    if (lt->scroll_index % mod == 0) {
+	int dampen_addend = *momentum > 0 ? -1 : 1;
+	*momentum += dampen_addend;
+    }
+    
     *offset += *momentum;
     if (*momentum == 0) return 0;
 

@@ -1234,8 +1234,10 @@ void status_light_destroy(StatusLight *sl)
 
 /*------ PageList ----------------------------------------------------*/
 
-#define PAGE_LIST_INNER_LT_PAD_H 4
-#define PAGE_LIST_INNER_LT_PAD_V 2
+/* #define PAGE_LIST_INNER_LT_PAD_H 4 */
+#define PAGE_LIST_INNER_LT_PAD_H 0.008
+/* #define PAGE_LIST_INNER_LT_PAD_V 2 */
+#define PAGE_LIST_INNER_LT_PAD_V 0.008
 #define PAGE_LIST_ITEM_V_PAD 4
 #define PAGE_LIST_DEFAULT_ITEM_CORNER_R 6
 
@@ -1278,7 +1280,6 @@ void page_list_update(PageList *pl, int num_items)
 	pl->selected_item--;
     }
     pl->pages = calloc(num_items, sizeof(Page *));
-    fprintf(stderr, "Create pl num itsm %d\n", num_items);
     for (int i=0; i<pl->num_items; i++) {
 	Layout *page_layout = layout_add_child(pl->inner_layout);
 	page_layout->y.type = STACK;
@@ -1319,6 +1320,7 @@ void page_list_update(PageList *pl, int num_items)
 	/* page_reset(pl->pages[i]); */
 	/* pl->pages[i] = pl->create_item_page_fn(page_layout, item); */
     }
+    layout_size_to_fit_children_v(pl->inner_layout, true, 8);
 }
 
 
@@ -1342,10 +1344,13 @@ PageList *page_list_create(
     pl->item_template_filepath = item_template_filepath;
     pl->item_corner_rad = PAGE_LIST_DEFAULT_ITEM_CORNER_R;
     Layout *inr = layout_add_child(lt);
+    inr->x.type = SCALE;
     inr->x.value = PAGE_LIST_INNER_LT_PAD_H;
+    inr->y.type = SCALE;
     inr->y.value = PAGE_LIST_INNER_LT_PAD_V;
     inr->w.type = PAD;
-    inr->h.type = PAD;
+    inr->h.type = SCALE;
+    inr->h.value = 1.0 - (2 * PAGE_LIST_INNER_LT_PAD_V);
     layout_reset(inr);
     pl->inner_layout = inr;
     page_list_update(pl, num_items);

@@ -1,7 +1,7 @@
 #ifndef JDAW_PAGE_EL_TYPE_H
 #define JDAW_PAGE_EL_TYPE_H
 
-typedef enum page_el_type: int {
+typedef enum page_el_type {
     EL_TEXTAREA,
     EL_TEXTBOX,
     EL_TEXTENTRY,

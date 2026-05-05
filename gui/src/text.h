@@ -18,7 +18,7 @@
 /* #define OPEN_SANS_BOLD_PATH INSTALL_DIR "/assets/ttf/Iosevka-Bold.ttf" */
 #define TTF_SPEC_ADJUST 1
 
-#define CURSOR_WIDTH 4
+#define CURSOR_WIDTH (2 * main_win->dpi_scale_factor)
 #define CURSOR_COUNTDOWN_MAX 100
 #define TEXT_BUFLEN 255
 

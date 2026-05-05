@@ -1389,7 +1389,7 @@ void page_list_draw(PageList *pl)
 
     SDL_Color grey = {0, 0, 0, 80};
     SDL_Rect rect = pl->layout->rect;
-    const int thickness = 6;
+    const int thickness = 4 * main_win->dpi_scale_factor;
     const int border_r = 8;
     int alpha_diff = grey.a / thickness;
     /* SDL_SetRenderDrawColor(main_win->rend, &colors.grey); */

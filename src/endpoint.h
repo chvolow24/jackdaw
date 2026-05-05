@@ -55,6 +55,7 @@
 #define JDAW_ENDPOINT_H
 
 #include "automation.h"
+#include "page_el_type.h"
 #include "thread_safety.h"
 #include "value.h"
 
@@ -70,7 +71,6 @@ typedef void (*EndptCb)(Endpoint *);
 /* }; */
 
 /* typedef struct jackdaw_api Jackdaw_API; */
-typedef enum page_el_type : int PageElType;
 typedef struct api_node APINode;
 typedef struct api_hash_node APIHashNode;
 typedef struct endpoint {

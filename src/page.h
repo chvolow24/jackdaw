@@ -25,6 +25,7 @@
 #include "envelope_follower.h"
 #include "eq.h"
 #include "layout.h"
+#include "page_el_type.h"
 #include "textbox.h"
 #include "value.h"
 /* #include "vu_meter.h" */
@@ -39,28 +40,6 @@
 #define TAB_MARGIN_LEFT (TAB_R * 2)
 #define TAB_H_SPACING 0
 
-typedef enum page_el_type: int {
-    EL_TEXTAREA,
-    EL_TEXTBOX,
-    EL_TEXTENTRY,
-    EL_SLIDER,
-    EL_RADIO,
-    EL_TOGGLE,
-    EL_WAVEFORM,
-    EL_FREQ_PLOT,
-    EL_BUTTON,
-    EL_CANVAS,
-    EL_EQ_PLOT,
-    EL_SYMBOL_BUTTON,
-    EL_SYMBOL_RADIO,
-    EL_DROPDOWN,
-    EL_STATUS_LIGHT,
-    EL_PIANO,
-    EL_DIVIDER,
-    EL_VU_METER,
-    EL_PAGE_LIST,
-    /* EL_TOGGLE_EP */
-} PageElType;
 
 enum linked_obj_type {
     PAGE_EFFECT=0,

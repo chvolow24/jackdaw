@@ -98,15 +98,15 @@ void TEST_lookup_print_all_matches(const char *word)
     int num = trie_gather_completion_objs(&FN_TRIE, word, objs, 255);
 
 
-    UserFn *fnlist[255];
-    int num_fns = 0;
+    /* UserFn *fnlist[255]; */
+    /* int num_fns = 0; */
     
     for (int i=0; i<num; i++) {
 	fprintf(stderr, "\n");
 	FnList *fnl = objs[i];
 	for (int i=0; i<fnl->num_fns; i++) {
-	    fnlist[num_fns] = fnl->fns[i];
-	    num_fns++;
+	    /* fnlist[num_fns] = fnl->fns[i]; */
+	    /* num_fns++; */
 	    fprintf(stderr, "FN: %s\n", fnl->fns[i]->fn_display_name);
 	}
     }

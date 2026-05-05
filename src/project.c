@@ -2605,7 +2605,8 @@ int load_stems_dir(const char *path, char ***paths_dst)
     int num_stemfiles = 0;
     DirPath *dp = dirpath_open(rp);
     if (!dp) {
-	return -1;
+	num_stemfiles = -1;
+	goto cleanup_and_return;
     }
     for (int i=0; i<dp->num_entries; i++) {
 	char *ext = path_get_ext(dp->entries[i]->path);
@@ -2613,7 +2614,9 @@ int load_stems_dir(const char *path, char ***paths_dst)
 	    stemfiles[num_stemfiles++] = dp->entries[i]->path;
 	}
     }
-    if (num_stemfiles == 0) return 0;
+    if (num_stemfiles == 0) {
+	goto cleanup_and_return;
+    }
     if (!paths_dst) fprintf(stderr, "Error in load_stems_dir: no paths_dst provided\n");
     fprintf(stderr, "Load %d stems in new project? (y/n)\n", num_stemfiles);
     /* char USER[2] = {0}; */
@@ -2624,11 +2627,15 @@ int load_stems_dir(const char *path, char ***paths_dst)
 	for (int i=0; i<num_stemfiles; i++) {
 	    (*paths_dst)[i] = strdup(stemfiles[i]);
 	}
-	return num_stemfiles;
+	goto cleanup_and_return;
+	/* return num_stemfiles; */
     } else {
-	return -1;
+	num_stemfiles =  -1;
+	goto cleanup_and_return;
     }
+cleanup_and_return:    
     dirpath_destroy(dp);
+    return num_stemfiles;
 }
 
 

@@ -95,11 +95,9 @@ static void audio_route_remove(AudioRoute *rt);
 
 void audio_route_destroy(AudioRoute *rt)
 {
-    /* if (!rt->deleted) { */
-    /* 	log_tmp(LOG_ERROR, "Call to destroy route but not deleted (%s -> %s)\n", rt->src->name, rt->dst->name); */
-    /* 	error_exit("Call to destroy route but not deleted\n"); */
-    /* 	audio_route_remove(rt); */
-    /* } */
+    if (rt->tl_gui.out_tb) {
+	textbox_destroy(rt->tl_gui.out_tb);
+    }
     free(rt);
 }
 

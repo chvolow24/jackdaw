@@ -114,7 +114,6 @@ SDL_Color track_colors[NUM_TRACK_COLORS] = {
 
 uint8_t project_add_timeline(Project *proj, char *name)
 {
-    fprintf(stderr, "PROJ ADD TIMELINE num %d\n", proj->num_timelines);
     if (proj->num_timelines == MAX_PROJ_TIMELINES) {
 	fprintf(stderr, "Error: project has max num timlines\n:");
 	return proj->active_tl_index;

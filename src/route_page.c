@@ -32,11 +32,14 @@ static void add_route_buttonfn_internal(Track *trck, bool from_dst, Modal *modal
     }
     Track *trck2 = dd->item_args[dd->selected_item];
     if (from_dst) {
-	track_add_audio_route(trck2, trck, 1.0);
+	if (track_add_audio_route(trck2, trck, 1.0)) {
+	    window_pop_modal(main_win);
+	}
     } else {
-	track_add_audio_route(trck, trck2, 1.0);
+	if (track_add_audio_route(trck, trck2, 1.0)) {
+	    window_pop_modal(main_win);
+	}
     }
-
 }
 
 static ComponentFnDef(add_route_buttonfn)
@@ -104,7 +107,8 @@ static int add_route_internal(Track *trck, bool from_dst)
 	modal,
 	"Add",
 	from_dst ? add_route_from_dst_buttonfn : add_route_buttonfn);
-	
+
+    modal->submit_form = from_dst ? add_route_from_dst_buttonfn : add_route_buttonfn;
     
     window_push_modal(main_win, modal);
     modal_reset(modal);

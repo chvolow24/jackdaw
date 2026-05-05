@@ -178,7 +178,6 @@ typedef struct dropdown {
     uint8_t num_items;
     uint8_t selected_item;
     int *reset_from;
-    /* bool free_args_on_destroy; */
     int (*selection_fn)(Dropdown *self, void *arg);
     /* Optional */
     Endpoint *ep;

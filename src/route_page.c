@@ -81,9 +81,10 @@ static int add_route_internal(Track *trck, bool from_dst)
     } else {
 	modal_add_header(modal, "to:", &colors.white, 5);
     }
-    /* modal_add_dropdown(modal,  */
-    const char **options = malloc(sizeof(char *) * trck->tl->num_tracks - 1);
-    void **args = malloc(sizeof(void *) * trck->tl->num_tracks - 1);
+    
+    const char *options[trck->tl->num_tracks - 1];// = malloc(sizeof(char *) * trck->tl->num_tracks - 1);
+    void *args[trck->tl->num_tracks -1];// = malloc(sizeof(void *) * trck->tl->num_tracks - 1);
+    
     int j = 0;
     for (int i=0; i<trck->tl->num_tracks; i++) {
 	if (trck->tl->tracks[i] == trck) continue;

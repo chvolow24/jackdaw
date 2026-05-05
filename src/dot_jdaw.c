@@ -231,6 +231,7 @@ static void jdaw_write_midi_clip(FILE *f, MIDIClip *mclip)
 static void jdaw_write_track(FILE *f, Track *track);
 static void jdaw_write_click_track(FILE *f, ClickTrack *ct);
 static void jdaw_write_tl_audio_routes(FILE *f, Timeline *tl);
+static void jdaw_write_tl_automations(FILE *f, Timeline *tl);
 
 static void jdaw_write_timeline(FILE *f, Timeline *tl)
 {
@@ -256,6 +257,7 @@ static void jdaw_write_timeline(FILE *f, Timeline *tl)
 	}
     }
     jdaw_write_tl_audio_routes(f, tl);
+    jdaw_write_tl_automations(f, tl);
 }
 
 static void jdaw_write_clipref(FILE *f, ClipRef *cr);
@@ -288,11 +290,11 @@ static void jdaw_write_track(FILE *f, Track *track)
     /* Effects */
     jdaw_write_effect_chain(f, &track->effect_chain);
 
-    /* Automations */
-    uint8_ser(f, &track->num_automations);
-    for (uint8_t i=0; i<track->num_automations; i++) {
-	jdaw_write_automation(f, track->automations[i]);
-    }
+    /* Automations -- MOVED v00.25 to end of timeline */
+    /* uint8_ser(f, &track->num_automations); */
+    /* for (uint8_t i=0; i<track->num_automations; i++) { */
+    /* 	jdaw_write_automation(f, track->automations[i]); */
+    /* } */
     uint8_t has_synth = track->synth != NULL;
     uint8_ser(f, &has_synth);
     if (has_synth) {
@@ -520,6 +522,11 @@ static void jdaw_write_auto_keyframe(FILE *f, Keyframe *k);
 static void jdaw_write_automation(FILE *f, Automation *a)
 {
     fwrite(hdr_auto, 1, 4, f);
+    
+    /* Assign to track */
+    uint8_t parent_track_index = a->track->tl_rank;
+    uint8_ser(f, &parent_track_index);
+    
     /* Automation type */
     uint8_t type_byte = (uint8_t)a->type;
     fwrite(&type_byte, 1, 1, f);
@@ -569,6 +576,25 @@ static void jdaw_write_tl_audio_routes(FILE *f, Timeline *tl)
 	uint8_ser(f, &rt->src->tl_rank);
 	uint8_ser(f, &rt->dst->tl_rank);
 	float_ser40_le(f, rt->amp_raw);
+    }
+    
+}
+
+static void jdaw_write_tl_automations(FILE *f, Timeline *tl)
+{
+    uint16_t auto_i = 0;
+    Automation *autos[MAX_TRACKS * MAX_TRACK_AUTOMATIONS];
+    for (int i=0; i<tl->num_tracks; i++) {
+	Track *trck = tl->tracks[i];
+	for (int j=0; j<trck->num_automations; j++) {
+	    autos[auto_i] = trck->automations[j];
+	    auto_i++;
+	}
+    }
+    uint16_ser_le(f, &auto_i); /* Write total num routes */
+    for (uint16_t i=0; i<auto_i; i++) {
+	jdaw_write_automation(f, autos[i]);
+	/* fwrite(hdr_auto, 1, sizeof(hdr_auto), f); */
     }
     
 }
@@ -916,6 +942,7 @@ static void local_move_track_down()
 static int jdaw_read_track(FILE *f, Timeline *tl);
 static int jdaw_read_click_track(FILE *f, Timeline *tl);
 static int jdaw_read_tl_audio_routes(FILE *f, Timeline *tl);
+static int jdaw_read_tl_automations(FILE *f, Timeline *tl);
 static int jdaw_read_timeline(FILE *f, Project *proj_loc)
 {
     char hdr_buffer[8];
@@ -983,6 +1010,9 @@ static int jdaw_read_timeline(FILE *f, Project *proj_loc)
 	if (jdaw_read_tl_audio_routes(f, tl) != 0) {
 	    return 1;
 	}
+	if (jdaw_read_tl_automations(f, tl) != 0) {
+	    return 1;
+	}
     }
     
     timeline_reset(tl, true);
@@ -999,7 +1029,7 @@ static int jdaw_read_timeline(FILE *f, Project *proj_loc)
 }
 
 static int jdaw_read_clipref(FILE *f, Track *track);
-static int jdaw_read_automation(FILE *f, Track *track);
+static int jdaw_read_automation(FILE *f, Track *track, Timeline *tl);
 static int jdaw_read_effect(FILE *f, EffectChain *ec);
 static int jdaw_read_effect_chain(FILE *f, Project *proj, EffectChain *ec, APINode *api_node, const char *obj_name, int32_t chunk_len_sframes);
 
@@ -1091,7 +1121,7 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
 	if (read_file_version_at_or_above("00.13")) {
 	    uint8_t num_automations = uint8_deser(f);
 	    while (num_automations > 0) {
-		if (jdaw_read_automation(f, track) != 0) {
+		if (jdaw_read_automation(f, track, NULL) != 0) {
 		    return 1;
 		}
 		num_automations--;
@@ -1206,12 +1236,14 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
 	    } else {
 		jdaw_read_effect_chain(f, proj_reading, &track->effect_chain, &track->api_node, track->name, tl->proj->fourier_len_sframes);
 	    }
-	    uint8_t num_automations = uint8_deser(f);
-	    while (num_automations > 0) {
-		if (jdaw_read_automation(f, track) != 0) {
-		    return 1;
+	    if (read_file_version_older_than("00.25")) {
+		uint8_t num_automations = uint8_deser(f);
+		while (num_automations > 0) {
+		    if (jdaw_read_automation(f, track, NULL) != 0) {
+			return 1;
+		    }
+		    num_automations--;
 		}
-		num_automations--;
 	    }
 	    if (read_file_version_at_or_above("00.18")) {
 		uint8_t has_synth = uint8_deser(f);
@@ -1483,7 +1515,7 @@ static int jdaw_read_keyframe(FILE *f, Automation *a);
 
 char *try_fix_api_route(char *route, int route_len);
 
-static int jdaw_read_automation(FILE *f, Track *track)
+static int jdaw_read_automation(FILE *f, Track *track, Timeline *tl)
 {
 
     char hdr_buffer[4];
@@ -1492,6 +1524,11 @@ static int jdaw_read_automation(FILE *f, Track *track)
     if (strncmp(hdr_buffer, hdr_auto, 4) != 0) {
 	fprintf(stderr, "Error: .jdaw parsing error: \"AUTO\" indicator missing\n");
 	return 1;
+    }
+
+    if (tl && !track && read_file_version_at_or_above("00.25")) {
+	uint8_t track_index = uint8_deser(f);
+	track = tl->tracks[track_index];
     }
 
     uint8_t type_byte = uint8_deser(f);
@@ -1679,6 +1716,16 @@ static int jdaw_read_tl_audio_routes(FILE *f, Timeline *tl)
     }
     return 0;
 }
+
+static int jdaw_read_tl_automations(FILE *f, Timeline *tl)
+{
+    uint16_t total_number = uint16_deser_le(f);
+    for (uint16_t i=0; i<total_number; i++) {
+	jdaw_read_automation(f, NULL, tl);	
+    }
+    return 0;
+}
+
 
 
 /* #endif */

@@ -2620,6 +2620,7 @@ void user_tl_add_new_timeline(void *nullarg)
     int new_index = project_add_timeline(&session->proj, "New Timeline");
     /* project_reset_tl_label(&session->proj); */
     timeline_switch(new_index);
+    timeline_add_track(ACTIVE_TL, 0);
     Layout *mod_lt = layout_add_child(main_win->layout);
     layout_set_default_dims(mod_lt);
     Modal *mod = modal_create(mod_lt);

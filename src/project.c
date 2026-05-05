@@ -26,6 +26,7 @@
 #include "endpoint_callbacks.h"
 #include "endpoint.h"
 #include "endpoint_callbacks.h"
+#include "error.h"
 #include "input.h"
 #include "layout.h"
 #include "layout_xml.h"
@@ -135,8 +136,10 @@ uint8_t project_add_timeline(Project *proj, char *name)
     /* tl_lt is not copied */
     Layout *tl_lt = session->gui.timeline_lt;
 
+    /* "platonic" track_area is never used */
     Layout *track_area = layout_get_child_by_name_recursive(tl_lt, "tracks_area");
     if (track_area) {
+	/* TESTBREAK; */
 	Layout *track_area_copy = layout_copy(track_area, session->gui.timeline_lt);
 	track_area_copy->scroll_offset_h = 0;
 	track_area_copy->scroll_offset_v = 0;
@@ -151,7 +154,7 @@ uint8_t project_add_timeline(Project *proj, char *name)
 	timeline_rectify_track_area(new_tl);
 
     } else {
-	exit(1);
+	error_exit("\"platonic\" track_area layout not found\n");
     }
     
     /* /\* If loading a file, session proj will have > 0 timelines and we can't use the existing one *\/ */
@@ -2207,6 +2210,10 @@ void timeline_switch(uint8_t new_tl_index)
 {
     Session *session = session_get();
     Timeline *current = ACTIVE_TL;
+    if (session->playback.playing) {
+	transport_stop_playback();
+	timeline_play_speed_set(0.0);
+    }
     current->track_area->hidden = true;
 
     session->proj.active_tl_index = new_tl_index;
@@ -2214,7 +2221,7 @@ void timeline_switch(uint8_t new_tl_index)
     new->track_area->hidden = false;
 
     textbox_set_value_handle(session->gui.timecode_tb, new->timecode.str);
-    
+    timeline_play_speed_set(0.0);
     /* /\* Concession to bad design *\/ */
     /* session->gui.audio_rect = &(layout_get_child_by_name_recursive(new->track_area->parent, "audio_rect")->rect); */
     /* session->gui.ruler_rect = &(layout_get_child_by_name_recursive(new->track_area->parent, "ruler")->rect); */

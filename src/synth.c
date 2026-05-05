@@ -391,8 +391,8 @@ Synth *synth_create(Track *track)
     s->env_amt = 5.0f;
     s->resonance = 2.0;
 
-    /* double dc_block_coeff = exp(-1.0/(0.0025 * session_get_sample_rate())); */
-    double dc_block_coeff = exp(-1.0/(0.01 * session_get_sample_rate()));
+    double dc_block_coeff = exp(-1.0/(0.0025 * session_get_sample_rate()));
+    /* double dc_block_coeff = exp(-1.0/(0.01 * session_get_sample_rate())); */
     double DC_BLOCK_A[] = {1.0, -1.0};
     double DC_BLOCK_B[] = {dc_block_coeff};
     /* iir_init(&s->dc_blocker, 1, 2); */
@@ -1115,7 +1115,7 @@ static float polyblep(float incr, float phase)
 }
 
 static void osc_set_freq(Osc *osc, double freq_hz);
-bool do_blep = true;
+static bool do_blep = true;
 
 static void osc_reset_params(Osc *osc, int32_t chunk_len)
 {
@@ -1206,16 +1206,16 @@ static void osc_get_buf_preamp(Osc *osc, float step, int len, int after)
 		sample -= polyblep(phase_incr, fmod(phase + 0.5, 1.0)); 
 		break;
 	    case WS_TRI:
-		if (do_blep) {
-		    sample = phase < 0.5 ? 1.0 : -1.0;
-		    sample += polyblep(phase_incr, phase);
-		    sample -= polyblep(phase_incr, fmod(phase + 0.5, 1.0)); 
+		/* if (do_blep) { */
+		/*     sample = phase < 0.5 ? 1.0 : -1.0; */
+		/*     sample += polyblep(phase_incr, phase); */
+		/*     sample -= polyblep(phase_incr, fmod(phase + 0.5, 1.0));  */
 
-		    sample *= 4.0 * phase_incr;
-		    sample += osc->last_out_tri;
-		    osc->last_out_tri = sample;
-		    sample = iir_sample(&osc->tri_dc_blocker, sample, 0);
-		} else {
+		/*     sample *= 4.0 * phase_incr; */
+		/*     sample += osc->last_out_tri; */
+		/*     osc->last_out_tri = sample; */
+		/*     sample = iir_sample(&osc->tri_dc_blocker, sample, 0); */
+		/* } else { */
 		    sample =
 			phase <= 0.25 ?
 			phase * 4.0f :
@@ -1224,7 +1224,7 @@ static void osc_get_buf_preamp(Osc *osc, float step, int len, int after)
 			phase <= 0.75f ?
 			(phase - 0.5f) * -4.0 :
 			(1.0f - phase) * -4.0;
-		}
+		/* } */
 
 		break;
 	    case WS_SAW:

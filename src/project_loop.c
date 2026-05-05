@@ -74,6 +74,7 @@ extern Project *proj;
 
 extern void user_global_quit(void *);
 extern void open_file(const char *filepath);
+/* extern bool do_blep; */
 
 void route_page_open(Track *track);
 

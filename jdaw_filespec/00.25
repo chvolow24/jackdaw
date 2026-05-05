@@ -4,6 +4,8 @@
     DIFF (new since 00.24)
 	- serialize audio routes (after tracks done)
 	- serialize track "send to main out"
+	- automations removed from track, added at end of timeline
+	- automation includes parent track index
    =========================================================
 
     ALL INTEGERS SERIALIZED IN LITTLE-ENDIAN BYTE ORDER
@@ -93,12 +95,6 @@ TRCK	      ???		EffectChain		  track effects
 ...[TRCK_FX GO HERE; SEE BELOW]...
 ..................................
 
-TRCK	      1			uint8_t			  num_automations
-
-.....................................
-...[TRCK_AUTOs GO HERE; SEE BELOW]...
-.....................................
-
 TRCK	      1			bool			  track has synth
 TRCK_SYNTH    5			char[5]			  "SYNTH"
 TRCK_SYNTH    ???		EffectChain		  synth effects
@@ -129,6 +125,12 @@ TL            2			uint16_t		  timeline total num audio routes
 ...[AUD_RTs GO HERE; SEE BELOW]...
 ..................................
 
+AUTO	      2			uint16_t		  timeline total num automations
+
+.....................................
+...[TRCK_AUTOs GO HERE; SEE BELOW]...
+.....................................
+
 
 .................................................................................
 .................................................................................
@@ -150,6 +152,7 @@ CLIP_REF      5			float			  clipref gain
 
 [MULTIPLE PER TRACK]
 TRCK_AUTO     4			char[4]			  "AUTO"
+TRCK_AUTO     1			uint8_t			  parent track index
 TRCK_AUTO     1			uint8_t			  automation type [DEPRECATED]
 * TRCK_AUTO   1			uint8_t			  endpoint API route length
 * TRCK_AUTO   0-255		char[]			  endpoint route

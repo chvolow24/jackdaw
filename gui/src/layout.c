@@ -1665,6 +1665,7 @@ void layout_displace_child(Layout *child, int by)
     Layout **tmp = calloc(child->parent->num_children, sizeof(Layout *));
     int new_dst_loc = child->index + by;
     if (new_dst_loc < 0 || new_dst_loc >= child->parent->num_children) {
+	breakfn();
 	fprintf(stderr, "Error: call to displace child outside of parent->children bounds.\n");
 	return;
     }

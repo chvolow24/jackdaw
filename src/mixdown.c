@@ -271,16 +271,20 @@ static float get_track_mixdown_chunk(Track *track, float *restrict L, float *res
     static bool md_init = false;
     static ModDelay mdL = {0}, mdR = {0};
     if (!md_init) {
-	mod_delay_init(&mdL, 500, 1.0,  0.8);
-	mod_delay_init(&mdR, 500, 1.0,  0.8)
-;
+	mod_delay_init(&mdL, 400, 1.0, 3.0, 3, OSC_SINE);
+	mod_delay_init(&mdR, 400, 1.0, 3.0, 3, OSC_SINE);
+	/* mod_delay_init(&mdL, 6000, 1.0,  3.0); */
+	/* mod_delay_init(&mdR, 6000, 1.0,  3.0); */
+	/* mdR.osc.phase = PI; */
 	md_init = true;
     }
     if (track->tl_rank == 0) {
-	for (int i=0; i<output_chunk_len_sframes; i++) {
-	    L[i] = mod_delay_sample(&mdL, L[i]);
-	    R[i] = mod_delay_sample(&mdR, R[i]);
-	}
+	mod_delay_buf(&mdL, L, output_chunk_len_sframes);
+	mod_delay_buf(&mdR, R, output_chunk_len_sframes);
+	/* for (int i=0; i<output_chunk_len_sframes; i++) { */
+	/*     L[i] = mod_delay_sample(&mdL, L[i]); */
+	/*     R[i] = mod_delay_sample(&mdR, R[i]); */
+	/* } */
     }
     
     return total_amp;

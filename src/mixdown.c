@@ -18,6 +18,7 @@
 #include "dsp_utils.h"
 #include "effect.h"
 #include "midi_io.h"
+#include "mod_delay.h"
 #include "project.h"
 #include "schroeder.h"
 #include "session.h"
@@ -267,6 +268,21 @@ static float get_track_mixdown_chunk(Track *track, float *restrict L, float *res
 	float_buf_mult(L, pan_vals[0], output_chunk_len_sframes);
 	float_buf_mult(R, pan_vals[1], output_chunk_len_sframes);
     }
+    static bool md_init = false;
+    static ModDelay mdL = {0}, mdR = {0};
+    if (!md_init) {
+	mod_delay_init(&mdL, 500, 1.0,  0.8);
+	mod_delay_init(&mdR, 500, 1.0,  0.8)
+;
+	md_init = true;
+    }
+    if (track->tl_rank == 0) {
+	for (int i=0; i<output_chunk_len_sframes; i++) {
+	    L[i] = mod_delay_sample(&mdL, L[i]);
+	    R[i] = mod_delay_sample(&mdR, R[i]);
+	}
+    }
+    
     return total_amp;
 }
 

@@ -286,6 +286,7 @@ static float get_track_mixdown_chunk(Track *track, float *restrict L, float *res
     if (track->tl_rank == 0) {
 	mod_delay_buf(&mdL, L, output_chunk_len_sframes);
 	mod_delay_buf(&mdR, R, output_chunk_len_sframes);
+	mdR.phase = mdL.phase;
 	/* for (int i=0; i<output_chunk_len_sframes; i++) { */
 	/*     L[i] = mod_delay_sample(&mdL, L[i]); */
 	/*     R[i] = mod_delay_sample(&mdR, R[i]); */

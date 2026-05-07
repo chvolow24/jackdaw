@@ -11,13 +11,15 @@ typedef struct mod_delay ModDelay;
 typedef struct mod_delay_tap {
     ModDelay *parent;
     OscGeneric osc;
+    float *mem;
+    int32_t mem_index;
 } ModDelayTap;
 
 typedef struct mod_delay {
     
     /* Ring buf */
-    float *mem;
-    int32_t mem_index;
+    /* float *mem; */
+    /* int32_t mem_index; */
     int32_t max_len;
 
     /* Params */

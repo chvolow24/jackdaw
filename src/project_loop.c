@@ -32,9 +32,9 @@
 #include "log.h"
 #include "midi_clip.h"
 #include "midi_qwerty.h"
-#include "mod_delay.h"
 #include "mouse.h"
 #include "piano_roll.h"
+#include "pitch_shifter.h"
 #include "project.h"
 #include "project_draw.h"
 #include "route.h"
@@ -55,8 +55,8 @@
 
 extern Window *main_win;
 
-extern ModDelay *mdR_glob, *mdL_glob;
-extern Project *proj;
+extern PitchShifter *ps_glob;
+/* extern Project *proj; */
 
 /* extern pthread_t DSP_THREAD_ID; */
 
@@ -235,38 +235,33 @@ void loop_project_main()
 		/* } */
 		switch (e.key.keysym.scancode) {
 		case SDL_SCANCODE_0: {
-		    double new = mdL_glob->amp - 0.01;
+		    double new = ps_glob->low_latency_vs_quality - 0.01;
 		    if (new > 0.01) {
-			mod_delay_set_amp(mdL_glob, new);
-			mod_delay_set_amp(mdR_glob, new);
-
-			fprintf(stderr, "NEW: %f\n", new);
+			pitch_shifter_set_llvq(ps_glob, new);
 		    }
+		    fprintf(stderr, "new llvq: %f\n", new);
 		}
 		    break;
 		    
 		case SDL_SCANCODE_1: {
-		    double new = mdL_glob->amp + 0.01;
+		    double new = ps_glob->low_latency_vs_quality + 0.01;
 		    if (new <= 1.0) {
-			mod_delay_set_amp(mdL_glob, new);
-			mod_delay_set_amp(mdR_glob, new);
-			fprintf(stderr, "NEW: %f\n", new);
+			pitch_shifter_set_llvq(ps_glob, new);
 		    }
+		    fprintf(stderr, "new llvq: %f\n", new);
 		}
 
 		    break;
 		case SDL_SCANCODE_2: {
-		    float new_freq = mdL_glob->freq_hz - 1;
-		    mod_delay_set_freq(mdL_glob, new_freq);
-		    mod_delay_set_freq(mdR_glob, new_freq);
-		    fprintf(stderr, "new freq: %f\n", new_freq);
+		    float new_shift = ps_glob->shift_cents - 20;
+		    fprintf(stderr, "new shift cents: %f\n", new_shift);
+		    pitch_shifter_set_shift_amt(ps_glob, new_shift);
 		}
 		break;
 		case SDL_SCANCODE_3: {
-		    float new_freq = mdL_glob->freq_hz + 1;
-		    mod_delay_set_freq(mdL_glob, new_freq);
-		    mod_delay_set_freq(mdR_glob, new_freq);
-		    fprintf(stderr, "new freq: %f\n", new_freq);
+		    float new_shift = ps_glob->shift_cents + 20;
+		    fprintf(stderr, "new shift cents: %f\n", new_shift);
+		    pitch_shifter_set_shift_amt(ps_glob, new_shift);
 		}
 		    break;
 

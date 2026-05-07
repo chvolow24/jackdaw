@@ -6,7 +6,7 @@
 
 static double get_md_freq_from_params(double shift_cents, double amp)
 {
-    double freq_ratio = pow(2.0, shift_cents / 100.0);
+    double freq_ratio = pow(2.0, shift_cents / 1200.0);
     double freq = 2.0 * (freq_ratio - 1.0) / amp;
     return freq;
 }
@@ -24,7 +24,7 @@ void pitch_shifter_init(PitchShifter *ps)
 	2,
 	OSC_SAW_DOWN);
     mod_delay_init(
-	&ps->mdL,
+	&ps->mdR,
 	MAX_PS_DELAY_LEN,
 	ps->low_latency_vs_quality,
 	0.0,
@@ -49,4 +49,12 @@ void pitch_shifter_set_llvq(PitchShifter *ps, double llvq)
     mod_delay_set_amp(&ps->mdR, llvq);
     mod_delay_set_freq(&ps->mdL, freq);
     mod_delay_set_freq(&ps->mdR, freq);    
+}
+
+float pitch_shifter_buf_apply(PitchShifter *ps, float *restrict L, float *restrict R, int len, float input_amp)
+{
+    mod_delay_buf(&ps->mdL, L, len);
+    mod_delay_buf(&ps->mdR, R, len);
+    ps->mdR.phase = ps->mdL.phase;
+    return input_amp;   
 }

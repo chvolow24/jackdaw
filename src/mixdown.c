@@ -18,9 +18,8 @@
 #include "dsp_utils.h"
 #include "effect.h"
 #include "midi_io.h"
-#include "mod_delay.h"
+#include "pitch_shifter.h"
 #include "project.h"
-#include "schroeder.h"
 #include "session.h"
 #include "synth.h"
 
@@ -39,9 +38,7 @@ static void make_pan_chunk(float *pan_vals, int32_t len_sframes, uint8_t channel
     }
 }
 
-ModDelay *mdL_glob = NULL;
-ModDelay *mdR_glob = NULL;
-
+PitchShifter *ps_glob = NULL;
 
 /* double timespec_elapsed_ms(const struct timespec *start, const struct timespec *end); */
 static float get_track_mixdown_chunk(Track *track, float *restrict L, float *restrict R, int32_t start_pos_sframes, uint32_t output_chunk_len_sframes, float step)
@@ -272,21 +269,27 @@ static float get_track_mixdown_chunk(Track *track, float *restrict L, float *res
 	float_buf_mult(R, pan_vals[1], output_chunk_len_sframes);
     }
     static bool md_init = false;
-    static ModDelay mdL = {0}, mdR = {0};
+    static PitchShifter pshift;
+    /* static ModDelay mdL = {0}, mdR = {0}; */
     if (!md_init) {
-	mod_delay_init(&mdL, 48000, 0.15, 3.0, 2, OSC_SAW_DOWN);
-	mod_delay_init(&mdR, 48000, 0.15, 3.0, 2, OSC_SAW_DOWN);
-	/* mod_delay_init(&mdL, 6000, 1.0,  3.0); */
-	/* mod_delay_init(&mdR, 6000, 1.0,  3.0); */
-	/* mdR.osc.phase = PI; */
+	pitch_shifter_init(&pshift);
+	ps_glob = &pshift;
 	md_init = true;
-	mdL_glob = &mdL;
-	mdR_glob = &mdR;
+	/* pitch_shifter_set_shift_amt(&pshift, 0) */
+	/* mod_delay_init(&mdL, 48000, 0.15, 3.0, 2, OSC_SAW_DOWN); */
+	/* mod_delay_init(&mdR, 48000, 0.15, 3.0, 2, OSC_SAW_DOWN); */
+	/* /\* mod_delay_init(&mdL, 6000, 1.0,  3.0); *\/ */
+	/* /\* mod_delay_init(&mdR, 6000, 1.0,  3.0); *\/ */
+	/* /\* mdR.osc.phase = PI; *\/ */
+	/* md_init = true; */
+	/* mdL_glob = &mdL; */
+	/* mdR_glob = &mdR; */
     }
     if (track->tl_rank == 0) {
-	mod_delay_buf(&mdL, L, output_chunk_len_sframes);
-	mod_delay_buf(&mdR, R, output_chunk_len_sframes);
-	mdR.phase = mdL.phase;
+	pitch_shifter_buf_apply(&pshift, L, R, output_chunk_len_sframes, total_amp);
+	/* mod_delay_buf(&mdL, L, output_chunk_len_sframes); */
+	/* mod_delay_buf(&mdR, R, output_chunk_len_sframes); */
+	/* mdR.phase = mdL.phase; */
 	/* for (int i=0; i<output_chunk_len_sframes; i++) { */
 	/*     L[i] = mod_delay_sample(&mdL, L[i]); */
 	/*     R[i] = mod_delay_sample(&mdR, R[i]); */

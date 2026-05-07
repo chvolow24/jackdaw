@@ -43,15 +43,17 @@
 void mod_delay_buf(ModDelay *md, float *restrict buf_in, int len)
 {
     int32_t mem_index;
-    fprintf(stderr, "\n");
+    /* fprintf(stderr, "\n"); */
     float saved_in[len];
     memcpy(saved_in, buf_in, sizeof(float) * len);
+    float md_mem_cpy[md->max_len];
     for (int t=0; t<md->num_taps; t++) {
+	memcpy(md_mem_cpy, md->mem, sizeof(float) * md->max_len);
 	OscGeneric *osc = &md->taps[t].osc;
 	float osc_buf[len];
 	osc_generic_get_buf(osc, osc_buf, len);
 	mem_index = md->mem_index;
-	fprintf(stderr, "T %d, mem_index %d (osc 1,2 %f %f\n", t, mem_index, osc_buf[0], osc_buf[1]);
+	/* fprintf(stderr, "T %d, mem_index %d (osc 1,2 %f %f); phase: %f)\n", t, mem_index, osc_buf[0], osc_buf[1], osc->phase_shift); */
 	for (int i=0; i<len; i++) {
 	    double read_i = mem_index - md->center_samples - (md->center_samples - 1.0) * osc_buf[i];
 	    if (md->amp_samples > 1) {
@@ -71,14 +73,15 @@ void mod_delay_buf(ModDelay *md, float *restrict buf_in, int len)
 		right_i = left_i + 1;
 	    }
 
-	    float left = md->mem[left_i];
-	    float right = md->mem[right_i];
+	    float left = md_mem_cpy[left_i];
+	    float right = md_mem_cpy[right_i];
 	    float m = right - left;
 	    float out = left + m * ldiff;
 	    if (t == md->num_taps - 1) {
 		md->mem[mem_index] = buf_in[i];
 	    }
-	    
+
+	    md_mem_cpy[mem_index] = saved_in[i];
 	    mem_index++;
 	    if (mem_index >= floor(md->amp_samples)) {
 		mem_index -= md->amp_samples;
@@ -101,7 +104,15 @@ void mod_delay_buf(ModDelay *md, float *restrict buf_in, int len)
 	/*     } */
 	/* } */
     }
-    md->mem_index = mem_index;
+    for (int i=0; i<len; i++) {
+	md->mem[md->mem_index] = saved_in[i];
+	md->mem_index++;
+	if (md->mem_index >= floor(md->amp_samples)) {
+	    md->mem_index -= md->amp_samples;
+	}
+
+    }
+    /* md->mem_index = mem_index; */
     md->phase += md->phase_incr * len;
     while (md->phase > TAU) md->phase -= TAU;
 
@@ -127,9 +138,7 @@ void mod_delay_init(ModDelay *md, int32_t max_len, double init_amp, double init_
 	    init_freq,
 	    &md->phase,
 	    &md->phase_incr,
-	    /* i == 0 ? NULL : &md->taps[0].osc.phase, */
-	    /* i == 0 ? NULL : &md->taps[0].osc.phase_incr, */
-	    TAU * i / num_taps);
+	    TAU * (double)i / num_taps);
 	    
     }
     /* md->osc.type = OSC_SAW_UP; */
@@ -138,5 +147,19 @@ void mod_delay_init(ModDelay *md, int32_t max_len, double init_amp, double init_
 
     md->freq_hz = init_freq;
     md->phase_incr = init_freq * TAU / session_get_sample_rate();
+}
+
+void mod_delay_set_amp(ModDelay *md, float new_amp)
+{
+    md->amp = new_amp;
+    md->amp_samples = new_amp * md->max_len;
+    md->center_samples = md->amp_samples / 2;
+}
+
+void mod_delay_set_freq(ModDelay *md, float new_freq_hz)
+{
+    md->freq_hz = new_freq_hz;
+    md->phase_incr = new_freq_hz * TAU / session_get_sample_rate();
+
 }
 

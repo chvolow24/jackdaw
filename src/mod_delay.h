@@ -38,4 +38,7 @@ typedef struct mod_delay {
 void mod_delay_buf(ModDelay *md, float *restrict buf_in, int len);
 float mod_delay_sample(ModDelay *md, float in);
 void mod_delay_init(ModDelay *md, int32_t max_len, double init_amp, double init_freq, int num_taps, OscType t);
+
+void mod_delay_set_amp(ModDelay *md, float new_amp);
+void mod_delay_set_freq(ModDelay *md, float new_freq_hz);
 #endif

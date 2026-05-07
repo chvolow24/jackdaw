@@ -32,6 +32,7 @@
 #include "log.h"
 #include "midi_clip.h"
 #include "midi_qwerty.h"
+#include "mod_delay.h"
 #include "mouse.h"
 #include "piano_roll.h"
 #include "project.h"
@@ -54,7 +55,7 @@
 
 extern Window *main_win;
 
-
+extern ModDelay *mdR_glob, *mdL_glob;
 extern Project *proj;
 
 /* extern pthread_t DSP_THREAD_ID; */
@@ -233,6 +234,43 @@ void loop_project_main()
 			    
 		/* } */
 		switch (e.key.keysym.scancode) {
+		case SDL_SCANCODE_0: {
+		    double new = mdL_glob->amp - 0.01;
+		    if (new > 0.01) {
+			mod_delay_set_amp(mdL_glob, new);
+			mod_delay_set_amp(mdR_glob, new);
+
+			fprintf(stderr, "NEW: %f\n", new);
+		    }
+		}
+		    break;
+		    
+		case SDL_SCANCODE_1: {
+		    double new = mdL_glob->amp + 0.01;
+		    if (new <= 1.0) {
+			mod_delay_set_amp(mdL_glob, new);
+			mod_delay_set_amp(mdR_glob, new);
+			fprintf(stderr, "NEW: %f\n", new);
+		    }
+		}
+
+		    break;
+		case SDL_SCANCODE_2: {
+		    float new_freq = mdL_glob->freq_hz - 1;
+		    mod_delay_set_freq(mdL_glob, new_freq);
+		    mod_delay_set_freq(mdR_glob, new_freq);
+		    fprintf(stderr, "new freq: %f\n", new_freq);
+		}
+		break;
+		case SDL_SCANCODE_3: {
+		    float new_freq = mdL_glob->freq_hz + 1;
+		    mod_delay_set_freq(mdL_glob, new_freq);
+		    mod_delay_set_freq(mdR_glob, new_freq);
+		    fprintf(stderr, "new freq: %f\n", new_freq);
+		}
+		    break;
+
+
 		/* case SDL_SCANCODE_0: { */
 		/*     Track *track = timeline_selected_track(ACTIVE_TL); */
 		/*     track_add_audio_route(track, ACTIVE_TL->tracks[0], 0.5); */

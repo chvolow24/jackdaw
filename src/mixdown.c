@@ -39,6 +39,9 @@ static void make_pan_chunk(float *pan_vals, int32_t len_sframes, uint8_t channel
     }
 }
 
+ModDelay *mdL_glob = NULL;
+ModDelay *mdR_glob = NULL;
+
 
 /* double timespec_elapsed_ms(const struct timespec *start, const struct timespec *end); */
 static float get_track_mixdown_chunk(Track *track, float *restrict L, float *restrict R, int32_t start_pos_sframes, uint32_t output_chunk_len_sframes, float step)
@@ -271,12 +274,14 @@ static float get_track_mixdown_chunk(Track *track, float *restrict L, float *res
     static bool md_init = false;
     static ModDelay mdL = {0}, mdR = {0};
     if (!md_init) {
-	mod_delay_init(&mdL, 400, 1.0, 3.0, 3, OSC_SINE);
-	mod_delay_init(&mdR, 400, 1.0, 3.0, 3, OSC_SINE);
+	mod_delay_init(&mdL, 48000, 0.15, 3.0, 2, OSC_SAW_DOWN);
+	mod_delay_init(&mdR, 48000, 0.15, 3.0, 2, OSC_SAW_DOWN);
 	/* mod_delay_init(&mdL, 6000, 1.0,  3.0); */
 	/* mod_delay_init(&mdR, 6000, 1.0,  3.0); */
 	/* mdR.osc.phase = PI; */
 	md_init = true;
+	mdL_glob = &mdL;
+	mdR_glob = &mdR;
     }
     if (track->tl_rank == 0) {
 	mod_delay_buf(&mdL, L, output_chunk_len_sframes);

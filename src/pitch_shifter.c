@@ -36,7 +36,6 @@ void pitch_shifter_set_shift_amt(PitchShifter *ps, double shift_cents)
 {
     ps->shift_cents = shift_cents;
     double freq = get_md_freq_from_params(shift_cents, ps->low_latency_vs_quality);
-    /* mod_delay_set_amp( */
     mod_delay_set_freq(&ps->mdL, freq);
     mod_delay_set_freq(&ps->mdR, freq);    
 }

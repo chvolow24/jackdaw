@@ -253,13 +253,13 @@ void loop_project_main()
 
 		    break;
 		case SDL_SCANCODE_2: {
-		    float new_shift = ps_glob->shift_cents - 20;
+		    float new_shift = ps_glob->shift_cents - 100;
 		    fprintf(stderr, "new shift cents: %f\n", new_shift);
 		    pitch_shifter_set_shift_amt(ps_glob, new_shift);
 		}
 		break;
 		case SDL_SCANCODE_3: {
-		    float new_shift = ps_glob->shift_cents + 20;
+		    float new_shift = ps_glob->shift_cents + 100;
 		    fprintf(stderr, "new shift cents: %f\n", new_shift);
 		    pitch_shifter_set_shift_amt(ps_glob, new_shift);
 		}

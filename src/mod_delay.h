@@ -25,7 +25,10 @@ typedef struct mod_delay {
     /* Params */
     double center_samples; // (calc'd) amp_samples / 2
     double phase_incr; // (calc'd)
+    double dst_phase_incr;
     double amp_samples; // (calc'd) amp * max_len
+    double dst_amp_samples;
+    double dst_center_samples;
     double amp; // (calc'd) prop of max_len
     double amp_msec; // exposed
     double freq_hz; // exposed
@@ -41,6 +44,6 @@ void mod_delay_buf(ModDelay *md, float *restrict buf_in, int len);
 float mod_delay_sample(ModDelay *md, float in);
 void mod_delay_init(ModDelay *md, int32_t max_len, double init_amp, double init_freq, int num_taps, OscType t);
 
-void mod_delay_set_amp(ModDelay *md, float new_amp);
-void mod_delay_set_freq(ModDelay *md, float new_freq_hz);
+void mod_delay_set_amp(ModDelay *md, double new_amp);
+void mod_delay_set_freq(ModDelay *md, double new_freq_hz);
 #endif

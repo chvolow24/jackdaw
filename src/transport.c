@@ -136,7 +136,7 @@ void transport_record_callback(void* user_data, uint8_t *stream, int len)
      }
  }
 
-static float *get_source_mode_chunk(uint8_t channel, float *chunk, uint32_t len_sframes, int32_t start_pos_sframes, float step)
+static void get_source_mode_chunk(float *restrict dst_L, float *restrict dst_R, uint32_t len_sframes, int32_t start_pos_sframes, float step)
  {
      /* float *chunk = malloc(sizeof(float) * len_sframes); */
      /* if (!chunk) { */
@@ -147,23 +147,24 @@ static float *get_source_mode_chunk(uint8_t channel, float *chunk, uint32_t len_
      if (session->source_mode.src_clip_type == CLIP_AUDIO) {
 	 clip = session->source_mode.src_clip;
      } else {
-	 return NULL; /* TODO: source mode for MIDI */
+	 return; /* TODO: source mode for MIDI */
      }
-     if (!clip) return NULL; /* band-aid for a rare bug */
-     
-     float *src_buffer = clip->channels == 1 ? clip->L :
-	 channel == 0 ? clip->L : clip->R;
+     if (!clip) return; /* band-aid for a rare bug */
 
 
      for (uint32_t i=0; i<len_sframes; i++) {
-	 int sample_i = (int) (i * step + start_pos_sframes);
-	 if (sample_i < clip->len_sframes && sample_i > 0) {
-	     chunk[i] = src_buffer[sample_i];
+	 int src_i = (int) (i * step + start_pos_sframes);
+	 if (src_i < clip->len_sframes && src_i > 0) {
+	     dst_L[i] = clip->L[src_i];
+	     if (clip->channels == 2)
+		 dst_R[i] = clip->R[src_i];
+	     else
+		 dst_R[i] = clip->L[src_i];
 	 } else {
-	     chunk[i] = 0;
+	     dst_L[i] = 0.0f;
+	     dst_R[i] = 0.0f;
 	 }
      }
-     return chunk;
  }
 
 /* void transport_recording_update_cliprects(); */
@@ -273,8 +274,8 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     /* Gather data from timeline, generated in DSP threadfn */
     if (session->playback.playing) {
 	if (session->source_mode.source_mode) {
-	    get_source_mode_chunk(0, chunk_L, len_sframes, session->source_mode.src_play_pos_sframes, session->source_mode.src_play_speed);
-	    get_source_mode_chunk(1, chunk_R, len_sframes, session->source_mode.src_play_pos_sframes, session->source_mode.src_play_speed);
+	    get_source_mode_chunk(chunk_L, chunk_R, len_sframes, session->source_mode.src_play_pos_sframes, session->source_mode.src_play_speed);
+	    /* get_source_mode_chunk(1, chunk_R, len_sframes, session->source_mode.src_play_pos_sframes, session->source_mode.src_play_speed); */
 	} else {
 	    int wait_count = 0;
 	    while (sem_trywait(tl->readable_chunks) != 0) {
@@ -336,10 +337,11 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     if (session->source_mode.source_mode && session->source_mode.src_clip_type == CLIP_AUDIO) {
 	Clip *clip = session->source_mode.src_clip;
 	if (clip) {
-	    session->source_mode.src_play_pos_sframes += round(session->source_mode.src_play_speed * stream_len_samples / clip->channels);	    
+	    session->source_mode.src_play_pos_sframes += session->source_mode.src_play_speed * len_sframes;
+	    /* session->source_mode.src_play_pos_sframes += round(session->source_mode.src_play_speed * stream_len_samples / clip->channels);	     */
 	    if (session->source_mode.src_play_pos_sframes < 0) {
 		session->source_mode.src_play_pos_sframes = 0;
-	    } else if (session->source_mode.src_play_pos_sframes >= clip->len_sframes) {
+	    } else if (session->source_mode.src_play_pos_sframes >= clip->len_sframes - 1) {
 		session->source_mode.src_play_pos_sframes = clip->len_sframes - 1;
 	    }
 	}

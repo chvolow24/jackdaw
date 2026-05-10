@@ -46,4 +46,7 @@ void mod_delay_init(ModDelay *md, int32_t max_len, double init_amp, double init_
 
 void mod_delay_set_amp(ModDelay *md, double new_amp);
 void mod_delay_set_freq(ModDelay *md, double new_freq_hz);
+
+void mod_delay_clear(ModDelay *md);
+void mod_delay_deinit(ModDelay *md);
 #endif

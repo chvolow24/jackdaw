@@ -1,22 +1,34 @@
 #ifndef JDAW_PITCH_SHIFTER_H
 #define JDAW_PITCH_SHIFTER_H
 
+#include "effect.h"
+#include "endpoint.h"
 #include "mod_delay.h"
 
 typedef struct pitch_shifter {
+    Effect *effect;
+    
     double shift_cents;
-    double low_latency_vs_quality; // 0.0 =  minimize latency; 1 = maximize quality
+    double quality; // 0.0 = phase coherence; 1.0 = frequency coherence (less comb filtering)
     ModDelay mdL;
     ModDelay mdR;
+
+    Endpoint shift_cents_ep;
+    Endpoint quality_ep;
+    
+    /* Alternative to shift cents */
+    double shift_octave;
+    double shift_coarse;
+    double shift_fine;
 } PitchShifter;
 
 void pitch_shifter_init(PitchShifter *ps);
 
-void pitch_shifter_set_llvq(PitchShifter *ps, double llvq);
+void pitch_shifter_set_quality(PitchShifter *ps, double quality);
 void pitch_shifter_set_shift_amt(PitchShifter *ps, double shift_cents);
-
-float pitch_shifter_buf_apply(PitchShifter *ps, float *restrict L, float *restrict R, int len, float input_amp);
-
+float pitch_shifter_buf_apply(void *ps_v, float *restrict L, float *restrict R, int len, float input_amp);
+void pitch_shifter_clear(PitchShifter *ps);
+void pitch_shifter_deinit(PitchShifter *ps);
 
 
 

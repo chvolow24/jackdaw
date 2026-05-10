@@ -662,6 +662,7 @@ PageEl *page_add_el(
 	el->layout = layout_get_child_by_name_recursive(page->layout, layout_name);
 	if (!el->layout) {
 	    fprintf(stdout, "Error in layout at %s; unable to find child named %s\n", page->layout->name, layout_name);
+	    layout_write(stderr, el->layout, 0);
 	    exit(1);
 	}
     } else {

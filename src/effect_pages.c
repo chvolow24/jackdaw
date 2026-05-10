@@ -1,17 +1,16 @@
 #include "assets.h"
+#include "auto_page.h"
 #include "color.h"
 #include "delay_line.h"
+#include "effect_pages.h"
 #include "fir_filter.h"
 #include "geometry.h"
 #include "page.h"
+#include "pitch_shifter.h"
 #include "project.h"
 #include "saturation.h"
 #include "schroeder.h"
 #include "session.h"
-#include "vu_meter.h"
-
-#define LABEL_STD_FONT_SIZE 12
-#define RADIO_STD_FONT_SIZE 14
 
 extern Window *main_win;
 extern SDL_Color EQ_CTRL_COLORS[];
@@ -31,7 +30,8 @@ static SDL_Color page_colors[] = {
     {43, 43, 55, 255},
     {100, 40, 40, 255},
     {94, 58, 61, 255},
-    {34, 77, 99, 255}
+    {34, 77, 99, 255},
+    {50, 50, 50, 255}
 };
 
 static Page *add_eq_page(EQ *eq, EffectChain *ec, TabView *tv);
@@ -40,6 +40,7 @@ static Page *add_delay_page(DelayLine *dl, EffectChain *ec, TabView *tv);
 static Page *add_saturation_page(Saturation *s, EffectChain *ec, TabView *tv);
 static Page *add_compressor_page(Compressor *c, EffectChain *ec, TabView *tv);
 static Page *add_reverb_page(Schroeder *sch, EffectChain *ec, TabView *tv);
+static Page *add_pitch_shifter_page(PitchShifter *sch, EffectChain *ec, TabView *tv);
 
 extern const char *effect_channel_mode_str[];
 
@@ -65,6 +66,9 @@ static Page *effect_add_page(Effect *e, TabView *tv)
 	break;
     case EFFECT_REVERB:
 	p = add_reverb_page(e->obj, e->effect_chain, tv);
+	break;
+    case EFFECT_PITCH_SHIFTER:
+	p = add_pitch_shifter_page(e->obj, e->effect_chain, tv);
 	break;
     default:
 	break;
@@ -920,6 +924,28 @@ static Page *add_reverb_page(Schroeder *sch, EffectChain *ec, TabView *tv)
     
     return page;
 }
+
+static Page *add_pitch_shifter_page(PitchShifter *ps, EffectChain *ec, TabView *tv)
+{
+    Page *page = tabview_add_page(
+	tv,
+	ps->effect->name,
+	NULL,
+	page_colors + 6,
+	&colors.white,
+	main_win);
+    AutoPageEl els[2];
+    els[0].ep = &ps->shift_cents_ep;
+    els[0].label_if_different = NULL;
+    els[0].slider_style = SLIDER_TICK;
+    els[1].ep = &ps->quality_ep;
+    els[1].label_if_different = NULL;
+    els[1].slider_style = SLIDER_TICK;
+    auto_page(page, els, 2);
+    page_reset(page);
+    return page;
+}
+
 
 
 

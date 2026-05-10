@@ -22,6 +22,9 @@
 #include "effect.h"
 #include "page.h"
 
+#define LABEL_STD_FONT_SIZE 12
+#define RADIO_STD_FONT_SIZE 14
+
 TabView *effect_chain_tabview_create(EffectChain *ec);
 void effect_chain_open_tabview(EffectChain *ec);
 

@@ -34,7 +34,6 @@
 #include "midi_qwerty.h"
 #include "mouse.h"
 #include "piano_roll.h"
-#include "pitch_shifter.h"
 #include "project.h"
 #include "project_draw.h"
 #include "route.h"
@@ -54,11 +53,6 @@
 #define IDLE_AFTER_N_FRAMES 1000
 
 extern Window *main_win;
-
-extern PitchShifter *ps_glob;
-/* extern Project *proj; */
-
-/* extern pthread_t DSP_THREAD_ID; */
 
 /* TODO: SDL bug workaround. I haven't been able to get this to work reliably cross-platform. */
 /* https://discourse.libsdl.org/t/window-event-at-initiation-of-window-resize/50963/3 */
@@ -234,71 +228,36 @@ void loop_project_main()
 			    
 		/* } */
 		switch (e.key.keysym.scancode) {
-		case SDL_SCANCODE_0: {
-		    double new = ps_glob->low_latency_vs_quality - 0.01;
-		    if (new > 0.01) {
-			pitch_shifter_set_llvq(ps_glob, new);
-		    }
-		    fprintf(stderr, "new llvq: %f\n", new);
-		}
-		    break;
-		    
-		case SDL_SCANCODE_1: {
-		    double new = ps_glob->low_latency_vs_quality + 0.01;
-		    if (new <= 1.0) {
-			pitch_shifter_set_llvq(ps_glob, new);
-		    }
-		    fprintf(stderr, "new llvq: %f\n", new);
-		}
-
-		    break;
-		case SDL_SCANCODE_2: {
-		    float new_shift = ps_glob->shift_cents - 100;
-		    fprintf(stderr, "new shift cents: %f\n", new_shift);
-		    pitch_shifter_set_shift_amt(ps_glob, new_shift);
-		}
-		break;
-		case SDL_SCANCODE_3: {
-		    float new_shift = ps_glob->shift_cents + 100;
-		    fprintf(stderr, "new shift cents: %f\n", new_shift);
-		    pitch_shifter_set_shift_amt(ps_glob, new_shift);
-		}
-		    break;
-
-
 		/* case SDL_SCANCODE_0: { */
-		/*     Track *track = timeline_selected_track(ACTIVE_TL); */
-		/*     track_add_audio_route(track, ACTIVE_TL->tracks[0], 0.5); */
+		/*     double new = ps_glob->phase_coherence_vs_freq_coherence - 0.01; */
+		/*     if (new > 0.01) { */
+		/* 	pitch_shifter_set_quality(ps_glob, new); */
+		/*     } */
+		/*     fprintf(stderr, "new llvq: %f\n", new); */
 		/* } */
 		/*     break; */
+		    
 		/* case SDL_SCANCODE_1: { */
-		/*     Track *track = timeline_selected_track(ACTIVE_TL); */
-		/*     track_add_audio_route(track, ACTIVE_TL->tracks[1], 0.5); */
+		/*     double new = ps_glob->phase_coherence_vs_freq_coherence + 0.01; */
+		/*     if (new <= 1.0) { */
+		/* 	pitch_shifter_set_quality(ps_glob, new); */
+		/*     } */
+		/*     fprintf(stderr, "new llvq: %f\n", new); */
 		/* } */
-		/*     break; */
 
+		/*     break; */
 		/* case SDL_SCANCODE_2: { */
-		/*     Track *track = timeline_selected_track(ACTIVE_TL); */
-		/*     track_add_audio_route(track, ACTIVE_TL->tracks[2], 0.5); */
+		/*     float new_shift = ps_glob->shift_cents - 100; */
+		/*     fprintf(stderr, "new shift cents: %f\n", new_shift); */
+		/*     pitch_shifter_set_shift_amt(ps_glob, new_shift); */
 		/* } */
-		/*     break; */
+		/* break; */
 		/* case SDL_SCANCODE_3: { */
-		/*     Track *track = timeline_selected_track(ACTIVE_TL); */
-		/*     track_add_audio_route(track, ACTIVE_TL->tracks[3], 0.5); */
+		/*     float new_shift = ps_glob->shift_cents + 100; */
+		/*     fprintf(stderr, "new shift cents: %f\n", new_shift); */
+		/*     pitch_shifter_set_shift_amt(ps_glob, new_shift); */
 		/* } */
 		/*     break; */
-		/* case SDL_SCANCODE_5: */
-		/*     user_event_start_macro(); */
-		/*     break; */
-		/* case SDL_SCANCODE_6: */
-		/*     user_event_stop_macro("user-defined action", false); */
-		/*     break; */
-		/* case SDL_SCANCODE_9: */
-		/*     route_page_open(timeline_selected_track(ACTIVE_TL)); */
-		/*     break; */
-		    
-
-		    
 		case SDL_SCANCODE_LGUI:
 		case SDL_SCANCODE_RGUI:
 		case SDL_SCANCODE_LCTRL:

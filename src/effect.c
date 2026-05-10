@@ -19,6 +19,7 @@
 #include "log.h"
 #include "modal.h"
 #include "page.h"
+#include "pitch_shifter.h"
 #include "project.h"
 #include "session.h"
 #include "schroeder.h"
@@ -44,6 +45,7 @@ static const char *effect_type_strings[] = {
     "Saturation",
     "Compressor",
     "Reverb",
+    "Pitch shifter"
 };
 
 const char *effect_type_str(EffectType type)
@@ -316,7 +318,14 @@ Effect *effect_chain_add_effect(EffectChain *ec, EffectType type)
 	e->buf_apply = schroeder_buf_apply;
 	e->operate_on_empty_buf = true;
 	break;
-    default:
+    case EFFECT_PITCH_SHIFTER:
+	e->obj = calloc(1, sizeof(PitchShifter));
+	((PitchShifter *)e->obj)->effect = e;
+	pitch_shifter_init(e->obj);
+	e->buf_apply = pitch_shifter_buf_apply;
+	e->operate_on_empty_buf = false;
+	break;
+    case NUM_EFFECT_TYPES:
 	break;
     }
 
@@ -536,6 +545,9 @@ static void effect_silence(Effect *e)
     case EFFECT_REVERB:
 	schroeder_clear(e->obj);
 	break;
+    case EFFECT_PITCH_SHIFTER:
+	pitch_shifter_clear(e->obj);
+	break;
     default:
 	break;
     }
@@ -663,7 +675,10 @@ void effect_destroy(Effect *e)
     case EFFECT_REVERB:
 	schroeder_deinit(e->obj);
 	break;
-    default:
+    case EFFECT_PITCH_SHIFTER:
+	pitch_shifter_deinit(e->obj);
+	break;
+    case NUM_EFFECT_TYPES:
 	break;
     }
     free(e->obj);

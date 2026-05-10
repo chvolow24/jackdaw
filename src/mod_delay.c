@@ -201,3 +201,24 @@ void mod_delay_set_freq(ModDelay *md, double new_freq_hz)
 
 }
 
+void mod_delay_clear(ModDelay *md)
+{
+    memset(md->mem, 0, md->max_len * sizeof(float));
+    if (md->dst_amp_samples > 0) {
+	md->amp_samples = md->dst_amp_samples;
+	md->center_samples = md->dst_center_samples;
+	md->dst_amp_samples = -1;
+    }
+    if (md->dst_phase_incr != md->phase_incr) {
+	md->phase_incr = md->dst_phase_incr;
+    }
+    md->phase = 0.0;
+    for (int i=0; i<md->num_taps; i++) {
+	md->taps[i].osc.phase = 0.0;
+    }
+}
+
+void mod_delay_deinit(ModDelay *md)
+{
+    free(md->mem);
+}

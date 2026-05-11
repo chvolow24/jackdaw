@@ -74,8 +74,41 @@ void auto_page(Page *page, AutoPageEl *els, int num_els)
 	    page_add_el(page, EL_SLIDER, p, auto_el.ep->local_id, layout_name_buf);
 	}
 	    break;
-	case JDAW_BOOL:
+	case JDAW_BOOL: {
+	    Layout *toggle_and_label = layout_add_child(container);
+	    toggle_and_label->w.type = SCALE;
+	    toggle_and_label->w.value = 1.0;
+	    toggle_and_label->h.value = 40;
+	    toggle_and_label->y.type = STACK;
+	    toggle_and_label->y.value = 0.0;
+
+	    Layout *toggle = layout_add_child(toggle_and_label);
+	    snprintf(layout_name_buf, sizeof(layout_name_buf), "%stgl", auto_el.ep->local_id);
+	    layout_set_name(toggle, layout_name_buf);
+	    toggle->w.value = 20;
+	    toggle->h.value = 20;
 	    p.toggle_p.ep = auto_el.ep;
+	    page_add_el(page, EL_TOGGLE, p, auto_el.ep->local_id, layout_name_buf);
+
+	    Layout *label = layout_add_child(toggle_and_label);
+	    label->x.type = STACK;
+	    label->x.value = 24;
+	    /* label->y.value = 0; */
+	    label->w.type = SCALE;
+	    label->w.value = 1.0;
+	    label->h.type = SCALE;
+	    label->h.value = 0.5;
+	    snprintf(layout_name_buf, sizeof(layout_name_buf), "lbl%d", label_index);
+	    label_index++;
+	    layout_set_name(label, layout_name_buf);
+	    p.textbox_p.font = main_win->mono_bold_font;
+	    p.textbox_p.set_str = auto_el.label_if_different ? (char *)auto_el.label_if_different : (char *)auto_el.ep->display_name;
+	    p.textbox_p.text_size = LABEL_STD_FONT_SIZE;
+	    p.textbox_p.win = main_win;
+	    PageEl *el = page_add_el(page, EL_TEXTBOX, p, "", layout_name_buf);
+	    textbox_set_align(el->component, CENTER_LEFT);
+	    
+	}
 	    break;
 	default:
 	    break;

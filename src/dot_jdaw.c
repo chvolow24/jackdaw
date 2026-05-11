@@ -111,6 +111,7 @@ void jdaw_write_project(const char *path)
 
     if (!f) {
 	fprintf(stderr, "Error: unable to write to file at path %s: file could not be found\n", path);
+	return;
     }
     fwrite(hdr_jdaw, 1, 4, f);
     fwrite(hdr_version, 1, 8, f);
@@ -616,6 +617,7 @@ static Project *proj_reading;
 
 
 const char *get_fmt_str(SDL_AudioFormat f);
+/* Ret -2: file does not exist. -1: parse error */
 int jdaw_read_file(Project *dst, const char *path)
 {
     /* Session *session_to_set_proj_reading = session_get(); */
@@ -623,9 +625,9 @@ int jdaw_read_file(Project *dst, const char *path)
     FILE *f = fopen(path, "r");
     if (!f) {
         fprintf(stderr, "Error: could not find project file at path %s\n", path);
-	goto jdaw_parse_error;
-	/* /\* session_to_set_proj_reading->proj_reading = NULL; *\/ */
-        /* return -1; */
+	/* goto jdaw_parse_error; */
+	/* session_to_set_proj_reading->proj_reading = NULL; */
+        return -2;
     }
     char hdr_buffer[9];
     fread(hdr_buffer, 1, 4, f);

@@ -342,7 +342,7 @@ ClipRef *wav_load_to_track(Track *track, const char *filename, int32_t start_pos
     uint8_t* audio_buf = NULL;
     uint32_t audio_len_bytes = 0;
     if (!(SDL_LoadWAV(filename, &wav_spec, &audio_buf, &audio_len_bytes))) {
-        fprintf(stderr, "Error loading wav %s: %s", filename, SDL_GetError());
+        fprintf(stderr, "Error loading wav %s: %s\n", filename, SDL_GetError());
         return NULL;
     }
     int channels = wav_spec.channels;

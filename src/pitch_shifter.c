@@ -91,16 +91,16 @@ void pitch_shifter_init(PitchShifter *ps)
 	ps, NULL, NULL, NULL);
     endpoint_set_allowed_range(
 	&ps->shift_cents_ep,
-	(Value){.double_v = -2400.0},
-	(Value){.double_v = 2400.0});
+	(Value){.double_v = -1200.0},
+	(Value){.double_v = 1200.0});
     endpoint_set_default_value(&ps->shift_cents_ep, (Value){.double_v = 0.0});
 			       
     endpoint_init(
 	&ps->quality_ep,
 	&ps->quality,
 	JDAW_DOUBLE,
-	"phase_coherence_vs_freq_coherence",
-	"Phase coherence vs freq coherence",
+	"phase_fidelity_vs_freq_fidelity",
+	"Phase fidelity vs freq fidelity",
 	JDAW_THREAD_DSP,
 	component_gui_cb, NULL, quality_dsp_cb,
 	ps, NULL, NULL, NULL);

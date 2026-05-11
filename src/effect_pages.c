@@ -31,7 +31,7 @@ static SDL_Color page_colors[] = {
     {100, 40, 40, 255},
     {94, 58, 61, 255},
     {34, 77, 99, 255},
-    {50, 50, 50, 255}
+    {55, 39, 42, 255}
 };
 
 static Page *add_eq_page(EQ *eq, EffectChain *ec, TabView *tv);
@@ -216,7 +216,7 @@ static Page *add_eq_page(EQ *eq, EffectChain *ec, TabView *tv)
     p.textbox_p.text_size = LABEL_STD_FONT_SIZE;
     p.textbox_p.win = main_win;
 
-    p.textbox_p.set_str = "Enable EQ";
+    p.textbox_p.set_str = "EQ on";
     PageEl *el = page_add_el(page, EL_TEXTBOX, p, "track_settings_eq_toggle_label", "toggle_label");
     Textbox *tb = el->component;
     textbox_set_trunc(tb, false);
@@ -429,7 +429,7 @@ static Page *add_fir_filter_page(FIRFilter *f, EffectChain *ec, TabView *tv)
     textbox_set_align(tb, CENTER_LEFT);
     textbox_reset_full(tb);
 
-    p.textbox_p.set_str = "Enable FIR filter";
+    p.textbox_p.set_str = "FIR filter on";
     el = page_add_el(page, EL_TEXTBOX, p, "track_settings_filter_toggle_label", "toggle_label");
     tb=el->component;
     textbox_set_trunc(tb, false);
@@ -934,14 +934,16 @@ static Page *add_pitch_shifter_page(PitchShifter *ps, EffectChain *ec, TabView *
 	page_colors + 6,
 	&colors.white,
 	main_win);
-    AutoPageEl els[2];
-    els[0].ep = &ps->shift_cents_ep;
+    AutoPageEl els[3];
+    els[0].ep = &ps->effect->active_ep;
     els[0].label_if_different = NULL;
-    els[0].slider_style = SLIDER_TICK;
-    els[1].ep = &ps->quality_ep;
+    els[1].ep = &ps->shift_cents_ep;
     els[1].label_if_different = NULL;
     els[1].slider_style = SLIDER_TICK;
-    auto_page(page, els, 2);
+    els[2].ep = &ps->quality_ep;
+    els[2].label_if_different = NULL;
+    els[2].slider_style = SLIDER_TICK;
+    auto_page(page, els, 3);
     page_reset(page);
     return page;
 }

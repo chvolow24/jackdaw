@@ -261,8 +261,10 @@ int main(int argc, char **argv)
 		audioconn_open(session, output);
 	    }
 	} else {
-	    session->proj_initialized = false;
-	    memset(&session->proj, '\0', sizeof(Project));
+	    fprintf(stderr, "Unable to open project file at \"%s\": %s\n", file_to_open, ret == -2 ? "File does not exist" : "Unable to parse file");
+	    return 1;
+	    /* session->proj_initialized = false; */
+	    /* memset(&session->proj, '\0', sizeof(Project)); */
 	}
 	session->proj_reading = NULL;
     }
@@ -306,7 +308,8 @@ int main(int argc, char **argv)
 	wav_load_to_track(session->proj.timelines[0]->tracks[0], file_to_open, 0);
 	char *filepath = realpath(file_to_open, NULL);
 	if (!filepath) {
-	    perror("Error in realpath");
+	    fprintf(stderr, "Could not find file at \"%s\"\n", file_to_open);
+	    return 1;
 	} else {
 	    char *last_slash_pos = strrchr(filepath, '/');
 	    if (last_slash_pos) {

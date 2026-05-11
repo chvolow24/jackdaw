@@ -7,8 +7,11 @@
 
 typedef struct pitch_shifter {
     Effect *effect;
-    
+
     double shift_cents;
+    
+    double shift_semitones;
+    double shift_fine_cents;
     double quality; // 0.0 = phase coherence; 1.0 = frequency coherence (less comb filtering)
     ModDelay mdL;
     ModDelay mdR;

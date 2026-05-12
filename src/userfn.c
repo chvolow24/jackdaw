@@ -566,7 +566,7 @@ void user_global_debug_toggle_transport_performance_logging(void *nullarg)
     toggle_transport_logging();
 }
 
-void user_global_debug_write_main_layout()
+void user_global_debug_write_main_layout(void *nullarg)
 {
     static const char *filename = "DEBUG_MAIN_LT.xml";
     FILE *f = fopen("DEBUG_MAIN_LT.xml", "w");

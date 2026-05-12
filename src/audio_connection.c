@@ -86,7 +86,7 @@ static AudioDevice *add_device_and_conns(Session *session, int index, int iscapt
     int *conn_index = iscapture ? &session->audio_io.num_record_conns : &session->audio_io.num_playback_conns;
 
     int channel_i = 0;
-    while (channel_i < dev->spec.channels) {
+    while (channel_i < dev->spec.channels && channel_i < 16) {
 	AudioConn *conn = calloc(sizeof(AudioConn), 1);
 	if (dev->spec.channels - channel_i >= 2) {
 	    conn->channel_cfg.L_src = channel_i;

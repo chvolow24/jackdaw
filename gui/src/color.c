@@ -58,6 +58,7 @@ void color_diff_set(ColorDiff *diff, SDL_Color a, SDL_Color b)
 void color_diff_apply(const ColorDiff *diff, SDL_Color orig, double prop, SDL_Color *dst)
 {
     ColorDiff ret;
+    /* fprintf(stderr, "ORIG G: %d, prop %f, diff g %d\n", orig.g, prop, diff->g); */
     ret.r = orig.r + prop * diff->r;
     ret.g = orig.g + prop * diff->g;
     ret.b = orig.b + prop * diff->b;

@@ -196,8 +196,7 @@ static void clipref_draw(ClipRef *cr)
     if (cr->type == CLIP_AUDIO) {// && !((Clip *)cr->source_clip)->recording) {
 	clipref_draw_waveform(cr);
     }
-
-    int border = cr->grabbed ? 4 : 3;
+    int border = cr->grabbed ? 4 : cr->track && cr->track->tl && cr->track->tl->clipref_at_cursor == cr ? 4 : 2;
     if (cr->track->minimized) {
 	border /= 2;
     }

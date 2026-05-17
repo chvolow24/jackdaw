@@ -589,6 +589,10 @@ void loop_project_main()
 	session_do_ongoing_changes(session, JDAW_THREAD_MAIN);
 	session_flush_val_changes(session, JDAW_THREAD_MAIN);
 	session_flush_callbacks(session, JDAW_THREAD_MAIN);
+	/* fprintf(stderr, "Loop tl %d\n", tl->needs_redraw); */
+	if (tl->needs_redraw) {
+	    set_clipref_at_cursor();
+	}
 	project_draw();
 
 

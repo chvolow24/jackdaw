@@ -1553,7 +1553,6 @@ button_animation_and_exit:
 	    timeline_refocus_click_track(tl, timeline_selected_click_track(tl), false);
 	}
     }
-
     tl->needs_redraw = true;
 
     /* if (session->gui.panels_initialized) { */
@@ -1645,6 +1644,7 @@ void user_tl_track_selector_down(void *nullarg)
 
 button_animation_and_exit:
 
+    tl->needs_redraw = true;
     if (selected) {
 	timeline_refocus_track(tl, selected, true);
     } else {

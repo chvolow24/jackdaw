@@ -376,17 +376,28 @@ ClipRef *clipref_at_cursor()
 {
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
+    return tl->clipref_at_cursor;
+}
+void set_clipref_at_cursor()
+{
+    Session *session = session_get();
+    Timeline *tl = ACTIVE_TL;
     Track *track = timeline_selected_track(tl);
-    if (!track) return NULL;
+    if (!track) {
+	tl->clipref_at_cursor = NULL;
+	return;
+    }
     
     /* Reverse iter to ensure top-most clip is returned in case of overlap */
     for (int i=track->num_clips -1; i>=0; i--) {
 	ClipRef *cr = track->clips[i];
 	if (cr->tl_pos <= tl->play_pos_sframes && cr->tl_pos + clipref_len(cr) >= tl->play_pos_sframes) {
-	    return cr;
+	    tl->clipref_at_cursor = cr;
+	    return;
 	}
     }
-    return NULL;
+    tl->clipref_at_cursor = NULL;
+    /* tl->needs_redraw = true; */
 }
 
 ClipRef *clipref_at_point_in_track(Track *track, int x)

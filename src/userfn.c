@@ -567,7 +567,7 @@ void user_global_debug_toggle_transport_performance_logging(void *nullarg)
     toggle_transport_logging();
 }
 
-void user_global_debug_write_main_layout()
+void user_global_debug_write_main_layout(void *nullarg)
 {
     static const char *filename = "DEBUG_MAIN_LT.xml";
     FILE *f = fopen("DEBUG_MAIN_LT.xml", "w");
@@ -1554,7 +1554,6 @@ button_animation_and_exit:
 	    timeline_refocus_click_track(tl, timeline_selected_click_track(tl), false);
 	}
     }
-
     tl->needs_redraw = true;
 
     /* if (session->gui.panels_initialized) { */
@@ -1646,6 +1645,7 @@ void user_tl_track_selector_down(void *nullarg)
 
 button_animation_and_exit:
 
+    tl->needs_redraw = true;
     if (selected) {
 	timeline_refocus_track(tl, selected, true);
     } else {

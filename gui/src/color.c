@@ -34,10 +34,19 @@ const struct colors colors = {
     .click_track = {10, 30, 25, 255},
 
     /* .midi_clip_pink = {237,204,232,255}, */
-    .midi_clip_pink = {242, 188, 223, 230},
+    /* .midi_clip_pink = {242, 188, 223, 230}, */
     /* .midi_clip_pink = {224, 142, 74, 255}, */
-    .midi_clip_pink_grabbed = {255, 218, 243, 255},
+    
+    /* .midi_clip_pink = {242, 188, 223, 230}, */
+    /* .midi_clip_pink_grabbed = {255, 218, 243, 255}, */
+    /* .midi_clip_pink = {227, 158, 203, 230}, */
+    /* .midi_clip_pink = {219, 138, 191, 230}, */
+    
+    .midi_clip_pink = {224, 164, 193, 230},
+    .midi_clip_pink_grabbed = {247, 200, 223, 230},
 
+
+    
     /* .midi_note_orange = {200, 120, 100, 255}, */
     .midi_note_orange = {220, 100, 80, 255},
     .midi_note_orange_grabbed = {255, 225, 100, 255},
@@ -58,6 +67,7 @@ void color_diff_set(ColorDiff *diff, SDL_Color a, SDL_Color b)
 void color_diff_apply(const ColorDiff *diff, SDL_Color orig, double prop, SDL_Color *dst)
 {
     ColorDiff ret;
+    /* fprintf(stderr, "ORIG G: %d, prop %f, diff g %d\n", orig.g, prop, diff->g); */
     ret.r = orig.r + prop * diff->r;
     ret.g = orig.g + prop * diff->g;
     ret.b = orig.b + prop * diff->b;

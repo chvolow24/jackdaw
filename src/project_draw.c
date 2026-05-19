@@ -29,17 +29,22 @@
 #include "waveform.h"
 
 /* #define BACKGROUND_ACTIVE */
+#define CURSOR_W_PIX (10 * main_win->dpi_scale_factor)
+/* #define CURSOR_W_PIX (40 * main_win->dpi_scale_factor) */
+#define CURSOR_CORNER_R (2 * main_win->dpi_scale_factor)
+#define CURSOR_V_PAD (4 * main_win->dpi_scale_factor)
+/* #define CURSOR_DIAG (3 * main_win->dpi_scale_factor) */
 
 extern Window *main_win;
 extern struct colors colors;
 
 /******************** DARKER ********************/
-/* SDL_Color track_bckgrnd = {90, 100, 110, 255}; */
-/* SDL_Color track_bckgrnd_active = {120, 130, 150, 255}; */
+SDL_Color track_bckgrnd = {90, 100, 110, 255};
+SDL_Color track_bckgrnd_active = {120, 120, 127, 255};
 /****************************************************/
 
-SDL_Color track_bckgrnd = {120, 130, 150, 255};
-SDL_Color track_bckgrnd_active = {150, 150, 160, 255};
+/* SDL_Color track_bckgrnd = {120, 130, 150, 255}; */
+/* SDL_Color track_bckgrnd_active = {150, 150, 160, 255}; */
 
 SDL_Color source_mode_bckgrnd = {0, 20, 40, 255};
 /* SDL_Color track_bckgrnd_active = {170, 130, 130, 255}; */
@@ -61,21 +66,32 @@ SDL_Color track_selector_color = {100, 190, 255, 255};
 SDL_Color grey_mask = {30, 30, 30, 210};
 
 /* SDL_Color clip_ref_bckgrnd = {20, 200, 120, 200}; */
-SDL_Color clip_ref_bckgrnd = {40, 170, 150, 200};
 /* SDL_Color clip_ref_grabbed_bckgrnd = {50, 230, 150, 230}; */
-SDL_Color clip_ref_grabbed_bckgrnd = {70, 200, 180, 230};
-SDL_Color clip_ref_home_bckgrnd = {90, 180, 245, 200};
-SDL_Color clip_ref_home_grabbed_bckgrnd = {120, 210, 255, 230};
+
+
+
 
 /* SDL_Color midi_clipref_color = {237,204,232,200}; */
 /* SDL_Color midi_clipref_color_grabbed = {255,219,249,230}; */
 
+/******************** LIGHTER *******************/
+/* SDL_Color clip_ref_bckgrnd = {40, 170, 150, 200}; */
+/* SDL_Color clip_ref_grabbed_bckgrnd = {70, 200, 180, 230}; */
+/* SDL_Color clip_ref_home_bckgrnd = {90, 180, 245, 200}; */
+/* SDL_Color clip_ref_home_grabbed_bckgrnd = {120, 210, 255, 230}; */
+/************************************************/
+
 
 /******************** DARKER ********************/
+/* const SDL_Color clip_ref_home_bckgrnd = {45, 135, 200, 200}; */
+const SDL_Color clip_ref_home_bckgrnd = {73, 159, 219, 200};
+/* const SDL_Color clip_ref_home_grabbed_bckgrnd = {75, 165, 210, 230}; */
+const SDL_Color clip_ref_home_grabbed_bckgrnd = {115, 183, 232, 230};
 /* SDL_Color clip_ref_bckgrnd = {5, 145, 85, 200}; */
 /* SDL_Color clip_ref_grabbed_bckgrnd = {10, 180, 110, 230}; */
-/* SDL_Color clip_ref_home_bckgrnd = {45, 135, 200, 200}; */
-/* SDL_Color clip_ref_home_grabbed_bckgrnd = {75, 165, 210, 230}; */
+#define clip_ref_bckgrnd clip_ref_home_bckgrnd
+#define clip_ref_grabbed_bckgrnd clip_ref_home_grabbed_bckgrnd
+
 /****************************************************/
 
 
@@ -83,6 +99,8 @@ extern SDL_Color timeline_label_txt_color;
 
 void clipref_draw_waveform(ClipRef *cr);
 void draw_continuation_arrows(int x, int top_y, int h, bool point_left);
+
+static SDL_Rect selected_track_rect;
 
 static void clipref_draw(ClipRef *cr)
 {
@@ -178,8 +196,7 @@ static void clipref_draw(ClipRef *cr)
     if (cr->type == CLIP_AUDIO) {// && !((Clip *)cr->source_clip)->recording) {
 	clipref_draw_waveform(cr);
     }
-
-    int border = cr->grabbed ? 4 : 3;
+    int border = cr->grabbed ? 4 : cr->track && cr->track->tl && cr->track->tl->clipref_at_cursor == cr ? 4 : 2;
     if (cr->track->minimized) {
 	border /= 2;
     }
@@ -212,7 +229,7 @@ static void clipref_draw(ClipRef *cr)
 	    if (note_end_draw_pos > cr->layout->rect.x + cr->layout->rect.w) {
 		note_end_draw_pos = cr->layout->rect.x + cr->layout->rect.w;
 	    }
-	    float w = note_end_draw_pos - x;
+	    float w = note_end_draw_pos - x - 1;
 	    float y = top_y + (midi_piano_range - piano_note) * note_height_nominal;
 	    SDL_Rect note_rect = {x, y - true_note_height / 2, w, true_note_height};
 	    /* fprintf(stderr, "\t->start->end: %d-%d\n", note_start, note_end); */
@@ -271,6 +288,7 @@ static void clipref_draw(ClipRef *cr)
 
 static void draw_selected_track_rect(Layout *selected_layout)
 {
+    selected_track_rect = selected_layout->rect;
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.black));
     geom_draw_rect_thick(main_win->rend, &selected_layout->rect, 3 * main_win->dpi_scale_factor);
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(track_selector_color));
@@ -673,6 +691,7 @@ static int timeline_draw(Timeline *tl)
 
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(console_column_bckgrnd));
     SDL_RenderFillRect(main_win->rend, session->gui.console_column_rect);
+    
     /* Draw tracks */
     SDL_RenderSetClipRect(main_win->rend, &session->gui.timeline_lt->rect);
     for (uint8_t i=0; i<tl->num_tracks; i++) {
@@ -684,10 +703,6 @@ static int timeline_draw(Timeline *tl)
 	if (i==tl->click_track_selector) {
 	    draw_selected_track_rect(tl->click_tracks[i]->layout);
 	}
-	/* if (i==tl->click_track_selector) { */
-	/*     SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 255); */
-	/*     SDL_RenderDrawRect(main_win->rend, &tl->click_tracks[i]->layout->rect); */
-	/* } */
     }
 
     SDL_RenderSetClipRect(main_win->rend, &main_win->layout->rect);
@@ -739,7 +754,79 @@ static int timeline_draw(Timeline *tl)
 	/* fixed_playhead = new_play_pos; */
 	/* fprintf(stderr, "NEW: %d\n", new_play_pos); */
         int play_head_x = timeline_get_draw_x(tl, fixed_playhead);
+
+	/* Draw cursor */
+	
+	/* CURSOR VERSION 1: YELLOW GLOW */
+	SDL_Color cursor_src_color = {255, 150, 0, 8};
+	SDL_Color cursor_dst_color  = {255, 255, 50, 14};
+	if (session->dragging) {
+	    cursor_src_color.r -= 20 * session->drag_color_pulse_prop;
+	    cursor_src_color.g += (250 - cursor_src_color.g) * session->drag_color_pulse_prop;
+	    cursor_dst_color.b += (255 - cursor_dst_color.b) * session->drag_color_pulse_prop;
+	    cursor_src_color.a += (12 - cursor_src_color.a) * session->drag_color_pulse_prop;;
+	    cursor_dst_color.a += (20 - cursor_dst_color.a) * session->drag_color_pulse_prop;
+	    /* pulse_color.r = clip_ref_home_bckgrnd.r + grab_diff.r * session->drag_color_pulse_prop; */
+	    /* pulse_color.g = clip_ref_home_bckgrnd.g + grab_diff.g * session->drag_color_pulse_prop; */
+	    /* pulse_color.b = clip_ref_home_bckgrnd.b + grab_diff.b * session->drag_color_pulse_prop; */
+	    /* pulse_color.a = clip_ref_home_bckgrnd.a + grab_diff.a * session->drag_color_pulse_prop; */
+	    /* SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(pulse_color)); */
+	}
+
+	ColorDiff cursor_color_diff;
+	color_diff_set(&cursor_color_diff, cursor_dst_color, cursor_src_color);
+	SDL_Color cursor_color = cursor_src_color;
+	/* int diff_g = (255 - cursor_color.g) / (CURSOR_W_PIX / 2); */
+	/* int diff_b = (cursor_dst_color.b - cursor_color.b) / (CURSOR_W_PIX / 2); */
+	/* int diff_g = (cursor_dst_color.g - cursor_color.g) / (CURSOR_W_PIX / 2); */
+	/* int diff_a = (cursor_dst_color.a - cursor_color.a) / (CURSOR_W_PIX / 2); */
+	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(cursor_color));
+	SDL_Rect bumper = {play_head_x - CURSOR_W_PIX / 2, selected_track_rect.y + CURSOR_V_PAD, CURSOR_W_PIX, selected_track_rect.h - 2 * CURSOR_V_PAD};
+	geom_fill_rounded_rect(main_win->rend, &bumper, CURSOR_CORNER_R);
+	for (int i=0; i<CURSOR_W_PIX / 2; i++) {
+	    bumper.x++;
+	    bumper.y++;
+	    bumper.w -= 2;
+	    bumper.h -= 2;
+	    float color_diff_prop = sqrt(2.0f * i / CURSOR_W_PIX);
+	    /* color_diff_prop *= color_diff_prop; */
+	    color_diff_apply(&cursor_color_diff, cursor_src_color, color_diff_prop, &cursor_color);
+
+	    /* cursor_color.b += diff_b; */
+	    /* cursor_color.g += diff_g; */
+	    /* cursor_color.a += diff_a; */
+	    /* cursor_color */
+	    /* fprintf(stderr, "%d color %d %d %d %d\n", i, cursor_color.r, cursor_color.g, cursor_color.b, cursor_color.a); */
+	    /* fprintf(stderr, "%d rect %d %d %d %d\n", i, bumper.x, bumper.y, bumper.w, bumper.h); */
+	    /* fprintf */
+	    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(cursor_color));
+	    /* SDL_RenderFillRect(main_win->rend, &bumper); */
+	    geom_fill_rounded_rect(main_win->rend, &bumper, CURSOR_CORNER_R);
+	}
+
+	/* CURSOR VERSION 2: LINES */
+	/* const int x1 = play_head_x - CURSOR_W_PIX / 2; */
+	/* const int x2 = play_head_x + CURSOR_W_PIX / 2; */
+	/* const int y1 = selected_track_rect.y + CURSOR_V_PAD + CURSOR_DIAG; */
+	/* const int y2 = y1 + selected_track_rect.h - (2 * CURSOR_V_PAD + 2 * CURSOR_DIAG); */
+	/* SDL_SetRenderDrawColor(main_win->rend, 230, 230, 255, 240); */
+	/* SDL_RenderDrawLine(main_win->rend, x1, y1, x1, y2); */
+	/* SDL_RenderDrawLine(main_win->rend, x1, y1, x1 - CURSOR_DIAG, y1 - CURSOR_DIAG); */
+	/* SDL_RenderDrawLine(main_win->rend, x1, y2, x1 - CURSOR_DIAG, y2 + CURSOR_DIAG); */
+
+	/* SDL_RenderDrawLine(main_win->rend, x2, y1, x2, y2); */
+	/* SDL_RenderDrawLine(main_win->rend, x2, y1, x2 + CURSOR_DIAG, y1 - CURSOR_DIAG); */
+	/* SDL_RenderDrawLine(main_win->rend, x2, y2, x2 + CURSOR_DIAG, y2 + CURSOR_DIAG); */
+
+	
+
+	/* Draw playhead */
+	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.light_grey));
         SDL_RenderDrawLine(main_win->rend, play_head_x, ph_y, play_head_x, session->gui.audio_rect->y + session->gui.audio_rect->h);
+
+	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.white));
+	SDL_RenderDrawLine(main_win->rend, play_head_x, selected_track_rect.y, play_head_x, selected_track_rect.y + selected_track_rect.h);
+
 
 	/* Draw end of buffered range */
 	#ifdef TESTBUILD

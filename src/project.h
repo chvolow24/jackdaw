@@ -341,6 +341,8 @@ typedef struct timeline {
     int click_track_selector; /* Index of selected tempo track */
     bool click_track_frozen;
 
+    ClipRef *clipref_at_cursor; /* Cached value, reset every draw frame */
+
     Timecode timecode;
     
     Project *proj;

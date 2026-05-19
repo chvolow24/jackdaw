@@ -381,7 +381,7 @@ bool geom_x_in_rect(int x, SDL_Rect *rect, int *x_ptr)
 	if (x_ptr) *x_ptr = rect->x;
 	return false;
     }
-    if (x >= rect->x + rect->w) {
+    if (x > rect->x + rect->w) {
 	if (x_ptr) *x_ptr = rect->x + rect->w - 1;
 	return false;
     }

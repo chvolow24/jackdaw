@@ -934,16 +934,28 @@ static Page *add_pitch_shifter_page(PitchShifter *ps, EffectChain *ec, TabView *
 	page_colors + 6,
 	&colors.white,
 	main_win);
-    AutoPageEl els[3];
+    AutoPageEl els[5];
+    
     els[0].ep = &ps->effect->active_ep;
     els[0].label_if_different = NULL;
+    
     els[1].ep = &ps->shift_cents_ep;
     els[1].label_if_different = NULL;
     els[1].slider_style = SLIDER_TICK;
-    els[2].ep = &ps->quality_ep;
+
+    els[2].ep = &ps->shift_semitones_ep;
     els[2].label_if_different = NULL;
     els[2].slider_style = SLIDER_TICK;
-    auto_page(page, els, 3);
+
+    els[3].ep = &ps->shift_fine_ep;
+    els[3].label_if_different = NULL;
+    els[3].slider_style = SLIDER_TICK;
+    
+    els[4].ep = &ps->quality_ep;
+    els[4].label_if_different = NULL;
+    els[4].slider_style = SLIDER_TICK;
+    
+    auto_page(page, els, 5);
     page_reset(page);
     return page;
 }

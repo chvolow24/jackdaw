@@ -8,21 +8,21 @@
 typedef struct pitch_shifter {
     Effect *effect;
 
-    double shift_cents;
+    double shift_cents; // final sum
+    double shift_cents_internal; // ep target, added to other shifters
     
     double shift_semitones;
-    double shift_fine_cents;
+    int shift_fine;
     double quality; // 0.0 = phase coherence; 1.0 = frequency coherence (less comb filtering)
     ModDelay mdL;
     ModDelay mdR;
 
     Endpoint shift_cents_ep;
+    Endpoint shift_semitones_ep;
+    Endpoint shift_fine_ep;
     Endpoint quality_ep;
     
-    /* Alternative to shift cents */
-    double shift_octave;
-    double shift_coarse;
-    double shift_fine;
+    
 } PitchShifter;
 
 void pitch_shifter_init(PitchShifter *ps);

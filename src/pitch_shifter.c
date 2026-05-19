@@ -48,11 +48,42 @@ void pitch_shifter_clear(PitchShifter *ps)
 {
     mod_delay_clear(&ps->mdL);
     mod_delay_clear(&ps->mdR);
-}      
+}
+
+static void pitch_shifter_set_shift(PitchShifter *ps, double cents_broad, int semitones, double addtl_cents)
+{
+    ps->shift_cents = cents_broad + 100 * semitones + addtl_cents;
+    pitch_shifter_set_shift_amt(ps, ps->shift_cents);
+}
 
 static void shift_cents_dsp_cb(Endpoint *ep)
 {
-    pitch_shifter_set_shift_amt(ep->xarg1, ep->current_write_val.double_v);
+    PitchShifter *ps = ep->xarg1;
+    double cents_broad = ep->current_write_val.double_v;
+    int semitones = endpoint_safe_read(&ps->shift_semitones_ep, NULL).int_v;
+    double adttl_cents = endpoint_safe_read(&ps->shift_fine_ep, NULL).double_v;
+
+    pitch_shifter_set_shift(ps, cents_broad, semitones, adttl_cents);
+}
+
+static void shift_semitones_dsp_cb(Endpoint *ep)
+{
+    PitchShifter *ps = ep->xarg1;
+    double cents_broad = endpoint_safe_read(&ps->shift_cents_ep, NULL).double_v;
+    int semitones = ep->current_write_val.int_v;
+    double adttl_cents = endpoint_safe_read(&ps->shift_fine_ep, NULL).double_v;
+    
+    pitch_shifter_set_shift(ps, cents_broad, semitones, adttl_cents);
+}
+
+static void shift_fine_dsp_cb(Endpoint *ep)
+{
+    PitchShifter *ps = ep->xarg1;
+    double cents_broad = endpoint_safe_read(&ps->shift_cents_ep, NULL).double_v;
+    int semitones = endpoint_safe_read(&ps->shift_semitones_ep, NULL).int_v;
+    double adttl_cents = ep->current_write_val.double_v;
+    
+    pitch_shifter_set_shift(ps, cents_broad, semitones, adttl_cents);
 }
 
 static void quality_dsp_cb(Endpoint *ep)
@@ -82,10 +113,10 @@ void pitch_shifter_init(PitchShifter *ps)
 
     endpoint_init(
 	&ps->shift_cents_ep,
-	&ps->shift_cents,
+	&ps->shift_cents_internal,
 	JDAW_DOUBLE,
 	"shift_cents",
-	"Shift cents",
+	"Shift (broad)",
 	JDAW_THREAD_DSP,
 	component_gui_cb, NULL, shift_cents_dsp_cb,
 	ps, NULL, NULL, NULL);
@@ -94,6 +125,31 @@ void pitch_shifter_init(PitchShifter *ps)
 	(Value){.double_v = -1200.0},
 	(Value){.double_v = 1200.0});
     endpoint_set_default_value(&ps->shift_cents_ep, (Value){.double_v = 0.0});
+
+    endpoint_init(
+	&ps->shift_semitones_ep,
+        &ps->shift_semitones,
+	JDAW_INT,
+	"shift_semitones",
+	"Coarse (semitones)",
+	JDAW_THREAD_DSP,
+	component_gui_cb, NULL, shift_semitones_dsp_cb,
+	ps, NULL, NULL, NULL);
+    endpoint_set_allowed_range(&ps->shift_semitones_ep, (Value){.int_v = -12}, (Value){.int_v = 12});
+    endpoint_set_default_value(&ps->shift_semitones_ep, (Value){.int_v = 0});
+
+    endpoint_init(
+	&ps->shift_fine_ep,
+        &ps->shift_fine,
+	JDAW_DOUBLE,
+	"shift_fine",
+	"Fine (cents)",
+	JDAW_THREAD_DSP,
+	component_gui_cb, NULL, shift_fine_dsp_cb,
+	ps, NULL, NULL, NULL);
+    endpoint_set_allowed_range(&ps->shift_fine_ep, (Value){.double_v = -100.0}, (Value){.double_v = 100.0});
+    endpoint_set_default_value(&ps->shift_fine_ep, (Value){.double_v = 0});
+
 			       
     endpoint_init(
 	&ps->quality_ep,
@@ -111,8 +167,9 @@ void pitch_shifter_init(PitchShifter *ps)
     endpoint_set_default_value(&ps->quality_ep, (Value){.double_v = 0.15});
 
     api_endpoint_register(&ps->shift_cents_ep, &ps->effect->api_node);
-    api_endpoint_register(&ps->quality_ep, &ps->effect->api_node);
-    
+    api_endpoint_register(&ps->shift_semitones_ep, &ps->effect->api_node);
+    api_endpoint_register(&ps->shift_fine_ep, &ps->effect->api_node);
+    api_endpoint_register(&ps->quality_ep, &ps->effect->api_node);    
 }
 
 void pitch_shifter_deinit(PitchShifter *ps)

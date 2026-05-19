@@ -471,25 +471,25 @@ Value jdaw_val_scale(Value a, double scalar, ValType vt)
         ret.double_v = a.double_v * scalar;
 	break;
     case JDAW_INT:
-	ret.int_v = (int)((double)a.int_v * scalar);
+	ret.int_v = (int)(round((double)a.int_v * scalar));
 	break;
     case JDAW_UINT8:
-	ret.uint8_v = (uint8_t)((double)a.uint8_v * scalar);
+	ret.uint8_v = (uint8_t)(round((double)a.uint8_v * scalar));
 	break;
     case JDAW_UINT16:
-	ret.uint16_v = (uint16_t)((double)a.uint16_v * scalar);
+	ret.uint16_v = (uint16_t)(round((double)a.uint16_v * scalar));
 	break;
     case JDAW_UINT32:
-	ret.uint32_v = (uint32_t)((double)a.uint32_v * scalar);
+	ret.uint32_v = (uint32_t)(round((double)a.uint32_v * scalar));
 	break;
     case JDAW_INT8:
-	ret.int8_v = (int8_t)((double)a.int8_v * scalar);
+	ret.int8_v = (int8_t)(round((double)a.int8_v * scalar));
 	break;
     case JDAW_INT16:
-	ret.int16_v = (int16_t)((double)a.int16_v * scalar);
+	ret.int16_v = (int16_t)(round((double)a.int16_v * scalar));
 	break;
     case JDAW_INT32:
-	ret.int32_v = (int32_t)((double)a.int32_v * scalar);
+	ret.int32_v = (int32_t)(round((double)a.int32_v * scalar));
 	break;
     case JDAW_BOOL: {
 	if (scalar > -0.5 && scalar < 0.5)

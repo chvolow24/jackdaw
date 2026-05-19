@@ -229,7 +229,7 @@ static void clipref_draw(ClipRef *cr)
 	    if (note_end_draw_pos > cr->layout->rect.x + cr->layout->rect.w) {
 		note_end_draw_pos = cr->layout->rect.x + cr->layout->rect.w;
 	    }
-	    float w = note_end_draw_pos - x;
+	    float w = note_end_draw_pos - x - 1;
 	    float y = top_y + (midi_piano_range - piano_note) * note_height_nominal;
 	    SDL_Rect note_rect = {x, y - true_note_height / 2, w, true_note_height};
 	    /* fprintf(stderr, "\t->start->end: %d-%d\n", note_start, note_end); */

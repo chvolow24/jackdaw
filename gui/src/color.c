@@ -34,10 +34,19 @@ const struct colors colors = {
     .click_track = {10, 30, 25, 255},
 
     /* .midi_clip_pink = {237,204,232,255}, */
-    .midi_clip_pink = {242, 188, 223, 230},
+    /* .midi_clip_pink = {242, 188, 223, 230}, */
     /* .midi_clip_pink = {224, 142, 74, 255}, */
-    .midi_clip_pink_grabbed = {255, 218, 243, 255},
+    
+    /* .midi_clip_pink = {242, 188, 223, 230}, */
+    /* .midi_clip_pink_grabbed = {255, 218, 243, 255}, */
+    /* .midi_clip_pink = {227, 158, 203, 230}, */
+    /* .midi_clip_pink = {219, 138, 191, 230}, */
+    
+    .midi_clip_pink = {224, 164, 193, 230},
+    .midi_clip_pink_grabbed = {247, 200, 223, 230},
 
+
+    
     /* .midi_note_orange = {200, 120, 100, 255}, */
     .midi_note_orange = {220, 100, 80, 255},
     .midi_note_orange_grabbed = {255, 225, 100, 255},

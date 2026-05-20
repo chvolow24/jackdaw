@@ -1469,7 +1469,6 @@ static void synth_voice_add_buf(SynthVoice *v, float *restrict L, float *restric
     float amp_env[len];
     bool reinit_scheduled = false;
     enum adsr_stage amp_stage = adsr_get_chunk(&v->amp_env, amp_env, len, &reinit_scheduled);
-    /* fprintf(stderr, "\t\tGot amp chunk channel %d (env %p), end stage %d\n", channel, &v->amp_env[channel], amp_stage); */
     if (amp_stage == ADSR_OVERRUN && !reinit_scheduled) {
 	v->available = true;
 	/* fprintf(stderr, "\t\t\tFREEING VOICE %ld (env overrun)\n", v - v->synth->voices); */
@@ -1648,6 +1647,7 @@ static void synth_voice_assign_note(SynthVoice *v, double note, int velocity, in
 
     bool portamento = false;
     bool stolen = false;
+    
     if (!v->available) {
 	stolen = true;
 	if (v->synth->mono_mode || v->synth->poly_portamento_mode) {
@@ -1688,8 +1688,8 @@ static void synth_voice_assign_note(SynthVoice *v, double note, int velocity, in
     v->portamento_velocity_from = v->velocity;
     v->velocity = velocity;
     v->available = false;
-
-    if (portamento || stolen) {
+    
+    if (portamento && stolen) {
 	adsr_reinit(&v->amp_env, start_rel);
 	/* adsr_reinit(v->amp_env + 1, start_rel); */
 
@@ -2106,7 +2106,7 @@ void synth_add_buf(Synth *s, float *restrict L, float *restrict R, int32_t len, 
     /* synth_debug_summary(s, channel, len, step); */
     /* fprintf(stderr, "PED? %d\n", s->pedal_depressed); */
     /* if (channel != 0) return; */
-    
+
     if (s->mono_mode) has_timeout = false;
     #ifdef JDAW_MACOS_BUILD
     has_timeout = false;

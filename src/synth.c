@@ -1703,6 +1703,7 @@ static void synth_voice_assign_note(SynthVoice *v, double note, int velocity, in
 	/* adsr_init(v->amp_env + 1, start_rel); */
 
 	adsr_init(&v->filter_env, start_rel);
+	iir_clear(&v->filter);
 	/* adsr_init(v->filter_env + 1, start_rel); */
 
 	adsr_init(&v->noise_amt_env, start_rel);

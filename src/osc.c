@@ -11,6 +11,7 @@ void osc_init(
     double freq_hz,
     double *external_phase, // If NULL, external phase not tracked
     double *external_phase_incr,
+    double *external_phase_incr_dst, /* For linear ramps */
     double phase_shift
 )
 {
@@ -19,6 +20,7 @@ void osc_init(
     osc->phase_incr = freq_hz * TAU / session_get_sample_rate();
     osc->external_phase = external_phase;
     osc->external_phase_incr = external_phase_incr;
+    osc->external_phase_incr_dst = external_phase_incr_dst;
     osc->phase_shift = phase_shift;
 }
 
@@ -71,7 +73,7 @@ static inline void fill_buf_tri(OscGeneric *osc, float *restrict buf, int len)
 
 static inline void fill_buf_saw_up(OscGeneric *osc, float *restrict buf, int len)
 {
-    double phase = osc->external_phase ? *osc->external_phase + osc->phase_shift : osc->phase;
+    double phase = osc->external_phase ? *osc->external_phase + osc->phase_shift : osc->phase;\
     double phase_incr = osc->external_phase ? *osc->external_phase_incr : osc->phase_incr;
     for (int i=0; i<len; i++) {
 	buf[i] = 2 * phase / TAU - 1.0;
@@ -81,15 +83,39 @@ static inline void fill_buf_saw_up(OscGeneric *osc, float *restrict buf, int len
     osc->phase = phase;
 
 }
-
+/* static FILE *graph = NULL; */
+/* static int32_t written = 0; */
+/* static OscGeneric *first = NULL; */
 static inline void fill_buf_saw_down(OscGeneric *osc, float *restrict buf, int len)
 {
+    /* if (!graph) { */
+    /* 	graph = fopen("saw_down.csv", "w"); */
+    /* 	first = osc; */
+    /* } */
     double phase = osc->external_phase ? *osc->external_phase + osc->phase_shift : osc->phase;
-    double phase_incr = osc->external_phase ? *osc->external_phase_incr : osc->phase_incr;
+    double src_phase_incr = osc->external_phase ? *osc->external_phase_incr : osc->phase_incr;
+    double dst_phase_incr = osc->external_phase ? *osc->external_phase_incr_dst : osc->phase_incr;
+    double diff = dst_phase_incr - src_phase_incr;
+    bool do_grad = fabs(diff) > 1e-9;
+    /* double dst_phase_incr = osc->external_phase ? *osc->external_phase_incr_dst : osc->phase */
+    while (phase > TAU) phase -= TAU;
     for (int i=0; i<len; i++) {
+	double phase_incr = do_grad ?
+	    src_phase_incr + diff * (double)i / len
+	    : src_phase_incr;
+	    
+
 	buf[i] = 2 * (TAU - phase) / TAU - 1.0;
+	/* if (osc == first && buf[i] != 1.0) { */
+	/*     if (written < 96000 && buf[i] != 1.0) { */
+	/* 	fprintf(graph, "%f\n", buf[i]); */
+	/* 	written++; */
+	/*     } else { */
+	/* 	fprintf(stderr, "DONE\n"); */
+	/*     } */
+	/* } */
 	phase += phase_incr;
-	if (phase > TAU) phase -= TAU;	
+	if (phase > TAU) phase -= TAU;
     }
     osc->phase = phase;
 }

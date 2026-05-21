@@ -50,6 +50,10 @@ void mod_delay_buf(ModDelay *md, float *restrict buf_in, int len)
     for (int t=0; t<md->num_taps; t++) {
 	osc_generic_get_buf(&md->taps[t].osc, osc_bufs[t], len);
     }
+    /* After osc applies linear ramp across length of its buf, reset phase incr on parent */
+    if (md->phase_incr != md->dst_phase_incr) {
+	md->phase_incr = md->dst_phase_incr;
+    }
 
     float outbuf[len];
 	/* if (md->dst_amp_samples > 0) { */
@@ -65,16 +69,16 @@ void mod_delay_buf(ModDelay *md, float *restrict buf_in, int len)
 	/*     } */
 	/* } */
 
-    const float freq_change_coeff = 0.0004;
+    /* const float freq_change_coeff = 0.0004; */
     const float amp_change_coeff = 0.0008;
     for (int i=0; i<len; i++) {
 	if (md->dst_phase_incr != md->phase_incr) {
-	    md->phase_incr = freq_change_coeff * md->dst_phase_incr + (1 - freq_change_coeff) * md->phase_incr;
-	    if (fabs(md->phase_incr - md->dst_phase_incr) < 1e-6) {
-		md->phase_incr = md->dst_phase_incr;
-	    }
+	    md->phase_incr = md->dst_phase_incr;
+	    /* md->phase_incr = freq_change_coeff * md->dst_phase_incr + (1 - freq_change_coeff) * md->phase_incr; */
+	    /* if (fabs(md->phase_incr - md->dst_phase_incr) < 1e-6) { */
+	    /* 	md->phase_incr = md->dst_phase_incr; */
+	    /* } */
 	}
-    /* endthis: */
 	if (md->dst_amp_samples > 0) {
 	    md->amp_samples = amp_change_coeff * md->dst_amp_samples + (1 - amp_change_coeff) * md->amp_samples;
 	    md->center_samples = amp_change_coeff * md->dst_center_samples + (1 - amp_change_coeff) * md->center_samples;
@@ -84,8 +88,6 @@ void mod_delay_buf(ModDelay *md, float *restrict buf_in, int len)
 		md->dst_amp_samples = -1;
 	    }
 	}
-    /* endthat: */
-
 	for (int t=0; t<md->num_taps; t++) {
 	    ModDelayTap *tap = md->taps + t;
 	    double read_i = md->mem_index - md->center_samples - md->center_samples * osc_bufs[t][i];
@@ -98,6 +100,13 @@ void mod_delay_buf(ModDelay *md, float *restrict buf_in, int len)
 		    read_i += md->amp_samples;
 		}
 	    }
+	    /* static double old_read_i[2] = {0}; */
+	    /* double diff = fabs(read_i - old_read_i[t]); */
+	    /* if (diff > 1.0) { */
+	    /* 	fprintf(stderr, "DIFF: %f\n", diff); */
+	    /* } */
+	    /* old_read_i[t] = read_i; */
+	    
 	    int32_t left_i = floor(read_i);
 	    double ldiff = read_i - left_i;
 	    int32_t right_i;
@@ -127,6 +136,7 @@ void mod_delay_buf(ModDelay *md, float *restrict buf_in, int len)
 		outbuf[i] += out;
 	    }
 	}
+	
 	md->mem[md->mem_index] = buf_in[i];
 	md->mem_index++;
 	/* Mem is valid up through (incl) floor(md->amp_samples) */
@@ -136,6 +146,7 @@ void mod_delay_buf(ModDelay *md, float *restrict buf_in, int len)
     }
     memcpy(buf_in, outbuf, len * sizeof(float));
     md->phase += md->phase_incr * len;
+    
     while (md->phase < 0) {
 	md->phase += TAU;
     }
@@ -170,6 +181,7 @@ void mod_delay_init(ModDelay *md, int32_t max_len, double init_amp, double init_
 	    init_freq,
 	    &md->phase,
 	    &md->phase_incr,
+	    &md->dst_phase_incr,
 	    TAU * (double)i / num_taps);
 	    
     }

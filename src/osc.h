@@ -22,6 +22,7 @@ typedef struct osc_generic {
     double phase_incr; // computed from freq
     double *external_phase; // if not NULL, internal phase and phase incr are ignored
     double *external_phase_incr;
+    double *external_phase_incr_dst;
     double phase_shift; // relative to external    
     double freq_hz;
 } OscGeneric;
@@ -32,6 +33,7 @@ void osc_init(
     double freq_hz,
     double *external_phase, // If NULL, external phase not tracked
     double *external_phase_incr,
+    double *external_phase_incr_dst,
     double phase_shift
 );
     

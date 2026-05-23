@@ -36,6 +36,7 @@ typedef enum effect_type {
     EFFECT_COMPRESSOR,
     EFFECT_REVERB,
     EFFECT_PITCH_SHIFTER,
+    EFFECT_VIBRATO,
     NUM_EFFECT_TYPES
 } EffectType;
 

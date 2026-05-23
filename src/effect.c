@@ -23,6 +23,7 @@
 #include "project.h"
 #include "session.h"
 #include "schroeder.h"
+#include "vibrato.h"
 
 extern Window *main_win;
 
@@ -45,7 +46,8 @@ static const char *effect_type_strings[] = {
     "Saturation",
     "Compressor",
     "Reverb",
-    "Pitch shifter"
+    "Pitch shifter",
+    "Vibrato"
 };
 
 const char *effect_type_str(EffectType type)
@@ -325,6 +327,13 @@ Effect *effect_chain_add_effect(EffectChain *ec, EffectType type)
 	e->buf_apply = pitch_shifter_buf_apply;
 	e->operate_on_empty_buf = false;
 	break;
+    case EFFECT_VIBRATO:
+	e->obj = calloc(1, sizeof(Vibrato));
+	((Vibrato *)e->obj)->effect = e;
+	vibrato_init(e->obj);
+	e->buf_apply = vibrato_buf_apply;
+	e->operate_on_empty_buf = false;
+	break;
     case NUM_EFFECT_TYPES:
 	break;
     }
@@ -548,6 +557,9 @@ static void effect_silence(Effect *e)
     case EFFECT_PITCH_SHIFTER:
 	pitch_shifter_clear(e->obj);
 	break;
+    case EFFECT_VIBRATO:
+	vibrato_clear(e->obj);
+	break;
     default:
 	break;
     }
@@ -677,6 +689,9 @@ void effect_destroy(Effect *e)
 	break;
     case EFFECT_PITCH_SHIFTER:
 	pitch_shifter_deinit(e->obj);
+	break;
+    case EFFECT_VIBRATO:
+	vibrato_deinit(e->obj);
 	break;
     case NUM_EFFECT_TYPES:
 	break;

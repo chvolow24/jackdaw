@@ -20,6 +20,8 @@ void mod_delay_buf(ModDelay *md, float *restrict buf_in, int len)
 
     float outbuf[len];
 
+    bool is_vibrato = md->taps[0].osc.type == OSC_SINE;
+
     const float amp_change_coeff = 0.0008;
     for (int i=0; i<len; i++) {
 
@@ -36,14 +38,17 @@ void mod_delay_buf(ModDelay *md, float *restrict buf_in, int len)
 	}
 	for (int t=0; t<md->num_taps; t++) {
 	    ModDelayTap *tap = md->taps + t;
-	    double read_i = md->mem_index - md->center_samples - md->center_samples * osc_bufs[t][i];
-	    if (md->amp_samples > 1) {
-		while (read_i >= md->amp_samples) {
-		    read_i -= md->amp_samples;
-		}
-		while (read_i < 0) {
-		    read_i += md->amp_samples;
-		}
+	    double read_i;
+	    if (is_vibrato) {
+		read_i = md->mem_index - md->center_samples - md->center_samples * osc_bufs[t][i] * 0.98;
+	    } else {
+		read_i = md->mem_index - md->center_samples - md->center_samples * osc_bufs[t][i];
+	    }
+	    while (read_i >= md->amp_samples) {
+		read_i -= md->amp_samples;
+	    }
+	    while (read_i < 0) {
+		read_i += md->amp_samples;
 	    }
 	    
 	    int32_t left_i = floor(read_i);
@@ -128,6 +133,7 @@ void mod_delay_set_amp(ModDelay *md, double new_amp)
 /*     double ratio = new_amp / md->amp; */
 /*     fprintf(stderr, "AMP %f->%f\n", md->amp, new_amp); */
 /*     fprintf(stderr, "MEMIND: %d->%d\n", md->mem_index, (int32_t)(md->mem_index * ratio)); */
+    
     md->amp = new_amp;
     /* int32_t new_mem_index = md->mem_index * ratio; */
     /* md->mem_index = new_mem_index; */

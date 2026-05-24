@@ -6,11 +6,13 @@
 #include "osc.h"
 #include "session.h"
 
+#define MD_SPACER_SAMPLES 1
+
 void mod_delay_buf(ModDelay *md, float *restrict buf_in, int len)
 {
 
     float osc_bufs[md->num_taps][len];
-    fprintf(stderr, "%p\n\tPHASE INCR: %f\n\tAMP: %f\n", md, md->phase_incr, md->amp);
+    /* fprintf(stderr, "%p\n\tPHASE INCR: %f\n\tAMP: %f\n", md, md->phase_incr, md->amp); */
     for (int t=0; t<md->num_taps; t++) {
 	osc_generic_get_buf(&md->taps[t].osc, osc_bufs[t], len);
     }
@@ -21,45 +23,84 @@ void mod_delay_buf(ModDelay *md, float *restrict buf_in, int len)
 
     float outbuf[len];
 
-    bool is_vibrato = md->taps[0].osc.type == OSC_SINE;
+    /* bool is_vibrato = md->taps[0].osc.type == OSC_SINE; */
 
-    const float amp_change_coeff = 0.0008;
+    /* const float amp_change_coeff = 0.00002; */
+    /* const float amp_change_coeff = 0.0008; */
+    /* double prev_amp = md->amp_samples; */
+    double total_rb_len;
+    if (md->dst_amp_samples > 0) {
+	total_rb_len = MD_SPACER_SAMPLES * 2 + md->dst_amp_samples;
+	/* double old_len = MD_SPACER_SAMPLES * 2 + md->amp_samples; */
+	double ratio = md->amp_samples / md->dst_amp_samples;
+	md->mem_index /= ratio;
+	md->amp_samples = md->dst_amp_samples;
+	float new[(int32_t)ceil(total_rb_len)];
+	double old_i = 0.0;
+	for (int32_t i=0; i<ceil(total_rb_len); i++) {
+	    int32_t left_i = floor(old_i);
+	    float left = md->mem[left_i];
+	    float right = md->mem[left_i + 1];
+	    float diff_left = old_i - left_i;
+	    new[i] = left + (right - left) * diff_left;
+	    old_i += ratio;
+	}
+	memcpy(md->mem, new, sizeof(new));
+
+	md->center_samples = md->dst_center_samples;
+	md->dst_amp_samples = -1;
+
+	/* md->amp_samples = amp_change_coeff * md->dst_amp_samples + (1 - amp_change_coeff) * md->amp_samples; */
+	/* md->center_samples = amp_change_coeff * md->dst_center_samples + (1 - amp_change_coeff) * md->center_samples; */
+	/* /\* fprintf(stderr, "%f->%f, %f->%f\n", md->amp_samples, md->dst_amp_samples, md->center_samples, md->dst_center_samples); *\/ */
+	/* /\* fprintf(stderr, "%f->%f ; %f-%f\n", md->amp_samples, md->dst_amp_samples, md->center_samples, md->dst_center_samples); *\/ */
+	/* if (fabs(md->amp_samples - md->dst_amp_samples) < 1.0) { */
+	/* 	md->amp_samples = md->dst_amp_samples; */
+	/* 	md->center_samples = md->dst_center_samples; */
+	/* 	md->dst_amp_samples = -1; */
+	/* } */
+    } else {
+	total_rb_len = MD_SPACER_SAMPLES * 2 + md->amp_samples;
+    }
     for (int i=0; i<len; i++) {
 
 	/* Move amp_samples and center_samples in a lowpassed way
 	 Signald by md->dst_amp_samples > 0 (normal == -1) */
-	if (md->dst_amp_samples > 0) {
-	    md->amp_samples = amp_change_coeff * md->dst_amp_samples + (1 - amp_change_coeff) * md->amp_samples;
-	    md->center_samples = amp_change_coeff * md->dst_center_samples + (1 - amp_change_coeff) * md->center_samples;
-	    if (fabs(md->amp_samples - md->dst_amp_samples) < 1.0) {
-		md->amp_samples = md->dst_amp_samples;
-		md->center_samples = md->dst_center_samples;
-		md->dst_amp_samples = -1;
-	    }
-	}
+
+	/* if (md->amp_samples - prev_amp > 1.0) { */
+	/*     fprintf(stderr, "Diff over 1.0\n"); */
+	/* } */
 	for (int t=0; t<md->num_taps; t++) {
 	    ModDelayTap *tap = md->taps + t;
-	    double read_i;
-	    if (is_vibrato) {
- 		read_i = md->mem_index - md->center_samples - md->center_samples * osc_bufs[t][i] * 0.98;
-	    } else {
-		read_i = md->mem_index - md->center_samples - md->center_samples * osc_bufs[t][i];
+	    /* double read_i; */
+	    /* if (is_vibrato) { */
+ 	    /* 	read_i = md->mem_index - md->center_samples - md->center_samples * osc_bufs[t][i] * 0.98; */
+	    /* } else { */
+		/* read_i = md->mem_index - MD_SPACER_SAMPLES - md->center_samples - md->center_samples * osc_bufs[t][i]; */
+	    /* } */
+	    double read_i_rel = MD_SPACER_SAMPLES + md->center_samples - md->center_samples * osc_bufs[t][i];
+	    /* double read_i = md->mem_index + read_i_rel; */
+	    double read_i = md->mem_index + read_i_rel;
+ 	    if (read_i >= total_rb_len) {
+		read_i -= total_rb_len;
 	    }
-	    while (read_i >= md->amp_samples) {
-		read_i -= md->amp_samples;
-	    }
-	    while (read_i < 0) {
-		read_i += md->amp_samples;
+	    if (read_i < 0) {
+		read_i += total_rb_len;
 	    }
 	    
 	    int32_t left_i = floor(read_i);
-	    double ldiff = read_i - left_i;
-	    int32_t right_i;
-	    if (left_i >= floor(md->amp_samples)) {
-		right_i = 0;
-	    } else {
-		right_i = left_i + 1;
+	    int32_t right_i = left_i + 1;	    
+	    /* if (floor(read_i_rel) >= MD_SPACER_SAMPLES + floor(md->amp_samples)) { */
+	    /* 	right_i = md->mem_index; */
+	    /* } else { */
+	    /* 	right_i = left_i + 1; */
+	    /* } */
+	    if (right_i >= total_rb_len) {
+		right_i -= total_rb_len;
 	    }
+
+	    
+	    double ldiff = read_i - left_i;
 	    
 	    float left = md->mem[left_i];
 	    float right = md->mem[right_i];
@@ -75,12 +116,17 @@ void mod_delay_buf(ModDelay *md, float *restrict buf_in, int len)
 	    } else {
 		outbuf[i] += out;
 	    }
+	    /* md->prev_diff_out = diff; */
+	    /* md->prev_out = out; */
+	    /* md->prev_in = buf_in[i]; */
+	    /* md->prev_diff_in = diff_in; */
 	}
 	
 	md->mem[md->mem_index] = buf_in[i];
 	md->mem_index++;
 	/* Mem is valid up through (incl) floor(md->amp_samples) */
-	if (md->mem_index > floor(md->amp_samples)) {
+	if (md->mem_index > total_rb_len) {
+	/* if (md->mem_index > floor(md->amp_samples)) { */
 	    md->mem_index = 0;
 	}
     }
@@ -143,6 +189,7 @@ void mod_delay_set_amp(ModDelay *md, double new_amp)
     md->dst_amp_samples = new_amp * md->max_len;
     md->dst_center_samples = md->dst_amp_samples / 2;
 }
+
 
 void mod_delay_set_freq(ModDelay *md, double new_freq_hz)
 {

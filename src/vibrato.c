@@ -44,7 +44,7 @@ LabelFnDef(vib_freq_labelfn)
 
 static double depth_from_ctrl_and_freq(double depth_ctrl, double freq_hz)
 {
-    return depth_ctrl / (PI * freq_hz);
+    return pow(depth_ctrl, 2.0) / (PI * freq_hz);
 }
 
 static void freq_dsp_cb(Endpoint *ep)
@@ -119,7 +119,7 @@ void vibrato_init(Vibrato *vib)
     endpoint_set_allowed_range(
 	&vib->depth_ep,
 	(Value){.double_v = 0.0},
-	(Value){.double_v = 0.9});
+	(Value){.double_v = 1.0});
     endpoint_set_default_value(&vib->depth_ep, (Value){.double_v = VIB_DEFAULT_DEPTH});
     endpoint_write_default(&vib->depth_ep);
     api_endpoint_register(&vib->depth_ep, &vib->effect->api_node);

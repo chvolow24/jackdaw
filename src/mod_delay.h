@@ -33,6 +33,11 @@ typedef struct mod_delay {
     double amp_msec; // exposed
     double freq_hz; // exposed
     /* OscGeneric osc; */
+
+    /* float prev_out; */
+    /* float prev_diff_out; */
+    /* float prev_in; */
+    /* float prev_diff_in; */
     
     int num_taps;
     ModDelayTap taps[MAX_MOD_DELAY_TAPS];

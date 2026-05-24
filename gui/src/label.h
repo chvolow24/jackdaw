@@ -12,6 +12,8 @@
 
 /* typedef void (*LabelStrFn)(char *dst, size_t dstsize, void *target, ValType type); */
 typedef void (*LabelStrFn)(char *dst, size_t dstsize, Value val, ValType type);
+#define LabelFnDef(name) void name(char *dst, size_t dstsize, Value val, ValType type)
+
 
 typedef struct label {
     /* Layout *layout; */

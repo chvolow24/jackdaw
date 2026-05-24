@@ -10,6 +10,7 @@ void mod_delay_buf(ModDelay *md, float *restrict buf_in, int len)
 {
 
     float osc_bufs[md->num_taps][len];
+    fprintf(stderr, "%p\n\tPHASE INCR: %f\n\tAMP: %f\n", md, md->phase_incr, md->amp);
     for (int t=0; t<md->num_taps; t++) {
 	osc_generic_get_buf(&md->taps[t].osc, osc_bufs[t], len);
     }
@@ -40,7 +41,7 @@ void mod_delay_buf(ModDelay *md, float *restrict buf_in, int len)
 	    ModDelayTap *tap = md->taps + t;
 	    double read_i;
 	    if (is_vibrato) {
-		read_i = md->mem_index - md->center_samples - md->center_samples * osc_bufs[t][i] * 0.98;
+ 		read_i = md->mem_index - md->center_samples - md->center_samples * osc_bufs[t][i] * 0.98;
 	    } else {
 		read_i = md->mem_index - md->center_samples - md->center_samples * osc_bufs[t][i];
 	    }
@@ -133,7 +134,9 @@ void mod_delay_set_amp(ModDelay *md, double new_amp)
 /*     double ratio = new_amp / md->amp; */
 /*     fprintf(stderr, "AMP %f->%f\n", md->amp, new_amp); */
 /*     fprintf(stderr, "MEMIND: %d->%d\n", md->mem_index, (int32_t)(md->mem_index * ratio)); */
-    
+
+    if (new_amp > 0.99) new_amp = 0.99;
+    if (new_amp < 0.0) new_amp = 0.0;
     md->amp = new_amp;
     /* int32_t new_mem_index = md->mem_index * ratio; */
     /* md->mem_index = new_mem_index; */

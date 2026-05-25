@@ -1,12 +1,14 @@
 #include "consts.h"
 #include "endpoint.h"
 #include "endpoint_callbacks.h"
+#include "label.h"
 #include "mod_delay.h"
 #include "session.h"
 #include "vibrato.h"
 
-#define MAX_VIB_DELAY_LEN (session_get_sample_rate() / 2)
-#define VIB_DEFAULT_DEPTH 0.28
+#define MAX_VIB_DELAY_LEN_SECONDS 2
+#define MAX_VIB_DELAY_LEN (session_get_sample_rate())
+#define VIB_DEFAULT_DEPTH 0.20
 #define VIB_DEFAULT_FREQ_HZ 4.0
 #define VIB_DEFAULT_FREQ_UNSCALED (vib_unscale_freq(VIB_DEFAULT_FREQ_HZ))
 #define VIB_MAX_FREQ_HZ 200.0
@@ -45,6 +47,19 @@ LabelFnDef(vib_freq_labelfn)
 static double depth_from_ctrl_and_freq(double depth_ctrl, double freq_hz)
 {
     return pow(depth_ctrl, 2.0) / (PI * freq_hz);
+}
+
+static LabelFnDef(vib_depth_labelfn)
+{
+    double ctrl = val.double_v;
+    double max_slope = ctrl * ctrl;
+    /* 0 ; ps=1 ; rat 1 ; 0st
+       1 ; ps=2 ; rat 2 ; 12st
+       2 ; ps=3 ; rat 3 ; 
+       3 ; ps=4 ; rat 4 ; 24st
+     */
+    double semitones = log2(max_slope + 1.0) * 12;
+    snprintf(dst, dstsize, "%.0f cents", semitones * 100);
 }
 
 static void freq_dsp_cb(Endpoint *ep)
@@ -116,6 +131,7 @@ void vibrato_init(Vibrato *vib)
 	JDAW_THREAD_DSP,
 	component_gui_cb, NULL, depth_dsp_cb,
 	vib, NULL, NULL, NULL);
+    endpoint_set_label_fn(&vib->depth_ep, vib_depth_labelfn);
     endpoint_set_allowed_range(
 	&vib->depth_ep,
 	(Value){.double_v = 0.0},

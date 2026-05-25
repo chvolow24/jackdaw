@@ -24,6 +24,7 @@
 #include "midi_clip.h"
 #include "midi_file.h"
 #include "midi_io.h"
+#include "pitch_shifter.h"
 #include "project.h"
 #include "route.h"
 #include "schroeder.h"
@@ -32,6 +33,7 @@
 #include "transport.h"
 #include "type_serialize.h"
 #include "loading.h"
+#include "vibrato.h"
 
 #define OLD_FLOAT_SER_W 16
 
@@ -56,7 +58,7 @@ const static char hdr_trck_efct[] = "EFCT";
 const static char hdr_trck_synth[] = "SYNTH";
 const static char hdr_aud_rt[] = "AUDRT";
 
-const static char current_file_spec_version[] = "00.25";
+const static char current_file_spec_version[] = "00.26";
 
 static char read_file_spec_version[6];
 bool read_file_version_older_than(const char *cmp_version)
@@ -311,6 +313,9 @@ static void jdaw_write_saturation(FILE *f, Saturation *s);
 static void jdaw_write_eq(FILE *f, EQ *eq);
 static void jdaw_write_compressor(FILE *f, Compressor *compressor);
 static void jdaw_write_reverb(FILE *f, Schroeder *schroeder);
+static void jdaw_write_pitch_shifter(FILE *f, PitchShifter *ps);
+static void jdaw_write_vibrato(FILE *f, Vibrato *vib);
+
 
 static void jdaw_write_effect(FILE *f, Effect *e)
 {
@@ -340,6 +345,12 @@ static void jdaw_write_effect(FILE *f, Effect *e)
 	break;
     case EFFECT_REVERB:
 	jdaw_write_reverb(f, e->obj);
+	break;
+    case EFFECT_PITCH_SHIFTER:
+	jdaw_write_pitch_shifter(f, e->obj);
+	break;
+    case EFFECT_VIBRATO:
+	jdaw_write_vibrato(f, e->obj);
 	break;
     default:
 	break;
@@ -424,6 +435,19 @@ static void jdaw_write_reverb(FILE *f, Schroeder *sch)
     /* float_ser40_le(f, c->m); */
     /* float_ser40_le(f, c->makeup_gain); */
 }
+
+static void jdaw_write_pitch_shifter(FILE *f, PitchShifter *ps)
+{
+    fwrite(&ps->effect->active, 1, 1, f);
+    api_node_serialize(f, &ps->effect->api_node);
+}
+
+static void jdaw_write_vibrato(FILE *f, Vibrato *vib)
+{
+    fwrite(&vib->effect->active, 1, 1, f);
+    api_node_serialize(f, &vib->effect->api_node);
+}
+
 
 
 
@@ -1304,6 +1328,8 @@ static int jdaw_read_saturation(FILE *f, Saturation *s);
 static int jdaw_read_eq(FILE *f, EQ *eq);
 static int jdaw_read_compressor(FILE *f, Compressor *c);
 static int jdaw_read_reverb(FILE *f, Schroeder *sch);
+static int jdaw_read_pitch_shifter(FILE *f, PitchShifter *ps);
+static int jdaw_read_vibrato(FILE *f, Vibrato *vib);
 
 static int jdaw_read_effect(FILE *f, EffectChain *ec)
 {
@@ -1350,6 +1376,12 @@ static int jdaw_read_effect(FILE *f, EffectChain *ec)
 	break;
     case EFFECT_REVERB:
 	jdaw_read_reverb(f, e->obj);
+	break;
+    case EFFECT_PITCH_SHIFTER:
+	jdaw_read_pitch_shifter(f, e->obj);
+	break;
+    case EFFECT_VIBRATO:
+	jdaw_read_vibrato(f, e->obj);
 	break;
     default:
 	break;
@@ -1445,6 +1477,22 @@ static int jdaw_read_reverb(FILE *f, Schroeder *sch)
     api_node_deserialize(f, &sch->effect->api_node);
     return 0;
 }
+
+static int jdaw_read_pitch_shifter(FILE *f, PitchShifter *ps)
+{
+    ps->effect->active = uint8_deser(f);
+    api_node_deserialize(f, &ps->effect->api_node);
+    return 0;
+}
+
+static int jdaw_read_vibrato(FILE *f, Vibrato *vib)
+{
+    vib->effect->active = uint8_deser(f);
+    api_node_deserialize(f, &vib->effect->api_node);
+    return 0;
+}
+
+
 
 static int jdaw_read_clipref(FILE *f, Track *track)
 {

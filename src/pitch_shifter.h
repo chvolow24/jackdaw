@@ -11,8 +11,8 @@ typedef struct pitch_shifter {
     double shift_cents; // final sum
     double shift_cents_internal; // ep target, added to other shifters
     
-    double shift_semitones;
-    int shift_fine;
+    int shift_semitones;
+    double shift_fine;
     double quality; // 0.0 = phase coherence; 1.0 = frequency coherence (less comb filtering)
     ModDelay mdL;
     ModDelay mdR;

@@ -292,10 +292,25 @@ Layout *mouse_triage_wheel(int x, int y, bool dynamic)
     if (main_win->ac_active) {
 	return autocompletion_scroll(y, dynamic);
     }
-    if (main_win->num_modals == 0) return NULL;
-    Modal *top_modal = main_win->modals[main_win->num_modals -1];
-    if (top_modal) {
-	return modal_triage_wheel(top_modal, &main_win->mousep, x, y, dynamic);
+    if (main_win->num_modals > 0) {
+	Modal *top_modal = main_win->modals[main_win->num_modals -1];
+	if (top_modal) {
+	    return modal_triage_wheel(top_modal, &main_win->mousep, x, y, dynamic);
+	}
+    }
+    if (main_win->active_tabview) {
+	Page *page = main_win->active_tabview->tabs[main_win->active_tabview->current_tab];
+	if (SDL_PointInRect(&main_win->mousep, &page->layout->rect)) {
+	    for (int i=0; i<page->num_elements; i++) {
+		PageEl *el = page->elements[i];
+		if (el->type == EL_PAGE_LIST && SDL_PointInRect(&main_win->mousep, &el->layout->rect)) {
+		    PageList *pl = el->component;
+		    layout_scroll(pl->inner_layout, 0, y, dynamic);
+		    return pl->inner_layout;
+		}
+	    }
+	}
+
     }
     return NULL;
 }

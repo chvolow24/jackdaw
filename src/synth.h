@@ -292,7 +292,11 @@ int synth_set_freq_mod_pair(Synth *s, OscCfg *carrier_cfg, OscCfg *modulator_cfg
 /* Return 0 for success, 1 for unset (carrier NULL), < 0 for error */
 int synth_set_amp_mod_pair(Synth *s, OscCfg *carrier_cfg, OscCfg *modulator_cfg);
 
+/* Additive */
 void synth_pitch_bend(Synth *s, float cents);
+
+/* Overrides existing pitch bend */
+void synth_set_pitch_bend(Synth *s, float cents);
 
 void synth_destroy(Synth *s);
 

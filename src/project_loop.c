@@ -41,6 +41,7 @@
 #include "session_endpoint_ops.h"
 #include "session.h"
 #include "settings.h"
+#include "synth.h"
 #include "tempo.h"
 #include "thread_safety.h"
 #include "timeline.h"
@@ -102,6 +103,10 @@ void loop_project_main()
     int play_speed_scroll_recency = 60;
     bool scrub_block = false;
     int frames_since_event = 0;
+
+    float pitch_bend = 0.0f;
+    bool set_pitch_bend = false;
+    
     main_win->current_event = &e;
     while (!(main_win->i_state & I_STATE_QUIT)) {
 	while (SDL_PollEvent(&e)) {
@@ -375,6 +380,13 @@ void loop_project_main()
 		Layout *modal_or_page_scrollable = NULL;
 		if ((modal_or_page_scrollable = mouse_triage_wheel(e.wheel.preciseX * LAYOUT_SCROLL_SCALAR, e.wheel.preciseY * LAYOUT_SCROLL_SCALAR, fingersdown))) {
 		    temp_scrolling_lt = modal_or_page_scrollable;
+		} else if (TOP_MODE == MODE_MIDI_QWERTY) {
+		    /* static float pitch_bend = 0.0f; */
+		    pitch_bend += e.wheel.preciseY * 10.0;
+		    set_pitch_bend = true;
+		    /* if (pitch_bend != 0.0) { */
+		    /* 	pitch_bend  */
+		    /* } */
 		} else if (TOP_MODE == MODE_TIMELINE || TOP_MODE == MODE_TABVIEW || TOP_MODE == MODE_PIANO_ROLL || TOP_MODE == MODE_MIDI_QWERTY) {
 		    if (main_win->i_state & I_STATE_SHIFT) {
 			if (fabs(e.wheel.preciseY) > fabs(e.wheel.preciseX)) {
@@ -630,6 +642,22 @@ void loop_project_main()
 	if (session->piano_roll) {
 	    if (piano_roll_execute_queued_insertions()) {
 		frames_since_event = 0;
+	    }
+	}
+	if (set_pitch_bend) {
+	    if (fingersdown < 2) {
+		pitch_bend -= pitch_bend / 4.0;
+	    }
+	    if (fabs(pitch_bend) < 1e-6) {
+		pitch_bend = 0.0f;
+		set_pitch_bend = false;		
+	    }
+	    Synth *monitor_synth = NULL;
+	    MIDIDevice *mdevice = NULL;
+	    if ((monitor_synth = session->midi_io.monitor_synth) && (mdevice = session->midi_io.monitor_device)) {
+		mqwert_set_pitch_bend(pitch_bend);
+		/* synth_set_pitch_bend(session->midi_io.monitor_synth, pitch_bend); */
+		
 	    }
 	}
 

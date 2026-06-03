@@ -2003,6 +2003,10 @@ void track_rename(Track *track)
 static void timeline_remove_track(Track *track)
 {
 
+    if (main_win->active_tabview) {
+	tabview_close(main_win->active_tabview);
+    }
+
     /* Audio routes first */
     audio_route_track_deleted(track);
 

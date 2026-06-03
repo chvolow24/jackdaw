@@ -208,6 +208,9 @@ typedef struct page_list {
     int item_corner_rad;
 
     int *monitor_num_items;
+
+    ComponentFn empty_action;
+    void *empty_action_target;
     /* void *connected_obj; */
     /* void (*create_items_fn)(Page **dst, void *items, int num_items); */
 } PageList;

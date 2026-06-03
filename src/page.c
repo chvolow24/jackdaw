@@ -1042,6 +1042,7 @@ static void page_el_draw(PageEl *el)
 
 void page_draw(Page *page)
 {
+    /* fprintf(stderr, "SEL ITEM: %d\n", page->selected_i); */
     /* fprintf(stdout, "page lt rect %d %d %d %d\n", page->layout->rect.x, page->layout->rect.y, page->layout->rect.w, page->layout->rect.h); */
     /* fprintf(stdout, "Page dims: %d %d %f %f\n", page->layout->x.value.intval, page->layout->y.value.intval, page->layout->w.value, page->layout->h.value); */
     if (page->background_color) {
@@ -1571,6 +1572,10 @@ void page_enter(Page *page)
 	if (pl->num_items > 0) {
 	    Page *item_page = pl->pages[pl->selected_item];
 	    page_enter(item_page);
+	} else {
+	    if (pl->empty_action) {
+		pl->empty_action(pl, pl->empty_action_target);
+	    }
 	}
     }
 	/* page_list_enter(el->component); */

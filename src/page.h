@@ -71,7 +71,7 @@ typedef struct page {
     bool onscreen;
 
     TabView *tabview; /* populated if page has parent tv */
-    PageList *page_list; /* populated if page has parent PageList */
+    PageList *parent_page_list; /* populated if page has parent PageList */
 } Page;
 
 typedef struct tab_view {

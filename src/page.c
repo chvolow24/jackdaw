@@ -1047,7 +1047,7 @@ void page_draw(Page *page)
     if (page->background_color) {
 	SDL_SetRenderDrawColor(page->win->rend, sdl_colorp_expand(page->background_color));
 	SDL_Rect temp = page->layout->rect;
-	if (page->tabview || !page->page_list) {
+	if (page->tabview || !page->parent_page_list) {
 	    int r = PAGE_R * page->win->dpi_scale_factor;
 	    geom_fill_rounded_rect(page->win->rend, &temp, r);
 
@@ -1060,8 +1060,8 @@ void page_draw(Page *page)
 	    SDL_SetRenderDrawColor(page->win->rend, sdl_color_expand(colors.black));
 	    geom_draw_rounded_rect_thick(page->win->rend, &temp, 7, TAB_R * page->win->dpi_scale_factor);
 
-	} else if (page->page_list) {
-	    int r = page->page_list->item_corner_rad * page->win->dpi_scale_factor;
+	} else if (page->parent_page_list) {
+	    int r = page->parent_page_list->item_corner_rad * page->win->dpi_scale_factor;
 	    geom_draw_rounded_rect(page->win->rend, &temp, r);
 	    /* geom_fill_rounded_rect(page->win->rend, &temp, r);	     */
 	}/*  else { */
@@ -1075,11 +1075,12 @@ void page_draw(Page *page)
 	page_el_draw(page->elements[i]);
 	if (page->selected_i >= 0
 	    && page->elements[i] == page->selectable_els[page->selected_i]
-	    && page->elements[i]->type != EL_PAGE_LIST /* Do not draw selection around page list */
-	    && !(page->page_list &&
-		 (page->page_list->selected_item < 0
-		  || page->page_list->pages[page->page_list->selected_item] != page
-		  || !page->page_list->selected_on_parent_page))) /* If page is *in* page list, do not draw unless an item is selected */
+	    && (page->elements[i]->type != EL_PAGE_LIST /* Do not draw selection around PL... */
+		|| ((PageList *)page->elements[i]->component)->num_items == 0) /* ...unless empty */
+	    && !(page->parent_page_list &&
+		 (page->parent_page_list->selected_item < 0
+		  || page->parent_page_list->pages[page->parent_page_list->selected_item] != page
+		  || !page->parent_page_list->selected_on_parent_page))) /* If page is *in* page list, do not draw unless an item is selected */
 	{
 	    SDL_SetRenderDrawColor(page->win->rend, 255, 200, 10, 255);
 	    SDL_Rect r = page->elements[i]->layout->rect;
@@ -1740,7 +1741,7 @@ void page_center_contents(Page *page)
 /* components.c needs to set member without page def */
 void page_set_page_list(Page *page, PageList *pl)
 {
-    page->page_list = pl;
+    page->parent_page_list = pl;
 }
 
 

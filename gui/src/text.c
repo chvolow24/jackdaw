@@ -833,6 +833,9 @@ static int txt_area_create_line(TextArea *txtarea, char **line_start, int w)
 void txt_area_create_lines(TextArea *txtarea)
 {
     TTF_Font *font = ttf_get_font_at_size(txtarea->font, txtarea->text_size);
+    /* Create room for textboxes */
+    txtarea->layout->rect.w = 2000;
+   
     /* fprintf(stdout, "\nTXTAREA CREATE font: %p, Text size: %d\n", txtarea->font, txtarea->text_size); */
     /* Clear old values if present */
     for (int i=0; i<txtarea->num_lines; i++) {
@@ -864,20 +867,26 @@ void txt_area_create_lines(TextArea *txtarea)
     line_template->y.type = STACK;
     line_template->y.value = txtarea->line_spacing;
     line_template->h.value = (float)txtarea->text_h / txtarea->win->dpi_scale_factor;
-    
-    for (int i=0; i<txtarea->num_lines; i++) {
+    line_template->h.value = txtarea->line_heights[0] / txtarea->win->dpi_scale_factor;
+    line_template->w.value = txtarea->line_widths[0] / txtarea->win->dpi_scale_factor;
+    layout_reset(line_template);
+    for (int i=1; i<txtarea->num_lines; i++) {
 	txtarea->layout->h.value += ((float)txtarea->text_h / txtarea->win->dpi_scale_factor) + txtarea->line_spacing;
-	/* layout_add_iter(line_template, VERTICAL, false); */
-	line_template->w.value = txtarea->line_widths[i];
-	layout_copy(line_template, txtarea->layout);
+	Layout *line_lt = layout_copy(line_template, txtarea->layout);
+	line_lt->h.value = txtarea->line_heights[i] / txtarea->win->dpi_scale_factor;
+	line_lt->w.value = txtarea->line_widths[i] / txtarea->win->dpi_scale_factor;
+	layout_reset(line_lt);
     }
-    /* reset_iterations(line_template->iterator); */
+    layout_force_reset(txtarea->layout);
+    layout_size_to_fit_children(txtarea->layout, true, 0);
+    layout_force_reset(txtarea->layout);
 }
 
 
 TextArea *txt_area_create(const char *value, Layout *layout, Font *font, uint8_t text_size, SDL_Color color, Window *win)
 {
     TextArea *txtarea = malloc(sizeof(TextArea));
+    layout->w.type = ABS;
     txtarea->layout = layout;
     txtarea->font = font;
     txtarea->text_size = text_size;
@@ -960,40 +969,14 @@ void txt_draw(Text *txt)
     
 void txt_area_draw(TextArea *txtarea)
 {
-    /* SDL_RenderSetClipRect(main_win->rend, &txtarea->layout->rect); */
     for (int i=0; i<txtarea->num_lines; i++) {
 	Layout *line_lt = txtarea->layout->children[i];
-	/* Layout *line_lt = txtarea->layout->children[0]->iterator->iterations[i]; */
-	line_lt->rect.w = txtarea->line_widths[i];
-	line_lt->rect.h = txtarea->line_heights[i];
-	/* fprintf(stdout, "W and H: %d, %d\n", line_lt->rect.w, line_lt->rect.h); */
-	/* layout_set_values_from_rect(line_lt); */
-	/* layout_set_name(line_lt, "FUCKITY FUCK FUCK FUCK"); */
-	/* FILE *f = fopen("test.xml", "w"); */
-	/* layout_write(f, line_lt->parent, 0); */
-	/* exit(0); */
-	/* layout_force_reset(line_lt->parent); */
-	/* uint8_t r,g,b,a; */
-	/* SDL_Rect test = {200, 200, 1200, 90}; */
-	/* SDL_GetRenderDrawColor(txtarea->win->rend, &r, &b, &g, &a); */
-	/* SDL_SetRenderDrawColor(txtarea->win->rend, 255, 0, 0, 255); */
-	/* SDL_RenderDrawRect(txtarea->win->rend, &line_lt->rect); */
-	/* SDL_RenderDrawRect(txtarea->win->rend, &test); */
-	/* fprintf(stdout, "WHAT THE FUCK %d %d %d %d\n", line_lt->rect.x, line_lt->rect.y, line_lt->rect.w, line_lt->rect.h); */
-	/* SDL_SetRenderDrawColor(txtarea->win->rend, r, g, b, a); */
-
-	/* fprintf(stdout, "\n\nLine lt rect target: %p %d %d %d %d\n", txtarea->line_textures[i], line_lt->rect.x, line_lt->rect.y, line_lt->rect.w, line_lt->rect.h); */
 	if (SDL_RenderCopy(txtarea->win->rend, txtarea->line_textures[i], NULL, &line_lt->rect) != 0) {
 	    fprintf(stderr, "Error: Render Copy failed in txt_draw. %s\n", SDL_GetError());
 	    exit(1);
 	}
-	/* if (SDL_RenderCopy(txtarea->win->rend, txtarea->line_textures[i], NULL, &test) != 0) { */
-	/*     fprintf(stderr, "Error: Render Copy failed in txt_draw. %s\n", SDL_GetError()); */
-	/*     exit(1); */
-	/* } */
-
     }
-    /* SDL_RenderSetClipRect(main_win->rend, &main_win->layout->rect); */
+    /* layout_draw(main_win, txtarea->layout); */
 }
 
 

@@ -4,7 +4,7 @@
 #include "layout.h"
 #include "text.h"
 
-#define MAX_MENU_SCTN_LEN 64
+#define MAX_MENU_SCTN_LEN 255
 #define MAX_MENU_SECTIONS 16
 #define MAX_MENU_COLUMNS 8
 #define MAX_ADDTL_TBS 16

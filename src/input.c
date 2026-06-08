@@ -522,7 +522,7 @@ Menu *input_create_master_menu()
     }
 
     menu_add_header(m, NULL, menu_helper_str);
-    layout_center_agnostic(m_layout, true, true);
+    /* layout_center_agnostic(m_layout, true, true); */
     menu_reset_layout(m);
     return m;
 }

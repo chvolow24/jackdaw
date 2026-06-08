@@ -617,26 +617,7 @@ void user_menu_nav_next_item(void *nullarg)
 	menu_nav_mode_error();
 	return;
     }
-
-    if (m->sel_col == 255) {
-	m->sel_col = 0;
-    }
-    MenuColumn *c = m->columns[m->sel_col];
-    if (c->sel_sctn == 255) {
-	c->sel_sctn = 0;
-    }
-    MenuSection *s = c->sections[c->sel_sctn];
-    if (s->sel_item == 255) {
-	s->sel_item = 0;
-    } else if (s->sel_item < s->num_items - 1) {
-	s->items[s->sel_item]->selected = false;
-	s->sel_item++;
-	s->items[s->sel_item]->selected = true;
-    } else if (c->sel_sctn < c->num_sections - 1) {
-	c->sel_sctn++;
-	s = c->sections[c->sel_sctn];
-	s->sel_item = 0;
-    }
+    menu_next(m);
 }
 
 void user_menu_nav_prev_item(void *nullarg)
@@ -646,24 +627,7 @@ void user_menu_nav_prev_item(void *nullarg)
 	menu_nav_mode_error();
 	return;
     }
-    if (m->sel_col == 255) {
-	m->sel_col = 0;
-    }
-    MenuColumn *c = m->columns[m->sel_col];
-    if (c->sel_sctn == 255) {
-	c->sel_sctn = 0;
-    }
-    MenuSection *s = c->sections[c->sel_sctn];
-    if (s->sel_item == 255) {
-	s->sel_item = 0;
-    } else if (s->sel_item > 0) {
-	/* s->items[s->sel_item]->selected = false; */
-	s->sel_item--;
-	/* s->items[s->sel_item]->selected = true; */
-    } else if (c->sel_sctn > 0) {
-	c->sel_sctn--;
-	
-    }
+    menu_prev(m);
 }
 
 

@@ -295,7 +295,7 @@ Layout *mouse_triage_wheel(int x, int y, bool dynamic)
     if (main_win->num_menus > 0) {
 	Menu *menu = main_win->menus[main_win->num_menus - 1];
 	if (SDL_PointInRect(&main_win->mousep, &menu->layout->rect)) {
-	    return menu_scroll(menu, main_win->mousep, y, dynamic);
+	    return menu_scroll(menu, main_win->mousep, x, y, dynamic);
 	}
     }
     if (main_win->num_modals > 0) {

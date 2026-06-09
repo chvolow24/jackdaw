@@ -648,18 +648,7 @@ void user_menu_nav_column_right(void *nullarg)
 	menu_nav_mode_error();
 	return;
     }
-    if (m->sel_col < m->num_columns - 1) {
-	m->sel_col++;
-	MenuColumn *c = m->columns[m->sel_col];
-	if (c->sel_sctn == 255) {
-	    c->sel_sctn = 0;
-	    MenuSection *s = c->sections[c->sel_sctn];
-	    if (s->sel_item == 255) {
-		s->sel_item = 0;
-	    }
-	}
-	
-    }
+    menu_right(m);
 }
 
 void user_menu_nav_column_left(void *nullarg)
@@ -669,11 +658,7 @@ void user_menu_nav_column_left(void *nullarg)
 	menu_nav_mode_error();
 	return;
     }
-    if (m->sel_col == 255) {
-	m->sel_col = 0;
-    } else if (m->sel_col > 0) {
-	m->sel_col--;
-    }
+    menu_left(m);
 }
 
 void user_menu_nav_choose_item(void *nullarg)
@@ -1271,7 +1256,6 @@ static NEW_EVENT_FN(add_track_redo, "redo add track")
 }
 
 static NEW_EVENT_FN(add_track_dispose_forward, "")
-fprintf(stderr, "Add track dispose forward...\n");
     Track *track = (Track *)obj1;
     track_destroy(track, false);
 }

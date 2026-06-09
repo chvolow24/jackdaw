@@ -84,14 +84,19 @@ Menu *menu_create(Layout *layout, Window *window)
     menu->selected = NULL;
     menu->sel_col = 255;
     /* Creat header layout */
-    layout_add_child(layout);
+    menu->header_container = layout_add_child(layout);
     /* NOTE: header is sized to fit children, and therefore not SCALE */
     /* header->w.type = SCALE; */
     /* header->w.value = 1.0; */
-    Layout *main_contents = layout_add_child(layout);
-    main_contents->w.type = SCALE;
-    main_contents->w.value = 1.0;
-    main_contents->y.type = STACK;
+    menu->cols_container = layout_add_child(layout);
+    menu->cols_container->w.type = SCALE;
+    menu->cols_container->w.value = 1.0;
+    menu->cols_container->y.type = STACK;
+    menu->cols_lt = layout_add_child(menu->cols_container);
+    menu->cols_lt->w.type = SCALE;
+    menu->cols_lt->h.type = SCALE;
+    menu->cols_lt->w.value = 1.0;
+    menu->cols_lt->h.value = 1.0;
     /* main_contents->h.type = REVREL; */
     /* layout_add_complementary_child(layout, H); */
     
@@ -125,7 +130,8 @@ Menu *menu_create_at_point(int x_pix, int y_pix)
 void menu_reset_layout(Menu *menu)
 {
     layout_force_reset(menu->layout);
-    layout_size_to_fit_children(menu->layout->children[1], true, MENU_STD_COLUMN_PAD);
+    layout_size_to_fit_children(menu->cols_lt, true, MENU_STD_COLUMN_PAD);
+    layout_size_to_fit_children(menu->cols_container, true, MENU_STD_COLUMN_PAD);
     layout_size_to_fit_children(menu->layout, true, MENU_STD_COLUMN_PAD);
 
     /* Translate if overflows window */
@@ -140,34 +146,36 @@ void menu_reset_layout(Menu *menu)
 	if (menu->layout->y.value < 0) menu->layout->y.value = 0;
     }
 
-    /* Overflow columns */
-    /* bool some_cols_overflow = false; */
+    /* Overflow individual columns */
     if (menu->layout->rect.h > menu->window->h_pix) {
 	menu->layout->h.value = menu->window->layout->h.value;
-	menu->layout->children[1]->h.type = REVREL;
-	menu->layout->children[1]->h.value = MENU_STD_SECTION_PAD;
+	menu->cols_container->h.type = REVREL;
+	menu->cols_container->h.value = MENU_STD_SECTION_PAD;
+	menu->cols_lt->h.type = REVREL;
+	menu->cols_lt->h.value = 0;
+
+	/* fprintf(stderr, "SET COLS CONTAINER TO REVREL\n"); */
+	/* menu->layout->children[1]->h.value =  */
 	layout_reset(menu->layout);
 	for (int i=0; i<menu->num_columns; i++) {
 	    int col_btm_y = menu->columns[i]->layout->rect.y + menu->columns[i]->layout->rect.h;
 	    int menu_btm_y = menu->layout->rect.y + menu->layout->rect.h;
 	    if (col_btm_y > menu_btm_y - MENU_STD_SECTION_PAD) {
-		/* some_cols_overflow = true; */
 		menu->columns[i]->overflow = true;
 		menu->columns[i]->container->h.type = REVREL;
 		menu->columns[i]->container->h.value = 0;
 		layout_force_reset(menu->columns[i]->container);
-		/* fprintf(stderr, "OVERFLOW column %d\n", i); */
 	    }
 	}
-	/* layout_reset(menu->layout); */
-	/* for (int i=0; i<menu->layout-> */
     }
-    /* if (some_cols_overflow) { */
-    /* 	layout_size_to_fit_children(menu->layout->children[1], true, MENU_STD_COLUMN_PAD); */
-    /* 	layout_size_to_fit_children(menu->layout, true, MENU_STD_COLUMN_PAD); */
-    /* } */
-    
 
+    /* Overflow columns container */
+    if (menu->layout->rect.w > menu->window->w_pix) {
+	menu->layout->w.value = menu->window->layout->w.value;
+	menu->cols_container->w.type = REVREL;
+	menu->cols_container->w.value = 0;
+	menu->cols_overflow = true;
+    }
     
     layout_reset(menu->layout);
     menu_reset_textboxes(menu);
@@ -177,7 +185,7 @@ void menu_add_header(Menu *menu, const char *title, const char *description)
 {
     menu->title = title;
     menu->description = description;
-    Layout *header_lt = menu->layout->children[0];
+    Layout *header_lt = menu->header_container;
     header_lt->x.value = MENU_STD_COLUMN_PAD + MENU_STD_ITEM_PAD_H * 2;
     header_lt->y.value = MENU_STD_SECTION_PAD + MENU_STD_ITEM_PAD_V;
     /* header_lt->w.type = REL; */
@@ -186,8 +194,8 @@ void menu_add_header(Menu *menu, const char *title, const char *description)
     TextArea *header = txt_area_create(description, header_lt, main_win->mono_font, MENU_TXT_SIZE, menu_std_clr_annot_txt, menu->window);
     layout_size_to_fit_children_h(header_lt, true, 0);
     
-    menu->layout->children[1]->y.type = STACK;
-    menu->layout->children[1]->y.value = MENU_STD_HEADER_PAD;
+    menu->cols_container->y.type = STACK;
+    menu->cols_container->y.value = MENU_STD_HEADER_PAD;
     /* layout_size_to_fit_children_h(header_lt, true, 0); */
     /* layout_size_to_fit_children_h(menu->layout, true, 0); */
     menu->header = header;
@@ -198,7 +206,7 @@ void menu_add_header(Menu *menu, const char *title, const char *description)
 
 MenuColumn *menu_column_add(Menu *menu, const char *label)
 {
-    Layout *content_lt = menu->layout->children[1];
+    Layout *content_lt = menu->cols_lt;
     MenuColumn *col = calloc(1, sizeof(MenuColumn));
     col->num_sections = 0;
     col->sel_sctn = 255;
@@ -462,13 +470,20 @@ bool menu_triage_mouse(Menu *menu, SDL_Point *mousep, bool click)
 }
 
 
-Layout *menu_scroll(Menu *menu, SDL_Point mousep, int y, bool dynamic)
+Layout *menu_scroll(Menu *menu, SDL_Point mousep, int x, int y, bool dynamic)
 {
-    for (int i=0; i<menu->num_columns; i++) {
-	MenuColumn *mc = menu->columns[i];
-	if (mc->overflow && SDL_PointInRect(&mousep, &mc->container->rect)) {
-	    layout_scroll(mc->layout, 0, y, dynamic);
-	    return mc->layout;
+    if (abs(x) > abs(y)) {
+	if (menu->cols_overflow && SDL_PointInRect(&mousep, &menu->cols_container->rect)) {
+	    layout_scroll(menu->cols_lt, -x, 0, dynamic);
+	    return menu->cols_lt;
+	}
+    } else {
+	for (int i=0; i<menu->num_columns; i++) {
+	    MenuColumn *mc = menu->columns[i];
+	    if (mc->overflow && SDL_PointInRect(&mousep, &mc->container->rect)) {
+		layout_scroll(mc->layout, 0, y, dynamic);
+		return mc->layout;
+	    }
 	}
     }
     return NULL;
@@ -542,6 +557,29 @@ static void menu_rectify_scroll(Menu *m, int direction)
     if (reset) layout_reset(col->layout);
 }
 
+static void menu_rectify_scroll_horizontal(Menu *m, int direction)
+{
+    if (!m->cols_overflow) return;
+    if (m->sel_col > m->num_columns) return;
+    MenuColumn *col = m->columns[m->sel_col];
+    int min_x = m->cols_container->rect.x + MENU_STD_COLUMN_PAD * m->window->dpi_scale_factor;
+    int max_x = m->cols_container->rect.x + m->cols_container->rect.w - MENU_STD_COLUMN_PAD * m->window->dpi_scale_factor;
+    int undermin = min_x - col->layout->rect.x;
+    int overmax;
+    bool reset = false;
+    if (undermin > 0) {
+	/* fprintf(stderr, "PAST MIN scroll %d\n", m->cols_layout->scroll_offset_v); */
+	m->cols_lt->scroll_offset_h += undermin;
+	if (m->cols_lt->scroll_offset_h > 0) m->cols_lt->scroll_offset_h = 0;
+	reset = true;
+    } else if ((overmax = col->layout->rect.x + col->layout->rect.w - max_x) > 0) {
+	m->cols_lt->scroll_offset_h -= overmax;
+	reset = true;
+	/* fprintf(stderr, "PAST MAX scroll %d\n", m->cols_lt->scroll_offset_v); */
+    }
+    if (reset) layout_reset(m->layout);
+}
+
 void menu_next(Menu *m)
 {
     if (m->sel_col == 255) {
@@ -589,6 +627,34 @@ void menu_prev(Menu *m)
 	
     }
     menu_rectify_scroll(m, -1);
+}
+
+void menu_right(Menu *m)
+{
+    if (m->sel_col < m->num_columns - 1) {
+	m->sel_col++;
+	MenuColumn *c = m->columns[m->sel_col];
+	if (c->sel_sctn == 255) {
+	    c->sel_sctn = 0;
+	    MenuSection *s = c->sections[c->sel_sctn];
+	    if (s->sel_item == 255) {
+		s->sel_item = 0;
+	    }
+	}	
+    }
+    menu_rectify_scroll_horizontal(m, 1);
+
+}
+
+void menu_left(Menu *m)
+{
+    if (m->sel_col == 255) {
+	m->sel_col = 0;
+    } else if (m->sel_col > 0) {
+	m->sel_col--;
+    }
+    menu_rectify_scroll_horizontal(m, -1);
+
 }
 
 void menu_translate(Menu *menu, int translate_x, int translate_y)
@@ -649,9 +715,9 @@ void menu_draw(Menu *menu)
 		}
 	    }
 	    if (col->overflow) {
-		int r = menu_std_clr_bckgrnd.r;
-		int g = menu_std_clr_bckgrnd.g;
-		int b = menu_std_clr_bckgrnd.b;
+		const int r = menu_std_clr_bckgrnd.r;
+		const int g = menu_std_clr_bckgrnd.g;
+		const int b = menu_std_clr_bckgrnd.b;
 		int a = 255;
 		int x = col->container->rect.x;
 		int x2 = col->container->rect.x + col->container->rect.w;
@@ -667,27 +733,57 @@ void menu_draw(Menu *menu)
 		    SDL_RenderDrawLine(rend, x, ybottom - i, x2, ybottom - i);
 		}
 	    }
-
 	}
     }
     if (was_clipped) {
 	SDL_RenderSetClipRect(rend, &saved_cliprect);
     } else {
 	SDL_RenderSetClipRect(rend, NULL);
+     }
+    if (menu->cols_overflow) {
+	const int r = menu_std_clr_bckgrnd.r;
+	const int g = menu_std_clr_bckgrnd.g;
+	const int b = menu_std_clr_bckgrnd.b;
+	int a = 255;
+	int x = menu->cols_container->rect.x;
+	/* int x2 = col->container->rect.x + col->container->rect.w; */
+	int y1 = menu->cols_container->rect.y;
+	int y2 = menu->cols_container->rect.y + menu->cols_container->rect.w;
+	int xright = menu->cols_container->rect.x + menu->cols_container->rect.w;
+	/* int ybottom = y + col->container->rect.h; */
+	int num = MENU_STD_SECTION_PAD * menu->window->dpi_scale_factor * 2;
+	for (int i=0; i<num; i++) {
+	    a = 255 - 255.0 *  (double)i / num;
+	    SDL_SetRenderDrawColor(rend, r, g, b, a);
+	    if (menu->cols_container->scroll_offset_v != 0) {
+		SDL_RenderDrawLine(rend, x, y1, x + i, y2);
+	    }
+	    SDL_RenderDrawLine(rend, xright - i, y1, xright - i, y2);
+	}
     }
-	
+
     if (menu->header) {
 	txt_area_draw(menu->header);
     }
-    /* SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 255); */
+
+    if (menu != menu->window->menus[menu->window->num_menus - 1]) {
+	
+	SDL_SetRenderDrawColor(rend, menu_std_clr_bckgrnd.r, menu_std_clr_bckgrnd.g, menu_std_clr_bckgrnd.b, 200);
+	geom_fill_rounded_rect(rend, &menu->layout->rect, MENU_STD_CORNER_RAD);
+    }
+    
+    /* SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 200); */
+    /* SDL_RenderDrawRect(main_win->rend, &menu->cols_lt->rect); */
+    /* SDL_SetRenderDrawColor(main_win->rend, 0, 255, 0, 200); */
+    /* SDL_RenderDrawRect(main_win->rend, &menu->cols_container->rect); */
     /* for (int i=0; i<menu->num_columns; i++) { */
     /* 	SDL_SetRenderDrawColor(main_win->rend, 0, 255, 0, 255); */
     /* 	/\* SDL_RenderDrawRect(main_win->rend, &menu->layout->children[0]->rect); *\/ */
     /* 	SDL_RenderDrawRect(main_win->rend, &menu->columns[i]->container->rect); */
-    /* 	SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 255); */
-    /* 	SDL_RenderDrawRect(main_win->rend, &menu->columns[i]->container->parent->rect); */
-
     /* } */
+    /* SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 255); */
+    /* SDL_RenderDrawRect(main_win->rend, &menu->cols_container->rect); */
+	
     /* layout_draw(main_win, menu->layout); */
 }
 

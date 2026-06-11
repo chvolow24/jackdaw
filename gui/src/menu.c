@@ -540,6 +540,7 @@ static void menu_rectify_scroll(Menu *m, int direction)
     MenuColumn *col = sel->section->column;
     if (!col->overflow) return;
     int min_y = col->container->rect.y + MENU_STD_SECTION_PAD * m->window->dpi_scale_factor;
+    if (col->label_tb) min_y += col->label_tb->layout->rect.h;
     int max_y = col->container->rect.y + col->container->rect.h - MENU_STD_SECTION_PAD * m->window->dpi_scale_factor;
     int undermin = min_y - sel->layout->rect.y;
     int overmax;

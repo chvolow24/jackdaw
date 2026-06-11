@@ -37,7 +37,10 @@ typedef struct menu_column {
     MenuSection *sections[MAX_MENU_SECTIONS];
     uint8_t num_sections;
     uint8_t sel_sctn;
-    Layout *layout;
+    Layout *container; /* Fixed */
+    Layout *layout; /* Scrollable */
+
+    bool overflow;
 } MenuColumn;
 
 typedef struct menu {
@@ -49,6 +52,11 @@ typedef struct menu {
     MenuItem *selected;
     uint8_t sel_col;
     Layout *layout;
+    Layout *header_container;
+    Layout *cols_container; /* Fixed */
+    Layout *cols_lt; /* Scrollable */
+    bool cols_overflow;
+
     Font *font;
     /* TTF_Font *font; */
     Window *window;
@@ -72,6 +80,12 @@ void menu_destroy(Menu *menu);
 void menu_reset_layout(Menu *menu);
 void menu_draw(Menu *menu);
 bool menu_triage_mouse(Menu *menu, SDL_Point *mousep, bool click);
+Layout *menu_scroll(Menu *menu, SDL_Point mousep, int x, int y, bool dynamic);
+
+void menu_next(Menu *m);
+void menu_prev(Menu *m);
+void menu_left(Menu *m);
+void menu_right(Menu *m);
 
 MenuItem *menu_item_at_index(Menu *menu, int index);
 void menu_translate(Menu *menu, int translate_x, int translate_y);

@@ -226,10 +226,13 @@ void mqwert_handle_key(char key, bool is_keyup)
     /* } */
 }
 
-void mqwert_pitch_bend(float cents)
+/* Overrides existing pb */
+void mqwert_set_pitch_bend(float cents)
 {
-    state.pitch_bend_cents += cents;
+    state.pitch_bend_cents = cents;
     cents = state.pitch_bend_cents;
+    
+    /* Must restrict range to transpose into uint16_t */
     if (cents > 200) cents = 200;
     else if (cents < -200) cents = -200;
     state.pitch_bend_cents = cents;
@@ -246,12 +249,20 @@ void mqwert_pitch_bend(float cents)
 	type,
 	lsb,
 	msb
-    );
+	);
     
     if (midi_device_add_event(&state.v_device, e) == 0) {
 	fprintf(stderr, "Error in midi_qwert_handle_note: device event buf full\n");
     }
 
+}
+
+/* Additiive */
+void mqwert_pitch_bend(float cents)
+{
+    mqwert_set_pitch_bend(state.pitch_bend_cents + cents);
+    /* state.pitch_bend_cents += cents; */
+    
 }
 
 /* void mqwert_handle_keyup(char key) */

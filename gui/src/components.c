@@ -1279,6 +1279,9 @@ void page_list_update(PageList *pl, int num_items)
     while (pl->selected_item >= pl->num_items) {
 	pl->selected_item--;
     }
+    if (pl->selected_item == -1) {
+	pl->selected_item = 0;
+    }
     pl->pages = calloc(num_items, sizeof(Page *));
     for (int i=0; i<pl->num_items; i++) {
 	Layout *page_layout = layout_add_child(pl->inner_layout);

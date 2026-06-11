@@ -1042,12 +1042,10 @@ static void page_el_draw(PageEl *el)
 
 void page_draw(Page *page)
 {
-    /* fprintf(stdout, "page lt rect %d %d %d %d\n", page->layout->rect.x, page->layout->rect.y, page->layout->rect.w, page->layout->rect.h); */
-    /* fprintf(stdout, "Page dims: %d %d %f %f\n", page->layout->x.value.intval, page->layout->y.value.intval, page->layout->w.value, page->layout->h.value); */
     if (page->background_color) {
 	SDL_SetRenderDrawColor(page->win->rend, sdl_colorp_expand(page->background_color));
 	SDL_Rect temp = page->layout->rect;
-	if (page->tabview || !page->page_list) {
+	if (page->tabview || !page->parent_page_list) {
 	    int r = PAGE_R * page->win->dpi_scale_factor;
 	    geom_fill_rounded_rect(page->win->rend, &temp, r);
 
@@ -1060,40 +1058,29 @@ void page_draw(Page *page)
 	    SDL_SetRenderDrawColor(page->win->rend, sdl_color_expand(colors.black));
 	    geom_draw_rounded_rect_thick(page->win->rend, &temp, 7, TAB_R * page->win->dpi_scale_factor);
 
-	} else if (page->page_list) {
-	    int r = page->page_list->item_corner_rad * page->win->dpi_scale_factor;
+	} else if (page->parent_page_list) {
+	    int r = page->parent_page_list->item_corner_rad * page->win->dpi_scale_factor;
 	    geom_draw_rounded_rect(page->win->rend, &temp, r);
-	    /* geom_fill_rounded_rect(page->win->rend, &temp, r);	     */
-	}/*  else { */
-	/*     fprintf(stderr, "else condition\n"); */
-	/*     SDL_RenderFillRect(page->win->rend, &temp); */
-	/* } */
-	/* static SDL_Color brdrclr = {25, 25, 25, 255}; */
-
+	}
     }
     for (uint8_t i=0; i<page->num_elements; i++) {
 	page_el_draw(page->elements[i]);
+	/* Draw border around selected item */
 	if (page->selected_i >= 0
+	    && !page->no_selection_border /* exclude panels */
 	    && page->elements[i] == page->selectable_els[page->selected_i]
-	    && page->elements[i]->type != EL_PAGE_LIST /* Do not draw selection around page list */
-	    && !(page->page_list &&
-		 (page->page_list->selected_item < 0
-		  || page->page_list->pages[page->page_list->selected_item] != page
-		  || !page->page_list->selected_on_parent_page))) /* If page is *in* page list, do not draw unless an item is selected */
+	    && (page->elements[i]->type != EL_PAGE_LIST /* Do not draw selection around PL... */
+		|| ((PageList *)page->elements[i]->component)->num_items == 0) /* ...unless empty */
+	    && !(page->parent_page_list &&
+		 (page->parent_page_list->selected_item < 0
+		  || page->parent_page_list->pages[page->parent_page_list->selected_item] != page
+		  || !page->parent_page_list->selected_on_parent_page))) /* If page is *in* page list, do not draw unless an item is selected */
 	{
 	    SDL_SetRenderDrawColor(page->win->rend, 255, 200, 10, 255);
 	    SDL_Rect r = page->elements[i]->layout->rect;
 	    geom_draw_rect_thick(page->win->rend, &r, 1 * page->win->dpi_scale_factor);
 	}
-    }
-    /* if (strcmp(page->title, "Oscillators") == 0) { */
-    /* 	FILE *f = fopen("t.xml", "w"); */
-	
-    /* layout_draw(page->win, page->layout); */
-    /* 	layout_write(f, page->layout, 0); */
-    /* 	exit(1); */
-    /* } */
-    
+    }    
 }
 
 static inline void tabview_draw_inner(TabView *tv, uint8_t i)
@@ -1570,6 +1557,10 @@ void page_enter(Page *page)
 	if (pl->num_items > 0) {
 	    Page *item_page = pl->pages[pl->selected_item];
 	    page_enter(item_page);
+	} else {
+	    if (pl->empty_action) {
+		pl->empty_action(pl, pl->empty_action_target);
+	    }
 	}
     }
 	/* page_list_enter(el->component); */
@@ -1740,7 +1731,7 @@ void page_center_contents(Page *page)
 /* components.c needs to set member without page def */
 void page_set_page_list(Page *page, PageList *pl)
 {
-    page->page_list = pl;
+    page->parent_page_list = pl;
 }
 
 

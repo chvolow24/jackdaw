@@ -123,13 +123,13 @@ void route_quick_add(Track *trck, bool trck_is_dst)
     add_route_internal(trck, trck_is_dst);
 }
 
-static ComponentFnDef(add_route)
+static ComponentFnDef(add_route_plus_buttonfn)
 {
     Track *src = target;
     return add_route_internal(src, false);
 }
 
-static ComponentFnDef(add_route_from_dst)
+static ComponentFnDef(add_route_from_dst_plus_buttonfn)
 {
     Track *src = target;
     return add_route_internal(src, true);
@@ -287,7 +287,7 @@ static void create_ins_page(TabView *tv, Track *track)
     p.textbox_p.set_str = routes_title;
     page_add_el(page, EL_TEXTBOX, p, "", "title");
 
-    p.sbutton_p.action = add_route_from_dst;
+    p.sbutton_p.action = add_route_from_dst_plus_buttonfn;
     p.sbutton_p.background_color = &colors.play_green;
     p.sbutton_p.symbol_index = SYMBOL_PLUS;
     p.sbutton_p.target = track;
@@ -302,6 +302,10 @@ static void create_ins_page(TabView *tv, Track *track)
 
     PageList *pl = el->component;
     pl->monitor_num_items = &track->num_route_ins;
+
+    pl->empty_action = add_route_from_dst_plus_buttonfn;
+    pl->empty_action_target = track;
+
 }
 
 static void create_outs_page(TabView *tv, Track *track)
@@ -328,7 +332,7 @@ static void create_outs_page(TabView *tv, Track *track)
     p.textbox_p.set_str = "Send to main out:";    
     page_add_el(page, EL_TEXTBOX, p, "", "mro_lbl");
 
-    p.sbutton_p.action = add_route;
+    p.sbutton_p.action = add_route_plus_buttonfn;
     p.sbutton_p.background_color = &colors.play_green;
     p.sbutton_p.symbol_index = SYMBOL_PLUS;
     p.sbutton_p.target = track;
@@ -345,6 +349,9 @@ static void create_outs_page(TabView *tv, Track *track)
     PageEl *el = page_add_el(page, EL_PAGE_LIST, p, "", "rts");
     PageList *pl = el->component;
     pl->monitor_num_items = &track->num_routes;
+
+    pl->empty_action = add_route_plus_buttonfn;
+    pl->empty_action_target = track;
 }
 
 void route_page_open(Track *track, bool select_outs_tab)

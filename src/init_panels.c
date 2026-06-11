@@ -337,7 +337,7 @@ static void session_init_quickref_panels(Page *quickref1, Page *quickref2)
 	"rewind",
 	create_quickref_button_lt);
     textbox_set_style(((Button *)el->component)->tb, BUTTON_DARK);
-    button_bind_userfn(el->component, "tl_rewind", MODE_TIMELINE, &colors.quickref_button_pressed, &colors.quickref_button_blue);
+    /* button_bind_userfn(el->component, "tl_rewind", MODE_TIMELINE, &colors.quickref_button_pressed, &colors.quickref_button_blue); */
     
     /* textbox_set_trunc((Textbox *)((Button *)el->component)->tb, false); */
     /* q->rewind = create_button_from_params(button_lt, b); */

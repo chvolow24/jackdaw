@@ -33,7 +33,7 @@ static SDL_Color page_colors[] = {
     {94, 58, 61, 255},
     {34, 77, 99, 255},
     {55, 39, 42, 255},
-    {55, 39, 42, 255}
+    {37, 70, 37, 255}
 };
 
 static Page *add_eq_page(EQ *eq, EffectChain *ec, TabView *tv);

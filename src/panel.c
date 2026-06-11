@@ -78,6 +78,7 @@ Page *panel_area_add_page(
 	text_color,
 	pa->win);
     p->selected_i = -1;
+    p->no_selection_border = true;
     /* p->layout->w.type = SCALE; */
     /* p->layout->h.type = SCALE; */
     /* p->layout->w.value.floatval = 1.0f; */

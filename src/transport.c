@@ -646,9 +646,15 @@ void transport_start_playback()
 	return;
     }
 
-    PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_play");
-    Textbox *play_button = ((Button *)el->component)->tb;
-    textbox_set_background_color(play_button, &colors.play_green);
+    if (session->playback.play_speed >= 0) {
+	PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_play");
+	Textbox *play_button = ((Button *)el->component)->tb;
+	textbox_set_background_color(play_button, &colors.play_green);
+    } else {
+	PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_rewind");
+	Textbox *rewind_button = ((Button *)el->component)->tb;
+	textbox_set_background_color(rewind_button, &colors.rewind_orange);
+    }
 }
 
 /* Account for continuous-playback ramifications of calls to timeline_set_play_position(); */
@@ -737,6 +743,11 @@ void transport_stop_playback()
     PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_play");
     Textbox *play_button = ((Button *)el->component)->tb;
     textbox_set_background_color(play_button, &colors.quickref_button_blue);
+
+    el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_rewind");
+    Textbox *rewind_button = ((Button *)el->component)->tb;
+    textbox_set_background_color(rewind_button, &colors.quickref_button_blue);
+
 
 }
 

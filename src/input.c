@@ -495,7 +495,7 @@ Menu *input_create_master_menu()
 	    }
 	    MenuSection *sctn = menu_section_add(c, mode->display_name);
 	    for (uint8_t i=0; i<mode->subcats[0]->num_fns; i++) {
-		if (c->layout->rect.h > main_win->h_pix * 0.75) {
+		if (m->num_columns < 20 && c->layout->rect.h > main_win->h_pix * 0.75) {
 		    c = menu_column_add(m, "(cont'd)");
 		    sctn = menu_section_add(c, mode->display_name);
 		}
@@ -506,7 +506,7 @@ Menu *input_create_master_menu()
 	    c = menu_column_add(m, mode->display_name);
 	    MenuSection *sctn = menu_section_add(c, mode->display_name);
 	    for (int i=0; i<mode->num_subcats; i++) {
-		if (c->layout->rect.h > main_win->h_pix * 0.75) {
+		if (m->num_columns < 20 && c->layout->rect.h > main_win->h_pix * 0.75) {
 		    c = menu_column_add(m, "(cont'd)");
 		    sctn = menu_section_add(c, mode->display_name);
 		}
@@ -522,7 +522,7 @@ Menu *input_create_master_menu()
     }
 
     menu_add_header(m, NULL, menu_helper_str);
-    layout_center_agnostic(m_layout, true, true);
+    /* layout_center_agnostic(m_layout, true, true); */
     menu_reset_layout(m);
     return m;
 }

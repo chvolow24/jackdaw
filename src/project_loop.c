@@ -41,6 +41,7 @@
 #include "session_endpoint_ops.h"
 #include "session.h"
 #include "settings.h"
+#include "synth.h"
 #include "tempo.h"
 #include "thread_safety.h"
 #include "timeline.h"
@@ -73,6 +74,9 @@ extern void open_file(const char *filepath);
 
 void route_page_open(Track *track);
 
+void user_tl_track_selector_up(void *nullarg);
+void user_tl_track_selector_down(void *nullarg);
+
 void loop_project_main()
 {
     Session *session = session_get();
@@ -99,6 +103,10 @@ void loop_project_main()
     int play_speed_scroll_recency = 60;
     bool scrub_block = false;
     int frames_since_event = 0;
+
+    float pitch_bend = 0.0f;
+    bool set_pitch_bend = false;
+    
     main_win->current_event = &e;
     while (!(main_win->i_state & I_STATE_QUIT)) {
 	while (SDL_PollEvent(&e)) {
@@ -369,9 +377,16 @@ void loop_project_main()
 		    break;
 		}
 		wheel_event_recency = 0;
-		Layout *modal_scrollable = NULL;
-		if ((modal_scrollable = mouse_triage_wheel(e.wheel.x * TL_SCROLL_STEP_H, e.wheel.y * TL_SCROLL_STEP_V, fingersdown))) {
-		    temp_scrolling_lt = modal_scrollable;
+		Layout *modal_or_page_scrollable = NULL;
+		if ((modal_or_page_scrollable = mouse_triage_wheel(e.wheel.preciseX * LAYOUT_SCROLL_SCALAR, e.wheel.preciseY * LAYOUT_SCROLL_SCALAR, fingersdown))) {
+		    temp_scrolling_lt = modal_or_page_scrollable;
+		} else if (TOP_MODE == MODE_MIDI_QWERTY) {
+		    /* static float pitch_bend = 0.0f; */
+		    pitch_bend += e.wheel.preciseY * 10.0;
+		    set_pitch_bend = true;
+		    /* if (pitch_bend != 0.0) { */
+		    /* 	pitch_bend  */
+		    /* } */
 		} else if (TOP_MODE == MODE_TIMELINE || TOP_MODE == MODE_TABVIEW || TOP_MODE == MODE_PIANO_ROLL || TOP_MODE == MODE_MIDI_QWERTY) {
 		    if (main_win->i_state & I_STATE_SHIFT) {
 			if (fabs(e.wheel.preciseY) > fabs(e.wheel.preciseX)) {
@@ -397,23 +412,41 @@ void loop_project_main()
 			bool allow_scroll = true;
 			double scroll_x = e.wheel.preciseX * LAYOUT_SCROLL_SCALAR;
 			double scroll_y = e.wheel.preciseY * LAYOUT_SCROLL_SCALAR;
-			if (main_win->active_tabview) {
-			    Page *page = main_win->active_tabview->tabs[main_win->active_tabview->current_tab];
-			    if (SDL_PointInRect(&main_win->mousep, &page->layout->rect)) {
-				for (int i=0; i<page->num_elements; i++) {
-				    PageEl *el = page->elements[i];
-				    if (el->type == EL_PAGE_LIST && SDL_PointInRect(&main_win->mousep, &el->layout->rect)) {
-					PageList *pl = el->component;
-					temp_scrolling_lt = pl->inner_layout;
-					layout_scroll(pl->inner_layout, 0, scroll_y, fingersdown);
-				    }
-				}
-			    }
-			} else if (SDL_PointInRect(&main_win->mousep, session->gui.audio_rect) || SDL_PointInRect(&main_win->mousep, session->gui.console_column_rect)) {
+			/* if (main_win->active_tabview) { */
+			/*     Page *page = main_win->active_tabview->tabs[main_win->active_tabview->current_tab]; */
+			/*     if (SDL_PointInRect(&main_win->mousep, &page->layout->rect)) { */
+			/* 	for (int i=0; i<page->num_elements; i++) { */
+			/* 	    PageEl *el = page->elements[i]; */
+			/* 	    if (el->type == EL_PAGE_LIST && SDL_PointInRect(&main_win->mousep, &el->layout->rect)) { */
+			/* 		PageList *pl = el->component; */
+			/* 		temp_scrolling_lt = pl->inner_layout; */
+			/* 		layout_scroll(pl->inner_layout, 0, scroll_y, fingersdown); */
+			/* 	    } */
+			/* 	} */
+			/*     } */
+			/*} else */if (SDL_PointInRect(&main_win->mousep, session->gui.audio_rect) || SDL_PointInRect(&main_win->mousep, session->gui.console_column_rect)) {
 			    if (main_win->i_state & I_STATE_CMDCTRL) {
 				double scale_factor = pow(SFPP_STEP, e.wheel.y);
 				timeline_rescale(tl, scale_factor, true);
 				allow_scroll = false;
+				/* } */
+			    } else if (main_win->i_state & I_STATE_META) {
+				/* Scroll cursor position */
+				static int frames_since_last = 0;
+				if (fabs(e.wheel.preciseX) > fabs(e.wheel.preciseY)) {
+				    int32_t new_pos = tl->play_pos_sframes + e.wheel.preciseX * tl->timeview.sample_frames_per_pixel * 10;
+				    timeline_set_play_position(tl, new_pos, true);
+				} else if (fabs(e.wheel.preciseY) > 0.8 && frames_since_last > 2) {
+				    bool up = e.wheel.preciseY > 0;
+				    if (up) {
+					user_tl_track_selector_up(NULL);
+				    } else {
+					user_tl_track_selector_down(NULL);
+				    }
+				    frames_since_last = 0;
+				} else {
+				    frames_since_last++;
+				}
 			    } else if (fabs(scroll_x) > fabs(scroll_y)) {
 				timeline_scroll_horiz(tl, TL_SCROLL_STEP_H * e.wheel.x);
 			    } else if (allow_scroll) {
@@ -610,6 +643,22 @@ void loop_project_main()
 	if (session->piano_roll) {
 	    if (piano_roll_execute_queued_insertions()) {
 		frames_since_event = 0;
+	    }
+	}
+	if (set_pitch_bend) {
+	    if (fingersdown < 2) {
+		pitch_bend -= pitch_bend / 4.0;
+	    }
+	    if (fabs(pitch_bend) < 1e-6) {
+		pitch_bend = 0.0f;
+		set_pitch_bend = false;		
+	    }
+	    Synth *monitor_synth = NULL;
+	    MIDIDevice *mdevice = NULL;
+	    if ((monitor_synth = session->midi_io.monitor_synth) && (mdevice = session->midi_io.monitor_device)) {
+		mqwert_set_pitch_bend(pitch_bend);
+		/* synth_set_pitch_bend(session->midi_io.monitor_synth, pitch_bend); */
+		
 	    }
 	}
 

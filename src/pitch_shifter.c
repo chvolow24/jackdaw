@@ -116,7 +116,7 @@ void pitch_shifter_init(PitchShifter *ps)
 	&ps->shift_cents_internal,
 	JDAW_DOUBLE,
 	"shift_cents",
-	"Shift (broad)",
+	"Broad (cents)",
 	JDAW_THREAD_DSP,
 	component_gui_cb, NULL, shift_cents_dsp_cb,
 	ps, NULL, NULL, NULL);

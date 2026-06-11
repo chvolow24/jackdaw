@@ -1042,9 +1042,6 @@ static void page_el_draw(PageEl *el)
 
 void page_draw(Page *page)
 {
-    /* fprintf(stderr, "SEL ITEM: %d\n", page->selected_i); */
-    /* fprintf(stdout, "page lt rect %d %d %d %d\n", page->layout->rect.x, page->layout->rect.y, page->layout->rect.w, page->layout->rect.h); */
-    /* fprintf(stdout, "Page dims: %d %d %f %f\n", page->layout->x.value.intval, page->layout->y.value.intval, page->layout->w.value, page->layout->h.value); */
     if (page->background_color) {
 	SDL_SetRenderDrawColor(page->win->rend, sdl_colorp_expand(page->background_color));
 	SDL_Rect temp = page->layout->rect;
@@ -1064,17 +1061,13 @@ void page_draw(Page *page)
 	} else if (page->parent_page_list) {
 	    int r = page->parent_page_list->item_corner_rad * page->win->dpi_scale_factor;
 	    geom_draw_rounded_rect(page->win->rend, &temp, r);
-	    /* geom_fill_rounded_rect(page->win->rend, &temp, r);	     */
-	}/*  else { */
-	/*     fprintf(stderr, "else condition\n"); */
-	/*     SDL_RenderFillRect(page->win->rend, &temp); */
-	/* } */
-	/* static SDL_Color brdrclr = {25, 25, 25, 255}; */
-
+	}
     }
     for (uint8_t i=0; i<page->num_elements; i++) {
 	page_el_draw(page->elements[i]);
+	/* Draw border around selected item */
 	if (page->selected_i >= 0
+	    && !page->no_selection_border /* exclude panels */
 	    && page->elements[i] == page->selectable_els[page->selected_i]
 	    && (page->elements[i]->type != EL_PAGE_LIST /* Do not draw selection around PL... */
 		|| ((PageList *)page->elements[i]->component)->num_items == 0) /* ...unless empty */
@@ -1087,15 +1080,7 @@ void page_draw(Page *page)
 	    SDL_Rect r = page->elements[i]->layout->rect;
 	    geom_draw_rect_thick(page->win->rend, &r, 1 * page->win->dpi_scale_factor);
 	}
-    }
-    /* if (strcmp(page->title, "Oscillators") == 0) { */
-    /* 	FILE *f = fopen("t.xml", "w"); */
-	
-    /* layout_draw(page->win, page->layout); */
-    /* 	layout_write(f, page->layout, 0); */
-    /* 	exit(1); */
-    /* } */
-    
+    }    
 }
 
 static inline void tabview_draw_inner(TabView *tv, uint8_t i)

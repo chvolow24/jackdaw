@@ -72,6 +72,8 @@ typedef struct page {
 
     TabView *tabview; /* populated if page has parent tv */
     PageList *parent_page_list; /* populated if page has parent PageList */
+
+    bool no_selection_border; /* if true, do not draw border around sel item (e.g. in panels) */
 } Page;
 
 typedef struct tab_view {

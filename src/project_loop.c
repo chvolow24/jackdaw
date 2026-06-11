@@ -431,11 +431,12 @@ void loop_project_main()
 				allow_scroll = false;
 				/* } */
 			    } else if (main_win->i_state & I_STATE_META) {
+				/* Scroll cursor position */
 				static int frames_since_last = 0;
 				if (fabs(e.wheel.preciseX) > fabs(e.wheel.preciseY)) {
 				    int32_t new_pos = tl->play_pos_sframes + e.wheel.preciseX * tl->timeview.sample_frames_per_pixel * 10;
 				    timeline_set_play_position(tl, new_pos, true);
-				} else if (fabs(e.wheel.preciseY) > 0.6 && frames_since_last > 4) {
+				} else if (fabs(e.wheel.preciseY) > 0.8 && frames_since_last > 2) {
 				    bool up = e.wheel.preciseY > 0;
 				    if (up) {
 					user_tl_track_selector_up(NULL);

@@ -39,6 +39,7 @@ struct colors {
     SDL_Color quickref_button_blue;
     SDL_Color quickref_button_pressed;
     SDL_Color play_green;
+    SDL_Color rewind_orange;
     SDL_Color undo_purple;
     SDL_Color cerulean;
     SDL_Color cerulean_pale;

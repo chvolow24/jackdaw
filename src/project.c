@@ -2494,6 +2494,22 @@ void timeline_play_speed_set(double new_speed)
     /* If speed crosses the zero line, need to invalidate direction-dependent caches */
     if (session->playback.play_speed * old_speed < 0.0) {
 	timeline_set_play_position(tl, tl->play_pos_sframes, false);
+	if (session->playback.play_speed < 0) {
+	    PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_play");
+	    Textbox *play_button = ((Button *)el->component)->tb;
+	    textbox_set_background_color(play_button, &colors.quickref_button_blue);
+	    el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_rewind");
+	    Textbox *rewind_button = ((Button *)el->component)->tb;
+	    textbox_set_background_color(rewind_button, &colors.rewind_orange);
+	} else {
+	    PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_play");
+	    Textbox *play_button = ((Button *)el->component)->tb;
+	    textbox_set_background_color(play_button, &colors.play_green);
+	    el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_rewind");
+	    Textbox *rewind_button = ((Button *)el->component)->tb;
+	    textbox_set_background_color(rewind_button, &colors.quickref_button_blue);
+
+	}
     }
     
     status_stat_playspeed();

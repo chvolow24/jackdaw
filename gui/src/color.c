@@ -16,7 +16,9 @@ const struct colors colors = {
 
     .quickref_button_blue = {35, 45, 55, 255},
     .quickref_button_pressed = {10, 20, 30, 255},
-    .play_green = {0, 140, 50, 255},
+    /* .play_green = {0, 140, 50, 255}, */
+    .play_green = {0, 120, 50, 255},
+    .rewind_orange = {120, 50, 50, 255},
     .undo_purple = {230, 30, 200, 255},
     .cerulean = {100, 190, 255, 255},
     .cerulean_pale = {100, 190, 255, 100},

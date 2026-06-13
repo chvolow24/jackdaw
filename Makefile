@@ -141,6 +141,10 @@ $(SDL_LIB):
 $(SDL_TTF_LIB):
 	@echo "\nConfiguring and building SDL2_ttf. This may take several minutes. (Logs in sdl_ttf_build.log)..."
 	@cd SDL_ttf && \
+	@touch aclocal.m4 && \
+	@touch configure && \
+	@touch config.h.in && \
+	find . -name 'Makefile.in' -exec touch {} \; && \
 	./configure --disable-shared --enable-static --with-sdl-prefix=$(PWD)/SDL/installation --disable-sdltest >>../sdl_ttf_build.log 2>&1 && \
 	make >>../sdl_ttf_build.log 2>&1
 	@echo "...SDL_ttf build complete."

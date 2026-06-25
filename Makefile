@@ -49,14 +49,14 @@ PKG_CONFIG_PATH := $(shell echo $(PKG_CONFIG_PATH))
 #	- append to PKG_CONFIG_PATH IFF bundled
 
 ifeq ($(HAVE_SYSTEM_SDL2),0)
-SDL2_BUILD_TARGET := $(SDL2_BUNDLED_PATH)/build/.libs/libSDL2.a
+SDL2_BUILD_TARGET := $(SDL2_BUNDLED_PATH)/installation/lib/libSDL2.a
 PKG_CONFIG_PATH := $(if $(PKG_CONFIG_PATH),$(PKG_CONFIG_PATH):)$(SDL2_BUNDLED_PATH)/installation/lib/pkgconfig/
 else
 SDL2_BUILD_TARGET :=
 endif
 
 ifeq ($(HAVE_SYSTEM_SDL2_TTF),0)
-SDL2_TTF_BUILD_TARGET := $(SDL2_TTF_BUNDLED_PATH)/.libs/libSDL2_ttf.a
+SDL2_TTF_BUILD_TARGET := $(SDL2_TTF_BUNDLED_PATH)/installation/lib/libSDL2_ttf.a
 PKG_CONFIG_PATH := $(if $(PKG_CONFIG_PATH),$(PKG_CONFIG_PATH):)$(SDL2_TTF_BUNDLED_PATH)
 else
 SDL2_TTF_BUILD_TARGET :=
@@ -76,9 +76,9 @@ PORTMIDI_LIB := $(PORTMIDI_PATH)/build/libportmidi.a
 
 
 ifdef USE_EXTERNAL_SDLS
-SDL_TTF_LIB :=
+SDL2_TTF_LIB :=
 else
-SDL_TTF_LIB := $(SDL_TTF_PATH)/.libs/libSDL2_ttf.a
+SDL2_TTF_LIB := $(SDL2_TTF_BUNDLED_PATH)/build/lib/libSDL2_ttf.a
 endif
 
 ##############################################################
@@ -93,7 +93,7 @@ $(SDL2_BUILD_TARGET):
 	fi
 	@echo "Done.\nConfiguring and building SDL2. This may take several minutes. (Logs in sdl_build.log)..."
 	@cd SDL && \
-	./configure --enable-static --prefix=$(PWD)/SDL/installation >>../sdl_build.log 2>&1 && \
+	./configure --enable-static --disable-shared --prefix=$(PWD)/SDL/installation >>../sdl_build.log 2>&1 && \
 	make >>../sdl_build.log 2>&1 && \
 	make install >>../sdl_build.log 2>&1
 	@echo "...SDL build complete"
@@ -106,7 +106,7 @@ $(SDL2_TTF_BUILD_TARGET): $(SDL2_BUILD_TARGET)
 	fi
 	@echo "Done.\nConfiguring and building SDL2_ttf. This may take several minutes. (Logs in sdl_ttf_build.log)..."
 	@cd SDL_ttf && \
-	mkdir build && \
+	mkdir -p build && \
 	touch aclocal.m4 && \
 	touch configure && \
 	touch config.h.in && \
@@ -231,7 +231,7 @@ LIBS := $(SDL2_BUILD_TARGET) $(SDL2_TTF_BUILD_TARGET) $(PORTMIDI_BUILD_TARGET)
 # 	LDFLAGS += $(shell $(PKGCONF) sdl2 --libs) $(shell $(PKGCONF) SDL2_ttf --libs)
 
 # else
-# 	LIBS := $(SDL_LIB) $(SDL_TTF_LIB) $(PORTMIDI_LIB)
+# 	LIBS := $(SDL2_LIB) $(SDL2_TTF_LIB) $(PORTMIDI_LIB)
 # endif
 
 CFLAGS := $(PKG_CFLAGS) -Wall -Wno-unused-command-line-argument -I$(SRC_DIR) -I$(GUI_SRC_DIR) \
@@ -268,7 +268,7 @@ LT_EXEC := layout
 
 all: $(EXEC)
 
-# $(SDL_LIB):
+# $(SDL2_LIB):
 # 	@echo "\nConfiguring and building SDL2. This may take several minutes. (Logs in sdl_build.log)..."
 # 	@cd SDL && \
 # 	./configure --enable-static --prefix=$(PWD)/SDL/installation >>../sdl_build.log 2>&1 && \
@@ -276,7 +276,7 @@ all: $(EXEC)
 # 	make install >>../sdl_build.log 2>&1
 # 	@echo "...SDL build complete"
 
-# $(SDL_TTF_LIB):
+# $(SDL2_TTF_LIB):
 # 	@echo "\nConfiguring and building SDL2_ttf. This may take several minutes. (Logs in sdl_ttf_build.log)..."
 # 	@cd SDL_ttf && \
 # 	touch aclocal.m4 && \
@@ -349,6 +349,6 @@ cleanall:
 	git submodule foreach --recursive git clean -fdx
 
 dump-vars:
-	@$(foreach v,$(.VARIABLES), \
-		$(info $(v) = $($(v))) \
+	@$(foreach v,$(filter-out .VARIABLES,$(.VARIABLES)), \
+	    $(info $(v) = $($(v))) \
 	)

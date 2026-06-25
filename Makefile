@@ -115,8 +115,8 @@ $(PORTMIDI_BUILD_TARGET):
 		exit 1; \
 	}
 	@echo "\nChecking SDL2_ttf submodule..."
-	@if [ ! -e SDL_ttf/.git ]; then \
-		git submodule update --init --recursive SDL_ttf; \
+	@if [ ! -e portmidi/.git ]; then \
+		git submodule update --init --recursive portmidi; \
 	fi
 	@echo "Done.\nConfiguring and building portmidi..."
 	(cd portmidi && mkdir -p build && chmod 755 build && cd build && cmake .. -DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=Release && make)

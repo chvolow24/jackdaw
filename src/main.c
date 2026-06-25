@@ -41,7 +41,6 @@
 #include "session.h"
 #include "symbol.h"
 #include "synth.h"
-#include "synth_page.h"
 #include "tempo.h"
 #include "text.h"
 #include "transport.h"
@@ -58,7 +57,11 @@
 
 #define DEFAULT_PROJ_AUDIO_SETTINGS 2, DEFAULT_SAMPLE_RATE, DEFAULT_SAMPLE_FORMAT, DEFAULT_AUDIO_CHUNK_LEN_SFRAMES, DEFAULT_FOURIER_LEN_SFRAMES
 
-const char *JACKDAW_VERSION = "0.8.0";
+#ifndef JACKDAW_VERSION
+#define JACKDAW_VERSION "unknown"
+#endif
+
+const char *jackdaw_version = JACKDAW_VERSION;
 char DIRPATH_SAVED_PROJ[MAX_PATHLEN];
 char DIRPATH_OPEN_FILE[MAX_PATHLEN];
 char DIRPATH_EXPORT[MAX_PATHLEN];
@@ -173,7 +176,7 @@ static const char *license_text = "Copyright (C) 2023-2025 Charlie Volow\nThis p
 
 int main(int argc, char **argv)
 {
-    fprintf(stdout, "\n\nJACKDAW (version %s)\nby Charlie Volow\n\nhttps://jackdaw-audio.net/\n\n%s\n\n", JACKDAW_VERSION, license_text);
+    fprintf(stdout, "\n\nJACKDAW (version %s)\nby Charlie Volow\n\nhttps://jackdaw-audio.net/\n\n%s\n\n", jackdaw_version, license_text);
     
 
     char *file_to_open = NULL;

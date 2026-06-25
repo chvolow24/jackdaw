@@ -38,7 +38,7 @@
 #define OLD_FLOAT_SER_W 16
 
 extern bool SYS_BYTEORDER_LE;
-extern const char *JACKDAW_VERSION;
+extern const char *jackdaw_version;
 /* extern JDAW_Color black; */
 /* extern JDAW_Color white; */
 
@@ -681,7 +681,7 @@ int jdaw_read_file(Project *dst, const char *path)
     /* read_file_spec_version = atof(hdr_buffer); */
     fprintf(stderr, "Reading JDAW file with version %s\n", read_file_spec_version);
     if (read_file_version_older_than("00.10")) {
-	fprintf(stderr, "Error: .jdaw file version %s is not compatible with the current jackdaw version (%s). You may need to downgrade to open this file.\n", hdr_buffer, JACKDAW_VERSION);
+	fprintf(stderr, "Error: .jdaw file version %s is not compatible with the current jackdaw version (%s). You may need to downgrade to open this file.\n", hdr_buffer, jackdaw_version);
         /* free(proj); */
 	/* session_to_set_proj_reading->proj_reading = NULL; */
 	return -1;

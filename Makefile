@@ -42,23 +42,29 @@ SDL2_BUNDLED_PATH := $(PWD)/SDL
 SDL2_TTF_BUNDLED_PATH := $(PWD)/SDL_ttf
 PORTMIDI_BUNDLED_PATH := $(PWD)/portmidi
 
+PKG_CONFIG_PATH := $(shell echo $(PKG_CONFIG_PATH))
 ###############################################################
-# For each dep, define build target IFF bundled
+# For each dep
+#	- define build target IFF bundled
+#	- append to PKG_CONFIG_PATH IFF bundled
 
 ifeq ($(HAVE_SYSTEM_SDL2),0)
 SDL2_BUILD_TARGET := $(SDL2_BUNDLED_PATH)/build/.libs/libSDL2.a
+PKG_CONFIG_PATH := $(if $(PKG_CONFIG_PATH),$(PKG_CONFIG_PATH):)$(SDL2_BUNDLED_PATH)/installation/lib/pkgconfig/
 else
 SDL2_BUILD_TARGET :=
 endif
 
 ifeq ($(HAVE_SYSTEM_SDL2_TTF),0)
 SDL2_TTF_BUILD_TARGET := $(SDL2_TTF_BUNDLED_PATH)/.libs/libSDL2_ttf.a
+PKG_CONFIG_PATH := $(if $(PKG_CONFIG_PATH),$(PKG_CONFIG_PATH):)$(SDL2_TTF_BUNDLED_PATH)
 else
 SDL2_TTF_BUILD_TARGET :=
 endif
 
 ifeq ($(HAVE_SYSTEM_PORTMIDI),0)
 PORTMIDI_BUILD_TARGET := $(PORTMIDI_BUNDLED_PATH)/build/libportmidi.a
+PKG_CONFIG_PATH := $(if $(PKG_CONFIG_PATH),$(PKG_CONFIG_PATH):)$(PORTMIDI_BUNDLED_PATH)/build/packaging
 else
 PORTMIDI_BUILD_TARGET :=
 endif
@@ -100,12 +106,14 @@ $(SDL2_TTF_BUILD_TARGET): $(SDL2_BUILD_TARGET)
 	fi
 	@echo "Done.\nConfiguring and building SDL2_ttf. This may take several minutes. (Logs in sdl_ttf_build.log)..."
 	@cd SDL_ttf && \
+	mkdir build && \
 	touch aclocal.m4 && \
 	touch configure && \
 	touch config.h.in && \
 	find . -name 'Makefile.in' -exec touch {} \; && \
 	./configure --disable-shared --enable-static --with-sdl-prefix=$(PWD)/SDL/installation --prefix=$(PWD)/sdl_ttf/build --disable-sdltest >>../sdl_ttf_build.log 2>&1 && \
-	make >>../sdl_ttf_build.log 2>&1
+	make >>../sdl_ttf_build.log 2>&1 && \
+	make install >>../sdl_ttf_build.log 2>&1 && \
 	@echo "...SDL_ttf build complete."
 	$(MAKE) $(MAKE_CMD_GOALS)
 
@@ -136,8 +144,8 @@ ifeq ($(HAVE_SYSTEM_SDL2),1)
 PKG_CFLAGS += $(shell $(PKGCONF) $(SDL2_PKG_NAME) --cflags)
 PKG_LINK_FLAGS += $(shell $(PKGCONF) $(SDL2_PKG_NAME) --libs)
 else
-PKG_CFLAGS += $(shell PKG_CONFIG_PATH=$(SDL2_BUNDLED_PATH) $(PKGCONF) --static $(SDL2_PKG_NAME) --cflags)
-PKG_LINK_FLAGS += $(shell PKG_CONFIG_PATH=$(SDL2_BUNDLED_PATH) $(PKGCONF) --static $(SDL2_PKG_NAME) --libs)
+PKG_CFLAGS += $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) $(PKGCONF) --static $(SDL2_PKG_NAME) --cflags)
+PKG_LINK_FLAGS += $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) $(PKGCONF) --static $(SDL2_PKG_NAME) --libs)
 endif
 
 # SDL2_ttf
@@ -145,8 +153,8 @@ ifeq ($(HAVE_SYSTEM_SDL2_TTF),1)
 PKG_CFLAGS += $(shell $(PKGCONF) $(SDL2_TTF_PKG_NAME) --cflags)
 PKG_LINK_FLAGS += $(shell $(PKGCONF) $(SDL2_TTF_PKG_NAME) --libs)
 else
-PKG_CFLAGS += $(shell PKG_CONFIG_PATH=$(SDL2_TTF_BUNDLED_PATH) $(PKGCONF) --static $(SDL2_TTF_PKG_NAME) --cflags)
-PKG_LINK_FLAGS += $(shell PKG_CONFIG_PATH=$(SDL2_TTF_BUNDLED_PATH) $(PKGCONF) --static $(SDL2_TTF_PKG_NAME) --libs)
+PKG_CFLAGS += $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) $(PKGCONF) --static $(SDL2_TTF_PKG_NAME) --cflags)
+PKG_LINK_FLAGS += $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) $(PKGCONF) --static $(SDL2_TTF_PKG_NAME) --libs)
 endif
 
 # Portmidi
@@ -155,7 +163,6 @@ PKG_CFLAGS += $(shell $(PKGCONF) $(PORTMIDI_PKG_NAME) --cflags)
 PKG_LINK_FLAGS += $(shell $(PKGCONF) $(PORTMIDI_PKG_NAME) --libs)
 else
 PKG_CFLAGS += -I$(PORTMIDI_BUNDLED_PATH)/pm_common -I$(PORTMIDI_BUNDLED_PATH)/porttime
-#PKG_LINK_FLAGS += $(shell PKG_CONFIG_PATH=$(PORTMIDI_BUNDLED_PATH)/build/packaging $(PKGCONF) --static $(PORTMIDI_PKG_NAME) --libs)
 endif
 
 # USE_EXTERNAL_SDLS forces the use of system packages; error if unavailable
@@ -316,10 +323,10 @@ $(GUI_BUILD_DIR):
 	mkdir -p $(GUI_BUILD_DIR)
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR)
-	@$(CC) $(CFLAGS) $(CFLAGS_ADDTL) $(SDL_FLAGS) $(DEPFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) $(CFLAGS_ADDTL) $(SDL_FLAGS) $(DEPFLAGS) -c $< -o $@
 
 $(GUI_BUILD_DIR)/%.o: $(GUI_SRC_DIR)/%.c $(LIBS) | $(GUI_BUILD_DIR)
-	@$(CC) $(CFLAGS) $(CFLAGS_ADDTL) $(SDL_FLAGS) $(LIBS) $(DEPFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) $(CFLAGS_ADDTL) $(SDL_FLAGS) $(LIBS) $(DEPFLAGS) -c $< -o $@
 
 -include ${DEPS}
 -include ${GUI_DEPS}

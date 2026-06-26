@@ -226,7 +226,7 @@ LDFLAGS := -lpthread -lm $(MACOS_FRAMEWORK_FLAGS)
 else
 SDL_FLAGS := $(SDL_FLAGS_ALL)
 # LINK_ASOUND := -lasound
-LDFLAGS := -lpthread -lm -ldl -lrt
+LDFLAGS := -lpthread -lm -ldl -lrt -lasound
 endif
 
 LDFLAGS += $(PKG_LINK_FLAGS)

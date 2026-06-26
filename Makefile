@@ -314,8 +314,11 @@ $(GUI_BUILD_DIR)/%.o: $(GUI_SRC_DIR)/%.c $(LIBS) | $(GUI_BUILD_DIR)
 -include ${GUI_DEPS}
 
 .PHONY: macos_bundle
-macos_bundle: $(EXEC)
-	cp -r assets/* macos_bundle/Jackdaw.app/Contents/Resources/ \
+macos-bundle: $(EXEC)
+	mkdir -p macos_bundle/Jackdaw.app/Contents \
+	&& mkdir -p macos_bundle/Jackdaw.app/Contents/Resources \
+	&& mkdir -p macos_bundle/Jackdaw.app/Contents/MacOS \
+	&& cp -r assets/* macos_bundle/Jackdaw.app/Contents/Resources/ \
 	&& cp jackdaw macos_bundle/Jackdaw.app/Contents/MacOS/ \
 	&& sed "s/@VERSION@/$(JACKDAW_VERSION)/g" macos_bundle/Info.plist.in > macos_bundle/Jackdaw.app/Contents/Info.plist
 

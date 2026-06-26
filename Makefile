@@ -108,6 +108,10 @@ $(SDL2_TTF_BUILD_TARGET): $(SDL2_BUILD_TARGET)
 	fi
 	@echo "Done.\n\nConfiguring and building SDL2_ttf. This may take several minutes. (Logs in sdl_ttf_build.log)\n\n\tNote: if you prefer to install SDL2_ttf on your system: \n\t\t- cancel this (CTRL-c)\n\t\t- install it (e.g. 'sudo apt install sdl2_ttf', 'brew install sdl2_ttf')\n\t\t- re-run make\n"	
 	@cd SDL_ttf && \
+	touch aclocal.m4 && \
+	touch configure && \
+	touch config.h.in && \
+	find . -name 'Makefile.in' -exec touch {} \; && \
 	mkdir -p installation && \
 	./configure \
 		--disable-shared --enable-static  \

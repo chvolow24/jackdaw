@@ -117,7 +117,7 @@ $(SDL2_TTF_BUILD_TARGET): $(SDL2_BUILD_TARGET)
 		PKG_CONFIG_PATH=$(SDL2_BUNDLED_PATH)/installation/lib/pkgconfig \
 		>>../sdl_ttf_build.log 2>&1 && \
 	sed -i.bak 's|^SDL_LIBS = -L[^ ]* [^ ]*\.a|SDL_LIBS = -L$(SDL2_BUNDLED_PATH)/installation/lib -lSDL2|' $(SDL2_TTF_BUNDLED_PATH)/Makefile && \
-	sed -i '' 's|^LIBS =  -L[^ ]* [^ ]*\.a|LIBS = -L$(SDL2_BUNDLED_PATH)/installation/lib -lSDL2|' $(SDL2_TTF_BUNDLED_PATH)/Makefile && \
+	sed -i.bak 's|^LIBS =  -L[^ ]* [^ ]*\.a|LIBS = -L$(SDL2_BUNDLED_PATH)/installation/lib -lSDL2|' $(SDL2_TTF_BUNDLED_PATH)/Makefile && \
 	make >>../sdl_ttf_build.log 2>&1 && \
 	make install >>../sdl_ttf_build.log 2>&1
 	@echo "...SDL_ttf build complete."

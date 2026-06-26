@@ -30,10 +30,10 @@ todo.org
 license_extract.py
 projects/
 presentation.org
-macos_bundle/
 jprod
 *.dmg
 *.zip
+macos_bundle/Jackdaw.app/Contents/
 build/
 gui/build/
 *.org

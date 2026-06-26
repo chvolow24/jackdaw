@@ -222,14 +222,14 @@ UNAME_S := $(shell uname -s)
 # Operation system checks
 ifeq ($(UNAME_S),Darwin)
 # SDL_FLAGS := $(MACOS_FRAMEWORK_FLAGS) $(SDL_FLAGS_ALL)
-LDFLAGS := -lpthread -lm
+LDFLAGS := -lpthread -lm $(MACOS_FRAMEWORK_FLAGS)
 else
 SDL_FLAGS := $(SDL_FLAGS_ALL)
 # LINK_ASOUND := -lasound
 LDFLAGS := -lpthread -lm -ldl -lrt
 endif
 
-LDFLAGS += $(PKG_LINK_FLAGS) $(MACOS_FRAMEWORK_FLAGS)
+LDFLAGS += $(PKG_LINK_FLAGS)
 
 LIBS := $(SDL2_BUILD_TARGET) $(SDL2_TTF_BUILD_TARGET) $(PORTMIDI_BUILD_TARGET)
 # ifdef USE_EXTERNAL_SDLS

@@ -38,11 +38,12 @@ HAVE_SYSTEM_LIBSWRESAMPLE := 0
 endif
 
 # Define paths for bundled dependencies
-SDL2_BUNDLED_PATH := $(PWD)/SDL
-SDL2_TTF_BUNDLED_PATH := $(PWD)/SDL_ttf
-PORTMIDI_BUNDLED_PATH := $(PWD)/portmidi
+SDL2_BUNDLED_PATH := $(CURDIR)/SDL
+SDL2_TTF_BUNDLED_PATH := $(CURDIR)/SDL_ttf
+PORTMIDI_BUNDLED_PATH := $(CURDIR)/portmidi
 
 PKG_CONFIG_PATH := $(shell echo $(PKG_CONFIG_PATH))
+
 ###############################################################
 # For each dep
 #	- define build target IFF bundled
@@ -71,14 +72,14 @@ endif
 ###############################################################
 
 SDL_INCLUDE_PATH := $(SDL_PATH)/include
-PORTMIDI_PATH := $(PWD)/portmidi
+PORTMIDI_PATH := $(CURDIR)/portmidi
 PORTMIDI_LIB := $(PORTMIDI_PATH)/build/libportmidi.a
 
 
 ifdef USE_EXTERNAL_SDLS
 SDL2_TTF_LIB :=
 else
-SDL2_TTF_LIB := $(SDL2_TTF_BUNDLED_PATH)/build/lib/libSDL2_ttf.a
+SDL2_TTF_LIB := $(SDL2_TTF_BUNDLED_PATH)/installation/lib/libSDL2_ttf.a
 endif
 
 ##############################################################
@@ -91,9 +92,10 @@ $(SDL2_BUILD_TARGET):
 	@if [ ! -e SDL/.git ]; then \
 		git submodule update --init --recursive SDL; \
 	fi
-	@echo "Done.\nConfiguring and building SDL2. This may take several minutes. (Logs in sdl_build.log)..."
+	@echo "Done.\n\nConfiguring and building SDL2. This may take several minutes. (Logs in sdl_build.log)\n\n\tNote: if you prefer to install SDL2 on your system: \n\t\t- cancel this (CTRL-c)\n\t\t- install it (e.g. 'sudo apt install sdl2', 'brew install sdl2')\n\t\t- re-run make\n"
 	@cd SDL && \
-	./configure --enable-static --disable-shared --prefix=$(PWD)/SDL/installation >>../sdl_build.log 2>&1 && \
+	mkdir -p installation && \
+	./configure --enable-static --disable-shared --prefix=$(SDL2_BUNDLED_PATH)/installation >>../sdl_build.log 2>&1 && \
 	make >>../sdl_build.log 2>&1 && \
 	make install >>../sdl_build.log 2>&1
 	@echo "...SDL build complete"
@@ -104,16 +106,20 @@ $(SDL2_TTF_BUILD_TARGET): $(SDL2_BUILD_TARGET)
 	@if [ ! -e SDL_ttf/.git ]; then \
 		git submodule update --init --recursive SDL_ttf; \
 	fi
-	@echo "Done.\nConfiguring and building SDL2_ttf. This may take several minutes. (Logs in sdl_ttf_build.log)..."
+	@echo "Done.\n\nConfiguring and building SDL2_ttf. This may take several minutes. (Logs in sdl_ttf_build.log)\n\n\tNote: if you prefer to install SDL2_ttf on your system: \n\t\t- cancel this (CTRL-c)\n\t\t- install it (e.g. 'sudo apt install sdl2_ttf', 'brew install sdl2_ttf')\n\t\t- re-run make\n"	
 	@cd SDL_ttf && \
-	mkdir -p build && \
-	touch aclocal.m4 && \
-	touch configure && \
-	touch config.h.in && \
-	find . -name 'Makefile.in' -exec touch {} \; && \
-	./configure --disable-shared --enable-static --with-sdl-prefix=$(PWD)/SDL/installation --prefix=$(PWD)/sdl_ttf/build --disable-sdltest >>../sdl_ttf_build.log 2>&1 && \
+	mkdir -p installation && \
+	./configure \
+		--disable-shared --enable-static  \
+		--prefix=$(SDL2_TTF_BUNDLED_PATH)/installation \
+		--with-sdl-prefix=$(SDL2_BUNDLED_PATH)/installation \
+		--disable-sdltest \
+		PKG_CONFIG_PATH=$(SDL2_BUNDLED_PATH)/installation/lib/pkgconfig \
+		>>../sdl_ttf_build.log 2>&1 && \
+	sed -i.bak 's|^SDL_LIBS = -L[^ ]* [^ ]*\.a|SDL_LIBS = -L$(SDL2_BUNDLED_PATH)/installation/lib -lSDL2|' $(SDL2_TTF_BUNDLED_PATH)/Makefile && \
+	sed -i '' 's|^LIBS =  -L[^ ]* [^ ]*\.a|LIBS = -L$(SDL2_BUNDLED_PATH)/installation/lib -lSDL2|' $(SDL2_TTF_BUNDLED_PATH)/Makefile && \
 	make >>../sdl_ttf_build.log 2>&1 && \
-	make install >>../sdl_ttf_build.log 2>&1 && \
+	make install >>../sdl_ttf_build.log 2>&1
 	@echo "...SDL_ttf build complete."
 	$(MAKE) $(MAKE_CMD_GOALS)
 
@@ -267,30 +273,6 @@ GUI_DEPS := $(GUI_OBJS:.o=.d)
 LT_EXEC := layout
 
 all: $(EXEC)
-
-# $(SDL2_LIB):
-# 	@echo "\nConfiguring and building SDL2. This may take several minutes. (Logs in sdl_build.log)..."
-# 	@cd SDL && \
-# 	./configure --enable-static --prefix=$(PWD)/SDL/installation >>../sdl_build.log 2>&1 && \
-# 	make >>../sdl_build.log 2>&1 && \
-# 	make install >>../sdl_build.log 2>&1
-# 	@echo "...SDL build complete"
-
-# $(SDL2_TTF_LIB):
-# 	@echo "\nConfiguring and building SDL2_ttf. This may take several minutes. (Logs in sdl_ttf_build.log)..."
-# 	@cd SDL_ttf && \
-# 	touch aclocal.m4 && \
-# 	touch configure && \
-# 	touch config.h.in && \
-# 	find . -name 'Makefile.in' -exec touch {} \; && \
-# 	./configure --disable-shared --enable-static --with-sdl-prefix=$(PWD)/SDL/installation --prefix=$(PWD)/sdl_ttf/build --disable-sdltest >>../sdl_ttf_build.log 2>&1 && \
-# 	make >>../sdl_ttf_build.log 2>&1
-# 	@echo "...SDL_ttf build complete."
-
-# $(PORTMIDI_LIB):
-# 	@echo "\nConfiguring and building portmidi..."
-# 	(cd portmidi && mkdir -p build && chmod 755 build && cd build && cmake .. -DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=Release && make)
-# 	@echo "...portmidi build complete."
 
 # Default to production flags
 CFLAGS_ADDTL := $(CFLAGS_PROD)

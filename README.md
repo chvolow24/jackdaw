@@ -7,7 +7,7 @@ A free, open-source, keyboard-focused digital audio workstation (DAW). Written i
 <!-- ![main_gif](https://jackdaw-audio.net/static/readme_imgs/main_new_short.gif) -->
 <img src="https://jackdaw-audio.net/static/sync_gifs/combined.gif" width="75%">
 
-Jackdaw was born out of a desire for music software that feels like playing an instrument or operating a tape machine -- direct, responsive, and tactile. 
+Jackdaw was born out of a desire to make music using software that feels like playing an instrument or operating a tape machine -- direct, responsive, and tactile. 
 
 The mouse cursor is a powerful tool, but it is also a temptation. Over-reliance on the mouse and its corollaries (like GUI buttons and toolbars) has produced a slew of creative softwares with interfaces that look and feel like tax forms. The homogeneity of mouse-first interfaces can make them easier to learn (and that's no small benefit), but there's a cost in speed and ease-of-use for the expert user. Jackdaw has its own logic, rhythm, and feeling; if you take the time to learn, you might find yourself inspired.
 

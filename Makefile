@@ -2,15 +2,13 @@
 JACKDAW_VERSION := 0.8.0
 EXEC := jackdaw
 
-# Main target
+# Default target
 all: $(EXEC)
 
 # PKGCONF is used to locate system packages
 PKGCONF := $(shell command -v pkg-config 2>/dev/null || command -v pkgconf 2>/dev/null)
 ifeq ($(PKGCONF),)
-    HAVE_PKGCONF := 0
-else
-    HAVE_PKGCONF := 1
+$(error pkg-config is required. Please install it first.)
 endif
 
 # Canonical pkg-config package names
@@ -19,7 +17,7 @@ SDL2_TTF_PKG_NAME := SDL2_ttf
 PORTMIDI_PKG_NAME := portmidi
 
 # Check for system packages
-ifeq ($(HAVE_PKGCONF),1)
+ifndef BUNDLED
 HAVE_SYSTEM_SDL2 := $(shell $(PKGCONF) --exists $(SDL2_PKG_NAME) 2>/dev/null && echo 1 || echo 0)
 HAVE_SYSTEM_SDL2_TTF := $(shell $(PKGCONF) --exists $(SDL2_TTF_PKG_NAME) 2>/dev/null && echo 1 || echo 0)
 HAVE_SYSTEM_PORTMIDI := $(shell $(PKGCONF) --exists $(PORTMIDI_PKG_NAME) 2>/dev/null && echo 1 || echo 0)
@@ -71,12 +69,6 @@ PORTMIDI_BUILD_TARGET :=
 endif
 ###############################################################
 
-
-ifdef USE_EXTERNAL_SDLS
-SDL2_TTF_LIB :=
-else
-SDL2_TTF_LIB := $(SDL2_TTF_BUNDLED_PATH)/installation/lib/libSDL2_ttf.a
-endif
 
 ##############################################################
 # Bundled dependency build steps.
@@ -139,10 +131,6 @@ $(PORTMIDI_BUILD_TARGET):
 
 # USE_EXTERNAL_SDLS forces the use of system packages; error if unavailable
 ifdef USE_EXTERNAL_SDLS
-ifeq ($(HAVE_PKGCONF),0)
-$(error "pkg-config required when USE_EXTERNAL_SDLS is set")
-endif
-
 ifeq ($(HAVE_SYSTEM_SDL2),0)
 $(error "SDL2 was not found on your system.")
 endif
@@ -175,11 +163,8 @@ deps-ready: $(DEP_BUILD_TARGETS)
 	$(eval PKG_CFLAGS += $(if $(filter 1,$(HAVE_SYSTEM_PORTMIDI)),\
 		$(shell $(PKGCONF) $(PORTMIDI_PKG_NAME) --cflags),\
 		-I$(PORTMIDI_BUNDLED_PATH)/pm_common -I$(PORTMIDI_BUNDLED_PATH)/porttime))
-	$(eval PKG_CFLAGS += $(if $(filter 1,$(HAVE_SYSTEM_PORTMIDI)),\
+	$(eval PKG_LINK_FLAGS += $(if $(filter 1,$(HAVE_SYSTEM_PORTMIDI)),\
 		$(shell $(PKGCONF) $(PORTMIDI_PKG_NAME) --libs),))
-
-	@echo "PKG_CFLAGS: $(PKG_CFLAGS)"
-	@echo "PKG_LINK_FLAGS: $(PKG_LINK_FLAGS)"
 
 CC := gcc
 SRC_DIR := src
@@ -215,9 +200,6 @@ SDL_FLAGS := $(SDL_FLAGS_ALL)
 LDFLAGS = -lpthread -lm -ldl -lrt -lasound
 endif
 
-
-LIBS := $(SDL2_BUILD_TARGET) $(SDL2_TTF_BUILD_TARGET) $(PORTMIDI_BUILD_TARGET)
-
 CFLAGS = $(PKG_CFLAGS) -Wall -Wno-unused-command-line-argument -I$(SRC_DIR) -I$(GUI_SRC_DIR) \
 	-DJACKDAW_VERSION=\"$(JACKDAW_VERSION)\" \
 	-DINSTALL_DIR="\"$(PWD)\""
@@ -230,9 +212,6 @@ endif
 
 CFLAGS_JDAW_ONLY := -DLT_DEV_MODE=0
 CFLAGS_LT_ONLY := -DLT_DEV_MODE=1 -DLAYOUT_BUILD=1
-CFLAGS_PROD := -O3
-CFLAGS_DEBUG := -DTESTBUILD=1 -g -O0 -fsanitize=address
-CFLAGS_ADDTL =
 
 LAYOUT_PROGRAM_SRCS := gui/src/openfile.c gui/src/lt_params.c gui/src/draw.c gui/src/main.c gui/src/test.c
 JACKDAW_ONLY_SRCS :=  src/main.c  gui/src/test.c gui/src/menu.c gui/src/modal.c gui/src/dir.c gui/src/components.c gui/src/label.c gui/src/symbols.c gui/src/autocompletion.c gui/src/symbol.c
@@ -250,29 +229,24 @@ GUI_DEPS := $(GUI_OBJS:.o=.d)
 
 LT_EXEC := layout
 
-all: $(EXEC)
 
-# Default to production flags
-CFLAGS_ADDTL := $(CFLAGS_PROD)
-
-# Override CFLAGS_ADDTL if the target is "debug"
+# Add cflags for debug or prod
 ifeq ($(MAKECMDGOALS),debug)
-    CFLAGS_ADDTL := $(CFLAGS_DEBUG)
+	CFLAGS += -DTESTBUILD=1 -g -O0 -fsanitize=address
+else
+	CFLAGS += -O3 
 endif
 
-ifeq ($(MAKECMDGOALS),layout)
-    CFLAGS_ADDTL := $(CFLAGS_DEBUG)
-endif
-
-$(EXEC): deps-ready $(OBJS) $(GUI_OBJS)
-	$(CC) -o $@  $(filter-out deps-ready %_target,$^) $(CFLAGS) $(CFLAGS_ADDTL) $(CFLAGS_JDAW_ONLY) $(SDL_FLAGS) $(LIBS) $(LINK_ASOUND) $(LDFLAGS) $(PKG_LINK_FLAGS)
+# Main target
+$(EXEC): $(OBJS) $(GUI_OBJS) | deps-ready 
+	$(CC) -o $@  $(filter-out deps-ready %_target,$^) $(CFLAGS) $(CFLAGS_JDAW_ONLY) $(LDFLAGS) $(DEP_BUILD_TARGETS) $(PKG_LINK_FLAGS)
 	@echo "\nBuild complete. Run jackdaw with:\n$ ./jackdaw\n"
 
 .PHONY: debug
 debug: $(EXEC)
 
 $(LT_EXEC): $(LT_OBJS)
-	$(CC) -o $@ $^ $(CFLAGS) $(CFLAGS_ADDTL) $(CFLAGS_LT_ONLY) $(LIBS) $(LFLAGS)
+	$(CC) -o $@ $^ $(CFLAGS) $(CFLAGS_LT_ONLY) $(LDFLAGS)
 
 $(BUILD_DIR):
 	mkdir $(BUILD_DIR)
@@ -280,16 +254,16 @@ $(BUILD_DIR):
 $(GUI_BUILD_DIR):
 	mkdir -p $(GUI_BUILD_DIR)
 
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR)
-	$(CC) $(CFLAGS) $(CFLAGS_ADDTL) $(SDL_FLAGS) $(DEPFLAGS) -c $< -o $@
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR) deps-ready
+	$(CC) $(CFLAGS) $(PKG_CFLAGS) $(DEPFLAGS) -c $< -o $@
 
-$(GUI_BUILD_DIR)/%.o: $(GUI_SRC_DIR)/%.c $(LIBS) | $(GUI_BUILD_DIR)
-	$(CC) $(CFLAGS) $(CFLAGS_ADDTL) $(SDL_FLAGS) $(LIBS) $(DEPFLAGS) -c $< -o $@
+$(GUI_BUILD_DIR)/%.o: $(GUI_SRC_DIR)/%.c | $(GUI_BUILD_DIR) deps-ready
+	$(CC) $(CFLAGS) $(PKG_CFLAGS) $(DEPFLAGS) -c $< -o $@
 
 -include ${DEPS}
 -include ${GUI_DEPS}
 
-.PHONY: macos_bundle
+.PHONY: macos-bundle
 macos-bundle: $(EXEC)
 	mkdir -p macos_bundle/Jackdaw.app/Contents \
 	&& mkdir -p macos_bundle/Jackdaw.app/Contents/Resources \

@@ -29,9 +29,10 @@
 #include "waveform.h"
 
 /* #define BACKGROUND_ACTIVE */
-#define CURSOR_W_PIX (10 * main_win->dpi_scale_factor)
+#define CURSOR_W_PIX (10 * main_win->dpi_scale_factor + 1)
 /* #define CURSOR_W_PIX (40 * main_win->dpi_scale_factor) */
 #define CURSOR_CORNER_R (2 * main_win->dpi_scale_factor)
+
 #define CURSOR_V_PAD (4 * main_win->dpi_scale_factor)
 /* #define CURSOR_DIAG (3 * main_win->dpi_scale_factor) */
 
@@ -781,7 +782,9 @@ static int timeline_draw(Timeline *tl)
 	/* int diff_g = (cursor_dst_color.g - cursor_color.g) / (CURSOR_W_PIX / 2); */
 	/* int diff_a = (cursor_dst_color.a - cursor_color.a) / (CURSOR_W_PIX / 2); */
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(cursor_color));
-	SDL_Rect bumper = {play_head_x - CURSOR_W_PIX / 2, selected_track_rect.y + CURSOR_V_PAD, CURSOR_W_PIX, selected_track_rect.h - 2 * CURSOR_V_PAD};
+	SDL_Rect bumper = {play_head_x - CURSOR_W_PIX / 2 + 1, selected_track_rect.y + CURSOR_V_PAD, CURSOR_W_PIX, selected_track_rect.h - 2 * CURSOR_V_PAD};
+	/* SDL_SetRenderDrawColor(main_win->rend, 255, 255, 0 , 255); */
+	/* SDL_RenderDrawRect(main_win->rend, &bumper); */
 	geom_fill_rounded_rect(main_win->rend, &bumper, CURSOR_CORNER_R);
 	for (int i=0; i<CURSOR_W_PIX / 2; i++) {
 	    bumper.x++;

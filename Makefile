@@ -196,7 +196,6 @@ UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Darwin)
 LDFLAGS := -lpthread -lm $(MACOS_FRAMEWORK_FLAGS)
 else
-SDL_FLAGS := $(SDL_FLAGS_ALL)
 LDFLAGS = -lpthread -lm -ldl -lrt -lasound
 endif
 
@@ -239,7 +238,7 @@ endif
 
 # Main target
 $(EXEC): $(OBJS) $(GUI_OBJS) | deps-ready 
-	$(CC) -o $@  $(filter-out deps-ready %_target,$^) $(CFLAGS) $(CFLAGS_JDAW_ONLY) $(LDFLAGS) $(DEP_BUILD_TARGETS) $(PKG_LINK_FLAGS)
+	$(CC) -o $@  $(filter-out deps-ready %_target,$^) $(CFLAGS) $(CFLAGS_JDAW_ONLY) $(DEP_BUILD_TARGETS) $(PKG_LINK_FLAGS) $(LDFLAGS)
 	@echo "\nBuild complete. Run jackdaw with:\n$ ./jackdaw\n"
 
 .PHONY: debug

@@ -2,7 +2,7 @@
   Jackdaw | https://jackdaw-audio.net/ | a free, keyboard-focused DAW | built on SDL (https://libsdl.org/)
 ******************************************************************************************************************
 
-  Copyright (C) 2023-2025 Charlie Volow
+  Copyright (C) 2023-2026 Charlie Volow
   
   Jackdaw is licensed under the GNU General Public License.
 
@@ -169,7 +169,7 @@ void loop_project_main();
 extern bool connection_open;
 
 
-static const char *license_text = "Copyright (C) 2023-2025 Charlie Volow\nThis program is free software: you can redistribute it and/or modify \nit under the terms of the GNU General Public License as published by \nthe Free Software Foundation, either version 3 of the License, or \n(at your option) any later version. \n\nThis program is distributed in the hope that it will be useful,\nbut WITHOUT ANY WARRANTY; without even the implied warranty of\nMERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\nGNU General Public License for more details.";
+static const char *license_text = "Copyright (C) 2023-2026 Charlie Volow\nThis program is free software: you can redistribute it and/or modify \nit under the terms of the GNU General Public License as published by \nthe Free Software Foundation, either version 3 of the License, or \n(at your option) any later version. \n\nThis program is distributed in the hope that it will be useful,\nbut WITHOUT ANY WARRANTY; without even the implied warranty of\nMERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\nGNU General Public License for more details.";
 
 
 int main(int argc, char **argv)

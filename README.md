@@ -65,10 +65,12 @@ $ make
 If successful, you should see a "build summary," and can run jackdaw with 
 
 ```console
-`./jackdaw`.
+./jackdaw
 ```
 
-By default, the `make` command checks your system for each of Jackdaw's dependencies. If found, the version on your system will be used to build Jackdaw. Otherwise, the dependency's source code will be pulled in as a git submodule, and make will build it before building Jackdaw. All of this is automatic. Nothing is installed on your system.
+By default, the `make` command checks your system for each of Jackdaw's dependencies. If found, the version installed on your system will be used to build Jackdaw. Otherwise, the dependency's source code will be pulled in as a git submodule, and `make` will build it before building Jackdaw. 
+
+All of this is automatic. Nothing is installed on your system.
 
 ### Build options
 

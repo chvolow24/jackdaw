@@ -635,7 +635,7 @@ void input_load_keybinding_config(const char *asset_path)
 	    if (fn) {
 		input_bind_fn(fn, i_state, key, mode);
 	    } else {
-		fprintf(stderr, "Error: no function found with id %s\n", buf);
+		log_tmp(LOG_WARN, "No function found with id %s\n", buf);
 	    }
 	}
     }

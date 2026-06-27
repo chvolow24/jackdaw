@@ -1,5 +1,5 @@
 # JACKDAW_VERSION used in runtime and macos_bundle defined here
-JACKDAW_VERSION := 0.8.0
+JACKDAW_VERSION := 0.8.1
 EXEC := jackdaw
 
 # Default target

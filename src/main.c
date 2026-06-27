@@ -115,7 +115,6 @@ static void init()
 {
     /* FILE *test = open_asset("layouts/jackdaw_main_layout.xml", "r"); */
     /* exit(0); */
-    fprintf(stderr, "Initializing SDL and subsystems...\n");
     set_thread_id(JDAW_THREAD_MAIN);
     /* MAIN_THREAD_ID = pthread_self(); */
     /* CURRENT_THREAD_ID = MAIN_THREAD_ID; */
@@ -138,7 +137,6 @@ static void init()
     strcpy(DIRPATH_EXPORT, DIRPATH_SAVED_PROJ);
     midi_io_init();
     init_dsp();
-    fprintf(stderr, "\t...done.\n");
 }
 
 static void quit()
@@ -302,7 +300,6 @@ int main(int argc, char **argv)
 	}
 	timeline_add_track(session->proj.timelines[0], -1);
     }
-    fprintf(stderr, "\t...done\n");
 
     window_push_mode(main_win, MODE_TIMELINE);
 

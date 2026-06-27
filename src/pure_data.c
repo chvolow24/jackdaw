@@ -183,7 +183,7 @@ static void initiate_handshake()
 	fprintf(stdout, "Identified pd PID and validated. Sending signal...\n");
 	kill(pids->pd_pid, SIGUSR1);
      } else {
-	 fprintf(stderr, "Could not validate pd PID\n");
+	 /* fprintf(stderr, "Could not validate pd PID\n"); */
      }
 }
 
@@ -202,9 +202,9 @@ int pd_jackdaw_shm_init()
     /* } */
     int fd = shm_open(PD_JACKDAW_SHM_PIDS_NAME, O_CREAT | O_RDWR, 0666);
     if (fd == -1) {
-	perror("Error opening pids shm (shm_open)");
+	/* perror("Error opening pids shm (shm_open)"); */
     } else if (ftruncate(fd, sizeof(struct pd_jackdaw_shm_pids)) == -1) {
-	perror("Error opening pids shm (ftruncate)");
+	/* perror("Error opening pids shm (ftruncate)"); */
     }
 
     pids = (struct pd_jackdaw_shm_pids *)mmap(NULL, sizeof(struct pd_jackdaw_shm_pids), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);

@@ -173,7 +173,6 @@ void session_populate_midi_device_lists(Session *session)
     MIDIDevice devices[MAX_MIDI_DEVICES * 2];
     memset(devices, '\0', sizeof(devices));
     int num = populate_global_midi_device_list(devices);
-    fprintf(stderr, "found %d\n", num);
     if (num < 0) {
 	fprintf(stderr, "Error collecting midi device list. Errno: %d\n", num);
     } else {

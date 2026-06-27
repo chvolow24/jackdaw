@@ -1,6 +1,9 @@
+# JACKDAW_VERSION used in runtime and macos_bundle defined here
 JACKDAW_VERSION := 0.8.0
 EXEC := jackdaw
-all: jackdaw
+
+# Main target
+all: $(EXEC)
 
 # PKGCONF is used to locate system packages
 PKGCONF := $(shell command -v pkg-config 2>/dev/null || command -v pkgconf 2>/dev/null)
@@ -14,9 +17,6 @@ endif
 SDL2_PKG_NAME := sdl2
 SDL2_TTF_PKG_NAME := SDL2_ttf
 PORTMIDI_PKG_NAME := portmidi
-
-# Append CFLAGS for each package
-PKG_FLAGS := 
 
 # Check for system packages
 ifeq ($(HAVE_PKGCONF),1)
@@ -71,10 +71,6 @@ PORTMIDI_BUILD_TARGET :=
 endif
 ###############################################################
 
-SDL_INCLUDE_PATH := $(SDL_PATH)/include
-PORTMIDI_PATH := $(CURDIR)/portmidi
-PORTMIDI_LIB := $(PORTMIDI_PATH)/build/libportmidi.a
-
 
 ifdef USE_EXTERNAL_SDLS
 SDL2_TTF_LIB :=
@@ -92,32 +88,32 @@ $(SDL2_BUILD_TARGET):
 	@if [ ! -e SDL/.git ]; then \
 		git submodule update --init --recursive SDL; \
 	fi
-	@echo "Done.\n\nConfiguring and building SDL2. This may take several minutes. (Logs in sdl_build.log)\n\n\tNote: if you prefer to install SDL2 on your system: \n\t\t- cancel this (CTRL-c)\n\t\t- install it (e.g. 'sudo apt install sdl2', 'brew install sdl2')\n\t\t- re-run make\n"
+	@echo "Done.\n\nConfiguring and building SDL2. This may take several minutes. (Logs in sdl_build.log)\n\n\tNote: if you prefer to install SDL2 on your system: \n\t\t- cancel this (CTRL-c)\n\t\t- install it (e.g. 'sudo apt install libsdl2-dev', 'brew install sdl2')\n\t\t- re-run make\n"
 	@cd SDL && \
 	mkdir -p installation && \
 	./configure --enable-static --disable-shared --prefix=$(SDL2_BUNDLED_PATH)/installation >>../sdl_build.log 2>&1 && \
 	make >>../sdl_build.log 2>&1 && \
 	make install >>../sdl_build.log 2>&1
 	@echo "...SDL build complete"
-	$(MAKE) $(MAKE_CMD_GOALS)
+
+SDL2_TTF_CONFIG_OPTIONS := --disable-shared --enable-static --prefix=$(SDL2_TTF_BUNDLED_PATH)/installation --disable-sdltest
+ifeq ($(HAVE_SYSTEM_SDL2),0)
+SDL2_TTF_CONFIG_OPTIONS += --with-sdl-prefix=$(SDL2_BUNDLED_PATH)/installation
+endif
 
 $(SDL2_TTF_BUILD_TARGET): $(SDL2_BUILD_TARGET)
 	@echo "\nChecking SDL2_ttf submodule..."
 	@if [ ! -e SDL_ttf/.git ]; then \
 		git submodule update --init --recursive SDL_ttf; \
 	fi
-	@echo "Done.\n\nConfiguring and building SDL2_ttf. This may take several minutes. (Logs in sdl_ttf_build.log)\n\n\tNote: if you prefer to install SDL2_ttf on your system: \n\t\t- cancel this (CTRL-c)\n\t\t- install it (e.g. 'sudo apt install sdl2_ttf', 'brew install sdl2_ttf')\n\t\t- re-run make\n"	
+	@echo "Done.\n\nConfiguring and building SDL2_ttf. This may take several minutes. (Logs in sdl_ttf_build.log)\n\n\tNote: if you prefer to install SDL2_ttf on your system: \n\t\t- cancel this (CTRL-c)\n\t\t- install it (e.g. 'sudo apt install libsdl2-ttf-dev', 'brew install sdl2_ttf')\n\t\t- re-run make\n"	
 	@cd SDL_ttf && \
 	touch aclocal.m4 && \
 	touch configure && \
 	touch config.h.in && \
 	find . -name 'Makefile.in' -exec touch {} \; && \
 	mkdir -p installation && \
-	./configure \
-		--disable-shared --enable-static  \
-		--prefix=$(SDL2_TTF_BUNDLED_PATH)/installation \
-		--with-sdl-prefix=$(SDL2_BUNDLED_PATH)/installation \
-		--disable-sdltest \
+	./configure $(SDL2_TTF_CONFIG_OPTIONS) \
 		PKG_CONFIG_PATH=$(SDL2_BUNDLED_PATH)/installation/lib/pkgconfig \
 		>>../sdl_ttf_build.log 2>&1 && \
 	sed -i.bak 's|^SDL_LIBS = -L[^ ]* [^ ]*\.a|SDL_LIBS = -L$(SDL2_BUNDLED_PATH)/installation/lib -lSDL2|' $(SDL2_TTF_BUNDLED_PATH)/Makefile && \
@@ -125,7 +121,6 @@ $(SDL2_TTF_BUILD_TARGET): $(SDL2_BUILD_TARGET)
 	make >>../sdl_ttf_build.log 2>&1 && \
 	make install >>../sdl_ttf_build.log 2>&1
 	@echo "...SDL_ttf build complete."
-	$(MAKE) $(MAKE_CMD_GOALS)
 
 $(PORTMIDI_BUILD_TARGET):
 	@command -v cmake >/dev/null 2>&1 || { \
@@ -139,41 +134,8 @@ $(PORTMIDI_BUILD_TARGET):
 	@echo "Done.\nConfiguring and building portmidi..."
 	(cd portmidi && mkdir -p build && chmod 755 build && cd build && cmake .. -DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=Release && make)
 	@echo "...portmidi build complete."
-	$(MAKE) $(MAKE_CMD_GOALS)
 
 ##############################################################
-
-##############################################################
-# For each dep, assemble compiler flags and linker flags
-
-PKG_CFLAGS :=
-PKG_LINK_FLAGS := 
-
-# SDL2
-ifeq ($(HAVE_SYSTEM_SDL2),1)
-PKG_CFLAGS += $(shell $(PKGCONF) $(SDL2_PKG_NAME) --cflags)
-PKG_LINK_FLAGS += $(shell $(PKGCONF) $(SDL2_PKG_NAME) --libs)
-else
-PKG_CFLAGS += $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) $(PKGCONF) --static $(SDL2_PKG_NAME) --cflags)
-PKG_LINK_FLAGS += $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) $(PKGCONF) --static $(SDL2_PKG_NAME) --libs)
-endif
-
-# SDL2_ttf
-ifeq ($(HAVE_SYSTEM_SDL2_TTF),1)
-PKG_CFLAGS += $(shell $(PKGCONF) $(SDL2_TTF_PKG_NAME) --cflags)
-PKG_LINK_FLAGS += $(shell $(PKGCONF) $(SDL2_TTF_PKG_NAME) --libs)
-else
-PKG_CFLAGS += $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) $(PKGCONF) --static $(SDL2_TTF_PKG_NAME) --cflags)
-PKG_LINK_FLAGS += $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) $(PKGCONF) --static $(SDL2_TTF_PKG_NAME) --libs)
-endif
-
-# Portmidi
-ifeq ($(HAVE_SYSTEM_PORTMIDI),1)
-PKG_CFLAGS += $(shell $(PKGCONF) $(PORTMIDI_PKG_NAME) --cflags)
-PKG_LINK_FLAGS += $(shell $(PKGCONF) $(PORTMIDI_PKG_NAME) --libs)
-else
-PKG_CFLAGS += -I$(PORTMIDI_BUNDLED_PATH)/pm_common -I$(PORTMIDI_BUNDLED_PATH)/porttime
-endif
 
 # USE_EXTERNAL_SDLS forces the use of system packages; error if unavailable
 ifdef USE_EXTERNAL_SDLS
@@ -189,6 +151,35 @@ ifeq ($(HAVE_SYSTEM_SDL2_TTF),0)
 $(error "SDL_ttf was not found on your system.")
 endif
 endif
+
+DEP_BUILD_TARGETS := $(SDL2_BUILD_TARGET) $(SDL2_TTF_BUILD_TARGET) $(PORTMIDI_BUILD_TARGET)
+
+.PHONY: deps-ready
+deps-ready: $(DEP_BUILD_TARGETS)
+	$(eval PKG_CFLAGS := $(PKG_CFLAGS))
+	$(eval PKG_LINK_FLAGS := $(PKG_LINK_FLAGS))
+	$(eval PKG_CFLAGS += $(if $(filter 1,$(HAVE_SYSTEM_SDL2)),\
+		$(shell $(PKGCONF) $(SDL2_PKG_NAME) --cflags),\
+		$(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) $(PKGCONF) --static $(SDL2_PKG_NAME) --cflags)))
+	$(eval PKG_LINK_FLAGS += $(if $(filter 1,$(HAVE_SYSTEM_SDL2)),\
+		$(shell $(PKGCONF) $(SDL2_PKG_NAME) --libs),\
+		$(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) $(PKGCONF) --static $(SDL2_PKG_NAME) --libs)))
+
+	$(eval PKG_CFLAGS += $(if $(filter 1,$(HAVE_SYSTEM_SDL2_TTF)),\
+		$(shell $(PKGCONF) $(SDL2_TTF_PKG_NAME) --cflags),\
+		$(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) $(PKGCONF) --static $(SDL2_TTF_PKG_NAME) --cflags)))
+	$(eval PKG_LINK_FLAGS += $(if $(filter 1,$(HAVE_SYSTEM_SDL2_TTF)),\
+		$(shell $(PKGCONF) $(SDL2_TTF_PKG_NAME) --libs),\
+		$(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) $(PKGCONF) --static $(SDL2_TTF_PKG_NAME) --libs)))
+
+	$(eval PKG_CFLAGS += $(if $(filter 1,$(HAVE_SYSTEM_PORTMIDI)),\
+		$(shell $(PKGCONF) $(PORTMIDI_PKG_NAME) --cflags),\
+		-I$(PORTMIDI_BUNDLED_PATH)/pm_common -I$(PORTMIDI_BUNDLED_PATH)/porttime))
+	$(eval PKG_CFLAGS += $(if $(filter 1,$(HAVE_SYSTEM_PORTMIDI)),\
+		$(shell $(PKGCONF) $(PORTMIDI_PKG_NAME) --libs),))
+
+	@echo "PKG_CFLAGS: $(PKG_CFLAGS)"
+	@echo "PKG_LINK_FLAGS: $(PKG_LINK_FLAGS)"
 
 CC := gcc
 SRC_DIR := src
@@ -216,35 +207,18 @@ MACOS_FRAMEWORK_FLAGS := -framework AudioToolBox \
 
 UNAME_S := $(shell uname -s)
 
-# ifdef USE_EXTERNAL_SDLS
-# SDL_FLAGS_ALL := 
-# else
-# SDL_FLAGS_ALL := -I$(SDL_INCLUDE_PATH)
-# endif
-# LINK_ASOUND :=
-
 # Operation system checks
 ifeq ($(UNAME_S),Darwin)
-# SDL_FLAGS := $(MACOS_FRAMEWORK_FLAGS) $(SDL_FLAGS_ALL)
 LDFLAGS := -lpthread -lm $(MACOS_FRAMEWORK_FLAGS)
 else
 SDL_FLAGS := $(SDL_FLAGS_ALL)
-# LINK_ASOUND := -lasound
-LDFLAGS := -lpthread -lm -ldl -lrt -lasound
+LDFLAGS = -lpthread -lm -ldl -lrt -lasound
 endif
 
-LDFLAGS += $(PKG_LINK_FLAGS)
 
 LIBS := $(SDL2_BUILD_TARGET) $(SDL2_TTF_BUILD_TARGET) $(PORTMIDI_BUILD_TARGET)
-# ifdef USE_EXTERNAL_SDLS
-# 	LIBS := $(PORTMIDI_LIB)
-# 	LDFLAGS += $(shell $(PKGCONF) sdl2 --libs) $(shell $(PKGCONF) SDL2_ttf --libs)
 
-# else
-# 	LIBS := $(SDL2_LIB) $(SDL2_TTF_LIB) $(PORTMIDI_LIB)
-# endif
-
-CFLAGS := $(PKG_CFLAGS) -Wall -Wno-unused-command-line-argument -I$(SRC_DIR) -I$(GUI_SRC_DIR) \
+CFLAGS = $(PKG_CFLAGS) -Wall -Wno-unused-command-line-argument -I$(SRC_DIR) -I$(GUI_SRC_DIR) \
 	-DJACKDAW_VERSION=\"$(JACKDAW_VERSION)\" \
 	-DINSTALL_DIR="\"$(PWD)\""
 
@@ -290,10 +264,8 @@ ifeq ($(MAKECMDGOALS),layout)
     CFLAGS_ADDTL := $(CFLAGS_DEBUG)
 endif
 
-DEP_BUILD_TARGETS := $(SDL2_BUILD_TARGET) $(SDL2_TTF_BUILD_TARGET) $(PORTMIDI_BUILD_TARGET)
-
-$(EXEC): $(DEP_BUILD_TARGETS) $(OBJS) $(GUI_OBJS)
-	$(CC) -o $@  $(filter-out %_target,$^) $(CFLAGS) $(CFLAGS_ADDTL) $(CFLAGS_JDAW_ONLY) $(SDL_FLAGS) $(LIBS) $(LINK_ASOUND) $(LDFLAGS)
+$(EXEC): deps-ready $(OBJS) $(GUI_OBJS)
+	$(CC) -o $@  $(filter-out deps-ready %_target,$^) $(CFLAGS) $(CFLAGS_ADDTL) $(CFLAGS_JDAW_ONLY) $(SDL_FLAGS) $(LIBS) $(LINK_ASOUND) $(LDFLAGS) $(PKG_LINK_FLAGS)
 	@echo "\nBuild complete. Run jackdaw with:\n$ ./jackdaw\n"
 
 .PHONY: debug

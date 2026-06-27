@@ -5,6 +5,9 @@ EXEC := jackdaw
 # Default target
 all: $(EXEC)
 
+# Printed at the end of a successful build
+BUILD_SUMMARY := "\nBuild complete. Summary:"
+
 # PKGCONF is used to locate system packages
 PKGCONF := $(shell command -v pkg-config 2>/dev/null || command -v pkgconf 2>/dev/null)
 ifeq ($(PKGCONF),)
@@ -16,7 +19,7 @@ SDL2_PKG_NAME := sdl2
 SDL2_TTF_PKG_NAME := SDL2_ttf
 PORTMIDI_PKG_NAME := portmidi
 
-# Check for system packages
+# Check for system packages, or hide them if BUNDLED option set
 ifndef BUNDLED
 HAVE_SYSTEM_SDL2 := $(shell $(PKGCONF) --exists $(SDL2_PKG_NAME) 2>/dev/null && echo 1 || echo 0)
 HAVE_SYSTEM_SDL2_TTF := $(shell $(PKGCONF) --exists $(SDL2_TTF_PKG_NAME) 2>/dev/null && echo 1 || echo 0)
@@ -34,6 +37,20 @@ HAVE_SYSTEM_LIBAVFORMAT := 0
 HAVE_SYSTEM_LIBAVUTIL := 0
 HAVE_SYSTEM_LIBSWRESAMPLE := 0
 endif
+
+ifdef BUNDLED_SDL
+HAVE_SYSTEM_SDL2 := 0
+HAVE_SYSTEM_SDL2_TTF := 0
+endif
+
+ifdef BUNDLED_SDL_TTF
+HAVE_SYSTEM_SDL2_TTF := 0
+endif
+
+ifdef BUNDLED_PORTMIDI
+HAVE_SYSTEM_PORTMIDI := 0
+endif
+
 
 # Define paths for bundled dependencies
 SDL2_BUNDLED_PATH := $(CURDIR)/SDL
@@ -165,6 +182,15 @@ deps-ready: $(DEP_BUILD_TARGETS)
 		-I$(PORTMIDI_BUNDLED_PATH)/pm_common -I$(PORTMIDI_BUNDLED_PATH)/porttime))
 	$(eval PKG_LINK_FLAGS += $(if $(filter 1,$(HAVE_SYSTEM_PORTMIDI)),\
 		$(shell $(PKGCONF) $(PORTMIDI_PKG_NAME) --libs),))
+	$(eval BUILD_SUMMARY := $(BUILD_SUMMARY)"\n\t- SDL2: ")
+	$(eval BUILD_SUMMARY += $(if $(filter 0,$(HAVE_SYSTEM_SDL2)),"\tbundled ($(CURDIR)/SDL/)","\tv$(shell $(PKGCONF) $(SDL2_PKG_NAME) --modversion) found on your system"))
+	$(eval BUILD_SUMMARY += "\n\t- SDL2_ttf: ")
+	$(eval BUILD_SUMMARY += $(if $(filter 0,$(HAVE_SYSTEM_SDL2_TTF)),"\tbundled ($(CURDIR)/SDL_ttf/)","\tv$(shell $(PKGCONF) $(SDL2_TTF_PKG_NAME) --modversion) found on your system"))
+	$(eval BUILD_SUMMARY += "\n\t- Portmidi: ")
+	$(eval BUILD_SUMMARY += $(if $(filter 0,$(HAVE_SYSTEM_PORTMIDI)),"\tbundled ($(CURDIR)/portmidi/)","\tv$(shell $(PKGCONF) $(PORTMIDI_PKG_NAME) --modversion) found on your system"))
+	$(eval BUILD_SUMMARY += "\n\nRun jackdaw with:\n./jackdaw\n")
+
+
 
 CC := gcc
 SRC_DIR := src
@@ -239,7 +265,7 @@ endif
 # Main target
 $(EXEC): $(OBJS) $(GUI_OBJS) | deps-ready 
 	$(CC) -o $@  $(filter-out deps-ready %_target,$^) $(CFLAGS) $(CFLAGS_JDAW_ONLY) $(DEP_BUILD_TARGETS) $(PKG_LINK_FLAGS) $(LDFLAGS)
-	@echo "\nBuild complete. Run jackdaw with:\n$ ./jackdaw\n"
+	@echo $(BUILD_SUMMARY)
 
 .PHONY: debug
 debug: $(EXEC)

@@ -7,6 +7,9 @@ A free, open-source, keyboard-focused digital audio workstation (DAW). Written i
 <!-- ![main_gif](https://jackdaw-audio.net/static/readme_imgs/main_new_short.gif) -->
 <img src="https://jackdaw-audio.net/static/sync_gifs/combined.gif" width="75%">
 
+Jackdaw was born out of a desire for music software that feels like playing an instrument or operating a tape machine -- direct, responsive, and tactile. 
+
+The mouse cursor is a powerful tool, but it is also a temptation. Over-reliance on the mouse and its corollaries (like GUI buttons and toolbars) has produced a slew of creative softwares with interfaces that look and feel like tax forms. The homogeneity of mouse-first interfaces can make them easier to learn (and that's no small benefit), but there's a cost in speed and ease-of-use for the expert user. Jackdaw has its own logic, rhythm, and feeling; if you take the time to learn, you might find yourself inspired.
 
 ## Table of Contents
 1. [Disclaimer](#disclaimer)
@@ -51,26 +54,31 @@ Each dependency is included as a submodule.
 
 ## Installation
 
-Currently, the only way to install Jackdaw is to build it from the source code. By default, each dependency is built from source as well. (If you have SDL2 and SDL2\_ttf installed on your system already, see [Link to system SDL2 / SDL2\_ttf](#link-to-system-sdl2--sdl2_ttf) below).
-
-The Portmidi build step requires CMake. (`$ sudo apt install cmake` or `$ brew install cmake` should do the trick.)
-
-Run the the following commands to build Jackdaw the 'standard' way:
+Currently, the only way to run Jackdaw on your computer is to build it from the source code. You can do so by running the following commands:
 
 ```console
-$ git clone --recurse-submodules https://github.com/chvolow24/jackdaw.git
+$ git clone https://github.com/chvolow24/jackdaw.git
 $ cd jackdaw
 $ make
 ```
 
-(If you already cloned an earlier version of the jackdaw repo, you will need to run `git submodule update --init --recursive` to pull in the new submodules, and `make clean` before running `make`).
-
-`make` will create static builds of each of the (included) dependencies, and will construct the `jackdaw` binary in the root directory of the project. The dependencies are built locally (i.e., nothing will be installed on your system).
-
-If `make` executes successfully, you can open Jackdaw with
+If successful, you should see a "build summary," and can run jackdaw with 
 
 ```console
-$ ./jackdaw
+`./jackdaw`.
+```
+
+By default, the `make` command checks your system for each of Jackdaw's dependencies. If found, the version on your system will be used to build Jackdaw. Otherwise, the dependency's source code will be pulled in as a git submodule, and make will build it before building Jackdaw. All of this is automatic. Nothing is installed on your system.
+
+### Build options
+
+`make BUNDLED=1` will use the bundled (git submodule) packages by default, instead of any copies installed on your system.
+
+You can also do this for any of the individual dependencies:
+```
+make BUNDLED_SDL=1
+make BUNDLED_SDL_TTF=1
+make BUNDLED_PORTMIDI=1
 ```
 
 `make clean` cleans all of Jackdaw's build objects, but leaves the dependencies in place.
@@ -78,21 +86,6 @@ $ ./jackdaw
 `make cleanall` cleans all of the dependency build objects as well.
 
 `make debug` builds a debug version of Jackdaw.
-
-PortMidi uses CMake for its build process, and SDL and SDL_ttf use GNU Autotools, so both are required for `make` to execute successfully. For its part, Jackdaw just uses GNU Make.
-
-### Link to system SDL2 / SDL2_ttf
-
-If you have SDL2 and SDL2_ttf installed on your system already and would prefer to link to the system installs, you can do so:
-
-```console
-$ make USE_EXTERNAL_SDLS=1
-```
-
-Make will use `pkg-config` to locate the appropriate files and link to those instead of building them from the source code included in the submodules. You do not need to clone the SDL submodules if you build this way, but the PortMidi submodule is still required.
-
-The `USE_EXTERNAL_SDLS=1` setting does not persist, so you will need to include that flag every time you re-run `make`.
-
 
 ## Keyboard command shorthand
 

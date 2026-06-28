@@ -48,8 +48,6 @@
 #include "wav.h"
 #include "window.h"
 
-#include "audio_connection.h"
-
 #define LT_DEV_MODE 0
 
 #define WINDOW_DEFAULT_W 1093
@@ -175,8 +173,6 @@ static const char *license_text = "Copyright (C) 2023-2026 Charlie Volow\nThis p
 int main(int argc, char **argv)
 {
     fprintf(stdout, "\n\nJACKDAW (version %s)\nby Charlie Volow\n\nhttps://jackdaw-audio.net/\n\n%s\n\n", jackdaw_version, license_text);
-    
-
     char *file_to_open = NULL;
     bool invoke_open_wav_file = false;
     bool invoke_open_jdaw_file = false;

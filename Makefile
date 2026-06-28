@@ -18,6 +18,11 @@ endif
 SDL2_PKG_NAME := sdl2
 SDL2_TTF_PKG_NAME := SDL2_ttf
 PORTMIDI_PKG_NAME := portmidi
+LIBAVCODEC_PKG_NAME := libavcodec
+LIBAVFORMAT_PKG_NAME := libavformat
+LIBAVUTIL_PKG_NAME := libavutil
+LIBSWRESAMPLE_PKG_NAME := libswresample
+FFMPEG_PKG_NAME := $(LIBAVCODEC_PKG_NAME) $(LIBAVFORMAT_PKG_NAME) $(LIBAVUTIL_PKG_NAME) $(LIBSWRESAMPLE_PKG_NAME)
 
 # Check for system packages, or hide them if BUNDLED option set
 ifndef BUNDLED
@@ -102,6 +107,17 @@ PKG_CONFIG_PATH := $(if $(PKG_CONFIG_PATH),$(PKG_CONFIG_PATH):)$(PORTMIDI_BUNDLE
 else
 PORTMIDI_BUILD_TARGET :=
 endif
+
+ifeq ($(HAVE_SYSTEM_FFMPEG),0)
+PKG_CONFIG_PATH := $(if $(PKG_CONFIG_PATH),$(PKG_CONFIG_PATH):)$(FFMPEG_BUNDLED_PATH)/installation/lib/pkgconfig/
+LIBAVCODEC_BUILD_TARGET := $(FFMPEG_BUNDLED_PATH)/installation/lib/libavcodec.a
+LIBAVFORMAT_BUILD_TARGET := $(FFMPEG_BUNDLED_PATH)/installation/lib/libavformat.a
+LIBSWRESAMPLE_BUILD_TARGET := $(FFMPEG_BUNDLED_PATH)/installation/lib/libswresample.a
+LIBAVUTIL_BUILD_TARGET := $(FFMPEG_BUNDLED_PATH)/installation/lib/libavutil.a
+FFMPEG_BUILD_TARGET := $(LIBAVCODEC_BUILD_TARGET) $(LIBAVFORMAT_BUILD_TARGET) $(LIBAVUTIL_BUILD_TARGET) $(LIBSWRESAMPLE_BUILD_TARGET)
+else
+FFMPEG_BUILD_TARGET := 
+endif
 ###############################################################
 
 
@@ -162,6 +178,36 @@ $(PORTMIDI_BUILD_TARGET):
 	(cd portmidi && mkdir -p build && chmod 755 build && cd build && cmake .. -DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=Release && make)
 	@echo "...portmidi build complete."
 
+$(FFMPEG_BUILD_TARGET):
+	@echo "\nChecking FFmpeg submodule..."
+	@if [ ! -e FFmpeg/.git ]; then \
+		git submodule update --init --recursive FFmpeg; \
+	fi
+	@echo "Done.\n\nConfiguring and building FFmpeg. This may take several minutes. (Logs in ffmpeg_build.log)\n\n\tNote: if you prefer to install FFmpeg on your system: \n\t\t- cancel this (CTRL-c)\n\t\t- install it (e.g. 'sudo apt install ffmpeg', 'brew install ffmpeg')\n\t\t- re-run make\n"
+	@cd FFmpeg && \
+	mkdir -p installation && \
+	./configure \
+		--prefix="$(FFMPEG_BUNDLED_PATH)/installation" \
+		--enable-static \
+		--disable-shared \
+		--disable-everything \
+		--enable-avcodec \
+		--enable-avformat \
+		--enable-avutil \
+		--enable-swresample \
+		--enable-protocol=file,pipe \
+		--enable-demuxer=aac,aiff,ape,asf,au,caf,flac,matroska,mov,mp3,mpc,ogg,tta,wav,wv,ac3,dts,adx,amr,dsf,dsdiff \
+		--enable-muxer=adts,aiff,caf,flac,ipod,matroska,mp3,mov,null,ogg,wav,opus \
+		--enable-decoder=ac3,alac,ape,atrac1,atrac3,atrac3p,flac,gsm,mp1,mp2,mp3,pcm_alaw,pcm_mulaw,f32be,pcm_f32le,pcm_f64be,pcm_f64le,s8,pcm_s16be,pcm_s16le,pcm_s24be,pcm_s24le,s32be,pcm_s32le,pcm_u8,vorbis,wavpack,wmav1,wmav2,wmavoice \
+		--enable-encoder=ac3,alac,flac,alaw,pcm_mulaw,f32be,pcm_f32le,pcm_f64be,pcm_f64le,s8,pcm_s16be,pcm_s16le,pcm_s24be,pcm_s24le,s32be,pcm_s32le,pcm_u8,vorbis,wavpack \
+		--enable-parser=ac3,dca,flac,mpegaudio,opus,vorbis \
+		--enable-bsf=aac_adtstoasc \
+		>>../ffmpeg_build.log 2>&1 && \
+	make >>../ffmpeg_build.log 2>&1 && \
+	make install >>../ffmpeg_build.log 2>&1
+	@echo "...FFmpeg build complete"
+
+
 ##############################################################
 
 # USE_EXTERNAL_SDLS forces the use of system packages; error if unavailable
@@ -175,12 +221,15 @@ $(error "SDL_ttf was not found on your system.")
 endif
 endif
 
-DEP_BUILD_TARGETS := $(SDL2_BUILD_TARGET) $(SDL2_TTF_BUILD_TARGET) $(PORTMIDI_BUILD_TARGET)
+DEP_BUILD_TARGETS := $(SDL2_BUILD_TARGET) $(SDL2_TTF_BUILD_TARGET) $(PORTMIDI_BUILD_TARGET) $(FFMPEG_BUILD_TARGET)
 
+# 'deps-ready' adds to compiler directives using module .pc files
 .PHONY: deps-ready
 deps-ready: $(DEP_BUILD_TARGETS)
 	$(eval PKG_CFLAGS := $(PKG_CFLAGS))
 	$(eval PKG_LINK_FLAGS := $(PKG_LINK_FLAGS))
+
+# SDL2
 	$(eval PKG_CFLAGS += $(if $(filter 1,$(HAVE_SYSTEM_SDL2)),\
 		$(shell $(PKGCONF) $(SDL2_PKG_NAME) --cflags),\
 		$(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) $(PKGCONF) --static $(SDL2_PKG_NAME) --cflags)))
@@ -188,6 +237,7 @@ deps-ready: $(DEP_BUILD_TARGETS)
 		$(shell $(PKGCONF) $(SDL2_PKG_NAME) --libs),\
 		$(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) $(PKGCONF) --static $(SDL2_PKG_NAME) --libs)))
 
+# SDL2_TTF
 	$(eval PKG_CFLAGS += $(if $(filter 1,$(HAVE_SYSTEM_SDL2_TTF)),\
 		$(shell $(PKGCONF) $(SDL2_TTF_PKG_NAME) --cflags),\
 		$(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) $(PKGCONF) --static $(SDL2_TTF_PKG_NAME) --cflags)))
@@ -195,17 +245,40 @@ deps-ready: $(DEP_BUILD_TARGETS)
 		$(shell $(PKGCONF) $(SDL2_TTF_PKG_NAME) --libs),\
 		$(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) $(PKGCONF) --static $(SDL2_TTF_PKG_NAME) --libs)))
 
+# portmidi
 	$(eval PKG_CFLAGS += $(if $(filter 1,$(HAVE_SYSTEM_PORTMIDI)),\
 		$(shell $(PKGCONF) $(PORTMIDI_PKG_NAME) --cflags),\
 		-I$(PORTMIDI_BUNDLED_PATH)/pm_common -I$(PORTMIDI_BUNDLED_PATH)/porttime))
 	$(eval PKG_LINK_FLAGS += $(if $(filter 1,$(HAVE_SYSTEM_PORTMIDI)),\
 		$(shell $(PKGCONF) $(PORTMIDI_PKG_NAME) --libs),))
-	$(eval BUILD_SUMMARY := $(BUILD_SUMMARY)"\n\t- SDL2: ")
-	$(eval BUILD_SUMMARY += $(if $(filter 0,$(HAVE_SYSTEM_SDL2)),"\tbundled ($(CURDIR)/SDL/)","\tv$(shell $(PKGCONF) $(SDL2_PKG_NAME) --modversion) found on your system"))
-	$(eval BUILD_SUMMARY += "\n\t- SDL2_ttf: ")
-	$(eval BUILD_SUMMARY += $(if $(filter 0,$(HAVE_SYSTEM_SDL2_TTF)),"\tbundled ($(CURDIR)/SDL_ttf/)","\tv$(shell $(PKGCONF) $(SDL2_TTF_PKG_NAME) --modversion) found on your system"))
-	$(eval BUILD_SUMMARY += "\n\t- Portmidi: ")
-	$(eval BUILD_SUMMARY += $(if $(filter 0,$(HAVE_SYSTEM_PORTMIDI)),"\tbundled ($(CURDIR)/portmidi/)","\tv$(shell $(PKGCONF) $(PORTMIDI_PKG_NAME) --modversion) found on your system"))
+
+
+# FFmpeg
+	$(eval PKG_CFLAGS += $(if $(filter 1,$(HAVE_SYSTEM_FFMPEG)),\
+		$(shell $(PKGCONF) $(FFMPEG_PKG_NAME) --cflags),\
+		$(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) $(PKGCONF) --static $(FFMPEG_PKG_NAME) --cflags)))
+	$(eval PKG_LINK_FLAGS += $(if $(filter 1,$(HAVE_SYSTEM_FFMPEG)),\
+		$(shell $(PKGCONF) $(FFMPEG_PKG_NAME) --libs),\
+		$(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) $(PKGCONF) --static $(FFMPEG_PKG_NAME) --libs)))
+
+
+# Build summary
+	$(eval BUILD_SUMMARY := $(BUILD_SUMMARY))
+	$(eval BUILD_SUMMARY += "\n\t- SDL2:          ")
+	$(eval BUILD_SUMMARY += $(if $(filter 0,$(HAVE_SYSTEM_SDL2)),"bundled ($(CURDIR)/SDL/)","v$(shell $(PKGCONF) $(SDL2_PKG_NAME) --modversion) found on your system"))
+	$(eval BUILD_SUMMARY += "\n\t- SDL2_ttf:      ")
+	$(eval BUILD_SUMMARY += $(if $(filter 0,$(HAVE_SYSTEM_SDL2_TTF)),"bundled ($(CURDIR)/SDL_ttf/)","v$(shell $(PKGCONF) $(SDL2_TTF_PKG_NAME) --modversion) found on your system"))
+	$(eval BUILD_SUMMARY += "\n\t- Portmidi:      ")
+	$(eval BUILD_SUMMARY += $(if $(filter 0,$(HAVE_SYSTEM_PORTMIDI)),"bundled ($(CURDIR)/portmidi/)","v$(shell $(PKGCONF) $(PORTMIDI_PKG_NAME) --modversion) found on your system"))
+	$(eval BUILD_SUMMARY += "\n\t- libavcodec:    ")
+	$(eval BUILD_SUMMARY += $(if $(filter 0,$(HAVE_SYSTEM_LIBAVCODEC)),"bundled ($(CURDIR)/FFmpeg/)","v$(shell $(PKGCONF) $(LIBAVCODEC_PKG_NAME) --modversion) found on your system"))
+	$(eval BUILD_SUMMARY += "\n\t- libavformat:   ")
+	$(eval BUILD_SUMMARY += $(if $(filter 0,$(HAVE_SYSTEM_LIBAVFORMAT)),"bundled ($(CURDIR)/FFmpeg/)","v$(shell $(PKGCONF) $(LIBAVFORMAT_PKG_NAME) --modversion) found on your system"))
+	$(eval BUILD_SUMMARY += "\n\t- libavutil:     ")
+	$(eval BUILD_SUMMARY += $(if $(filter 0,$(HAVE_SYSTEM_LIBAVUTIL)),"bundled ($(CURDIR)/FFmpeg/)","v$(shell $(PKGCONF) $(LIBAVUTIL_PKG_NAME) --modversion) found on your system"))
+	$(eval BUILD_SUMMARY += "\n\t- libswresample: ")
+	$(eval BUILD_SUMMARY += $(if $(filter 0,$(HAVE_SYSTEM_LIBSWRESAMPLE)),"bundled ($(CURDIR)/FFmpeg/)","v$(shell $(PKGCONF) $(LIBSWRESAMPLE_PKG_NAME) --modversion) found on your system"))
+
 	$(eval BUILD_SUMMARY += "\n\nRun jackdaw with:\n./jackdaw\n")
 
 

@@ -113,9 +113,9 @@ char *path_get_tail(char *pathname)
     /* return tail; */
 }
 
-char *path_get_ext(char *pathname) {
+const char *path_get_ext(const char *pathname) {
     if (strlen(pathname) < 1) return NULL;
-    char *dot = pathname + strlen(pathname) - 1;
+    const char *dot = pathname + strlen(pathname) - 1;
     
     /* char *end = pathname + strlen(pathname) -1); */
     while (*dot != '.' && dot != pathname) {
@@ -635,3 +635,15 @@ void dir_tests()
     /* 	} */
     /* } */
 }
+
+bool file_extension_in_list(const char *filepath, const char **extensions, int num_extensions)
+{
+    const char *ext = path_get_ext(filepath);
+    for (int i=0; i<num_extensions; i++) {
+	if (strcmp(ext, extensions[i]) == 0) {
+	    fprintf(stderr, "FOUND EXT %s\n", extensions[i]);
+	    return true;
+	}
+    }
+    return false;
+}    

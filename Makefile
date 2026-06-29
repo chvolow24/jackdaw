@@ -188,19 +188,19 @@ $(FFMPEG_BUILD_TARGET):
 	mkdir -p installation && \
 	./configure \
 		--prefix="$(FFMPEG_BUNDLED_PATH)/installation" \
+		--disable-everything \
 		--enable-static \
 		--disable-shared \
-		--disable-everything \
 		--enable-avcodec \
 		--enable-avformat \
 		--enable-avutil \
 		--enable-swresample \
 		--enable-protocol=file,pipe \
-		--enable-demuxer=aac,aiff,ape,asf,au,caf,flac,matroska,mov,mp3,mpc,ogg,tta,wav,wv,ac3,dts,adx,amr,dsf,dsdiff \
+		--enable-demuxer=aac,aiff,ape,asf,au,caf,flac,matroska,mov,mp3,mpc,ogg,tta,wav,wv,ac3,eac3,dts,amr,dsf \
 		--enable-muxer=adts,aiff,caf,flac,ipod,matroska,mp3,mov,null,ogg,wav,opus \
-		--enable-decoder=ac3,alac,ape,atrac1,atrac3,atrac3p,flac,gsm,mp1,mp2,mp3,pcm_alaw,pcm_mulaw,f32be,pcm_f32le,pcm_f64be,pcm_f64le,s8,pcm_s16be,pcm_s16le,pcm_s24be,pcm_s24le,s32be,pcm_s32le,pcm_u8,vorbis,wavpack,wmav1,wmav2,wmavoice \
-		--enable-encoder=ac3,alac,flac,alaw,pcm_mulaw,f32be,pcm_f32le,pcm_f64be,pcm_f64le,s8,pcm_s16be,pcm_s16le,pcm_s24be,pcm_s24le,s32be,pcm_s32le,pcm_u8,vorbis,wavpack \
-		--enable-parser=ac3,dca,flac,mpegaudio,opus,vorbis \
+		--enable-decoder=ac3,eac3,alac,ape,atrac1,atrac3,atrac3p,flac,gsm,mp1,mp2,mp3,aac,opus,vorbis,wavpack,wmav1,wmav2,wmavoice,pcm_alaw,pcm_mulaw,pcm_f32be,pcm_f32le,pcm_f64be,pcm_f64le,pcm_s8,pcm_s16be,pcm_s16le,pcm_s24be,pcm_s24le,pcm_s32be,pcm_s32le,pcm_u8 \
+		--enable-encoder=ac3,alac,flac,alaw,pcm_mulaw,pcm_f32be,pcm_f32le,pcm_f64be,pcm_f64le,pcm_s8,pcm_s16be,pcm_s16le,pcm_s24be,pcm_s24le,pcm_s32be,pcm_s32le,pcm_u8,vorbis,opus \
+		--enable-parser=ac3,dca,eac3,flac,mpegaudio,aac,opus,vorbis \
 		--enable-bsf=aac_adtstoasc \
 		>>../ffmpeg_build.log 2>&1 && \
 	make >>../ffmpeg_build.log 2>&1 && \

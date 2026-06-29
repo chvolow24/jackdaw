@@ -332,6 +332,10 @@ void session_set_proj(Session *session, Project *new_proj)
 
 uint32_t session_get_sample_rate()
 {
+    if (!session) {
+	log_tmp(LOG_WARN, "Do not call session_get_sample_rate() before session initialized\n");
+	return 96000;
+    }
     uint32_t ret;
     if (session->proj_reading) {
 	ret =  session->proj_reading->sample_rate;

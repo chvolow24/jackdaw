@@ -25,6 +25,8 @@
 #include "SDL.h"
 #include "SDL_ttf.h"
 #include "assets.h"
+#include "audio_clip.h"
+#include "clipref.h"
 #include "consts.h"
 #include "dir.h"
 #include "dot_jdaw.h"
@@ -47,6 +49,8 @@
 #include "userfn.h"
 #include "wav.h"
 #include "window.h"
+
+#include "jdaw_ffmpeg.h"
 
 #define LT_DEV_MODE 0
 
@@ -178,6 +182,7 @@ int main(int argc, char **argv)
     bool invoke_open_jdaw_file = false;
     bool invoke_open_midi_file = false;
     bool invoke_open_jsynth_file = false;
+    bool invoke_open_audio_file = false;
     char **stems_paths = NULL;
     int num_stems = 0;
     if (argc > 2) {
@@ -203,6 +208,8 @@ int main(int argc, char **argv)
 	    exit(0);
 	}
 	file_to_open = argv[1];
+	const char *audio_file_extensions[] = {AUDIO_FILE_EXTENSIONS};
+	int num_extensions = sizeof(audio_file_extensions) / sizeof(float *);
 	char *dotpos = strrchr(file_to_open, '.');
 	if (!dotpos) goto unrecognized_arg;
 	char *ext = dotpos + 1;
@@ -218,6 +225,8 @@ int main(int argc, char **argv)
 	} else if (
 	    strncmp("jsynth", ext, 6) * strncmp("JSYNTH", ext, 6) == 0) {
 	    invoke_open_jsynth_file = true;
+	} else if (file_extension_in_list(file_to_open, audio_file_extensions, num_extensions)) {
+	    invoke_open_audio_file = true;
 	} else {
 	unrecognized_arg:
 	    num_stems = load_stems_dir(file_to_open, &stems_paths);
@@ -317,6 +326,24 @@ int main(int argc, char **argv)
 	    }
 	    free(filepath);
 	}
+    } else if (invoke_open_audio_file) {
+	float *L, *R;
+	int32_t length_sframes = av_open_file(file_to_open, &L, &R);
+	int32_t length_seconds = length_sframes / session_get_sample_rate();
+	fprintf(stderr, "DECODED %d:%d of audio (%d)\n", length_seconds / 60, length_seconds - (length_seconds / 60), length_sframes);
+	if (length_sframes == 0) {
+	    fprintf(stderr, "Unable to decode file at %s. run './jackdaw log' for details\n", file_to_open);
+	    exit(1);
+	}
+	Track *dst_track = session->proj.timelines[0]->tracks[0];
+	Clip *clip = clip_create(NULL, dst_track);
+	clip->L = L;
+	clip->R = R;
+	clip->channels = 2;
+	clip->len_sframes = length_sframes;
+	clip_init_or_update_waveform(clip);
+	ClipRef *cr = clipref_create(dst_track, 0, CLIP_AUDIO, clip);
+	timeline_reset(cr->track->tl, true);
     } else if (invoke_open_midi_file) {
 	midi_file_open(file_to_open, true);
 	char *filepath = realpath(file_to_open, NULL);

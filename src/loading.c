@@ -22,7 +22,8 @@ extern Window *main_win;
 extern SDL_Color menu_std_clr_inner_border;
 extern SDL_Color menu_std_clr_outer_border;
 
-static const SDL_Color txt_clr = {10, 245, 10, 255};
+/* static const SDL_Color txt_clr = {10, 245, 10, 255}; */
+static const SDL_Color loading_color = {181, 214, 240, 255};
 
 void session_loading_screen_deinit()
 {
@@ -63,7 +64,7 @@ static void loading_screen_init(
 	main_win->mono_bold_font,
 	16,
 	main_win);
-    textbox_set_text_color(ls->title_tb, (SDL_Color *)&txt_clr);
+    textbox_set_text_color(ls->title_tb, (SDL_Color *)&loading_color);
     textbox_set_background_color(ls->title_tb, NULL);
 
     ls->subtitle_tb = textbox_create_from_str(
@@ -72,7 +73,7 @@ static void loading_screen_init(
 	main_win->mono_font,
 	14,
 	main_win);
-    textbox_set_text_color(ls->subtitle_tb, (SDL_Color *)&txt_clr);
+    textbox_set_text_color(ls->subtitle_tb, (SDL_Color *)&loading_color);
     textbox_set_background_color(ls->subtitle_tb, NULL);
 
     /* layout_force_reset(lt); */
@@ -127,7 +128,7 @@ static void loading_screen_draw(LoadingScreen *ls)
     if (ls->draw_progress_bar) {
 	SDL_Rect progress = *ls->progress_bar_rect;
 	progress.w = ls->progress * ls->progress_bar_rect->w;
-	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(txt_clr));
+	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(loading_color));
 	SDL_RenderFillRect(main_win->rend, &progress);
 	
 	SDL_SetRenderDrawColor(main_win->rend, 100, 100, 100, 255);

@@ -23,5 +23,36 @@
 #define TL_MIN_SFRAMES (INT32_MIN + 9600 * 60 * 10)
 #define TL_MAX_SFRAMES (INT32_MAX - 96000 * 60 * 10)
 
+#define AUDIO_FILE_EXTENSIONS \
+"wav", "WAV", \
+"aiff", "AIFF", "aif", "AIF", "aifc", "AIFC", \
+"mp3", "MP3", \
+"flac", "FLAC", \
+"ogg", "OGG", \
+"oga", "OGA", \
+"opus", "OPUS", \
+"m4a", "M4A", \
+"aac", "AAC", \
+"ac3", "AC3", \
+"eac3", "EAC3", \
+"dts", "DTS", \
+"amr", "AMR", \
+"awb", "AWB", \
+"wma", "WMA", \
+"asf", "ASF", \
+"ape", "APE", \
+"mpc", "MPC", \
+"wv", "WV", \
+"tta", "TTA", \
+"tak", "TAK", \
+"ra", "RA", \
+"rm", "RM", \
+"au", "AU", \
+"snd", "SND", \
+"caf", "CAF", \
+"voc", "VOC", \
+"8svx", "8SVX", \
+"iff", "IFF" \
+
 
 #endif

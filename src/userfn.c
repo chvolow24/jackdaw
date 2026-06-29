@@ -5,6 +5,7 @@
 #include "audio_connection.h"
 #include "autocompletion.h"
 #include "clipref.h"
+#include "consts.h"
 #include "dir.h"
 #include "dot_jdaw.h"
 #include "endpoint.h"
@@ -17,6 +18,7 @@
 #include "session_endpoint_ops.h"
 #include "input.h"
 /* #include "loading */
+#include "jdaw_ffmpeg.h"
 #include "jlily.h"
 #include "log.h"
 #include "menu.h"
@@ -298,18 +300,30 @@ static int dir_to_tline_filter_open(void *dp_v, void *dn_v)
 	if (!dotpos) {
 	    return 0;
 	}
+	const char *file_extensions[] =
+	    {
+		AUDIO_FILE_EXTENSIONS,
+		"wav", "WAV",
+		"jdaw", "JDAW",
+		"bak", "BAK",
+		"mid", "MID",
+		"midi", "MIDI",
+		"jsynth", "JSYNTH"
+	    };
+	int num_extensions = sizeof(file_extensions) / sizeof(char *);
 	char *ext = dotpos + 1;
-	if (strncmp("wav", ext, 3) *
-	    strncmp("jdaw", ext, 4) *
-	    strncmp("WAV", ext, 3) *
-	    strncmp("JDAW", ext, 4) *
-	    strncmp("bak", ext, 3) *
-	    strncmp("mid", ext, 3) *
-	    strncmp("MID", ext, 3) *
-	    strncmp("midi", ext, 4) *
-	    strncmp("MIDI", ext, 4) *
-	    strncmp("jsynth", ext, 6) *
-	    strncmp("JSYNTH", ext, 6) == 0) {
+	if (file_extension_in_list(dp->path, file_extensions, num_extensions) ||
+	    (strncmp("wav", ext, 3) *
+	     strncmp("jdaw", ext, 4) *
+	     strncmp("WAV", ext, 3) *
+	     strncmp("JDAW", ext, 4) *
+	     strncmp("bak", ext, 3) *
+	     strncmp("mid", ext, 3) *
+	     strncmp("MID", ext, 3) *
+	     strncmp("midi", ext, 4) *
+	     strncmp("MIDI", ext, 4) *
+	     strncmp("jsynth", ext, 6) *
+	     strncmp("JSYNTH", ext, 6) == 0)) {
 	    return 1;
 	}
 	return 0;
@@ -420,10 +434,30 @@ void open_file(const char *filepath)
 	fprintf(stderr, "Cannot open file without a .jdaw or .wav extension\n");
 	return;
     }
+    const char *audio_file_extensions[] = {AUDIO_FILE_EXTENSIONS};
+    int num_extensions = sizeof(audio_file_extensions) / sizeof(char *);
+
+    
     char *ext = dotpos + 1;
     /* fprintf(stdout, "ext char : %c\n", *ext); */
     bool activate_synth_preset_tab_on_exit = false;
-    if (strcmp("wav", ext) * strcmp("WAV", ext) == 0) {
+    if (file_extension_in_list(filepath, audio_file_extensions, num_extensions)) {
+	float *L, *R;
+	int32_t length_sframes = av_open_file(filepath, &L, &R);
+	if (length_sframes == 0) {
+	    return;
+	}
+	Track *track = timeline_selected_track(tl);
+	Clip *clip = clip_create(NULL, track);
+	clip->L = L;
+	clip->R = R;
+	clip->channels = 2;
+	clip->len_sframes = length_sframes;
+	clip_init_or_update_waveform(clip);
+	ClipRef *cr = clipref_create(track, tl->play_pos_sframes, CLIP_AUDIO, clip);
+	timeline_reset(cr->track->tl, true);
+
+    } else if (strcmp("wav", ext) * strcmp("WAV", ext) == 0) {
 	fprintf(stdout, "Wav file selected\n");
 	if (!tl) return;
 	Track *track = timeline_selected_track(tl);

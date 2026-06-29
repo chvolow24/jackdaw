@@ -277,13 +277,6 @@ float db_to_amp(float db)
 }
 
 
-float clip_float_sample(float f)
-{
-    if (f > 1.0) return 1.0;
-    if (f < -1.0) return -1.0;
-    return f;
-}
-
 
 void make_ramp(double *restrict buf, int32_t len, double start, double end)
 {

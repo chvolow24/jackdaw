@@ -12,6 +12,7 @@
 #include "function_lookup.h"
 #include "grab.h"
 #include "input_mode.h"
+#include "io.h"
 #include "midi_clip.h"
 #include "page.h"
 #include "route_page.h"
@@ -302,28 +303,13 @@ static int dir_to_tline_filter_open(void *dp_v, void *dn_v)
 	}
 	const char *file_extensions[] =
 	    {
-		AUDIO_FILE_EXTENSIONS,
-		"wav", "WAV",
-		"jdaw", "JDAW",
-		"bak", "BAK",
-		"mid", "MID",
-		"midi", "MIDI",
-		"jsynth", "JSYNTH"
+		PROJECT_FILE_EXTENSIONS,
+		MIDI_FILE_EXTENSIONS,
+		SYNTH_FILE_EXTENSIONS,
+		AUDIO_FILE_EXTENSIONS
 	    };
 	int num_extensions = sizeof(file_extensions) / sizeof(char *);
-	char *ext = dotpos + 1;
-	if (file_extension_in_list(dp->path, file_extensions, num_extensions) ||
-	    (strncmp("wav", ext, 3) *
-	     strncmp("jdaw", ext, 4) *
-	     strncmp("WAV", ext, 3) *
-	     strncmp("JDAW", ext, 4) *
-	     strncmp("bak", ext, 3) *
-	     strncmp("mid", ext, 3) *
-	     strncmp("MID", ext, 3) *
-	     strncmp("midi", ext, 4) *
-	     strncmp("MIDI", ext, 4) *
-	     strncmp("jsynth", ext, 6) *
-	     strncmp("JSYNTH", ext, 6) == 0)) {
+	if (file_extension_in_list(dp->path, file_extensions, num_extensions)) {
 	    return 1;
 	}
 	return 0;
@@ -424,8 +410,9 @@ static NEW_EVENT_FN(dispose_forward_load_wav, "")
     clipref_destroy_no_displace(cr);
 }
 
-void open_file(const char *filepath)
+void _DEPRECATED_open_file(const char *filepath)
 {
+    
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     char *dotpos = strrchr(filepath, '.');
@@ -554,7 +541,7 @@ void open_file(const char *filepath)
 static void openfile_file_select_action(DirNav *dn, DirPath *dp)
 {
     Session *session = session_get();
-    open_file(dp->path);
+    open_file(dp->path, timeline_selected_track(ACTIVE_TL), ACTIVE_TL->play_pos_sframes);
     window_pop_modal(main_win);
     Timeline *tl = ACTIVE_TL;
     tl->needs_redraw = true;

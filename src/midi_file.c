@@ -608,6 +608,7 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
      }
 }
 
+/* Returns 0 on success, negative number on error */
 int midi_file_open(const char *filepath, bool automatically_add_tracks)//, MIDIClip **mclips)
 {
     Session *session = session_get();

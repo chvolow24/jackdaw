@@ -94,10 +94,10 @@ int path_updir_name(char *pathname)
 }
 
 
-char *path_get_tail(char *pathname)
+const char *path_get_tail(const char *pathname)
 {
-    char *mov = pathname;
-    char *slash = pathname;
+    const char *mov = pathname;
+    const char *slash = pathname;
     while (*mov != '\0') {
 	if (*mov == '/') {
 	    slash = mov + 1;
@@ -641,7 +641,6 @@ bool file_extension_in_list(const char *filepath, const char **extensions, int n
     const char *ext = path_get_ext(filepath);
     for (int i=0; i<num_extensions; i++) {
 	if (strcmp(ext, extensions[i]) == 0) {
-	    fprintf(stderr, "FOUND EXT %s\n", extensions[i]);
 	    return true;
 	}
     }

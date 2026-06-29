@@ -6,7 +6,7 @@
 #include "portmidi.h"
 /* int midi_file_read(const char *filepath); */
 
-/* int midi_file_open(const char *filepath);//, MIDIClip **mclips) */
+/* Returns 0 on success, negative number on error */
 int midi_file_open(const char *filepath, bool automatically_add_tracks);
 
 

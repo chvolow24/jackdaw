@@ -384,7 +384,6 @@ int main(int argc, char **argv)
 	    wav_load_to_track(track, stems_paths[i], 0);
 	}
     }
-    
     loop_project_main();
     
     quit();

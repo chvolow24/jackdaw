@@ -23,6 +23,9 @@
 #define TL_MIN_SFRAMES (INT32_MIN + 9600 * 60 * 10)
 #define TL_MAX_SFRAMES (INT32_MAX - 96000 * 60 * 10)
 
+#define PROJECT_FILE_EXTENSIONS "jdaw", "JDAW"
+#define MIDI_FILE_EXTENSIONS "mid", "MID", "midi", "MIDI"
+#define SYNTH_FILE_EXTENSIONS "jsynth", "JSYNTH"
 #define AUDIO_FILE_EXTENSIONS \
 "wav", "WAV", \
 "aiff", "AIFF", "aif", "AIF", "aifc", "AIFC", \

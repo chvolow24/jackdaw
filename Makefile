@@ -199,7 +199,7 @@ $(FFMPEG_BUILD_TARGET):
 		--enable-demuxer=aac,aiff,ape,asf,au,caf,flac,matroska,mov,mp3,mpc,ogg,tta,wav,wv,ac3,eac3,dts,amr,dsf \
 		--enable-muxer=adts,aiff,caf,flac,ipod,matroska,mp3,mov,null,ogg,wav,opus \
 		--enable-decoder=ac3,eac3,alac,ape,atrac1,atrac3,atrac3p,flac,gsm,mp1,mp2,mp3,aac,opus,vorbis,wavpack,wmav1,wmav2,wmavoice,pcm_alaw,pcm_mulaw,pcm_f32be,pcm_f32le,pcm_f64be,pcm_f64le,pcm_s8,pcm_s16be,pcm_s16le,pcm_s24be,pcm_s24le,pcm_s32be,pcm_s32le,pcm_u8 \
-		--enable-encoder=ac3,alac,flac,alaw,pcm_mulaw,pcm_f32be,pcm_f32le,pcm_f64be,pcm_f64le,pcm_s8,pcm_s16be,pcm_s16le,pcm_s24be,pcm_s24le,pcm_s32be,pcm_s32le,pcm_u8,vorbis,opus \
+		--enable-encoder=ac3,eac3,alac,ape,atrac1,atrac3,atrac3p,flac,gsm,mp1,mp2,mp3,aac,opus,vorbis,wavpack,wmav1,wmav2,wmavoice,pcm_alaw,pcm_mulaw,pcm_f32be,pcm_f32le,pcm_f64be,pcm_f64le,pcm_s8,pcm_s16be,pcm_s16le,pcm_s24be,pcm_s24le,pcm_s32be,pcm_s32le,pcm_u8 \
 		--enable-parser=ac3,dca,eac3,flac,mpegaudio,aac,opus,vorbis \
 		--enable-bsf=aac_adtstoasc \
 		>>../ffmpeg_build.log 2>&1 && \
@@ -278,10 +278,7 @@ deps-ready: $(DEP_BUILD_TARGETS)
 	$(eval BUILD_SUMMARY += $(if $(filter 0,$(HAVE_SYSTEM_LIBAVUTIL)),"bundled ($(CURDIR)/FFmpeg/)","v$(shell $(PKGCONF) $(LIBAVUTIL_PKG_NAME) --modversion) found on your system"))
 	$(eval BUILD_SUMMARY += "\n\t- libswresample: ")
 	$(eval BUILD_SUMMARY += $(if $(filter 0,$(HAVE_SYSTEM_LIBSWRESAMPLE)),"bundled ($(CURDIR)/FFmpeg/)","v$(shell $(PKGCONF) $(LIBSWRESAMPLE_PKG_NAME) --modversion) found on your system"))
-
 	$(eval BUILD_SUMMARY += "\n\nRun jackdaw with:\n./jackdaw\n")
-
-
 
 CC := gcc
 SRC_DIR := src
@@ -354,7 +351,7 @@ else
 endif
 
 # Main target
-$(EXEC): $(OBJS) $(GUI_OBJS) | deps-ready 
+$(EXEC): $(OBJS) $(GUI_OBJS) | deps-ready
 	$(CC) -o $@  $(filter-out deps-ready %_target,$^) $(CFLAGS) $(CFLAGS_JDAW_ONLY) $(DEP_BUILD_TARGETS) $(PKG_LINK_FLAGS) $(LDFLAGS)
 	@echo $(BUILD_SUMMARY)
 
@@ -403,3 +400,22 @@ dump-vars:
 	@$(foreach v,$(filter-out .VARIABLES,$(.VARIABLES)), \
 	    $(info $(v) = $($(v))) \
 	)
+
+.PHONY: options
+.PHONY: help
+options:
+	@echo "\n\nJackdaw's Makefile supports the following options:\n\
+\n\tmake                    Build Jackdaw with default options \
+\n\tmake debug              Build a debug version of Jackdaw (runs much slower, better crash reports) \
+\n\tmake clean              Clean Jackdaw's build artifacts, but leave dependencies in place \
+\n\tmake cleanall           Clean Jackdaw's build artifacts and those of any vendored dependency \
+\n\tmake layout             Build the layout program (undocumented, for use by the author) \
+\n\tmake options            Prints this message \
+\n\tmake help               Prints this message \
+\n\tmake BUNDLED=1          Use vendored copies of each dependency and link them statically \
+\n\tmake BUNDLED_SDL=1      Ignore system SDL2 and SDL2_ttf if exist -- use vendored \
+\n\tmake BUNDLED_SDL_TTF=1  Ignore system SDL2_ttf if exists -- use vendored \
+\n\tmake BUNDLED_PORTMIDI=1 Ignore system portmidi if exists -- use vendored \
+\n\tmake BUNDLED_FFMPEG=1   Ignore system FFmpeg if exists -- use vendored\n" 
+
+help: options

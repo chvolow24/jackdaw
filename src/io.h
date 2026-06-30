@@ -4,11 +4,28 @@
 #include <stdio.h>
 #include "project.h"
 
+/* Valid input files */
+typedef enum io_file_type {
+    IO_FILE_PROJ,
+    IO_FILE_MIDI,
+    IO_FILE_SYNTH,
+    IO_FILE_AUDIO,
+    IO_FILE_DIR, /* e.g. stems dir */
+    IO_FILE_INVALID_PATH,
+    IO_FILE_NONREG, /* not a regular file, symbolic link, or directory */
+    IO_FILE_EXT_UNKNOWN,
+    IO_FILE_TYPE_UNDETERMINED, /* used as function argument when path has not been checked */
+    NUM_IO_FILE_TYPES
+} IOFileType;
+
 /* Jackdaw universal file handler.
 
    If provided, dst_track will receive a new ClipRef at dst_tl_pos.
    
-   Returns 0 on success, value < 0  on error.   
+   Returns 0 on success, or:
+   -1: 'filepath' is not a real filepath
+   -2: 'filepath' is a real path, but not a directory or regular file     
  */
 int open_file(const char *filepath, Track *dst_track, int32_t dst_tl_pos);
+
 #endif

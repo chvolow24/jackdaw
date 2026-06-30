@@ -2614,21 +2614,17 @@ void timeline_minimize_track_or_tracks(Timeline *tl)
 }
 
 #define MAX_STEMFILES 128
-
-/* If passed a directory at start time, verify that contents are wav files and open each one on a new track */
 int load_stems_dir(const char *path, char ***paths_dst)
 {
-    char rp[PATH_MAX] = {0};
-    realpath(path, rp);
     char *stemfiles[MAX_STEMFILES];
     int num_stemfiles = 0;
-    DirPath *dp = dirpath_open(rp);
+    DirPath *dp = dirpath_open(path);
     if (!dp) {
 	num_stemfiles = -1;
 	goto cleanup_and_return;
     }
     for (int i=0; i<dp->num_entries; i++) {
-	char *ext = path_get_ext(dp->entries[i]->path);
+	const char *ext = path_get_ext(dp->entries[i]->path);
 	if (ext && (strncmp(ext, "wav", 3) == 0 || strncmp(ext, "WAV", 3) == 0)) {
 	    stemfiles[num_stemfiles++] = dp->entries[i]->path;
 	}

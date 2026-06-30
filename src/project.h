@@ -546,7 +546,9 @@ int project_obj_name_completion(Text *txt, void *obj);
 /* Clear synth if monitoring */
 void midi_monitor_clear();
 
-/* If passed a directory on command line, open all .wav files inside */
+/* If passed a directory on command line,
+   open all audio files inside. Returns number of
+   files */
 int load_stems_dir(const char *path, char ***paths_dst);
 
 #endif

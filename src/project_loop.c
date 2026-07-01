@@ -18,7 +18,6 @@
 
 
 #include <time.h>
-#include "SDL_events.h"
 #include "audio_connection.h"
 #include "audio_clip.h"
 #include "automation.h"
@@ -28,6 +27,7 @@
 #include "fir_filter.h"
 #include "function_lookup.h"
 #include "input.h"
+#include "io.h"
 #include "layout.h"
 #include "log.h"
 #include "midi_clip.h"
@@ -45,6 +45,7 @@
 #include "tempo.h"
 #include "thread_safety.h"
 #include "timeline.h"
+#include "timeview.h"
 #include "transport.h"
 #include "window.h"
 
@@ -69,7 +70,6 @@ extern Window *main_win;
 /* TabView *synth_tabviewc_create(Track *track); */
 
 extern void user_global_quit(void *);
-extern void open_file(const char *filepath);
 /* extern bool do_blep; */
 
 void route_page_open(Track *track);
@@ -163,7 +163,7 @@ void loop_project_main()
 		}
 		break;
 	    case SDL_MOUSEMOTION: {
-		window_set_mouse_point(main_win, e.motion.x, e.motion.y);		
+		window_set_mouse_point(main_win, e.motion.x, e.motion.y);
 		if (session->dragged_component.component) {
 		    draggable_mouse_motion(&session->dragged_component, main_win);
 		    break;
@@ -544,9 +544,21 @@ void loop_project_main()
 		    scrolling_lt = NULL;
 		}
 		break;
-	    case SDL_DROPFILE:
-		open_file(e.drop.file);
+	    case SDL_DROPFILE: {
+		Timeline *tl = ACTIVE_TL;
+		int x, y;
+		SDL_GetMouseState(&x, &y);
+		window_set_mouse_point(main_win, x, y);
+		for (int i=0; i<tl->num_tracks; i++) {
+		    if (SDL_PointInRect(&main_win->mousep, &tl->tracks[i]->layout->rect)) {
+			timeline_select_track(tl->tracks[i]);
+		    }
+		}
+		int32_t pos = timeview_get_pos_sframes(&tl->timeview, main_win->mousep.x);
+		timeline_set_play_position(tl, pos, false);
+		open_file(e.drop.file, IO_FILE_TYPE_UNDETERMINED, timeline_selected_track(ACTIVE_TL), pos);
 		SDL_free(e.drop.file);
+	    }
 		break;		
 	    default:
 		break;

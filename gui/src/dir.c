@@ -639,6 +639,7 @@ void dir_tests()
 bool file_extension_in_list(const char *filepath, const char **extensions, int num_extensions)
 {
     const char *ext = path_get_ext(filepath);
+    if (!ext) return false;
     for (int i=0; i<num_extensions; i++) {
 	if (strcmp(ext, extensions[i]) == 0) {
 	    return true;

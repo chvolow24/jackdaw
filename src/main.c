@@ -269,6 +269,16 @@ int main(int argc, char **argv)
 	/*     } */
 	/* } */
     }
+    char rp[PATH_MAX] = {0};
+    IOFileType in_file_type = IO_FILE_TYPE_UNDETERMINED;
+    if (command_line_arg) {
+	in_file_type = io_file_type_from_path(command_line_arg, rp);
+	if (!IO_FILE_TYPE_OK(in_file_type)) {
+	    fprintf(stderr, "Unable to open \"%s\": %s\n", command_line_arg, io_file_get_error(in_file_type));
+	    return 1;
+	}
+    }
+
     fprintf(stdout, "\n\nJACKDAW (version %s)\nby Charlie Volow\n\nhttps://jackdaw-audio.net/\n\n%s\n\n", jackdaw_version, license_text);
 
     init();
@@ -283,11 +293,7 @@ int main(int argc, char **argv)
     Session *session = session_create();
 
     /* Check for opening JDAW file */
-    char rp[PATH_MAX] = {0};
-    IOFileType in_file_type = IO_FILE_TYPE_UNDETERMINED;
-    if (command_line_arg) {
-	in_file_type = io_file_type_from_path(command_line_arg, rp);
-    }
+
     if (in_file_type == IO_FILE_PROJ) {
 	open_jdaw_file_starttime(rp);
 	command_line_arg = NULL;
@@ -430,8 +436,6 @@ int main(int argc, char **argv)
     /* 	} */
     /* } */
     loop_project_main();
-    
-    quit();
-    fprintf(stderr, "See ya later!\n");
-    
+quit:
+    quit();    
 }

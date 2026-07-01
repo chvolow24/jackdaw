@@ -107,10 +107,16 @@ err_cleanup_and_return:
 /* Return length of PCM buffer in sample frames */
 int32_t av_open_file(const char *filepath, float **L_dst, float **R_dst)
 {
-     const AVCodec *codec = NULL;
+    session_loading_screen_update("Finding and initializing codec...", 0.1);
+
+    int out_sr = session_get_sample_rate();
+    const AVCodec *codec = NULL;
     AVCodecContext *codec_ctx = NULL;
     AVFormatContext *fmt = NULL;
     int ret = av_open_codec_from_file(filepath, &fmt, &codec, &codec_ctx);
+    int64_t raw_dur = fmt->duration;
+    int64_t dur_sframes = ((uint64_t)(out_sr) * raw_dur) / AV_TIME_BASE;
+    
     if (ret < 0) {
 	return 0;
     }
@@ -136,7 +142,6 @@ int32_t av_open_file(const char *filepath, float **L_dst, float **R_dst)
 
     AVChannelLayout out_layout = {0};
     av_channel_layout_default(&out_layout, 2);
-    int out_sr = session_get_sample_rate();
 
     /* Prepare for resampling inside loop */
     SwrContext *swr = NULL;
@@ -165,6 +170,9 @@ int32_t av_open_file(const char *filepath, float **L_dst, float **R_dst)
     int32_t buf_index = 0;
     float *L = malloc(buf_alloc_len_sframes * sizeof(float));
     float *R = malloc(buf_alloc_len_sframes * sizeof(float));
+
+    int32_t loading_scr_sframe_mod = 0;
+    const int32_t loading_scr_every_n_sframes = out_sr * 10;
 
     /* Main decode loop */
     while (av_read_frame(fmt, pkt) >= 0) {
@@ -201,17 +209,27 @@ int32_t av_open_file(const char *filepath, float **L_dst, float **R_dst)
 		    (const uint8_t **)frame->data,
 		    frame->nb_samples);
 		buf_index += out_samples;
-
+		loading_scr_sframe_mod += out_samples;
+		if (loading_scr_sframe_mod > loading_scr_every_n_sframes) {
+		    if (session_loading_screen_update("Decoding file...", 0.1 + 0.7 * buf_index / dur_sframes) == 1) {
+			goto cleanup_and_return;
+			status_set_errstr("File load aborted!");
+		    }
+		    loading_scr_sframe_mod = 0;
+		}
 	    }
 	}
     }
 
+cleanup_and_return:
+    session_loading_screen_update("Creating clip buffers...", 0.8);
     L = realloc(L, buf_index * sizeof(float));
     R = realloc(R, buf_index * sizeof(float));
     *L_dst = L;
     *R_dst = R;
 
     /* CLEANUP */
+    session_loading_screen_update("Cleaning up codec resources...", 0.85);
     avformat_close_input(&fmt);
     avcodec_free_context(&codec_ctx);
     

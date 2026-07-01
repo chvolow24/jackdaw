@@ -145,7 +145,23 @@ void loop_project_main()
 		    /* symbol_quit(main_win); */
 		    /* init_symbol_table(main_win); */
     
-		}
+		}/*  else if (e.window.event == SDL_WINDOWEVENT_SHOWN) { */
+		/*     fprintf(stderr, "SHOWN\n"); */
+		/* } else if (e.window.event == SDL_WINDOWEVENT_EXPOSED) { */
+		/*     fprintf(stderr, "EXPOSED\n"); */
+		/* } else if (e.window.event == SDL_WINDOWEVENT_RESTORED) { */
+		/*     fprintf(stderr, "RESTORED\n"); */
+		/* } else if (e.window.event == SDL_WINDOWEVENT_ENTER) { */
+		/*     fprintf(stderr, "ENTER\n"); */
+		/* } else if (e.window.event == SDL_WINDOWEVENT_LEAVE) { */
+		/*     fprintf(stderr, "LEAVE\n"); */
+		/* } else if (e.window.event == SDL_WINDOWEVENT_FOCUS_GAINED) { */
+		/*     fprintf(stderr, "FOCUS_GAINED\n"); */
+		/* } else if (e.window.event == SDL_WINDOWEVENT_FOCUS_LOST) { */
+		/*     fprintf(stderr, "FOCUS_LOST\n"); */
+		/* } */
+
+
 		break;
 	    case SDL_AUDIODEVICEADDED:
 		if (!first_frame) {

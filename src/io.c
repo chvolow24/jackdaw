@@ -13,6 +13,20 @@
 #include "session.h"
 
 
+const char *io_file_get_error(IOFileType t) {
+    switch (t) {
+    case IO_FILE_INVALID_PATH:
+	return "no such file or directory";
+    case IO_FILE_NONREG:
+	return "not a regular file or symbolic link";
+    case IO_FILE_EXT_UNKNOWN:
+	return "not a file type Jackdaw recognizes";
+    default:
+	return "unknown error";
+    }
+}
+
+
 static int open_jdaw_file_runtime_only(const char *filepath)
 {
     const char *filename = path_get_tail(filepath);
@@ -89,8 +103,10 @@ static int open_audio_file(const char *filepath, Track *dst_track, int32_t dst_t
 {
     if (!dst_track) return -1;
     float *L, *R;
+    session_set_loading_screen("Importing audio file...", NULL, true);
     int32_t length_sframes = av_open_file(filepath, &L, &R);
     if (length_sframes == 0) {
+	session_loading_screen_deinit();
 	return -1;
     }
     Clip *clip = clip_create(NULL, dst_track);
@@ -98,9 +114,16 @@ static int open_audio_file(const char *filepath, Track *dst_track, int32_t dst_t
     clip->R = R;
     clip->channels = 2;
     clip->len_sframes = length_sframes;
+    session_loading_screen_update("Creating clip waveform...", 0.9);
     clip_init_or_update_waveform(clip);
     ClipRef *cr = clipref_create(dst_track, dst_tl_pos, CLIP_AUDIO, clip);
+    const char *filename = path_get_tail(filepath);
+    strncpy(clip->name, filename, MAX_NAMELENGTH);
+    strncpy(cr->name, filename, MAX_NAMELENGTH);
+
     timeline_reset(cr->track->tl, true);
+    
+    session_loading_screen_deinit();
     return 0;
 }
 
@@ -176,9 +199,13 @@ IOFileType io_file_type_from_path(const char *filepath, char *valid_path_dst)
 
    If provided, dst_track will receive a new ClipRef at dst_tl_pos.
    
-   Returns 0 on success, or negative value if error
+   Returns:
+   0 on success or negative value on error
+   -1 if filepath is not a valid path
+   -2 if file type is unrecognized
+   
  */
-int open_file(const char *filepath, IOFileType type, Track *dst_track, int32_t dst_tl_pos)
+IOFileType open_file(const char *filepath, IOFileType type, Track *dst_track, int32_t dst_tl_pos)
 {
     char rp[PATH_MAX] = {0};
     if (type != IO_FILE_TYPE_UNDETERMINED) {
@@ -213,9 +240,8 @@ int open_file(const char *filepath, IOFileType type, Track *dst_track, int32_t d
     }
 	break;
     default:
-	ret = -1;
     }
-    return ret;
+    return type;
     /* First, validate path type */
     /* char rp[PATH_MAX] = {0}; */
     /* if (!realpath(filepath, rp)) { */
@@ -274,6 +300,4 @@ int open_file(const char *filepath, IOFileType type, Track *dst_track, int32_t d
     /* } */
     /* return ret; */
 }
-
-
 

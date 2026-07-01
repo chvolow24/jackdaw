@@ -74,13 +74,7 @@ float pan_scale(float pan, int channel);
 float amp_to_db(float amp);
 float db_to_amp(float db);
 
-inline float clip_float_sample(float f)
-{
-    if (f > 1.0) return 1.0;
-    if (f < -1.0) return -1.0;
-    return f;
-}
-
+float clip_float_sample(float f);
 
 void make_rampf(float *buf, int32_t len, float start, float end);
 void make_ramp(double *restrict buf, int32_t len, double start, double end);

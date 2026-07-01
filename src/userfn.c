@@ -541,7 +541,7 @@ void _DEPRECATED_open_file(const char *filepath)
 static void openfile_file_select_action(DirNav *dn, DirPath *dp)
 {
     Session *session = session_get();
-    open_file(dp->path, timeline_selected_track(ACTIVE_TL), ACTIVE_TL->play_pos_sframes);
+    open_file(dp->path, IO_FILE_TYPE_UNDETERMINED, timeline_selected_track(ACTIVE_TL), ACTIVE_TL->play_pos_sframes);
     window_pop_modal(main_win);
     Timeline *tl = ACTIVE_TL;
     tl->needs_redraw = true;

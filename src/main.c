@@ -282,7 +282,16 @@ int main(int argc, char **argv)
     /* Create session before doing anything project-related */
     Session *session = session_create();
 
-    
+    /* Check for opening JDAW file */
+    char rp[PATH_MAX] = {0};
+    IOFileType in_file_type = IO_FILE_TYPE_UNDETERMINED;
+    if (command_line_arg) {
+	in_file_type = io_file_type_from_path(command_line_arg, rp);
+    }
+    if (in_file_type == IO_FILE_PROJ) {
+	open_jdaw_file_starttime(rp);
+	command_line_arg = NULL;
+    }	    
     /* int openfile_ret = open_file(command_line_arg, NULL, NULL); */
     
     /* if (invoke_open_jdaw_file) { */
@@ -326,6 +335,7 @@ int main(int argc, char **argv)
     /* 	    timeline_reset_full(session->proj.timelines[i]); */
     /* 	} */
     /* } else { */
+    if (!session->proj_initialized) {
 	fprintf(stderr, "Creating new project...\n");
 	int ret = project_init(
 	    &session->proj,
@@ -335,11 +345,12 @@ int main(int argc, char **argv)
 	session->proj_initialized = true;
 	session_init_panels(session);
 	timeline_add_track(session->proj.timelines[0], -1);
+    }
     /* } */
 
     window_push_mode(main_win, MODE_TIMELINE);
     if (command_line_arg) {
-	open_file(command_line_arg, session->proj.timelines[0]->tracks[0], 0);
+	open_file(command_line_arg, in_file_type, session->proj.timelines[0]->tracks[0], 0);
     }
 
     /* if (invoke_open_wav_file) { */

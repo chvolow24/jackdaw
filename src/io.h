@@ -18,6 +18,8 @@ typedef enum io_file_type {
     NUM_IO_FILE_TYPES
 } IOFileType;
 
+IOFileType io_file_type_from_path(const char *filepath, char *valid_path_dst);
+
 /* Jackdaw universal file handler.
 
    If provided, dst_track will receive a new ClipRef at dst_tl_pos.
@@ -26,6 +28,10 @@ typedef enum io_file_type {
    -1: 'filepath' is not a real filepath
    -2: 'filepath' is a real path, but not a directory or regular file     
  */
-int open_file(const char *filepath, Track *dst_track, int32_t dst_tl_pos);
+int open_file(const char *filepath, IOFileType type, Track *dst_track, int32_t dst_tl_pos);
+
+/* Use when jackdaw invoked on cmd line with project file arg.
+    Returns 0 on success, <0 on error. */
+int open_jdaw_file_starttime(const char *filepath);
 
 #endif

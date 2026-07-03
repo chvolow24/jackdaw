@@ -211,7 +211,13 @@ static void clip_waveform_append(Clip *clip, int32_t start_in_clip, int32_t len_
 	}
     }
     int32_t ck_len;
+    int32_t loading_scr_ctr_sframes = 0;
+    const static int32_t loading_scr_mod_sframes = 96000 * 60;
     while ((ck_len = len_sframes - start_in_clip) > 0) {
+	if (loading_scr_ctr_sframes >= loading_scr_mod_sframes) {
+	    session_loading_screen_update("Creating clip waveform...", (float)start_in_clip / len_sframes);
+	    loading_scr_ctr_sframes = 0;
+	}
 	ck_len = 64 < ck_len ? 64 : ck_len;
 	WaveformChunk *Lck = clip->waveform.ck64[0] + ck64_i;
 	float min = 1.0;
@@ -241,6 +247,7 @@ static void clip_waveform_append(Clip *clip, int32_t start_in_clip, int32_t len_
 	}
 	ck64_i++;
 	start_in_clip += ck_len;
+	loading_scr_ctr_sframes += ck_len;
 	if (ck64_i % 8 == 0) {
 	    WaveformChunk *Lck512 = clip->waveform.ck512[0] + ck512_i;
 	    Lck512->min = ck512_Lmin;

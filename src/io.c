@@ -3,12 +3,14 @@
 
 #include "consts.h"
 #include "error.h"
+#include "loading.h"
 #include "project.h"
 #include "prompt_user.h"
 #include "dir.h"
 #include "dot_jdaw.h"
 #include "io.h"
 #include "jdaw_ffmpeg.h"
+#include "log.h"
 #include "midi_file.h"
 #include "session.h"
 
@@ -27,6 +29,7 @@ const char *io_file_get_error(IOFileType t) {
 }
 
 
+/* Return 1 to cancel; 0 on success; negative on error */
 static int open_jdaw_file_runtime_only(const char *filepath)
 {
     const char *filename = path_get_tail(filepath);
@@ -59,9 +62,9 @@ static int open_jdaw_file_runtime_only(const char *filepath)
 	session_set_proj(session, &new_proj);
 	api_discard_stash();
     } else {
-	status_set_errstr("Error opening jdaw project");
+	const char *errstr = ret == -1 ? "parsing" : ret == -2 ? "opening" : "(unknown)";
+	status_set_errstr("Error %s project file \"%s\"", errstr, filename);
 	api_reset_from_stash_and_discard();
-	return ret;
     }
     session->proj_reading = NULL;
     return ret;
@@ -114,7 +117,6 @@ static int open_audio_file(const char *filepath, Track *dst_track, int32_t dst_t
     clip->R = R;
     clip->channels = 2;
     clip->len_sframes = length_sframes;
-    session_loading_screen_update("Creating clip waveform...", 0.9);
     clip_init_or_update_waveform(clip);
     ClipRef *cr = clipref_create(dst_track, dst_tl_pos, CLIP_AUDIO, clip);
     const char *filename = path_get_tail(filepath);
@@ -138,7 +140,16 @@ static int open_stems_dir(const char *filepath, Timeline *tl)
     if (num_stems == 0) {
 	return -1;
     }
+    char ldscr[255];
+
+    /* session_set_loading_screen("Loading stems...", NULL, true); */
     for (int i=0; i<num_stems; i++) {
+	snprintf(ldscr, 255, "Loading stems (%d / %d)", i + 1, num_stems);
+	if (i == 0) {
+	    session_set_loading_screen(ldscr, NULL, true);
+	} else {
+	    session_loading_screen_set_title(ldscr);
+	}
 	Track *track;
 	if (i != 0) {
 	    track = timeline_add_track(tl, i);
@@ -163,7 +174,8 @@ IOFileType io_file_type_from_path(const char *filepath, char *valid_path_dst)
 	/* Not a filepath */
 	return IO_FILE_INVALID_PATH;
     }
-    memcpy(valid_path_dst, rp, PATH_MAX);
+    if (valid_path_dst)
+	memcpy(valid_path_dst, rp, PATH_MAX);
     struct stat s = {0};
     stat(rp, &s);
     if (S_ISDIR(s.st_mode)) {
@@ -240,6 +252,11 @@ IOFileType open_file(const char *filepath, IOFileType type, Track *dst_track, in
     }
 	break;
     default:
+	break;
+    }
+    if (ret < 0) {
+	log_tmp(LOG_ERROR, "An error occurred while opening file %s\n", filepath);
+
     }
     return type;
     /* First, validate path type */

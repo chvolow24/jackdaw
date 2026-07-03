@@ -172,7 +172,7 @@ int32_t av_open_file(const char *filepath, float **L_dst, float **R_dst)
     float *R = malloc(buf_alloc_len_sframes * sizeof(float));
 
     int32_t loading_scr_sframe_mod = 0;
-    const int32_t loading_scr_every_n_sframes = out_sr * 10;
+    const int32_t loading_scr_every_n_sframes = out_sr * 60;
 
     /* Main decode loop */
     while (av_read_frame(fmt, pkt) >= 0) {
@@ -211,7 +211,7 @@ int32_t av_open_file(const char *filepath, float **L_dst, float **R_dst)
 		buf_index += out_samples;
 		loading_scr_sframe_mod += out_samples;
 		if (loading_scr_sframe_mod > loading_scr_every_n_sframes) {
-		    if (session_loading_screen_update("Decoding file...", 0.1 + 0.7 * buf_index / dur_sframes) == 1) {
+		    if (session_loading_screen_update("Decoding file...", (float)buf_index / dur_sframes) == 1) {
 			goto cleanup_and_return;
 			status_set_errstr("File load aborted!");
 		    }
@@ -222,14 +222,12 @@ int32_t av_open_file(const char *filepath, float **L_dst, float **R_dst)
     }
 
 cleanup_and_return:
-    session_loading_screen_update("Creating clip buffers...", 0.8);
-    L = realloc(L, buf_index * sizeof(float));
-    R = realloc(R, buf_index * sizeof(float));
+    session_loading_screen_update("Creating clip buffers...", 0.7);
     *L_dst = L;
     *R_dst = R;
 
     /* CLEANUP */
-    session_loading_screen_update("Cleaning up codec resources...", 0.85);
+    session_loading_screen_update("Cleaning up codec resources...", 0.75);
     avformat_close_input(&fmt);
     avcodec_free_context(&codec_ctx);
     

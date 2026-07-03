@@ -23,12 +23,16 @@ extern SDL_Color menu_std_clr_inner_border;
 extern SDL_Color menu_std_clr_outer_border;
 
 /* static const SDL_Color txt_clr = {10, 245, 10, 255}; */
-static const SDL_Color loading_color = {181, 214, 240, 255};
+static const SDL_Color loading_color = {144, 190, 235, 255};
 
 void session_loading_screen_deinit()
 {
     Session *session = session_get();
     LoadingScreen *ls = &session->loading_screen;
+    if (ls->extra_init_count > 0) {
+	ls->extra_init_count--;
+	return;
+    }
     if (ls->title_tb) textbox_destroy(ls->title_tb);
     if (ls->subtitle_tb) textbox_destroy(ls->subtitle_tb);
     ls->title_tb = NULL;
@@ -41,6 +45,10 @@ static void loading_screen_init(
     const char *subtitle,
     bool draw_progress_bar)
 {
+    if (ls->title_tb) { /* Loading screen already initialized */
+	ls->extra_init_count++;
+	return;
+    }
     if (title)
 	snprintf(ls->title, MAX_LOADSTR_LEN, "%s", title);
 	/* strlcpy(ls->title, title, MAX_LOADSTR_LEN); */
@@ -139,6 +147,16 @@ static void loading_screen_draw(LoadingScreen *ls)
 }
 
 
+void session_loading_screen_set_title(const char *new_value)
+{
+    Session *session = session_get();
+    LoadingScreen *ls = &session->loading_screen;
+    snprintf(ls->title, MAX_LOADSTR_LEN, "%s", new_value);
+    textbox_reset_full(ls->title_tb);
+    /* textbox_set_value_handle(ls-> */
+    
+}
+
 /* Return 1 to abort operation */
 int session_loading_screen_update(
     const char *subtitle,
@@ -147,6 +165,7 @@ int session_loading_screen_update(
     /* return 0; */
     Session *session = session_get();
     LoadingScreen *ls = &session->loading_screen;
+    if (!ls) return 0;
     ls->progress = progress;
     if (subtitle) {
 	snprintf(ls->subtitle, MAX_LOADSTR_LEN, "%s", subtitle);

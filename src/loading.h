@@ -36,6 +36,8 @@ typedef struct loading_screen {
     float progress; /* Range 0-1 */
     bool draw_progress_bar;
     SDL_Rect *progress_bar_rect;
+
+    int extra_init_count;
 } LoadingScreen;
 
 
@@ -47,6 +49,8 @@ void session_set_loading_screen(
 int session_loading_screen_update(
     const char *subtitle,
     float progress);
+
+void session_loading_screen_set_title(const char *new_value);
 
 void session_loading_screen_deinit();
 

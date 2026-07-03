@@ -28,6 +28,7 @@
 #include "endpoint_callbacks.h"
 #include "error.h"
 #include "input.h"
+#include "io.h"
 #include "layout.h"
 #include "layout_xml.h"
 #include "log.h"
@@ -39,6 +40,7 @@
 #include "panel.h"
 #include "piano_roll.h"
 #include "project.h"
+#include "prompt_user.h"
 #include "session.h"
 #include "status.h"
 #include "synth.h"
@@ -2613,7 +2615,7 @@ void timeline_minimize_track_or_tracks(Timeline *tl)
     timeline_reset(tl, false);
 }
 
-#define MAX_STEMFILES 128
+#define MAX_STEMFILES 255
 int load_stems_dir(const char *path, char ***paths_dst)
 {
     char *stemfiles[MAX_STEMFILES];
@@ -2624,20 +2626,30 @@ int load_stems_dir(const char *path, char ***paths_dst)
 	goto cleanup_and_return;
     }
     for (int i=0; i<dp->num_entries; i++) {
-	const char *ext = path_get_ext(dp->entries[i]->path);
-	if (ext && (strncmp(ext, "wav", 3) == 0 || strncmp(ext, "WAV", 3) == 0)) {
+	IOFileType t = io_file_type_from_path(dp->entries[i]->path, NULL);
+	/* const char *ext = path_get_ext(dp->entries[i]->path); */
+	/* if (ext && (strncmp(ext, "wav", 3) == 0 || strncmp(ext, "WAV", 3) == 0)) { */
+	if (t == IO_FILE_AUDIO) {
 	    stemfiles[num_stemfiles++] = dp->entries[i]->path;
+	    if (num_stemfiles == MAX_STEMFILES) {
+		break;
+	    }
 	}
     }
     if (num_stemfiles == 0) {
 	goto cleanup_and_return;
     }
     if (!paths_dst) fprintf(stderr, "Error in load_stems_dir: no paths_dst provided\n");
-    fprintf(stderr, "Load %d stems in new project? (y/n)\n", num_stemfiles);
+    /* fprintf(stderr, "Load %d stems in new project? (y/n)\n", num_stemfiles); */
     /* char USER[2] = {0}; */
     /* fgets(USER, 2, stdin); */
-    int c = fgetc(stdin);
-    if (c == 'y') {
+    const char *options[] = {"Yes", "No"};
+    char hdr[255] = {0};
+    snprintf(hdr, 255, "Load %d stems in new project?", num_stemfiles);
+    
+    int choice = prompt_user(hdr, NULL, 2, options);
+    /* int c = fgetc(stdin); */
+    if (choice == 0) {
 	*paths_dst = malloc(sizeof(char *) * num_stemfiles);
 	for (int i=0; i<num_stemfiles; i++) {
 	    (*paths_dst)[i] = strdup(stemfiles[i]);

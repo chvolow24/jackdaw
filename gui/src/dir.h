@@ -62,8 +62,14 @@ typedef struct filepath {
 
 /* Get the filename from a path */
 const char *path_get_tail(const char *pathname);
+
 /* Get the extension from a path */
 const char *path_get_ext(const char *pathname);
+
+/* If path is a directory, return path; otherwise, get the containing directory
+ CALLER MUST FREE returned string */
+char *path_get_directory(const char *pathname);
+
 /* Check if a file's extension is in a given list */
 bool file_extension_in_list(const char *filepath, const char **extensions, int num_extensions);
 

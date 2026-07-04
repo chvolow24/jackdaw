@@ -1793,7 +1793,6 @@ void layout_fprint(FILE *f, Layout *lt)
 
     fprintf(f, "Layout %s\n\tx: %s %s\n\ty: %s %s\n\tw: %s %s\n\th: %s %s\n",
 	    lt->name ? lt->name : "lt",
-	    lt->name,
 	    layout_get_dimtype_str(lt->x.type),
 	    xval,
 	    layout_get_dimtype_str(lt->y.type),

@@ -15,6 +15,7 @@ typedef enum io_file_type {
     IO_FILE_NONREG, /* not a regular file, symbolic link, or directory */
     IO_FILE_EXT_UNKNOWN,
     IO_FILE_TYPE_UNDETERMINED, /* used as function argument when path has not been checked */
+    IO_FILE_ERROR, /* when a file type is known, but parsing fails */
     NUM_IO_FILE_TYPES
 } IOFileType;
 
@@ -23,6 +24,14 @@ typedef enum io_file_type {
 const char *io_file_get_error(IOFileType t);
 
 IOFileType io_file_type_from_path(const char *filepath, char *valid_path_dst);
+
+/* Save directory paths for opening / saving files */
+typedef enum saved_dir_type {
+    IO_DIR_GENERIC_OPEN,
+    IO_DIR_SYNTH_PRESET,
+    IO_DIR_EXPORT,
+    IO_DIR_PROJ
+} SavedDirType;
 
 /* Jackdaw universal file handler.
 
@@ -35,5 +44,11 @@ IOFileType open_file(const char *filepath, IOFileType type, Track *dst_track, in
 /* Use when jackdaw invoked on cmd line with project file arg.
     Returns 0 on success, <0 on error. */
 int open_jdaw_file_starttime(const char *filepath);
+
+/* Get the default directory for a particular file operation (e.g. generic open) */
+char *io_get_default_dir(SavedDirType type);
+
+/* Set the default directory for a particular file operation (e.g. generic open) */
+void io_set_default_dir(SavedDirType type, const char *path);
 
 #endif

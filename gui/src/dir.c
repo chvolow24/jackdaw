@@ -1,6 +1,9 @@
+#include <libgen.h>
+#include <limits.h>
+#include <string.h>
+
 #include "dir.h"
 #include "textbox.h"
-
 
 #define DIRNAV_LINE_SPACING 3
 #define DIRNAV_TLINES_HEIGHT 200
@@ -123,6 +126,18 @@ const char *path_get_ext(const char *pathname) {
     }
     if (dot == pathname) return NULL;
     return dot + 1;
+}
+
+/* Returned string must be freed */
+char *path_get_directory(const char *pathname)
+{
+    static char rp[PATH_MAX] = {0};
+    memset(rp, '\0', sizeof(rp));
+    if (realpath(pathname, rp)) {
+	return strdup(dirname(rp));
+    } else {
+	return NULL;
+    }    
 }
 
 static DirPath *dirpath_create(const char *dirpath)

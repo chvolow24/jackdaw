@@ -76,17 +76,17 @@ double timespec_elapsed_ms(const struct timespec *start, const struct timespec *
     return (sec_diff * 1e3) + (nsec_diff * 1e-6);
 }
 
-static struct timespec glob_start, glob_end;
-static void timer_start()
-{
-    clock_gettime(CLOCK_REALTIME, &glob_start);
-}
+/* static struct timespec glob_start, glob_end; */
+/* static void timer_start() */
+/* { */
+/*     clock_gettime(CLOCK_REALTIME, &glob_start); */
+/* } */
 
-static void timer_stop_and_print(const char *msg)
-{
-    clock_gettime(CLOCK_REALTIME, &glob_end);
-    transport_log("(%f): %s\n", timespec_elapsed_ms(&glob_start, &glob_end), msg);
-}
+/* static void timer_stop_and_print(const char *msg) */
+/* { */
+/*     clock_gettime(CLOCK_REALTIME, &glob_end); */
+/*     transport_log("(%f): %s\n", timespec_elapsed_ms(&glob_start, &glob_end), msg); */
+/* } */
 
 extern struct colors colors;
 

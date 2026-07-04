@@ -588,6 +588,9 @@ void txt_edit(Text *txt, void (*draw_fn) (void))
 
 void txt_destroy(Text *txt)
 {
+    if (txt == main_win->txt_editing) {
+	txt_stop_editing(main_win->txt_editing);
+    }
     txt_remove_from_hash_table(txt);
     if (txt->texture) {
         SDL_DestroyTexture(txt->texture);

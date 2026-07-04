@@ -4,6 +4,7 @@
 #include "effect.h"
 #include "effect_pages.h"
 #include "geometry.h"
+#include "io.h"
 #include "layout.h"
 #include "modal.h"
 #include "page.h"
@@ -1253,7 +1254,7 @@ void synth_open_preset()
     
     Modal *modal = modal_create(layout);
     modal_add_header(modal, "Open synth preset", &colors.light_grey, 3);
-    ModalEl *el = modal_add_dirnav(modal, ".", dir_to_tline_filter_synth);
+    ModalEl *el = modal_add_dirnav(modal, io_get_default_dir(IO_DIR_SYNTH_PRESET), dir_to_tline_filter_synth);
     DirNav *dn = el->obj;
     dn->file_select_action = synth_open_form;
     /* modal_add_button(modal, "Open", synth_open_form); */

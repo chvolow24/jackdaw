@@ -2387,7 +2387,7 @@ struct synth_preset_arg{
     EffectChain *stashed_ec;
 };
 
-static void synth_read_preset_file_internal(const char *filepath, Synth *s, bool from_undo);
+static int synth_read_preset_file_internal(const char *filepath, Synth *s, bool from_undo);
 
 static char *synth_write_backup_file(Synth *synth)
 {
@@ -2459,20 +2459,15 @@ NEW_EVENT_FN(dispose_read_synth_preset, "")
     if (sp->stashed_ec) free(sp->stashed_ec);
 }
 
-/* Back up synth settings and get a path to the backup file */
 
-
-static void synth_read_preset_file_internal(const char *filepath, Synth *s, bool from_undo)
+/* Return 0 on success, negative on error */
+static int synth_read_preset_file_internal(const char *filepath, Synth *s, bool from_undo)
 {   
     FILE *f = fopen(filepath, "r");
     if (!f) {
 	status_set_errstr("File does not exist or could not be opened.");
-	return;
+	return 0;
     }
-
-    fprintf(stderr, "\n\nRead preset %s\n\n", filepath);
-    /* Called on main thread, so dsp/playback must be blocked */
-
 
     if (!from_undo) {
 	pthread_mutex_lock(&s->audio_proc_lock);
@@ -2516,7 +2511,7 @@ static void synth_read_preset_file_internal(const char *filepath, Synth *s, bool
 	s->effect_chain.api_node.do_not_automate = true;
 	fseek(f, SEEK_SET, 0);
     }
-    
+    int ret = 0;
     if (api_node_deserialize(f, &s->api_node) == 0) {
 	char buf[256];
 	snprintf(buf, 256, "%s", filepath);
@@ -2532,17 +2527,21 @@ static void synth_read_preset_file_internal(const char *filepath, Synth *s, bool
 	if (last_slash_pos != buf) last_slash_pos++;
 	snprintf(s->preset_name, 64, "%s", last_slash_pos);
 	
+    } else {
+	ret = -1;
     }
     if (!from_undo) {
 	pthread_mutex_unlock(&s->audio_proc_lock);
     }
     timeline_check_set_midi_monitoring();
     fclose(f);
+    return ret;
 }
 
-void synth_read_preset_file(const char *filepath, Synth *s)
+/* Return 0 on success, negative on error */
+int synth_read_preset_file(const char *filepath, Synth *s)
 {
-    synth_read_preset_file_internal(filepath, s, false);
+    return synth_read_preset_file_internal(filepath, s, false);
 }
 
 void synth_destroy(Synth *s)

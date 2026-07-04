@@ -65,9 +65,9 @@
 #endif
 
 const char *jackdaw_version = JACKDAW_VERSION;
-char DIRPATH_SAVED_PROJ[MAX_PATHLEN];
-char DIRPATH_OPEN_FILE[MAX_PATHLEN];
-char DIRPATH_EXPORT[MAX_PATHLEN];
+/* char DIRPATH_SAVED_PROJ[MAX_PATHLEN]; */
+/* char DIRPATH_OPEN_FILE[MAX_PATHLEN]; */
+/* char DIRPATH_EXPORT[MAX_PATHLEN]; */
 
 bool SYS_BYTEORDER_LE = false;
 volatile bool CANCEL_THREADS = false;
@@ -128,16 +128,16 @@ static void init()
     input_init();
     mqwert_init();
     pd_jackdaw_shm_init();
-    char *realpath_ret;
-    if (!(realpath_ret = realpath(".", NULL))) {
-	perror("Error in realpath");
-    } else {
-	snprintf(DIRPATH_SAVED_PROJ, MAX_PATHLEN, "%s", realpath_ret); 
-	/* strlcpy(DIRPATH_SAVED_PROJ, realpath_ret, MAX_PATHLEN); */
-	free(realpath_ret);
-    }
-    strcpy(DIRPATH_OPEN_FILE, DIRPATH_SAVED_PROJ);
-    strcpy(DIRPATH_EXPORT, DIRPATH_SAVED_PROJ);
+    /* char *realpath_ret; */
+    /* if (!(realpath_ret = realpath(".", NULL))) { */
+    /* 	perror("Error in realpath"); */
+    /* } else { */
+    /* 	snprintf(DIRPATH_SAVED_PROJ, MAX_PATHLEN, "%s", realpath_ret);  */
+    /* 	/\* strlcpy(DIRPATH_SAVED_PROJ, realpath_ret, MAX_PATHLEN); *\/ */
+    /* 	free(realpath_ret); */
+    /* } */
+    /* strcpy(DIRPATH_OPEN_FILE, DIRPATH_SAVED_PROJ); */
+    /* strcpy(DIRPATH_EXPORT, DIRPATH_SAVED_PROJ); */
     midi_io_init();
     init_dsp();
 }
@@ -295,7 +295,10 @@ int main(int argc, char **argv)
     /* Check for opening JDAW file */
 
     if (in_file_type == IO_FILE_PROJ) {
-	open_jdaw_file_starttime(rp);
+	if (open_jdaw_file_starttime(rp) < 0) {
+	    fprintf(stderr, "Error opening file %s. Exiting.\n", rp);
+	    return 1;
+	}
 	command_line_arg = NULL;
     }	    
     /* int openfile_ret = open_file(command_line_arg, NULL, NULL); */
@@ -343,7 +346,7 @@ int main(int argc, char **argv)
     /* } else { */
     if (!session->proj_initialized) {
 	fprintf(stderr, "Creating new project...\n");
-	int ret = project_init(
+	project_init(
 	    &session->proj,
 	    "project.jdaw",
 	    DEFAULT_PROJ_AUDIO_SETTINGS,
@@ -357,6 +360,7 @@ int main(int argc, char **argv)
     window_push_mode(main_win, MODE_TIMELINE);
     if (command_line_arg) {
 	open_file(command_line_arg, in_file_type, session->proj.timelines[0]->tracks[0], 0);
+	
     }
 
     /* if (invoke_open_wav_file) { */
@@ -436,6 +440,5 @@ int main(int argc, char **argv)
     /* 	} */
     /* } */
     loop_project_main();
-quit:
     quit();    
 }

@@ -14,6 +14,74 @@
 #include "midi_file.h"
 #include "session.h"
 
+struct saved_dirs {
+    bool initialized;
+    char generic_open[PATH_MAX];
+    char synth_preset[PATH_MAX];
+    char export[PATH_MAX];
+    char proj[PATH_MAX];
+};
+
+static struct saved_dirs saved_dirs = {0};
+
+char *io_get_default_dir(SavedDirType type)
+{
+    char rp[PATH_MAX] = {0};
+    if (!saved_dirs.initialized) {
+	if (!realpath(INSTALL_DIR, rp)) {
+	    realpath(".", rp);
+	}
+	snprintf(saved_dirs.generic_open, PATH_MAX, "%s", rp);
+	snprintf(saved_dirs.synth_preset, PATH_MAX, "%s", rp);
+	snprintf(saved_dirs.export, PATH_MAX, "%s", rp);
+	snprintf(saved_dirs.proj, PATH_MAX, "%s", rp);
+	saved_dirs.initialized = true;
+    }
+    switch(type) {
+    case IO_DIR_GENERIC_OPEN:
+	return saved_dirs.generic_open;
+    case IO_DIR_SYNTH_PRESET:
+	return saved_dirs.synth_preset;
+    case IO_DIR_EXPORT:
+	return saved_dirs.export;
+    case IO_DIR_PROJ:
+	return saved_dirs.proj;
+    }
+}
+
+void io_set_default_dir(SavedDirType type, const char *path)
+{
+    if (!saved_dirs.initialized) {
+	/* Force initialization */
+	io_get_default_dir(type);
+    }
+    switch (type) {
+    case IO_DIR_GENERIC_OPEN:
+	snprintf(saved_dirs.generic_open, PATH_MAX, "%s", path);
+	break;
+    case IO_DIR_SYNTH_PRESET:
+	snprintf(saved_dirs.synth_preset, PATH_MAX, "%s", path);
+	break;
+    case IO_DIR_EXPORT:
+	snprintf(saved_dirs.export, PATH_MAX, "%s", path);
+	break;
+    case IO_DIR_PROJ:
+	snprintf(saved_dirs.proj, PATH_MAX, "%s", path);
+	break;
+    }
+}
+
+void io_set_default_dir_all(const char *path)
+{
+    if (!saved_dirs.initialized) {
+	io_get_default_dir(IO_DIR_GENERIC_OPEN);
+    }
+    snprintf(saved_dirs.generic_open, PATH_MAX, "%s", path);
+    snprintf(saved_dirs.synth_preset, PATH_MAX, "%s", path);
+    snprintf(saved_dirs.export, PATH_MAX, "%s", path);
+    snprintf(saved_dirs.proj, PATH_MAX, "%s", path);
+}
+
 
 const char *io_file_get_error(IOFileType t) {
     switch (t) {
@@ -67,6 +135,7 @@ static int open_jdaw_file_runtime_only(const char *filepath)
 	api_reset_from_stash_and_discard();
     }
     session->proj_reading = NULL;
+    
     return ret;
 }
 
@@ -88,7 +157,7 @@ int open_jdaw_file_starttime(const char *filepath)
 	    audioconn_open(session, output);
 	}
     } else {
-	fprintf(stderr, "Unable to open project file at \"%s\"", filepath);
+	/* fprintf(stderr, "Unable to open project file at \"%s\"\n", filepath); */
 	return -1;
 	/* session->proj_initialized = false; */
 	/* memset(&session->proj, '\0', sizeof(Project)); */
@@ -98,10 +167,40 @@ int open_jdaw_file_starttime(const char *filepath)
     for (int i=0; i<session->proj.num_timelines; i++) {
 	timeline_reset_full(session->proj.timelines[i]);
     }
+    char *dirname = path_get_directory(filepath);
+    if (dirname) {
+
+	io_set_default_dir_all(dirname);
+	/* io_set_default_dir(IO_DIR_PROJ, dirname); */
+	/* snprintf(saved_dirs.synth_preset, PATH_MAX, "%s", dirname); */
+	free(dirname);
+    }
+
     return 0;
 
 }
 
+static NEW_EVENT_FN(undo_open_audio_file, "undo open audio file")
+{
+    ClipRef *cr = (ClipRef *)obj1;
+    clipref_delete(cr);
+}}
+
+static NEW_EVENT_FN(redo_open_audio_file, "redo open audio file")
+{
+    ClipRef *cr = (ClipRef *)obj1;
+    clipref_undelete(cr);
+}}
+
+static NEW_EVENT_FN(dispose_forward_open_audio_file, "")
+{
+    ClipRef *cr = (ClipRef *)obj1;
+    clipref_destroy_no_displace(cr);
+}}
+
+
+
+/* Returns 0 on success, -1 on error */
 static int open_audio_file(const char *filepath, Track *dst_track, int32_t dst_tl_pos)
 {
     if (!dst_track) return -1;
@@ -126,6 +225,15 @@ static int open_audio_file(const char *filepath, Track *dst_track, int32_t dst_t
     timeline_reset(cr->track->tl, true);
     
     session_loading_screen_deinit();
+
+    user_event_push(	    
+	undo_open_audio_file,
+	redo_open_audio_file,
+	NULL, dispose_forward_open_audio_file,
+	(void *)cr, NULL,
+	(Value){0}, (Value){0}, (Value){0}, (Value){0},
+	0, 0, false, false);
+
     return 0;
 }
 
@@ -211,10 +319,8 @@ IOFileType io_file_type_from_path(const char *filepath, char *valid_path_dst)
 
    If provided, dst_track will receive a new ClipRef at dst_tl_pos.
    
-   Returns:
-   0 on success or negative value on error
-   -1 if filepath is not a valid path
-   -2 if file type is unrecognized
+   Return an IOFileType indicating the type of file opened,
+   or the class of error if unsuccessful
    
  */
 IOFileType open_file(const char *filepath, IOFileType type, Track *dst_track, int32_t dst_tl_pos)
@@ -227,94 +333,63 @@ IOFileType open_file(const char *filepath, IOFileType type, Track *dst_track, in
     }
 
     Session *session = session_get();
-    int ret = 0;
+    IOFileType ret = type;
     switch (type) {
     case IO_FILE_PROJ:
-	ret = open_jdaw_file_runtime_only(rp);
+	if (open_jdaw_file_runtime_only(rp) < 0) {
+	    ret = IO_FILE_ERROR;
+	}
 	break;
     case IO_FILE_MIDI:
-	ret = midi_file_open(rp, false);
+	if (midi_file_open(rp, false) < 0) {
+	    ret = IO_FILE_ERROR;
+	}
 	break;
     case IO_FILE_SYNTH:
 	if (dst_track) {
 	    dst_track->synth = synth_create(dst_track);
+	    if (synth_read_preset_file(rp, dst_track->synth) < 0) {
+		ret = IO_FILE_ERROR;
+	    }
 	}
-	synth_read_preset_file(rp, dst_track->synth);
-	ret = 0;
 	break;
     case IO_FILE_AUDIO:
-	ret = open_audio_file(rp, dst_track, dst_tl_pos);
+	if (open_audio_file(rp, dst_track, dst_tl_pos) < 0) {
+	    ret = IO_FILE_ERROR;
+	}
 	break;
     case IO_FILE_DIR: {
 	Timeline *tl = dst_track ? dst_track->tl : session->proj.timelines[0];
-	open_stems_dir(rp, tl);
-	ret = 0;
+	if (open_stems_dir(rp, tl) < 0) {
+	    ret = IO_FILE_ERROR;
+	}
     }
 	break;
     default:
+	return type;
 	break;
     }
     if (ret < 0) {
 	log_tmp(LOG_ERROR, "An error occurred while opening file %s\n", filepath);
-
+    } else {
+	if (type == IO_FILE_SYNTH) {
+	    char *dirname = path_get_directory(rp);
+	    if (dirname) {
+		io_set_default_dir(IO_DIR_SYNTH_PRESET, dirname);
+		/* snprintf(saved_dirs.synth_preset, PATH_MAX, "%s", dirname); */
+		free(dirname);
+	    }
+	} else {
+	    char *dirname = path_get_directory(rp);
+	    if (dirname) {
+		io_set_default_dir(IO_DIR_GENERIC_OPEN, dirname);
+		if (type == IO_FILE_PROJ) {
+		    io_set_default_dir(IO_DIR_PROJ, dirname);
+		}
+		free(dirname);
+	    }
+	} 
     }
-    return type;
-    /* First, validate path type */
-    /* char rp[PATH_MAX] = {0}; */
-    /* if (!realpath(filepath, rp)) { */
-    /* 	/\* Not a filepath *\/ */
-    /* 	return -1; */
-    /* } */
-
-    /* Session *session = session_get(); */
-    /* struct stat s = {0}; */
-    /* stat(rp, &s); */
-    /* if (S_ISDIR(s.st_mode)) { */
-    /* 	/\* Try loading stems dir *\/ */
-    /* 	Timeline *tl = dst_track ? dst_track->tl : session->proj.timelines[0]; */
-    /* 	open_stems_dir(rp, dst_track->tl); */
-    /* 	return 0; */
-    /* } else if (!S_ISREG(s.st_mode)) { */
-    /* 	/\* Valid path, but not a file *\/ */
-    /* 	return -2; */
-    /* } */
-    
-    /* static const char *audio_file_extensions[] = {AUDIO_FILE_EXTENSIONS}; */
-    /* static const char *midi_file_extensions[] = {MIDI_FILE_EXTENSIONS}; */
-    /* static const char *project_file_extensions[] = {PROJECT_FILE_EXTENSIONS}; */
-    /* static const char *synth_file_extensions[] = {SYNTH_FILE_EXTENSIONS}; */
-    /* static const int num_audio_file_extensions = sizeof(audio_file_extensions) / sizeof(char *); */
-    /* static const int num_midi_file_extensions = sizeof(midi_file_extensions) / sizeof(char *); */
-    /* static const int num_project_file_extensions = sizeof(project_file_extensions) / sizeof(char *); */
-    /* static const int num_synth_file_extensions = sizeof(synth_file_extensions) / sizeof(char *); */
-
-    /* const char *filename = path_get_tail(filepath);     */
-    /* int ret = 0; */
-    /* if (file_extension_in_list(filepath, project_file_extensions, num_project_file_extensions)) { */
-    /* 	char msg[255]; */
-    /* 	snprintf(msg, 255, "Save current project \"%s\" before opening %s?", session->proj.name, filename); */
-    /* 	const char *options[] = {"yes", "save as", "no"}; */
-    /* 	int saveret = prompt_user("Save project?", msg, 2, options); */
-    /* 	if (saveret == 0 || saveret == 1) { */
-    /* 	    fprintf(stderr, "TODO: SAVE PROJECT BEFORE CLOSING!!\n"); */
-    /* 	} */
-    /* 	ret = open_jdaw_file(filepath); */
-    /* } else if (file_extension_in_list(filepath, midi_file_extensions, num_midi_file_extensions)) { */
-    /* 	ret = midi_file_open(filepath, false); */
-    /* } else if (file_extension_in_list(filepath, synth_file_extensions, num_synth_file_extensions)) { */
-    /* 	if (dst_track) { */
-    /* 	    if (!dst_track->synth) { */
-    /* 		dst_track->synth = synth_create(dst_track); */
-    /* 	    } */
-    /* 	    synth_read_preset_file(filepath, dst_track->synth); */
-    /* 	} */
-    /* } else if (file_extension_in_list(filepath, audio_file_extensions, num_audio_file_extensions)) { */
-    /* 	open_audio_file(filepath, dst_track, dst_tl_pos);	 */
-    /* } else { */
-    /* 	/\* File extension not recognized *\/ */
-    /* 	fprintf(stderr, "UNKNOWN FILE TYPE\n"); */
-    /* 	ret = -1; */
-    /* } */
-    /* return ret; */
+    return ret;
 }
 

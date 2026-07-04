@@ -64,9 +64,9 @@ extern Window *main_win;
 extern Mode **modes;
 extern struct colors colors;
 
-extern char DIRPATH_SAVED_PROJ[MAX_PATHLEN];
-extern char DIRPATH_OPEN_FILE[MAX_PATHLEN];
-extern char DIRPATH_EXPORT[MAX_PATHLEN];
+/* extern char DIRPATH_SAVED_PROJ[MAX_PATHLEN]; */
+/* extern char DIRPATH_OPEN_FILE[MAX_PATHLEN]; */
+/* extern char DIRPATH_EXPORT[MAX_PATHLEN]; */
 
 /* int quickref_button_press_callback(void *self_v, void *target) */
 /* { */
@@ -245,20 +245,21 @@ static int submit_save_as_form(void *mod_v, void *target)
     strcat(buf, name);
     fprintf(stdout, "SAVE AS: %s\n", buf);
     jdaw_write_project(buf);
-    char *last_slash_pos = strrchr(buf, '/');
-    if (last_slash_pos) {
-	*last_slash_pos = '\0';
-	char *realpath_ret;
-	fprintf(stdout, "Real path of \"%s\" called on %p, w current val: %s\n", dirpath, DIRPATH_SAVED_PROJ, DIRPATH_SAVED_PROJ);
-	if (!(realpath_ret = realpath(dirpath, NULL))) {
-	    perror("Error in realpath:");
-	} else {
-	    fprintf(stdout, "Realpath returned: %s\n", realpath_ret);
-	    strncpy(DIRPATH_SAVED_PROJ, realpath_ret, MAX_PATHLEN);
-	    free(realpath_ret);
-	}
-	fprintf(stdout, "Resolved path: %s\n", DIRPATH_SAVED_PROJ);
-    }
+    io_set_default_dir(IO_DIR_PROJ, dirpath);
+    /* char *last_slash_pos = strrchr(buf, '/'); */
+    /* if (last_slash_pos) { */
+    /* 	*last_slash_pos = '\0'; */
+    /* 	char *realpath_ret; */
+    /* 	fprintf(stdout, "Real path of \"%s\" called on %p, w current val: %s\n", dirpath, DIRPATH_SAVED_PROJ, DIRPATH_SAVED_PROJ); */
+    /* 	if (!(realpath_ret = realpath(dirpath, NULL))) { */
+    /* 	    perror("Error in realpath:"); */
+    /* 	} else { */
+    /* 	    fprintf(stdout, "Realpath returned: %s\n", realpath_ret); */
+    /* 	    strncpy(DIRPATH_SAVED_PROJ, realpath_ret, MAX_PATHLEN); */
+    /* 	    free(realpath_ret); */
+    /* 	} */
+    /* 	fprintf(stdout, "Resolved path: %s\n", DIRPATH_SAVED_PROJ); */
+    /* } */
     window_pop_modal(main_win);
     Timeline *tl = ACTIVE_TL;
     tl->needs_redraw = true;
@@ -386,7 +387,8 @@ void user_global_save_project(void *nullarg)
 	NULL);
     modal_add_p(save_as, "\t\t|\t\t<tab>\tv\t\t|\t\t\tS-<tab>\t^\t\t|\t\tC-<ret>\tSubmit (save as)\t\t|", &colors.light_grey);
     modal_add_header(save_as, "Project location:", &colors.light_grey, 5);
-    modal_add_dirnav(save_as, DIRPATH_SAVED_PROJ, dir_to_tline_filter_save);
+    modal_add_dirnav(save_as, io_get_default_dir(IO_DIR_PROJ), dir_to_tline_filter_save);
+    /* modal_add_dirnav(save_as, DIRPATH_SAVED_PROJ, dir_to_tline_filter_save); */
     modal_add_button(save_as, "Save", submit_save_as_form);
     save_as->submit_form = submit_save_as_form;
     window_push_modal(main_win, save_as);
@@ -395,148 +397,148 @@ void user_global_save_project(void *nullarg)
     modal_move_onto(save_as);
 }
 
-static NEW_EVENT_FN(undo_load_wav, "undo load wav")
-    ClipRef *cr = (ClipRef *)obj1;
-    clipref_delete(cr);
-}
+/* static NEW_EVENT_FN(undo_load_wav, "undo load wav") */
+/*     ClipRef *cr = (ClipRef *)obj1; */
+/*     clipref_delete(cr); */
+/* } */
 
-static NEW_EVENT_FN(redo_load_wav, "redo load wav")
-    ClipRef *cr = (ClipRef *)obj1;
-    clipref_undelete(cr);
-}
+/* static NEW_EVENT_FN(redo_load_wav, "redo load wav") */
+/*     ClipRef *cr = (ClipRef *)obj1; */
+/*     clipref_undelete(cr); */
+/* } */
 
-static NEW_EVENT_FN(dispose_forward_load_wav, "")
-    ClipRef *cr = (ClipRef *)obj1;
-    clipref_destroy_no_displace(cr);
-}
+/* static NEW_EVENT_FN(dispose_forward_load_wav, "") */
+/*     ClipRef *cr = (ClipRef *)obj1; */
+/*     clipref_destroy_no_displace(cr); */
+/* } */
 
-void _DEPRECATED_open_file(const char *filepath)
-{
+/* void _DEPRECATED_open_file(const char *filepath) */
+/* { */
     
-    Session *session = session_get();
-    Timeline *tl = ACTIVE_TL;
-    char *dotpos = strrchr(filepath, '.');
-    if (!dotpos) {
-	status_set_errstr("Cannot open file without a .jdaw or .wav extension");
-	fprintf(stderr, "Cannot open file without a .jdaw or .wav extension\n");
-	return;
-    }
-    const char *audio_file_extensions[] = {AUDIO_FILE_EXTENSIONS};
-    int num_extensions = sizeof(audio_file_extensions) / sizeof(char *);
+/*     Session *session = session_get(); */
+/*     Timeline *tl = ACTIVE_TL; */
+/*     char *dotpos = strrchr(filepath, '.'); */
+/*     if (!dotpos) { */
+/* 	status_set_errstr("Cannot open file without a .jdaw or .wav extension"); */
+/* 	fprintf(stderr, "Cannot open file without a .jdaw or .wav extension\n"); */
+/* 	return; */
+/*     } */
+/*     const char *audio_file_extensions[] = {AUDIO_FILE_EXTENSIONS}; */
+/*     int num_extensions = sizeof(audio_file_extensions) / sizeof(char *); */
 
     
-    char *ext = dotpos + 1;
-    /* fprintf(stdout, "ext char : %c\n", *ext); */
-    bool activate_synth_preset_tab_on_exit = false;
-    if (file_extension_in_list(filepath, audio_file_extensions, num_extensions)) {
-	float *L, *R;
-	int32_t length_sframes = av_open_file(filepath, &L, &R);
-	if (length_sframes == 0) {
-	    return;
-	}
-	Track *track = timeline_selected_track(tl);
-	Clip *clip = clip_create(NULL, track);
-	clip->L = L;
-	clip->R = R;
-	clip->channels = 2;
-	clip->len_sframes = length_sframes;
-	clip_init_or_update_waveform(clip);
-	ClipRef *cr = clipref_create(track, tl->play_pos_sframes, CLIP_AUDIO, clip);
-	timeline_reset(cr->track->tl, true);
+/*     char *ext = dotpos + 1; */
+/*     /\* fprintf(stdout, "ext char : %c\n", *ext); *\/ */
+/*     bool activate_synth_preset_tab_on_exit = false; */
+/*     if (file_extension_in_list(filepath, audio_file_extensions, num_extensions)) { */
+/* 	float *L, *R; */
+/* 	int32_t length_sframes = av_open_file(filepath, &L, &R); */
+/* 	if (length_sframes == 0) { */
+/* 	    return; */
+/* 	} */
+/* 	Track *track = timeline_selected_track(tl); */
+/* 	Clip *clip = clip_create(NULL, track); */
+/* 	clip->L = L; */
+/* 	clip->R = R; */
+/* 	clip->channels = 2; */
+/* 	clip->len_sframes = length_sframes; */
+/* 	clip_init_or_update_waveform(clip); */
+/* 	ClipRef *cr = clipref_create(track, tl->play_pos_sframes, CLIP_AUDIO, clip); */
+/* 	timeline_reset(cr->track->tl, true); */
 
-    } else if (strcmp("wav", ext) * strcmp("WAV", ext) == 0) {
-	fprintf(stdout, "Wav file selected\n");
-	if (!tl) return;
-	Track *track = timeline_selected_track(tl);
-	if (!track) {
-	    status_set_errstr("Error: at least one track must exist to load a wav file");
-	    fprintf(stderr, "Error: at least one track must exist to load a wav file\n");
-	    return;
-	}
-	ClipRef *cr = wav_load_to_track(track, filepath, tl->play_pos_sframes);
-	if (!cr) {
-	    Timeline *tl = ACTIVE_TL;
-	    tl->needs_redraw = true;
-	    window_pop_modal(main_win);
-	    return;
-	}
-	Value nullval = {.int_v = 0};
-	user_event_push(
+/*     } else if (strcmp("wav", ext) * strcmp("WAV", ext) == 0) { */
+/* 	fprintf(stdout, "Wav file selected\n"); */
+/* 	if (!tl) return; */
+/* 	Track *track = timeline_selected_track(tl); */
+/* 	if (!track) { */
+/* 	    status_set_errstr("Error: at least one track must exist to load a wav file"); */
+/* 	    fprintf(stderr, "Error: at least one track must exist to load a wav file\n"); */
+/* 	    return; */
+/* 	} */
+/* 	ClipRef *cr = wav_load_to_track(track, filepath, tl->play_pos_sframes); */
+/* 	if (!cr) { */
+/* 	    Timeline *tl = ACTIVE_TL; */
+/* 	    tl->needs_redraw = true; */
+/* 	    window_pop_modal(main_win); */
+/* 	    return; */
+/* 	} */
+/* 	Value nullval = {.int_v = 0}; */
+/* 	user_event_push( */
 	    
-	    undo_load_wav,
-	    redo_load_wav,
-	    NULL, dispose_forward_load_wav,
-	    (void *)cr, NULL,
-	    nullval, nullval, nullval, nullval,
-	    0, 0, false, false);
+/* 	    undo_load_wav, */
+/* 	    redo_load_wav, */
+/* 	    NULL, dispose_forward_load_wav, */
+/* 	    (void *)cr, NULL, */
+/* 	    nullval, nullval, nullval, nullval, */
+/* 	    0, 0, false, false); */
 	    
 	
-    } else if (strcmp("jdaw", ext) * strcmp("JDAW", ext) * strcmp("bak", ext) == 0) {
-	fprintf(stdout, "Jdaw file selected\n");
-	if (session->playback.recording) transport_stop_recording();
-	else if (session->playback.playing) transport_stop_playback();
-	/* Wait for playback callback to exit */
-	audioconn_close(session->audio_io.playback_conn);
-	/* api_quit(); */
-	api_stash_current();
-	Project new_proj;
-	memset(&new_proj, '\0', sizeof(new_proj));
-	session->proj_reading = &new_proj;
-	int ret = jdaw_read_file(&new_proj, filepath);
-	if (ret == 0) {
-	    session_set_proj(session, &new_proj);
-	    api_discard_stash();
-	} else {
-	    status_set_errstr("Error opening jdaw project");
-	    api_reset_from_stash_and_discard();
-	}
-	session->proj_reading = NULL;
-    } else if (strncmp("mid", ext, 3) * strncmp("MID", ext, 3) == 0) {
-	midi_file_open(filepath, false);
-    } else if (strncmp("jsynth", ext, 6) * strncmp("JSYNTH", ext, 6) == 0) {
-	Timeline *tl = ACTIVE_TL;
-	Track *t = timeline_selected_track(tl);
-	if (t) {
-	    if (!t->synth) {
-		t->synth = synth_create(t);
-	    }
-	    synth_read_preset_file(filepath, t->synth);
-	    activate_synth_preset_tab_on_exit = true;
-	    /* if (!main_win->active_tabview) { */
-	    /* 	TabView *tv = synth_tabview_create(t); */
-	    /* 	tabview_activate(tv); */
-	    /* 	tl->needs_redraw = true; */
-	    /* 	timeline_check_set_midi_monitoring(); */
-	    /* 	tabview_select_tab(tv, 4); */
-	    /* } */
+/*     } else if (strcmp("jdaw", ext) * strcmp("JDAW", ext) * strcmp("bak", ext) == 0) { */
+/* 	fprintf(stdout, "Jdaw file selected\n"); */
+/* 	if (session->playback.recording) transport_stop_recording(); */
+/* 	else if (session->playback.playing) transport_stop_playback(); */
+/* 	/\* Wait for playback callback to exit *\/ */
+/* 	audioconn_close(session->audio_io.playback_conn); */
+/* 	/\* api_quit(); *\/ */
+/* 	api_stash_current(); */
+/* 	Project new_proj; */
+/* 	memset(&new_proj, '\0', sizeof(new_proj)); */
+/* 	session->proj_reading = &new_proj; */
+/* 	int ret = jdaw_read_file(&new_proj, filepath); */
+/* 	if (ret == 0) { */
+/* 	    session_set_proj(session, &new_proj); */
+/* 	    api_discard_stash(); */
+/* 	} else { */
+/* 	    status_set_errstr("Error opening jdaw project"); */
+/* 	    api_reset_from_stash_and_discard(); */
+/* 	} */
+/* 	session->proj_reading = NULL; */
+/*     } else if (strncmp("mid", ext, 3) * strncmp("MID", ext, 3) == 0) { */
+/* 	midi_file_open(filepath, false); */
+/*     } else if (strncmp("jsynth", ext, 6) * strncmp("JSYNTH", ext, 6) == 0) { */
+/* 	Timeline *tl = ACTIVE_TL; */
+/* 	Track *t = timeline_selected_track(tl); */
+/* 	if (t) { */
+/* 	    if (!t->synth) { */
+/* 		t->synth = synth_create(t); */
+/* 	    } */
+/* 	    synth_read_preset_file(filepath, t->synth); */
+/* 	    activate_synth_preset_tab_on_exit = true; */
+/* 	    /\* if (!main_win->active_tabview) { *\/ */
+/* 	    /\* 	TabView *tv = synth_tabview_create(t); *\/ */
+/* 	    /\* 	tabview_activate(tv); *\/ */
+/* 	    /\* 	tl->needs_redraw = true; *\/ */
+/* 	    /\* 	timeline_check_set_midi_monitoring(); *\/ */
+/* 	    /\* 	tabview_select_tab(tv, 4); *\/ */
+/* 	    /\* } *\/ */
 
-	} else {
-	    status_set_errstr("Error: track not selected");
-	}
-    } else {
-	status_set_errstr("File type not supported");
-    }
-    char *last_slash_pos = strrchr(filepath, '/');
-    if (last_slash_pos) {
-	*last_slash_pos = '\0';
-	char *realpath_ret;
-	if (!(realpath_ret = realpath(filepath, NULL))) {
-	    perror("Error in realpath");
-	} else {
-	    strncpy(DIRPATH_OPEN_FILE, realpath_ret, MAX_PATHLEN);
-	    free(realpath_ret);
-	}
-    }
+/* 	} else { */
+/* 	    status_set_errstr("Error: track not selected"); */
+/* 	} */
+/*     } else { */
+/* 	status_set_errstr("File type not supported"); */
+/*     } */
+/*     char *last_slash_pos = strrchr(filepath, '/'); */
+/*     if (last_slash_pos) { */
+/* 	*last_slash_pos = '\0'; */
+/* 	char *realpath_ret; */
+/* 	if (!(realpath_ret = realpath(filepath, NULL))) { */
+/* 	    perror("Error in realpath"); */
+/* 	} else { */
+/* 	    strncpy(DIRPATH_OPEN_FILE, realpath_ret, MAX_PATHLEN); */
+/* 	    free(realpath_ret); */
+/* 	} */
+/*     } */
 
-    if (activate_synth_preset_tab_on_exit) {
-	Track *track = timeline_selected_track(tl);
-	TabView *tv = synth_tabview_create(track);
-	tabview_activate(tv, track, track->name);
-	tl->needs_redraw = true;
-	timeline_check_set_midi_monitoring();
-	/* tabview_select_tab(tv, 0); */
-    }
-}
+/*     if (activate_synth_preset_tab_on_exit) { */
+/* 	Track *track = timeline_selected_track(tl); */
+/* 	TabView *tv = synth_tabview_create(track); */
+/* 	tabview_activate(tv, track, track->name); */
+/* 	tl->needs_redraw = true; */
+/* 	timeline_check_set_midi_monitoring(); */
+/* 	/\* tabview_select_tab(tv, 0); *\/ */
+/*     } */
+/* } */
 
 static void openfile_file_select_action(DirNav *dn, DirPath *dp)
 {
@@ -560,7 +562,8 @@ void user_global_open_file(void *nullarg)
     /* modal_add_textentry(openfile, proj->name); */
     /* modal_add_p(openfile, "\t\t\t^\t\tS-p (S-d)\t\t\t\tv\t\tS-n (S-d)", &colors.black); */
     /* modal_add_header(openfile, "Project location:", &colors.light_grey, 5); */
-    ModalEl *dirnav_el = modal_add_dirnav(openfile, DIRPATH_OPEN_FILE, dir_to_tline_filter_open);
+    char *saved_dir = io_get_default_dir(IO_DIR_GENERIC_OPEN);
+    ModalEl *dirnav_el = modal_add_dirnav(openfile, saved_dir, dir_to_tline_filter_open);
     DirNav *dn = (DirNav *)dirnav_el->obj;
     dn->file_select_action = openfile_file_select_action;
     /* openfile->submit_form = submit_openfile_form; */
@@ -2698,22 +2701,23 @@ static int submit_save_wav_form(void *mod_v, void *target)
     fprintf(stdout, "SAVE WAV: %s\n", buf);
     wav_write_mixdown(buf);
     /* jdaw_write_project(buf); */
-    char *last_slash_pos = strrchr(buf, '/');
-    if (last_slash_pos) {
-	*last_slash_pos = '\0';
-	/* fprintf(stdout, "Real path of %s:\n", dirpath); */
-	char *realpath_ret;
-	if (!(realpath_ret = realpath(dirpath, NULL))) {
-	    perror("Error in realpath");
-	} else {
-	    /* if (DIRPATH_EXPORT != realpath_ret) { */
-	    strncpy(DIRPATH_EXPORT, realpath_ret, MAX_PATHLEN);
-	    free(realpath_ret);
-	    /* } */
-	}
+    io_set_default_dir(IO_DIR_EXPORT, dirpath);
+    /* char *last_slash_pos = strrchr(buf, '/'); */
+    /* if (last_slash_pos) { */
+    /* 	*last_slash_pos = '\0'; */
+    /* 	/\* fprintf(stdout, "Real path of %s:\n", dirpath); *\/ */
+    /* 	char *realpath_ret; */
+    /* 	if (!(realpath_ret = realpath(dirpath, NULL))) { */
+    /* 	    perror("Error in realpath"); */
+    /* 	} else { */
+    /* 	    /\* if (DIRPATH_EXPORT != realpath_ret) { *\/ */
+    /* 	    strncpy(DIRPATH_EXPORT, realpath_ret, MAX_PATHLEN); */
+    /* 	    free(realpath_ret); */
+    /* 	    /\* } *\/ */
+    /* 	} */
 
-	/* fprintf(stdout, " is %s\n", DIRPATH_SAVED_PROJ); */
-    }
+    /* 	/\* fprintf(stdout, " is %s\n", DIRPATH_SAVED_PROJ); *\/ */
+    /* } */
     window_pop_modal(main_win);
     Timeline *tl = ACTIVE_TL;
     tl->needs_redraw = true;
@@ -2751,7 +2755,7 @@ void user_tl_write_mixdown_to_wav(void *nullarg)
     modal_add_p(save_wav, "\t\t|\t\t<tab>\tv\t\t|\t\t\tS-<tab>\t^\t\t|\t\tC-<ret>\tSubmit (save as)\t\t|", &colors.light_grey);
     /* modal_add_op(save_wav, "\t\t(type <ret> to accept name)", &colors.light_grey); */
     modal_add_header(save_wav, "Location:", &colors.light_grey, 5);
-    modal_add_dirnav(save_wav, DIRPATH_EXPORT, dir_to_tline_filter_save);
+    modal_add_dirnav(save_wav, io_get_default_dir(IO_DIR_EXPORT), dir_to_tline_filter_save);
     modal_add_button(save_wav, "Save .wav file", submit_save_wav_form);
     /* save_as->submit_form = submit_save_as_form; */
     save_wav->submit_form = submit_save_wav_form;

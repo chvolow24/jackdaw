@@ -56,7 +56,6 @@ void user_event_do_undo_selective(EventFn options[], int num_options)
 	    user_event_do_undo(&session->history);
 	}
     }
-
 }
 
 /* Returns 0 if action completed; 1 if no action available */
@@ -162,10 +161,13 @@ UserEvent *user_event_push(
     
     /* First case: history initialized, but we're all the way back */
     if (history->oldest && !history->next_undo) {
-	UserEvent *iter = history->oldest;
-	UserEvent *next = iter->next;
+	UserEvent *newest = history->oldest;
+	while (newest->next) {
+	    newest = newest->next;
+	}
+	UserEvent *iter = newest;
 	while (iter) {
-	    next = iter->next;
+	    /* next = iter->next; */
 	    if (iter->dispose_forward) {
 		log_tmp(LOG_DEBUG, "user event dispose fwd\n");
 		iter->dispose_forward(
@@ -176,8 +178,9 @@ UserEvent *user_event_push(
 		    iter->redo_val2,
 		    iter->type1, iter->type2);
 	    }
-	    user_event_destroy(iter);
-	    iter = next;
+	    UserEvent *to_destroy = iter;
+	    iter = iter->previous;
+	    user_event_destroy(to_destroy);
 	    history->len--;
 	}
 	history->oldest = e;
@@ -187,10 +190,21 @@ UserEvent *user_event_push(
 	history->oldest = e;
     /* Third case: history is initialized, but we're not at the front */
     } else if (history->next_undo->next) {
-	UserEvent *iter = history->next_undo->next;
-	UserEvent *next = iter->next;
-	while (iter) {
-	    next = iter->next;
+	/* NOTE:
+	   When "disposing forward", events must be disposed in the same
+	   order in which they were *undone* (not the order in which they were
+	   originally done.
+	*/
+
+	UserEvent *next_redo = history->next_undo->next;
+
+	/* First get last event in the chain */
+	UserEvent *newest = next_redo;
+	while (newest->next) {
+	    newest = newest->next;
+	}
+	UserEvent *iter = newest;
+	while (iter != history->next_undo) {
 	    if (iter->dispose_forward) {
 		/* log_tmp( */
 		log_tmp(LOG_DEBUG, "user_event dispose fwd\n");
@@ -203,9 +217,13 @@ UserEvent *user_event_push(
 		    iter->type1, iter->type2);
 		    
 	    }
-	    user_event_destroy(iter);
-	    iter = next;
+	    UserEvent *to_destroy = iter;
+	    iter = iter->previous;
+	    user_event_destroy(to_destroy);
 	    history->len--;
+	    /* if (iter == history->next_undo) { */
+	    /* 	break; */
+	    /* } */
 	}
 	history->next_undo->next = e;
 	e->previous = history->next_undo;

@@ -212,6 +212,7 @@ static int open_audio_file(const char *filepath, Track *dst_track, int32_t dst_t
 	return -1;
     }
     Clip *clip = clip_create(NULL, dst_track);
+    session_get()->proj.active_clip_index++;
     clip->L = L;
     clip->R = R;
     clip->channels = 2;

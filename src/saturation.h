@@ -25,8 +25,9 @@
 #define SATURATION_MAX_GAIN 40.0
 
 typedef enum saturation_type {
-    SAT_TANH=0,
-    SAT_EXPONENTIAL=1
+    SAT_TANH,
+    SAT_SIN,
+    SAT_EXPONENTIAL
 
 } SaturationType;
 
@@ -44,7 +45,8 @@ typedef struct saturation {
     Endpoint symmetry_ep;
     Endpoint gain_comp_ep;
     Endpoint type_ep;
-    double (*sample_fn)(Saturation *s, double in);
+    float (*buf_fn)(Saturation *s, float *restrict in, int32_t len);
+    /* double (*sample_fn)(Saturation *s, double in); */
     Track *track;
 
     Effect *effect;

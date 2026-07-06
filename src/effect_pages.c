@@ -703,6 +703,7 @@ static Page *add_saturation_page(Saturation *s, EffectChain *ec, TabView *tv)
 
     static const char * saturation_type_names[] = {
 	"Hyperbolic (tanh)",
+	"Trigonometric (sin)",
 	"Exponential"
     };
     
@@ -710,7 +711,7 @@ static Page *add_saturation_page(Saturation *s, EffectChain *ec, TabView *tv)
     p.radio_p.text_color = &colors.white;
     p.radio_p.ep = &s->type_ep;
     p.radio_p.item_names = saturation_type_names;
-    p.radio_p.num_items = 2;
+    p.radio_p.num_items = 3;
     
     el = page_add_el(page, EL_RADIO, p, "track_settings_saturation_type", "type_radio");
     RadioButton *radio = el->component;

@@ -77,10 +77,12 @@ void saturation_init(Saturation *s)
 	(void *)s, NULL, NULL, NULL);
     endpoint_set_default_value(&s->gain_comp_ep, (Value){.bool_v = true});
     api_endpoint_register(&s->gain_comp_ep, &s->effect->api_node);
+
+    
     endpoint_init(
 	&s->type_ep,
 	&s->type,
-	JDAW_BOOL,
+	JDAW_INT,
 	"type",
 	"Type",
 	JDAW_THREAD_DSP,
@@ -88,46 +90,107 @@ void saturation_init(Saturation *s)
 	(void *)s, NULL, &s->effect->page, "track_settings_saturation_type");
 }
 
-static double saturation_sample_tanh(Saturation *s, double in)
+/* static double saturation_sample_tanh(Saturation *s, double in) */
+/* { */
+/*     int sign_in = in / fabs(in); */
+/*     int symmetry = s->symmetry / fabs(s->symmetry); */
+/*     int shared_sign = symmetry * sign_in; */
+/*     if (shared_sign >= 0) { */
+/* 	return tanh(in * s->gain) * s->gain_comp_val; */
+/*     } */
+/*     return tanh(in * s->gain * (1.0 - fabs(s->symmetry))) * s->gain_comp_val; */
+/* } */
+
+
+static float saturation_buf_tanh(Saturation *s, float *restrict buf, int32_t len)
 {
-    int sign_in = in / fabs(in);
-    int symmetry = s->symmetry / fabs(s->symmetry);
-    int shared_sign = symmetry * sign_in;
-    if (shared_sign >= 0) {
-	return tanh(in * s->gain) * s->gain_comp_val;
+    int symmetry_sign = s->symmetry < 0 ? -1 : 1;
+    float accum = 0.0f;
+    float gain_comp = s->do_gain_comp ? s->gain_comp_val : 1.0f;
+    for (int i=0; i<len; i++) {
+	int sign = buf[i] < 0 ? -1 : 1;
+	int shared_sign = sign * symmetry_sign;
+	if (shared_sign >= 0) {
+	    buf[i] = tanhf(buf[i] * s->gain) * gain_comp;
+	} else {
+	    buf[i] = tanhf(buf[i] * s->gain * (1.0 - fabs(s->symmetry))) * gain_comp;
+	}
+	accum += fabs(buf[i]);
     }
-    return tanh(in * s->gain * (1.0 - fabs(s->symmetry))) * s->gain_comp_val;
+    return accum;
 }
 
-static double saturation_sample_tanh_no_gain_comp(Saturation *s, double in)
+static float saturation_buf_sin(Saturation *s, float *restrict buf, int32_t len)
 {
-    int sign_in = in / fabs(in);
-    int symmetry = s->symmetry / fabs(s->symmetry);
-    int shared_sign = symmetry * sign_in;
-    if (shared_sign >= 0) {
-	return tanh(in * s->gain);
+    /* float fabs_symmetry = fabs(s->symmetry); */
+    int symmetry_sign = s->symmetry < 0 ? -1 : 1;
+    float accum = 0.0f;
+    float gain_comp = s->do_gain_comp ? s->gain_comp_val : 1.0f;
+    for (int i=0; i<len; i++) {
+	int sign = buf[i] < 0 ? -1 : 1;
+	int shared_sign = sign * symmetry_sign;
+	if (shared_sign >= 0) {
+	    buf[i] = sinf(buf[i] * s->gain) * gain_comp;
+	} else {
+	    buf[i] = sinf(buf[i] * s->gain * (1.0 - fabs(s->symmetry))) * gain_comp;
+	}
+	accum += fabs(buf[i]);
     }
-    return tanh(in * s->gain * (1.0 - fabs(s->symmetry)));
+    return accum;
 }
 
-static double saturation_sample_exponential_no_gain_comp(Saturation *s, double in)
-{
-    /* return tanh(2 * in * s->gain - pow(in * s->gain, 3.0) / 3.0); */
-    int sign = in < 0 ? -1 : 1;
-    int symmetry = s->symmetry / fabs(s->symmetry);
-    int shared_sign = symmetry * sign;
-    if (shared_sign >= 0) {
-	return sign * (1.0-exp(-1 * fabs(in * s->gain)));
-    }
-    in = in * s->gain * (1.0 - fabs(s->symmetry));
-    return sign * (1.0-exp(-1 * fabs(in)));
 
-    /* return 2.0 / (1 + exp(in * -2 * s->gain)) - 1; */
-}
-static double saturation_sample_exponential(Saturation *s, double in)
+
+/* static double saturation_sample_tanh_no_gain_comp(Saturation *s, double in) */
+/* { */
+/*     int sign_in = in / fabs(in); */
+/*     int symmetry = s->symmetry / fabs(s->symmetry); */
+/*     int shared_sign = symmetry * sign_in; */
+/*     if (shared_sign >= 0) { */
+/* 	return tanh(in * s->gain); */
+/*     } */
+/*     return tanh(in * s->gain * (1.0 - fabs(s->symmetry))); */
+/* } */
+
+/* static double saturation_sample_exponential_no_gain_comp(Saturation *s, double in) */
+/* { */
+/*     /\* return tanh(2 * in * s->gain - pow(in * s->gain, 3.0) / 3.0); *\/ */
+/*     int sign = in < 0 ? -1 : 1; */
+/*     int symmetry = s->symmetry / fabs(s->symmetry); */
+/*     int shared_sign = symmetry * sign; */
+/*     if (shared_sign >= 0) { */
+/* 	return sign * (1.0-exp(-1 * fabs(in * s->gain))); */
+/*     } */
+/*     in = in * s->gain * (1.0 - fabs(s->symmetry)); */
+/*     return sign * (1.0-exp(-1 * fabs(in))); */
+
+/*     /\* return 2.0 / (1 + exp(in * -2 * s->gain)) - 1; *\/ */
+/* } */
+
+static float saturation_buf_exponential(Saturation *s, float *restrict buf, int32_t len)
 {
-    return saturation_sample_exponential_no_gain_comp(s, in) * s->gain_comp_val;
+    /* float fabs_symmetry = fabs(s->symmetry); */
+    int symmetry_sign = s->symmetry < 0 ? -1 : 1;
+    float accum = 0.0f;
+    float gain_comp = s->do_gain_comp ? s->gain_comp_val : 1.0f;
+    for (int i=0; i<len; i++) {
+	int sign = buf[i] < 0 ? -1 : 1;
+	int shared_sign = sign * symmetry_sign;
+	if (shared_sign >= 0) {
+	    buf[i] = gain_comp * sign * (1.0f - expf(-1 * sign * s->gain * buf[i]));
+	    /* buf[i] = gain_comp * sign * (1.0 - exp(-1 * fabs(buf[i] * s->gain))); */
+	} else {
+	    buf[i] = gain_comp * sign * (1.0f - expf(-1 * sign * s->gain * (1.0f - fabs(s->symmetry)) * buf[i]));
+	}
+	accum += fabs(buf[i]);
+    }
+    return accum;
 }
+
+/* static double saturation_sample_exponential(Saturation *s, double in) */
+/* { */
+/*     return saturation_sample_exponential_no_gain_comp(s, in) * s->gain_comp_val; */
+/* } */
 
 
 
@@ -141,33 +204,39 @@ void saturation_set_type(Saturation *s, SaturationType t)
 {
     switch(t) {
     case SAT_TANH:
-	s->sample_fn = s->do_gain_comp ? saturation_sample_tanh : saturation_sample_tanh_no_gain_comp;
+	s->buf_fn = saturation_buf_tanh;
+	/* s->sample_fn = s->do_gain_comp ? saturation_sample_tanh : saturation_sample_tanh_no_gain_comp; */
 	break;
     case SAT_EXPONENTIAL:
-	s->sample_fn = s->do_gain_comp ? saturation_sample_exponential : saturation_sample_exponential_no_gain_comp;
+	s->buf_fn = saturation_buf_exponential;
+	/* s->sample_fn = s->do_gain_comp ? saturation_sample_exponential : saturation_sample_exponential_no_gain_comp; */
+	break;
+    case SAT_SIN:
+	s->buf_fn = saturation_buf_sin;
 	break;
     default:
 	break;
     }
 }
 
-static double saturation_sample(Saturation *s, double in)
-{
-    /* if (!s->active) return in; */
-    return s->sample_fn(s, in);
-    /* return tanh(in * s->amp); */
-}
+/* static double saturation_sample(Saturation *s, double in) */
+/* { */
+/*     /\* if (!s->active) return in; *\/ */
+/*     return s->sample_fn(s, in); */
+/*     /\* return tanh(in * s->amp); *\/ */
+/* } */
 
 float saturation_buf_apply(void *saturation_v, float *restrict buf, int len, int channel_unused, float input_amp)
 {
     Saturation *s = saturation_v;
+    return s->buf_fn(s, buf, len);
     /* if (!s->active) return input_amp; */
-    float output_amp = 0.0f;
-    for (int i=0; i<len; i++) {
-	buf[i] = saturation_sample(s, buf[i]);
-	output_amp += fabs(buf[i]);
-    }
-    return output_amp;
+    /* float output_amp = 0.0f; */
+    /* for (int i=0; i<len; i++) { */
+    /* 	buf[i] = saturation_sample(s, buf[i]); */
+    /* 	output_amp += fabs(buf[i]); */
+    /* } */
+    /* return output_amp; */
 }
 
 float saturation_buf_apply_stereo(void *saturation_v, float *restrict L, float *restrict R, int len, float input_amp)

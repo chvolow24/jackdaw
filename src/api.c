@@ -780,11 +780,12 @@ int api_node_deserialize(FILE *f, APINode *root)
 	int c;
 	int i=partial_route_len;
 	route_buf[i] = '\0';
-	while ((c = fgetc(f)) != ' ' && c != '\0' && c != '\n') {
+	while ((c = fgetc(f)) != ' ' && c != '\0' && c != '\n' && c != EOF) {
 	    /* fprintf(stderr, "\tNEXT CHAR: %c\n", c); */
 	    route_buf[i] = c;
 	    i++;
 	}
+	if (c == EOF) break;
 	route_buf[i] = '\0';
 	ValType t;
 	Value v = jdaw_val_deserialize(f, &t);

@@ -348,7 +348,8 @@ IOFileType open_file(const char *filepath, IOFileType type, Track *dst_track, in
 	break;
     case IO_FILE_SYNTH:
 	if (dst_track) {
-	    dst_track->synth = synth_create(dst_track);
+	    if (!dst_track->synth)
+		dst_track->synth = synth_create(dst_track);
 	    if (synth_read_preset_file(rp, dst_track->synth) < 0) {
 		ret = IO_FILE_ERROR;
 	    }

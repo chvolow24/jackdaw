@@ -938,7 +938,8 @@ static void add_preset_page(TabView *tv, Track *track)
     p.textentry_p.text_size = 14;
     p.textentry_p.completion_target = NULL;
     p.textentry_p.buf_len = MAX_NAMELENGTH;
-    page_add_el(page, EL_TEXTENTRY, p, "", "preset_name");
+    page_add_el(page, EL_TEXTENTRY, p, "preset_name", "preset_name");
+    
     
     
 
@@ -1132,25 +1133,27 @@ static void synth_open_form(DirNav *dn, DirPath *dp)
 {
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
-    char *dotpos = strrchr(dp->path, '.');
-    if (!dotpos) {
-	status_set_errstr("Cannot open file without a .jsynth extension");
-	fprintf(stderr, "Cannot open file without a .jsynth extension\n");
-	goto pop_modal_and_exit;
-    }
-    char *ext = dotpos + 1;
-    /* fprintf(stdout, "ext char : %c\n", *ext); */
-    if (strcmp("jsynth", ext) * strcmp("JSYNTH", ext) == 0) {
-	Track *track = timeline_selected_track(tl);
-	if (!track) goto pop_modal_and_exit;
-	if (!track->synth) goto pop_modal_and_exit;
-	synth_read_preset_file(dp->path, track->synth);
-    } else {
-	status_set_errstr("Cannot open file without a .jsynth extension");
-	fprintf(stderr, "Cannot open file without a .jsynth extension\n");
+    open_file(dp->path, IO_FILE_SYNTH, timeline_selected_track(tl), 0);
+    
+    /* char *dotpos = strrchr(dp->path, '.'); */
+    /* if (!dotpos) { */
+    /* 	status_set_errstr("Cannot open file without a .jsynth extension"); */
+    /* 	fprintf(stderr, "Cannot open file without a .jsynth extension\n"); */
+    /* 	goto pop_modal_and_exit; */
+    /* } */
+    /* char *ext = dotpos + 1; */
+    /* /\* fprintf(stdout, "ext char : %c\n", *ext); *\/ */
+    /* if (strcmp("jsynth", ext) * strcmp("JSYNTH", ext) == 0) { */
+    /* 	Track *track = timeline_selected_track(tl); */
+    /* 	if (!track) goto pop_modal_and_exit; */
+    /* 	if (!track->synth) goto pop_modal_and_exit; */
+    /* 	synth_read_preset_file(dp->path, track->synth); */
+    /* } else { */
+    /* 	status_set_errstr("Cannot open file without a .jsynth extension"); */
+    /* 	fprintf(stderr, "Cannot open file without a .jsynth extension\n"); */
 
-    }
-pop_modal_and_exit:
+    /* } */
+/* pop_modal_and_exit: */
     window_pop_modal(main_win);
     tl->needs_redraw = true;
     Track *track = timeline_selected_track(tl);

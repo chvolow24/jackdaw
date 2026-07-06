@@ -2,6 +2,7 @@
 #include <porttime.h>
 #include "adsr.h"
 #include "api.h"
+#include "components.h"
 #include "dot_jdaw.h"
 #include "dsp_utils.h"
 #include "effect.h"
@@ -15,6 +16,7 @@
 #include "input.h"
 #include "label.h"
 #include "log.h"
+#include "page.h"
 #include "status.h"
 #include "synth.h"
 #include "session.h"
@@ -2541,7 +2543,12 @@ static int synth_read_preset_file_internal(const char *filepath, Synth *s, bool 
 /* Return 0 on success, negative on error */
 int synth_read_preset_file(const char *filepath, Synth *s)
 {
-    return synth_read_preset_file_internal(filepath, s, false);
+    int ret = synth_read_preset_file_internal(filepath, s, false);
+    PageEl *el = tabview_get_el_by_id(main_win->active_tabview, "Presets", "preset_name");
+    if (el) {
+	textbox_reset_full(((TextEntry *)el->component)->tb);
+    }
+    return ret;
 }
 
 void synth_destroy(Synth *s)

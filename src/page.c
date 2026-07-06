@@ -1635,6 +1635,7 @@ PageEl *page_get_el_by_id(Page *page, const char *id)
 
 PageEl *tabview_get_el_by_id(TabView *tv, const char *page_title, const char *id)
 {
+    if (!tv) return NULL;
     PageEl *el = NULL;
     for (uint8_t i=0; i<tv->num_tabs; i++) {
 	Page *page = tv->tabs[i];

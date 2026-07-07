@@ -1133,7 +1133,7 @@ static void synth_open_form(DirNav *dn, DirPath *dp)
 {
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
-    open_file(dp->path, IO_FILE_SYNTH, timeline_selected_track(tl), 0);
+    io_open_file(dp->path, IO_FILE_SYNTH, timeline_selected_track(tl), 0);
     
     /* char *dotpos = strrchr(dp->path, '.'); */
     /* if (!dotpos) { */

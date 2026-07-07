@@ -359,7 +359,7 @@ int main(int argc, char **argv)
 
     window_push_mode(main_win, MODE_TIMELINE);
     if (command_line_arg) {
-	open_file(command_line_arg, in_file_type, session->proj.timelines[0]->tracks[0], 0);
+	io_open_file(command_line_arg, in_file_type, session->proj.timelines[0]->tracks[0], 0);
 	
     }
 

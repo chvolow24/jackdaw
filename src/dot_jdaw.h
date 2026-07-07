@@ -21,6 +21,8 @@
 
 #include "project.h"
 
+void jdaw_write_project(const char *path);
+
 /* Used by synth.c */
 void jdaw_write_effect_chain_external(FILE *f, EffectChain *ec);
 int jdaw_read_effect_chain_external(FILE *f, Project *proj, EffectChain *ec, APINode *api_node, const char *obj_name, int32_t chunk_len_sframes);

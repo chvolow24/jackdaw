@@ -15,6 +15,7 @@ typedef enum io_file_type {
     IO_FILE_NONREG, /* not a regular file, symbolic link, or directory */
     IO_FILE_EXT_UNKNOWN,
     IO_FILE_TYPE_UNDETERMINED, /* used as function argument when path has not been checked */
+    IO_FILE_NO_OVERWRITE, /* file exists and user opts not to overwrite */
     IO_FILE_ERROR, /* when a file type is known, but parsing fails */
     NUM_IO_FILE_TYPES
 } IOFileType;
@@ -39,7 +40,12 @@ typedef enum saved_dir_type {
 
    Returns the IOFileType of the filepath.
  */
-IOFileType open_file(const char *filepath, IOFileType type, Track *dst_track, int32_t dst_tl_pos);
+IOFileType io_open_file(const char *filepath, IOFileType type, Track *dst_track, int32_t dst_tl_pos);
+
+/* Jackdaw universal file writer.
+  
+ */
+IOFileType io_write_file(const char *filepath, IOFileType type);
 
 /* Use when jackdaw invoked on cmd line with project file arg.
     Returns 0 on success, <0 on error. */

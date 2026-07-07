@@ -1,3 +1,4 @@
+#include <libgen.h>
 #include <stdio.h>
 #include <sys/stat.h>
 
@@ -13,6 +14,7 @@
 #include "log.h"
 #include "midi_file.h"
 #include "session.h"
+#include "wav.h"
 
 struct saved_dirs {
     bool initialized;
@@ -169,7 +171,6 @@ int open_jdaw_file_starttime(const char *filepath)
     }
     char *dirname = path_get_directory(filepath);
     if (dirname) {
-
 	io_set_default_dir_all(dirname);
 	/* io_set_default_dir(IO_DIR_PROJ, dirname); */
 	/* snprintf(saved_dirs.synth_preset, PATH_MAX, "%s", dirname); */
@@ -324,7 +325,7 @@ IOFileType io_file_type_from_path(const char *filepath, char *valid_path_dst)
    or the class of error if unsuccessful
    
  */
-IOFileType open_file(const char *filepath, IOFileType type, Track *dst_track, int32_t dst_tl_pos)
+IOFileType io_open_file(const char *filepath, IOFileType type, Track *dst_track, int32_t dst_tl_pos)
 {
     char rp[PATH_MAX] = {0};
     if (type != IO_FILE_TYPE_UNDETERMINED) {
@@ -395,3 +396,64 @@ IOFileType open_file(const char *filepath, IOFileType type, Track *dst_track, in
     return ret;
 }
 
+
+IOFileType io_write_file(const char *filepath, IOFileType type)
+{
+    if (!IO_FILE_TYPE_OK(type) || type == IO_FILE_DIR) {
+	log_tmp(LOG_ERROR, "io_save_file received file type %d\n", type);
+	return IO_FILE_TYPE_UNDETERMINED;
+    }
+    path_get_directory(filepath);
+    IOFileType ret = type;
+    char dir[PATH_MAX] = {0};
+    char filename[PATH_MAX] = {0};
+    dirname_r(filepath, dir);
+    char validated_dir[PATH_MAX] = {0};
+    if (io_file_type_from_path(dir, validated_dir) != IO_FILE_DIR) {
+	ret = IO_FILE_ERROR;
+	goto cleanup_and_ret;
+    }
+    basename_r(filepath, filename);
+    char full_path[PATH_MAX];    
+    snprintf(full_path, PATH_MAX, "%s/%s", validated_dir, filename);
+
+    bool overwrite = false;
+    struct stat s = {0};
+    if (stat(full_path, &s) == 0) {
+	overwrite = true;
+    }
+    const char *overwrite_opts[] = {
+	"Yes, overwrite",
+	"No, cancel"
+    };
+    if (overwrite) {
+	char hdr[255];
+	snprintf(hdr, 255, "File \"%s\" already exists. Overwrite it?", filename);
+	int sel = prompt_user("Overwrite?", hdr, 2, overwrite_opts);
+	if (sel == 1) {
+	    ret = IO_FILE_NO_OVERWRITE;
+	    goto cleanup_and_ret;
+	}
+    }
+    /* TODO: Handle errors and return info to caller */
+    switch (type) {
+    case IO_FILE_PROJ:
+	jdaw_write_project(full_path);
+	break;
+    case IO_FILE_MIDI:
+	break;
+    case IO_FILE_SYNTH:
+	
+	break;
+    case IO_FILE_AUDIO:
+	/* TODO: replace with universal FFMPEG file writer */
+	wav_write_mixdown(full_path);
+	break;
+    default:
+	break;	
+    }
+    
+cleanup_and_ret:    
+    return ret;
+
+}

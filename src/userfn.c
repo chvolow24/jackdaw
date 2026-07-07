@@ -77,7 +77,7 @@ extern struct colors colors;
 /*     return 0; */
 /* } */
 
-void jdaw_write_project(const char *path);
+/* void jdaw_write_project(const char *path); */
 
 void user_global_menu(void *nullarg)
 {
@@ -243,24 +243,13 @@ static int submit_save_as_form(void *mod_v, void *target)
     strcat(buf, dirpath);
     strcat(buf, "/");
     strcat(buf, name);
-    fprintf(stdout, "SAVE AS: %s\n", buf);
-    jdaw_write_project(buf);
-    io_set_default_dir(IO_DIR_PROJ, dirpath);
-    /* char *last_slash_pos = strrchr(buf, '/'); */
-    /* if (last_slash_pos) { */
-    /* 	*last_slash_pos = '\0'; */
-    /* 	char *realpath_ret; */
-    /* 	fprintf(stdout, "Real path of \"%s\" called on %p, w current val: %s\n", dirpath, DIRPATH_SAVED_PROJ, DIRPATH_SAVED_PROJ); */
-    /* 	if (!(realpath_ret = realpath(dirpath, NULL))) { */
-    /* 	    perror("Error in realpath:"); */
-    /* 	} else { */
-    /* 	    fprintf(stdout, "Realpath returned: %s\n", realpath_ret); */
-    /* 	    strncpy(DIRPATH_SAVED_PROJ, realpath_ret, MAX_PATHLEN); */
-    /* 	    free(realpath_ret); */
-    /* 	} */
-    /* 	fprintf(stdout, "Resolved path: %s\n", DIRPATH_SAVED_PROJ); */
-    /* } */
-    window_pop_modal(main_win);
+    IOFileType t = io_write_file(buf, IO_FILE_PROJ);
+    if (t == IO_FILE_PROJ) {
+	io_set_default_dir(IO_DIR_PROJ, dirpath);
+	window_pop_modal(main_win);
+    } else {
+	status_set_errstr("Unable to write file \"%s\"", dirpath);
+    }
     Timeline *tl = ACTIVE_TL;
     tl->needs_redraw = true;
     return 0;
@@ -543,7 +532,7 @@ void user_global_save_project(void *nullarg)
 static void openfile_file_select_action(DirNav *dn, DirPath *dp)
 {
     Session *session = session_get();
-    IOFileType t = open_file(dp->path, IO_FILE_TYPE_UNDETERMINED, timeline_selected_track(ACTIVE_TL), ACTIVE_TL->play_pos_sframes);
+    IOFileType t = io_open_file(dp->path, IO_FILE_TYPE_UNDETERMINED, timeline_selected_track(ACTIVE_TL), ACTIVE_TL->play_pos_sframes);
     if (!(IO_FILE_TYPE_OK(t))) {
 	status_set_errstr("Unknown file type");
     }
@@ -2698,10 +2687,20 @@ static int submit_save_wav_form(void *mod_v, void *target)
     strcat(buf, dirpath);
     strcat(buf, "/");
     strcat(buf, name);
-    fprintf(stdout, "SAVE WAV: %s\n", buf);
-    wav_write_mixdown(buf);
+    /* fprintf(stdout, "SAVE WAV: %s\n", buf); */
+    IOFileType t = io_write_file(buf, IO_FILE_AUDIO);
+    /* fprintf(stderr, "write file ret %d\n", t); */
+    /* return 0; */
+    /* wav_write_mixdown(buf); */
     /* jdaw_write_project(buf); */
-    io_set_default_dir(IO_DIR_EXPORT, dirpath);
+
+    /* Return OK */
+    if (t == IO_FILE_AUDIO) {
+	io_set_default_dir(IO_DIR_EXPORT, dirpath);
+	window_pop_modal(main_win);
+    } else {
+	status_set_errstr("Unable to write file \"%s\"", dirpath);
+    }
     /* char *last_slash_pos = strrchr(buf, '/'); */
     /* if (last_slash_pos) { */
     /* 	*last_slash_pos = '\0'; */
@@ -2718,7 +2717,7 @@ static int submit_save_wav_form(void *mod_v, void *target)
 
     /* 	/\* fprintf(stdout, " is %s\n", DIRPATH_SAVED_PROJ); *\/ */
     /* } */
-    window_pop_modal(main_win);
+
     Timeline *tl = ACTIVE_TL;
     tl->needs_redraw = true;
 

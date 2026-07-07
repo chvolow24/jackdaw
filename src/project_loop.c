@@ -572,7 +572,7 @@ void loop_project_main()
 		}
 		int32_t pos = timeview_get_pos_sframes(&tl->timeview, main_win->mousep.x);
 		timeline_set_play_position(tl, pos, false);
-		open_file(e.drop.file, IO_FILE_TYPE_UNDETERMINED, timeline_selected_track(ACTIVE_TL), pos);
+		io_open_file(e.drop.file, IO_FILE_TYPE_UNDETERMINED, timeline_selected_track(ACTIVE_TL), pos);
 		SDL_free(e.drop.file);
 	    }
 		break;		

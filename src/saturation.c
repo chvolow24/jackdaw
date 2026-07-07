@@ -21,7 +21,8 @@ static void saturation_gain_cb(Endpoint *ep)
 static void saturation_type_cb(Endpoint *ep)
 {
     Saturation *s = (Saturation *)ep->xarg1;
-    saturation_set_type(s, s->type);
+    int type_int = ep->current_write_val.int_v;
+    saturation_set_type(s, (SaturationType)type_int);
 }
 
 static void saturation_do_gain_comp_cb(Endpoint *ep)
@@ -88,6 +89,9 @@ void saturation_init(Saturation *s)
 	JDAW_THREAD_DSP,
 	page_el_gui_cb, NULL, saturation_type_cb,
 	(void *)s, NULL, &s->effect->page, "track_settings_saturation_type");
+    endpoint_set_default_value(&s->type_ep, (Value){.int_v = 0});
+    endpoint_set_allowed_range(&s->type_ep, (Value){.int_v = 0}, (Value){.int_v = 2});
+    api_endpoint_register(&s->type_ep, &s->effect->api_node);
 }
 
 /* static double saturation_sample_tanh(Saturation *s, double in) */
@@ -202,6 +206,7 @@ void saturation_set_gain(Saturation *s, double gain)
 
 void saturation_set_type(Saturation *s, SaturationType t)
 {
+    s->type = t;
     switch(t) {
     case SAT_TANH:
 	s->buf_fn = saturation_buf_tanh;

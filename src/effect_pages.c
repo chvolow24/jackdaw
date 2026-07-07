@@ -1,6 +1,7 @@
 #include "assets.h"
 #include "auto_page.h"
 #include "color.h"
+#include "components.h"
 #include "delay_line.h"
 #include "effect_pages.h"
 #include "fir_filter.h"

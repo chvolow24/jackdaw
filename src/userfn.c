@@ -243,7 +243,7 @@ static int submit_save_as_form(void *mod_v, void *target)
     strcat(buf, dirpath);
     strcat(buf, "/");
     strcat(buf, name);
-    IOFileType t = io_write_file(buf, IO_FILE_PROJ);
+    IOFileType t = io_write_file(buf, IO_FILE_PROJ, false);
     if (t == IO_FILE_PROJ) {
 	io_set_default_dir(IO_DIR_PROJ, dirpath);
 	window_pop_modal(main_win);
@@ -362,9 +362,9 @@ static int file_ext_completion_jdaw(Text *txt, void *obj)
     }
     return retval;
 }
-void user_global_save_project(void *nullarg)
+void user_global_save_as(void *nullarg)
 {
-    Session *session = session_get(); 
+    Session *session = session_get();
     Layout *mod_lt = layout_add_child(main_win->layout);
     layout_set_default_dims(mod_lt);
     Modal *save_as = modal_create(mod_lt);
@@ -387,6 +387,26 @@ void user_global_save_project(void *nullarg)
     modal_reset(save_as);
     /* fprintf(stdout, "about to call move onto\n"); */
     modal_move_onto(save_as);
+}
+
+void user_global_save_project(void *nullarg)
+{
+    Session *session = session_get();
+    if (session->proj_path_set) {
+        /* Quick save */
+        if (session_proj_has_unsaved_changes()) {
+            IOFileType t = io_write_file(session->proj_path, IO_FILE_PROJ, true);
+            if (t == IO_FILE_PROJ) {
+                status_set_alertstr("Project saved at %s", session->proj_path);
+            } else {
+                status_set_errstr("Error saving project at %s", session->proj_path);
+            }
+        } else {
+            status_set_alertstr("Project has no unsaved changes.");
+        }
+    } else {
+        user_global_save_as(NULL);
+    }
 }
 
 /* static NEW_EVENT_FN(undo_load_wav, "undo load wav") */
@@ -2690,7 +2710,7 @@ static int submit_save_wav_form(void *mod_v, void *target)
     strcat(buf, dirpath);
     strcat(buf, "/");
     strcat(buf, name);
-    IOFileType t = io_write_file(buf, IO_FILE_AUDIO);
+    IOFileType t = io_write_file(buf, IO_FILE_AUDIO, false);
     
     /* Return OK */
     if (t == IO_FILE_AUDIO) {

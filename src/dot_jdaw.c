@@ -94,13 +94,13 @@ static void jdaw_write_timeline(FILE *f, Timeline *tl);
 static Project *proj;
 
 /* return 0 on success, negative on error */
-void jdaw_write_project(const char *path) 
+int jdaw_write_project(const char *path) 
 {
     Session *session = session_get();
     proj = &session->proj;
     if (!proj) {
         fprintf(stderr, "No project to save. Exiting.\n");
-        return;
+        return -1;
     }    
 
 
@@ -115,7 +115,7 @@ void jdaw_write_project(const char *path)
 
     if (!f) {
 	fprintf(stderr, "Error: unable to write to file at path %s: file could not be found\n", path);
-	return;
+	return -1;
     }
     fwrite(hdr_jdaw, 1, 4, f);
     fwrite(hdr_version, 1, 8, f);
@@ -174,6 +174,7 @@ void jdaw_write_project(const char *path)
     session_set_proj_save_point();
     /* session->last_save_point_next_undo_id = session->history.next_undo ? session->history.next_undo->id : -1; */
     session_loading_screen_deinit();
+    return 0;
 }
 
 static void jdaw_write_clip(FILE *f, Clip *clip, int index)

@@ -25,30 +25,56 @@ extern Project *proj;
 
 static void rectify_all_changes_saved_flag(UserEventHistory *history)
 {
-    if (history->next_undo) {        
-        if (history->save_checkpoint_type == USER_EVENT_NEXT_UNDO
-            /* CASE 1A: next undo point is same as at last save */
-            && history->save_checkpoint_id == history->next_undo->id) {
+    /* fprintf(stderr, "GET s cp type %d, id %lld\n",  history->save_checkpoint_type, history->save_checkpoint_id); */
+    switch (history->save_checkpoint_type) {
+    case USER_EVENT_UNINIT:
+        if (!history->next_undo) {
             history->all_changes_saved = true;
         } else {
-            /* CASE 1B: next undo exists but id not same */
             history->all_changes_saved = false;
         }
-    } else if (history->oldest
-        && history->save_checkpoint_type == USER_EVENT_OLDEST
-        && history->save_checkpoint_id == history->oldest->id) {
-        /* CASE 2: history all the way back, and oldest event is the same as at last save */
-        history->all_changes_saved = true;
-    } else if (history->oldest && history->oldest->id == 1 && history->save_checkpoint_id == -1) {
-        /* CASE 3: history all the way back, and oldest event is first event; no save checkpoint yet (but events logged) */
-        history->all_changes_saved = true;
-    } else if (history->save_checkpoint_id == 0) {
-        /* CASE 4: nothing has been done (so no unsaved changes) */
-        history->all_changes_saved = true;
-        return;
-    } else {
-        history->all_changes_saved = false;
+        break;
+    case USER_EVENT_NEXT_UNDO:
+        if (history->next_undo && history->save_checkpoint_id == history->next_undo->id) {
+            history->all_changes_saved = true;
+        } else {
+            history->all_changes_saved = false;
+        }
+        break;
+    case USER_EVENT_OLDEST:
+        /* fprintf(stderr, "\toldest? %p\n", history->oldest); */
+        /* if (history->oldest) fprintf(stderr, "\toldestid %lld\n\tcpid %lld\n", history->oldest->id, history->save_checkpoint_id); */
+        if (history->oldest && !history->next_undo && history->save_checkpoint_id == history->oldest->id) {
+            history->all_changes_saved = true;
+        } else {
+            history->all_changes_saved = false;
+        }
+        break;
     }
+    /* if (history->next_undo) {         */
+    /*     if (history->save_checkpoint_type == USER_EVENT_NEXT_UNDO */
+    /*         /\* CASE 1A: next undo point is same as at last save *\/ */
+    /*         && history->save_checkpoint_id == history->next_undo->id) { */
+    /*         history->all_changes_saved = true; */
+    /*     } else { */
+    /*         /\* CASE 1B: next undo exists but id not same *\/ */
+    /*         history->all_changes_saved = false; */
+    /*     } */
+    /* } else if (history->oldest */
+    /*     && history->save_checkpoint_type == USER_EVENT_OLDEST */
+    /*     && history->save_checkpoint_id == history->oldest->id) { */
+    /*     /\* CASE 2: history all the way back, and oldest event is the same as at last save *\/ */
+    /*     history->all_changes_saved = true; */
+    /* } else if (history->oldest && history->oldest->id == 1 && history->save_checkpoint_id == -1) { */
+    /*     /\* CASE 3: history all the way back, and oldest event is first event; no save checkpoint yet (but events logged) *\/ */
+    /*     history->all_changes_saved = true; */
+    /* } else if (history->save_checkpoint_id == 0) { */
+    /*     /\* CASE 4: nothing has been done (so no unsaved changes) *\/ */
+    /*     history->all_changes_saved = true; */
+    /*     return; */
+    /* } else { */
+    /*     history->all_changes_saved = false; */
+    /* } */
 }
 
 /* Returns 0 if action completed; 1 if no action available */
@@ -305,14 +331,18 @@ UserEvent *user_event_push(
 
 void user_event_proj_save_checkpoint(UserEventHistory *history)
 {
+    /* fprintf(stderr, "Save checkpoint! next undo? %p, oldest? %p\n", history->next_undo, history->oldest); */
+    /* if (history->oldest) fprintf(stderr, "Oldest id: %lld\n", history->oldest->id); */
     history->all_changes_saved = true;
     if (history->next_undo) {
-        history->save_checkpoint_id = history->next_undo->id;
         history->save_checkpoint_type = USER_EVENT_NEXT_UNDO;
+        history->save_checkpoint_id = history->next_undo->id;
     } else if (history->oldest) {
-        history->save_checkpoint_id = history->oldest->id;
         history->save_checkpoint_type = USER_EVENT_OLDEST;
+        history->save_checkpoint_id = history->oldest->id;
+        /* fprintf(stderr, "\tsetting cp to %lld\n", history->oldest->id); */
     } else {
+        history->save_checkpoint_type = USER_EVENT_UNINIT;
         history->save_checkpoint_id = 0;
     }
 }

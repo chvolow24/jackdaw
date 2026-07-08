@@ -98,6 +98,8 @@ const char *io_file_get_error(IOFileType t) {
     }
 }
 
+void user_global_save_project(void *nullarg);
+void user_global_save_as(void *nullarg);
 
 /* Return 1 to cancel; 0 on success; negative on error */
 static int open_jdaw_file_runtime_only(const char *filepath)
@@ -107,15 +109,32 @@ static int open_jdaw_file_runtime_only(const char *filepath)
     if (!session->proj_initialized) {
 	error_exit("open_jdaw_file_runtime_only should not be used when project is uninitialized.\n");
     }
-    char msg[255];
-    snprintf(msg, 255, "Save current project \"%s\" (%s) before opening \"%s\"?", session->proj.name, "[[TODO: store project saved filepath in session]]", filename);
-    const char *options[] = {"Yes", "Save As", "No", "Cancel"};
-    int saveret = prompt_user("Save project?", msg, 4, options);
-    if (saveret == 0 || saveret == 1) {
-	fprintf(stderr, "TODO: SAVE PROJECT BEFORE CLOSING!!\n");
-    }
-    if (saveret == 3) {
-	return 1;
+    if (session_proj_has_unsaved_changes()) {
+        char msg[255];
+        snprintf(msg, 255, "Save \"%s\" before opening \"%s\"?", session->proj.name, filename);
+        const char *options[] = {"Yes", "Save As", "No", "Cancel"};
+        int saveret = prompt_user("Save project?", msg, 4, options);
+        switch (saveret) {
+        case 0:
+            user_global_save_project(NULL);
+            /* If proj path set, can save and continue */
+            if (session->proj_path_set) {
+                break;
+            } else {
+                /* else, have to push save-as modal (breaks file open command) */
+                return 2;
+            }
+            break;
+        case 1:
+            user_global_save_as(NULL);
+            /* must exit */
+            return 2;
+            break;
+        case 2:
+            break;
+        case 3:
+            return 1;
+        }
     }
 
     if (session->playback.recording) transport_stop_recording();
@@ -130,6 +149,7 @@ static int open_jdaw_file_runtime_only(const char *filepath)
     int ret = jdaw_read_file(&new_proj, filepath);
     if (ret == 0) {
 	session_set_proj(session, &new_proj);
+        session_set_proj_path(filepath);
 	api_discard_stash();
     } else {
 	const char *errstr = ret == -1 ? "parsing" : ret == -2 ? "opening" : "(unknown)";
@@ -152,6 +172,7 @@ int open_jdaw_file_starttime(const char *filepath)
     if (ret == 0) {
 	session_set_proj(session, &new_proj);
 	session->proj_initialized = true;
+        session_set_proj_path(filepath);
 	/* TODO: handle audio format disagreements more elegantly */
 	AudioConn *output = session->audio_io.playback_conn;
 	if (output->open) {
@@ -397,7 +418,7 @@ IOFileType io_open_file(const char *filepath, IOFileType type, Track *dst_track,
 }
 
 
-IOFileType io_write_file(const char *filepath, IOFileType type)
+IOFileType io_write_file(const char *filepath, IOFileType type, bool force_allow_overwrite)
 {
     if (!IO_FILE_TYPE_OK(type) || type == IO_FILE_DIR) {
 	log_tmp(LOG_ERROR, "io_save_file received file type %d\n", type);
@@ -417,28 +438,35 @@ IOFileType io_write_file(const char *filepath, IOFileType type)
     char full_path[PATH_MAX];    
     snprintf(full_path, PATH_MAX, "%s/%s", validated_dir, filename);
 
-    bool overwrite = false;
-    struct stat s = {0};
-    if (stat(full_path, &s) == 0) {
-	overwrite = true;
+    if (!force_allow_overwrite) {
+        bool file_exists = false;
+        struct stat s = {0};
+        if (stat(full_path, &s) == 0) {
+            file_exists = true;
+        }
+        const char *overwrite_opts[] = {
+            "Yes, overwrite",
+            "No, cancel"
+        };
+        if (file_exists) {
+            char hdr[255];
+            snprintf(hdr, 255, "File \"%s\" already exists. Overwrite it?", filename);
+            int sel = prompt_user("Overwrite?", hdr, 2, overwrite_opts);
+            if (sel == 1) {
+                ret = IO_FILE_NO_OVERWRITE;
+                goto cleanup_and_ret;
+            }
+        }
     }
-    const char *overwrite_opts[] = {
-	"Yes, overwrite",
-	"No, cancel"
-    };
-    if (overwrite) {
-	char hdr[255];
-	snprintf(hdr, 255, "File \"%s\" already exists. Overwrite it?", filename);
-	int sel = prompt_user("Overwrite?", hdr, 2, overwrite_opts);
-	if (sel == 1) {
-	    ret = IO_FILE_NO_OVERWRITE;
-	    goto cleanup_and_ret;
-	}
-    }
+    
     /* TODO: Handle errors and return info to caller */
     switch (type) {
     case IO_FILE_PROJ:
-	jdaw_write_project(full_path);
+	if (jdaw_write_project(full_path) == 0) {
+            session_set_proj_path(full_path);
+        } else {
+            ret = IO_FILE_ERROR;
+        }
 	break;
     case IO_FILE_MIDI:
 	break;

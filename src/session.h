@@ -236,7 +236,8 @@ typedef struct session {
     bool proj_initialized;
     Project *proj_reading;
     Project proj;
-    const char *current_proj_realpath;
+    char proj_path[PATH_MAX];
+    bool proj_path_set;
 } Session;
 
 
@@ -254,5 +255,6 @@ bool session_proj_has_unsaved_changes();
 void session_set_proj_save_point();
 
 void session_check_reset_window_title();
+void session_set_proj_path(const char *path);
 
 #endif

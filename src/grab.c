@@ -86,7 +86,6 @@ static NEW_EVENT_FN(redo_move_clips, "redo move clips / adj clip bounds")
 	cliprefs[i]->tl_pos = positions[i + num].pos;
 	cliprefs[i]->start_in_clip = positions[i + num].start_in_clip;
 	cliprefs[i]->end_in_clip = positions[i + num].end_in_clip;
-	fprintf(stderr, "SETTING CR \"%s\" bounds: %d-%d\n", cliprefs[i]->name, cliprefs[i]->start_in_clip, cliprefs[i]->end_in_clip);
 	clipref_reset(cliprefs[i], false);
     }
     Timeline *tl = cliprefs[0]->track->tl;

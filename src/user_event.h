@@ -72,6 +72,7 @@ typedef struct user_event {
 } UserEvent;
 
 enum save_checkpoint_type {
+    USER_EVENT_UNINIT,
     USER_EVENT_NEXT_UNDO,
     USER_EVENT_OLDEST
 };

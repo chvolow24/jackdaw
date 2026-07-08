@@ -43,9 +43,12 @@ typedef enum saved_dir_type {
 IOFileType io_open_file(const char *filepath, IOFileType type, Track *dst_track, int32_t dst_tl_pos);
 
 /* Jackdaw universal file writer.
-  
+   If 'force_allow_overwrite' is false, user will be prompted to confirm overwriting any file that
+   already exists at filepath.
+
+   'type' is return as-is on success, else some error type is returned
  */
-IOFileType io_write_file(const char *filepath, IOFileType type);
+IOFileType io_write_file(const char *filepath, IOFileType type, bool force_allow_overwrite);
 
 /* Use when jackdaw invoked on cmd line with project file arg.
     Returns 0 on success, <0 on error. */

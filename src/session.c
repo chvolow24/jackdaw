@@ -328,6 +328,7 @@ void session_set_proj(Session *session, Project *new_proj)
     if (reopen_playback_conn) {
 	audioconn_open(session, session->audio_io.playback_conn);
     }
+    session_set_proj_save_point();
     
 }
 
@@ -452,6 +453,12 @@ void session_check_reset_window_title()
         SDL_SetWindowTitle(main_win->win, session->gui.window_title);
         title_uninit = false;
     }   
+}
+
+void session_set_proj_path(const char *path)
+{
+    snprintf(session->proj_path, PATH_MAX, "%s", path);
+    session->proj_path_set = true;
 }
 
 

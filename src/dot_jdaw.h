@@ -21,7 +21,7 @@
 
 #include "project.h"
 
-void jdaw_write_project(const char *path);
+int jdaw_write_project(const char *path);
 
 /* Used by synth.c */
 void jdaw_write_effect_chain_external(FILE *f, EffectChain *ec);

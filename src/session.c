@@ -441,4 +441,17 @@ void session_set_proj_save_point()
     user_event_proj_save_checkpoint(&session->history);
 }
 
+void session_check_reset_window_title()
+{
+    static bool title_uninit = true;
+    static bool unsaved_changes = false;
+    bool new_unsaved_changes = session_proj_has_unsaved_changes();
+    if (title_uninit || new_unsaved_changes != unsaved_changes) {
+        unsaved_changes = new_unsaved_changes;
+        snprintf(session->gui.window_title, MAX_WINDOW_TITLE_LEN, "Jackdaw    |    %s    %s", session->proj.name, unsaved_changes ? "|    * unsaved changes * ":"");
+        SDL_SetWindowTitle(main_win->win, session->gui.window_title);
+        title_uninit = false;
+    }   
+}
+
 

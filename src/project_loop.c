@@ -78,6 +78,9 @@ void route_page_open(Track *track);
 void user_tl_track_selector_up(void *nullarg);
 void user_tl_track_selector_down(void *nullarg);
 
+#define EVENT_MUTATES_STATE(type) \
+    (type == SDL_KEYDOWN || type == SDL_KEYUP || type == SDL_MOUSEBUTTONUP || type == SDL_DROPFILE || type == SDL_MOUSEWHEEL)
+
 void loop_project_main()
 {
     Session *session = session_get();
@@ -110,17 +113,7 @@ void loop_project_main()
     
     main_win->current_event = &e;
     while (!(main_win->i_state & I_STATE_QUIT)) {
-	while (SDL_PollEvent(&e)) {
-
-            /* Any new event, check if unsaved changes */
-            static bool unsaved_changes = false;
-            bool new_unsaved_changes = session_proj_has_unsaved_changes();
-            if (new_unsaved_changes != unsaved_changes) {
-                unsaved_changes = new_unsaved_changes;
-                snprintf(session->gui.window_title, MAX_WINDOW_TITLE_LEN, "Jackdaw    |    %s    %s", session->proj.name, unsaved_changes ? "|    * unsaved changes * ":"");
-                SDL_SetWindowTitle(main_win->win, session->gui.window_title);
-            }
-            
+	while (SDL_PollEvent(&e)) {            
 	    frames_since_event = 0;
 	    switch (e.type) {
 	    case SDL_QUIT:
@@ -601,8 +594,14 @@ void loop_project_main()
 		main_win->i_state |= I_STATE_G;
 		set_i_state_g = false;
 	    }
+            /* Any new event, check if unsaved changes */
+            if (EVENT_MUTATES_STATE(e.type)) {
+                session_check_reset_window_title();
+            }
 		
 	} /* End event handling */
+
+
 
 	Timeline *tl = ACTIVE_TL;
 	if (!session->playback.playing && frames_since_event >= IDLE_AFTER_N_FRAMES) {

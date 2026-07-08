@@ -396,6 +396,7 @@ int main(int argc, char **argv)
     /* 	    wav_load_to_track(track, stems_paths[i], 0); */
     /* 	} */
     /* } */
+    session_check_reset_window_title();
     loop_project_main();
     quit();    
 }

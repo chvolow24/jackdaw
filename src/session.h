@@ -253,4 +253,6 @@ void session_clear_all_queues();
 bool session_proj_has_unsaved_changes();
 void session_set_proj_save_point();
 
+void session_check_reset_window_title();
+
 #endif

@@ -71,6 +71,10 @@ typedef struct user_event {
     UserEvent *previous;
 } UserEvent;
 
+enum save_checkpoint_type {
+    USER_EVENT_NEXT_UNDO,
+    USER_EVENT_OLDEST
+};
 
 typedef struct user_event_history {
     /* UserEvent *most_recent; */
@@ -83,7 +87,8 @@ typedef struct user_event_history {
     bool always_sequence_order;
 
     bool all_changes_saved; /*   */
-    int64_t last_save_point_next_undo_id; /*  */    
+    int64_t save_checkpoint_id; /*  */
+    enum save_checkpoint_type save_checkpoint_type;
 } UserEventHistory;
 
 

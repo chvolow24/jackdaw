@@ -25,8 +25,27 @@ extern Project *proj;
 
 static void rectify_all_changes_saved_flag(UserEventHistory *history)
 {
-    if (history->next_undo && history->next_undo->id == history->last_save_point_next_undo_id) {
+    if (history->next_undo) {        
+        if (history->save_checkpoint_type == USER_EVENT_NEXT_UNDO
+            /* CASE 1A: next undo point is same as at last save */
+            && history->save_checkpoint_id == history->next_undo->id) {
+            history->all_changes_saved = true;
+        } else {
+            /* CASE 1B: next undo exists but id not same */
+            history->all_changes_saved = false;
+        }
+    } else if (history->oldest
+        && history->save_checkpoint_type == USER_EVENT_OLDEST
+        && history->save_checkpoint_id == history->oldest->id) {
+        /* CASE 2: history all the way back, and oldest event is the same as at last save */
         history->all_changes_saved = true;
+    } else if (history->oldest && history->oldest->id == 1 && history->save_checkpoint_id == -1) {
+        /* CASE 3: history all the way back, and oldest event is first event; no save checkpoint yet (but events logged) */
+        history->all_changes_saved = true;
+    } else if (history->save_checkpoint_id == 0) {
+        /* CASE 4: nothing has been done (so no unsaved changes) */
+        history->all_changes_saved = true;
+        return;
     } else {
         history->all_changes_saved = false;
     }
@@ -274,14 +293,28 @@ UserEvent *user_event_push(
 	    old = old->next;
 	}
     }
-    history->all_changes_saved = false;
+    /* At load time, checkpoint_id == 0 indicates there are no changes to save.
+     As soon as a project state mutation occurs, this needs to be set to something different */
+    if (history->save_checkpoint_id == 0) {
+        history->save_checkpoint_id = -1;
+    }
+    rectify_all_changes_saved_flag(history);
+    /* history->all_changes_saved = false; */
     return e;
 }
 
 void user_event_proj_save_checkpoint(UserEventHistory *history)
 {
     history->all_changes_saved = true;
-    history->last_save_point_next_undo_id = history->next_undo ? history->next_undo->id : 0;
+    if (history->next_undo) {
+        history->save_checkpoint_id = history->next_undo->id;
+        history->save_checkpoint_type = USER_EVENT_NEXT_UNDO;
+    } else if (history->oldest) {
+        history->save_checkpoint_id = history->oldest->id;
+        history->save_checkpoint_type = USER_EVENT_OLDEST;
+    } else {
+        history->save_checkpoint_id = 0;
+    }
 }
 bool user_event_proj_has_unsaved_changes(UserEventHistory *history)
 {

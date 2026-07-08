@@ -92,6 +92,8 @@ static void jdaw_write_midi_clip(FILE *f, MIDIClip *clip);
 static void jdaw_write_timeline(FILE *f, Timeline *tl);
 
 static Project *proj;
+
+/* return 0 on success, negative on error */
 void jdaw_write_project(const char *path) 
 {
     Session *session = session_get();
@@ -163,13 +165,15 @@ void jdaw_write_project(const char *path)
     for (uint8_t i=0; i<proj->num_timelines; i++) {
 	jdaw_write_timeline(f, proj->timelines[i]);
     }
-    session_loading_screen_deinit();
     /* fprintf(stderr, "\t...done.\n"); */
     /* fwrite(&(proj->tl->num_tracks), 1, 1, f); */
     /* for (uint8_t i=0; i<proj->tl->num_tracks; i++) { */
         /* write_track_to_jdaw(f, proj->tl->tracks[i]); */
     /* } */
     fclose(f);
+    session_set_proj_save_point();
+    /* session->last_save_point_next_undo_id = session->history.next_undo ? session->history.next_undo->id : -1; */
+    session_loading_screen_deinit();
 }
 
 static void jdaw_write_clip(FILE *f, Clip *clip, int index)
@@ -641,6 +645,7 @@ static Project *proj_reading;
 
 
 const char *get_fmt_str(SDL_AudioFormat f);
+
 /* Ret -2: file does not exist. -1: parse error */
 int jdaw_read_file(Project *dst, const char *path)
 {
@@ -782,6 +787,7 @@ int jdaw_read_file(Project *dst, const char *path)
     /* timeline_reset(proj->timelines[0]); */
     fclose(f);
     session_loading_screen_deinit();
+    session_set_proj_save_point();
     /* session_to_set_proj_reading->proj_reading = NULL; */
     return 0;
     
@@ -791,6 +797,7 @@ jdaw_parse_error:
     fprintf(stderr, "Error parsing .jdaw file at %s, filespec version %s\n", path, read_file_spec_version);
     breakfn();
     session_loading_screen_deinit();
+    session_set_proj_save_point();
     /* session_to_set_proj_reading->proj_reading = NULL; */
     return -1;
     

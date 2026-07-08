@@ -418,10 +418,10 @@ int project_init(
     }
     
     strcpy(proj->name, name);
-    char win_title_buf[MAX_NAMELENGTH];
-    snprintf(win_title_buf, MAX_NAMELENGTH, "Jackdaw - %s", proj->name);
+    /* char win_title_buf[MAX_NAMELENGTH]; */
+    /* snprintf(win_title_buf, MAX_NAMELENGTH, "Jackdaw - %s", proj->name); */
     
-    SDL_SetWindowTitle(main_win->win, win_title_buf);
+    /* SDL_SetWindowTitle(main_win->win, win_title_buf); */
 
     proj->channels = channels;
     proj->sample_rate = sample_rate;

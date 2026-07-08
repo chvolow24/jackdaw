@@ -247,6 +247,9 @@ static int submit_save_as_form(void *mod_v, void *target)
     if (t == IO_FILE_PROJ) {
 	io_set_default_dir(IO_DIR_PROJ, dirpath);
 	window_pop_modal(main_win);
+    } else if (t == IO_FILE_NO_OVERWRITE) {
+        status_set_alertstr("File write canceled");
+	/* status_set_errstr("Unable to write file \"%s\"", dirpath); */
     } else {
 	status_set_errstr("Unable to write file \"%s\"", dirpath);
     }
@@ -2687,36 +2690,17 @@ static int submit_save_wav_form(void *mod_v, void *target)
     strcat(buf, dirpath);
     strcat(buf, "/");
     strcat(buf, name);
-    /* fprintf(stdout, "SAVE WAV: %s\n", buf); */
     IOFileType t = io_write_file(buf, IO_FILE_AUDIO);
-    /* fprintf(stderr, "write file ret %d\n", t); */
-    /* return 0; */
-    /* wav_write_mixdown(buf); */
-    /* jdaw_write_project(buf); */
-
+    
     /* Return OK */
     if (t == IO_FILE_AUDIO) {
 	io_set_default_dir(IO_DIR_EXPORT, dirpath);
 	window_pop_modal(main_win);
+    } else if (t == IO_FILE_NO_OVERWRITE) {
+        status_set_alertstr("File write canceled");
     } else {
 	status_set_errstr("Unable to write file \"%s\"", dirpath);
     }
-    /* char *last_slash_pos = strrchr(buf, '/'); */
-    /* if (last_slash_pos) { */
-    /* 	*last_slash_pos = '\0'; */
-    /* 	/\* fprintf(stdout, "Real path of %s:\n", dirpath); *\/ */
-    /* 	char *realpath_ret; */
-    /* 	if (!(realpath_ret = realpath(dirpath, NULL))) { */
-    /* 	    perror("Error in realpath"); */
-    /* 	} else { */
-    /* 	    /\* if (DIRPATH_EXPORT != realpath_ret) { *\/ */
-    /* 	    strncpy(DIRPATH_EXPORT, realpath_ret, MAX_PATHLEN); */
-    /* 	    free(realpath_ret); */
-    /* 	    /\* } *\/ */
-    /* 	} */
-
-    /* 	/\* fprintf(stdout, " is %s\n", DIRPATH_SAVED_PROJ); *\/ */
-    /* } */
 
     Timeline *tl = ACTIVE_TL;
     tl->needs_redraw = true;

@@ -22,6 +22,7 @@
 #include "session.h"
 #include "timeline.h"
 #include "transport.h"
+#include "user_event.h"
 /* #include "window.h" */
 
 #define STATUS_BAR_H (14 * main_win->dpi_scale_factor)
@@ -430,6 +431,14 @@ void session_clear_all_queues()
     /* check_queued_ops_unlock(queued_callback_lock); */
 }
 
+bool session_proj_has_unsaved_changes()
+{
+    return user_event_proj_has_unsaved_changes(&session->history);
+}
 
+void session_set_proj_save_point()
+{
+    user_event_proj_save_checkpoint(&session->history);
+}
 
 

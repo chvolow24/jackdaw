@@ -6,6 +6,7 @@
 #include "modal.h"
 #include "session.h"
 #include "textbox.h"
+#include "window.h"
 
 #define MODAL_X_PADDING 15
 #define MODAL_V_PADDING 10
@@ -621,14 +622,10 @@ void modal_draw(Modal *modal)
 	geom_draw_rect_thick(main_win->rend, &modal->els[modal->selectable_indices[modal->selected_i]]->layout->rect, 2 * main_win->dpi_scale_factor);
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.light_grey));
 	SDL_RenderDrawRect(main_win->rend, &modal->els[modal->selectable_indices[modal->selected_i]]->layout->rect);
-	/* SDL_Rect r = modal->els[modal->selectable_indices[modal->selected_i]]->layout->rect; */
-	/* fprintf(stdout, "R: %d %d %d %d\n", r.x, r.y, r.w, r.h); */
     }
     if (modal->x) 
 	symbol_button_draw(modal->x);
 
-    /* layout_draw(main_win, modal->layout); */
-    /* layout_write(stdout, modal->layout, 0); */
 }
 
 void modal_next(Modal *modal)

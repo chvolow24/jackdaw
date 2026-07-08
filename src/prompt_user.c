@@ -47,6 +47,7 @@ int prompt_user(const char *header, const char *description, int num_options, co
     SDL_Event e;
     int i=10000;
     int sel = 0;
+    bool needs_draw = true;
     while (i > 0) {
 	while (SDL_PollEvent(&e)) {
 	    switch (e.type) {
@@ -89,9 +90,16 @@ int prompt_user(const char *header, const char *description, int num_options, co
 		break;
 	    }
 	}
-	window_start_draw(main_win, NULL);
-	modal_draw(modal);
-	window_end_draw(main_win);
+        if (needs_draw) {
+            window_start_draw(main_win, NULL);
+            SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 150);
+            SDL_RenderFillRect(main_win->rend, &main_win->layout->rect);
+
+            /* project_draw(); */
+            modal_draw(modal);
+            window_end_draw(main_win);
+            needs_draw = false;
+        }
 	SDL_Delay(1);
 	i--;
     }

@@ -23,6 +23,15 @@
 
 extern Project *proj;
 
+static void rectify_all_changes_saved_flag(UserEventHistory *history)
+{
+    if (history->next_undo && history->next_undo->id == history->last_save_point_next_undo_id) {
+        history->all_changes_saved = true;
+    } else {
+        history->all_changes_saved = false;
+    }
+}
+
 /* Returns 0 if action completed; 1 if no action available */
 int user_event_do_undo(UserEventHistory *history)
 {
@@ -41,6 +50,7 @@ int user_event_do_undo(UserEventHistory *history)
     } else {
 	history->next_undo = NULL;
     }
+    rectify_all_changes_saved_flag(history);
     return 0;   
 }
 
@@ -79,6 +89,7 @@ int user_event_do_redo(UserEventHistory *history)
 		e->type2);
     }
     history->next_undo = e;
+    rectify_all_changes_saved_flag(history);
     return 0;
 }
 
@@ -144,6 +155,8 @@ UserEvent *user_event_push(
 	history = history->current_macro;
     }
     UserEvent *e = calloc(1, sizeof(UserEvent));
+    static uint64_t running_id = 1;
+    e->id = running_id++;
     e->undo = undo_fn;
     e->redo = redo_fn;
     e->dispose = dispose_fn;
@@ -261,7 +274,18 @@ UserEvent *user_event_push(
 	    old = old->next;
 	}
     }
+    history->all_changes_saved = false;
     return e;
+}
+
+void user_event_proj_save_checkpoint(UserEventHistory *history)
+{
+    history->all_changes_saved = true;
+    history->last_save_point_next_undo_id = history->next_undo ? history->next_undo->id : 0;
+}
+bool user_event_proj_has_unsaved_changes(UserEventHistory *history)
+{
+    return !history->all_changes_saved;
 }
 
 void user_event_pause()

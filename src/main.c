@@ -301,51 +301,8 @@ int main(int argc, char **argv)
 	}
 	command_line_arg = NULL;
     }	    
-    /* int openfile_ret = open_file(command_line_arg, NULL, NULL); */
-    
-    /* if (invoke_open_jdaw_file) { */
-    /* 	fprintf(stderr, "Opening \"%s\"...\n", file_to_open); */
-    /* 	Project new_proj; */
-    /* 	memset(&new_proj, '\0', sizeof(new_proj)); */
-    /* 	session->proj_reading = &new_proj; */
-    /* 	int ret = jdaw_read_file(&new_proj, file_to_open); */
-    /* 	/\* int ret = jdaw_read_file(&session->proj, file_to_open); *\/ */
-    /* 	if (ret == 0) { */
-    /* 	    session_set_proj(session, &new_proj); */
-    /* 	    session->proj_initialized = true; */
-    /* 	    /\* TODO: handle audio format disagreements more elegantly *\/ */
-    /* 	    AudioConn *output = session->audio_io.playback_conn; */
-    /* 	    if (output->open) { */
-    /* 		audioconn_close(output); */
-    /* 		audioconn_open(session, output); */
-    /* 	    } */
-    /* 	} else { */
-    /* 	    fprintf(stderr, "Unable to open project file at \"%s\": %s\n", file_to_open, ret == -2 ? "File does not exist" : "Unable to parse file"); */
-    /* 	    return 1; */
-    /* 	    /\* session->proj_initialized = false; *\/ */
-    /* 	    /\* memset(&session->proj, '\0', sizeof(Project)); *\/ */
-    /* 	} */
-    /* 	session->proj_reading = NULL; */
-    /* } */
-    /* if (session->proj_initialized) { */
-    /* 	char *realpath_ret; */
-    /* 	if (!(realpath_ret = realpath(file_to_open, NULL))) { */
-    /* 	    perror("Error in realpath"); */
-    /* 	} else { */
-    /* 	    char *last_slash_pos = strrchr(realpath_ret, '/'); */
-    /* 	    if (last_slash_pos) { */
-    /* 		*last_slash_pos = '\0'; */
-    /* 		snprintf(DIRPATH_SAVED_PROJ, MAX_PATHLEN, "%s", realpath_ret); */
-    /* 		/\* strlcpy(DIRPATH_SAVED_PROJ, realpath_ret, MAX_PATHLEN); *\/ */
-    /* 	    } */
-    /* 	    free(realpath_ret); */
-    /* 	} */
-    /* 	for (int i=0; i<session->proj.num_timelines; i++) { */
-    /* 	    timeline_reset_full(session->proj.timelines[i]); */
-    /* 	} */
-    /* } else { */
+
     if (!session->proj_initialized) {
-	fprintf(stderr, "Creating new project...\n");
 	project_init(
 	    &session->proj,
 	    "project.jdaw",
@@ -354,8 +311,8 @@ int main(int argc, char **argv)
 	session->proj_initialized = true;
 	session_init_panels(session);
 	timeline_add_track(session->proj.timelines[0], -1);
+        session_set_proj_save_point();
     }
-    /* } */
 
     window_push_mode(main_win, MODE_TIMELINE);
     if (command_line_arg) {

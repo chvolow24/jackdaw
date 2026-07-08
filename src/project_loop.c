@@ -18,6 +18,7 @@
 
 
 #include <time.h>
+#include "SDL_video.h"
 #include "audio_connection.h"
 #include "audio_clip.h"
 #include "automation.h"
@@ -110,6 +111,16 @@ void loop_project_main()
     main_win->current_event = &e;
     while (!(main_win->i_state & I_STATE_QUIT)) {
 	while (SDL_PollEvent(&e)) {
+
+            /* Any new event, check if unsaved changes */
+            static bool unsaved_changes = false;
+            bool new_unsaved_changes = session_proj_has_unsaved_changes();
+            if (new_unsaved_changes != unsaved_changes) {
+                unsaved_changes = new_unsaved_changes;
+                snprintf(session->gui.window_title, MAX_WINDOW_TITLE_LEN, "Jackdaw    |    %s    %s", session->proj.name, unsaved_changes ? "|    * unsaved changes * ":"");
+                SDL_SetWindowTitle(main_win->win, session->gui.window_title);
+            }
+            
 	    frames_since_event = 0;
 	    switch (e.type) {
 	    case SDL_QUIT:
@@ -252,6 +263,9 @@ void loop_project_main()
 			    
 		/* } */
 		switch (e.key.keysym.scancode) {
+                /* case SDL_SCANCODE_0: */
+                /*     fprintf(stderr, "Unsaved changes: %d\n", session_proj_has_unsaved_changes()); */
+                /*     break; */
 		/* case SDL_SCANCODE_0: { */
 		/*     double new = ps_glob->phase_coherence_vs_freq_coherence - 0.01; */
 		/*     if (new > 0.01) { */

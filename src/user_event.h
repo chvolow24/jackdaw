@@ -49,6 +49,7 @@ typedef struct user_event UserEvent;
 typedef struct user_event_history UserEventHistory;
 
 typedef struct user_event {
+    int64_t id; /* Unique per session. Starts at zero */
     EventFn undo;
     EventFn redo;
     EventFn dispose;
@@ -80,6 +81,9 @@ typedef struct user_event_history {
     UserEventHistory *current_macro;
     const char *macro_message;
     bool always_sequence_order;
+
+    bool all_changes_saved; /*   */
+    int64_t last_save_point_next_undo_id; /*  */    
 } UserEventHistory;
 
 
@@ -122,5 +126,10 @@ void user_event_do_undo_selective(EventFn options[], int num_options);
 
 void user_event_start_macro();
 void user_event_stop_macro(const char *message, bool always_sequence_order);
+
+bool user_event_proj_has_unsaved_changes(UserEventHistory *history);
+
+/* Must be called every time proj saved, or new proj opened */
+void user_event_proj_save_checkpoint(UserEventHistory *history);
 
 #endif

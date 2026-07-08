@@ -41,6 +41,8 @@
 
 #define DRAG_COLOR_PULSE_PHASE_MAX 30
 
+#define MAX_WINDOW_TITLE_LEN 255
+
 struct audio_io {
     
     /* Devices are actual audio devices reported by SDL */
@@ -95,6 +97,8 @@ struct session_gui {
 
     SDL_Texture *left_arrow_texture;
     SDL_Texture *right_arrow_texture;
+
+    char window_title[MAX_WINDOW_TITLE_LEN];
 };
 
 struct playhead_scroll {
@@ -232,7 +236,7 @@ typedef struct session {
     bool proj_initialized;
     Project *proj_reading;
     Project proj;
-    
+    const char *current_proj_realpath;
 } Session;
 
 
@@ -245,5 +249,8 @@ void session_queue_audio(int channels, float *c1, float *c2, int32_t len, int32_
 
 /* Call when de-initing project */
 void session_clear_all_queues();
+
+bool session_proj_has_unsaved_changes();
+void session_set_proj_save_point();
 
 #endif

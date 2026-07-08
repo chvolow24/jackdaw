@@ -126,6 +126,7 @@ static int open_jdaw_file_runtime_only(const char *filepath)
             }
             break;
         case 1:
+            fprintf(stderr, "TRIGGER SAVE AS!\n");
             user_global_save_as(NULL);
             /* must exit */
             return 2;
@@ -426,15 +427,19 @@ IOFileType io_write_file(const char *filepath, IOFileType type, bool force_allow
     }
     path_get_directory(filepath);
     IOFileType ret = type;
-    char dir[PATH_MAX] = {0};
-    char filename[PATH_MAX] = {0};
-    dirname_r(filepath, dir);
+
+    char filepath_mutable[PATH_MAX];
+    snprintf(filepath_mutable, PATH_MAX, "%s", filepath);
+    char *dir = NULL;
+    char *filename = NULL;
+    dir = strdup(dirname(filepath_mutable));
     char validated_dir[PATH_MAX] = {0};
     if (io_file_type_from_path(dir, validated_dir) != IO_FILE_DIR) {
 	ret = IO_FILE_ERROR;
 	goto cleanup_and_ret;
     }
-    basename_r(filepath, filename);
+    snprintf(filepath_mutable, PATH_MAX, "%s", filepath);
+    filename = strdup(basename(filepath_mutable));
     char full_path[PATH_MAX];    
     snprintf(full_path, PATH_MAX, "%s/%s", validated_dir, filename);
 
@@ -481,7 +486,9 @@ IOFileType io_write_file(const char *filepath, IOFileType type, bool force_allow
 	break;	
     }
     
-cleanup_and_ret:    
+cleanup_and_ret:
+    if (dir) free(dir);
+    if (filename) free(filename);
     return ret;
 
 }

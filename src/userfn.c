@@ -385,7 +385,7 @@ void user_global_save_as(void *nullarg)
     save_as->submit_form = submit_save_as_form;
     window_push_modal(main_win, save_as);
     modal_reset(save_as);
-    /* fprintf(stdout, "about to call move onto\n"); */
+    fprintf(stdout, "about to call move onto\n");
     modal_move_onto(save_as);
 }
 

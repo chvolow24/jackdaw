@@ -158,6 +158,7 @@ static int open_jdaw_file_runtime_only(const char *filepath)
 	api_reset_from_stash_and_discard();
     }
     session->proj_reading = NULL;
+    session_reset_window_title(false);
     
     return ret;
 }
@@ -187,6 +188,7 @@ int open_jdaw_file_starttime(const char *filepath)
 	/* memset(&session->proj, '\0', sizeof(Project)); */
     }
     session->proj_reading = NULL;
+    session_reset_window_title(false);
 
     for (int i=0; i<session->proj.num_timelines; i++) {
 	timeline_reset_full(session->proj.timelines[i]);

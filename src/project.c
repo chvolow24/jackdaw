@@ -371,7 +371,6 @@ static void timeline_destroy(Timeline *tl, bool displace_in_proj)
 
 void project_deinit(Project *proj)
 {
-    /* fprintf(stdout, "PROJECT_DESTROY num tracks: %d\n", proj->timelines[0]->num_tracks); */
     for (uint16_t i=0; i<proj->num_clips; i++) {
 	clip_destroy_no_displace(proj->clips[i]);
     }
@@ -383,10 +382,14 @@ void project_deinit(Project *proj)
 	timeline_destroy(proj->timelines[i], false);
     }
 
-    free(proj->output_L);
-    free(proj->output_R);
-    free(proj->output_L_freq);
-    free(proj->output_R_freq);
+    if (proj->output_L)
+        free(proj->output_L);
+    if (proj->output_R)
+        free(proj->output_R);
+    if (proj->output_L_freq)
+        free(proj->output_L_freq);
+    if (proj->output_R_freq)
+        free(proj->output_R_freq);
 }
 
 void project_reset_tl_label(Project *proj)

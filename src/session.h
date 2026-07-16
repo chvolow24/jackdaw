@@ -254,6 +254,7 @@ void session_clear_all_queues();
 bool session_proj_has_unsaved_changes();
 void session_set_proj_save_point();
 
+void session_reset_window_title(bool unsaved_changes);
 void session_check_reset_window_title();
 void session_set_proj_path(const char *path);
 

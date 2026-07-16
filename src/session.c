@@ -300,7 +300,6 @@ void session_set_proj(Session *session, Project *new_proj)
 	audioconn_close(session->audio_io.playback_conn);
 	reopen_playback_conn = true;
     }
-    fprintf(stderr, "CLOSED ALL PLAYBACK\n");
 
     session_clear_all_queues();
     
@@ -442,6 +441,12 @@ void session_set_proj_save_point()
     user_event_proj_save_checkpoint(&session->history);
 }
 
+void session_reset_window_title(bool unsaved_changes)
+{
+    snprintf(session->gui.window_title, MAX_WINDOW_TITLE_LEN, "Jackdaw    |    %s    %s", session->proj.name, unsaved_changes ? "|    * unsaved changes * ":"");
+    SDL_SetWindowTitle(main_win->win, session->gui.window_title);    
+}
+
 void session_check_reset_window_title()
 {
     static bool title_uninit = true;
@@ -449,8 +454,9 @@ void session_check_reset_window_title()
     bool new_unsaved_changes = session_proj_has_unsaved_changes();
     if (title_uninit || new_unsaved_changes != unsaved_changes) {
         unsaved_changes = new_unsaved_changes;
-        snprintf(session->gui.window_title, MAX_WINDOW_TITLE_LEN, "Jackdaw    |    %s    %s", session->proj.name, unsaved_changes ? "|    * unsaved changes * ":"");
-        SDL_SetWindowTitle(main_win->win, session->gui.window_title);
+        session_reset_window_title(unsaved_changes);
+        /* snprintf(session->gui.window_title, MAX_WINDOW_TITLE_LEN, "Jackdaw    |    %s    %s", session->proj.name, unsaved_changes ? "|    * unsaved changes * ":""); */
+        /* SDL_SetWindowTitle(main_win->win, session->gui.window_title); */
         title_uninit = false;
     }   
 }

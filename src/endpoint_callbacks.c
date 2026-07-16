@@ -170,51 +170,6 @@ void component_gui_cb(Endpoint *ep)
     }
 }
 
-
-/* static void secondary_delay_line_gui_cb(Endpoint *ep) */
-/* { */
-/*     /\* fprintf(stderr, "AND GUI at %lu\n", clock()); *\/ */
-/*     PageEl *el = track_settings_get_el("track_settings_delay_time_slider"); */
-/*     if (el) { */
-/* 	slider_reset(el->component); */
-/*     } */
-
-/* } */
-
-/* void delay_line_len_gui_cb(Endpoint *ep) */
-/* { */
-/*     PageEl *el = track_settings_get_el("track_settings_delay_time_slider"); */
-/*     if (el) { */
-/* 	Slider *s = (Slider *)el->component; */
-/* 	Value val = slider_reset(s); */
-/* 	label_reset(s->label, val); */
-
-/*     } */
-
-/* } */
-
-/* void delay_line_amp_gui_cb(Endpoint *ep) */
-/* { */
-/*     PageEl *el = track_settings_get_el("track_settings_delay_amp_slider"); */
-/*     if (el) { */
-/* 	Slider *s = (Slider *)el->component; */
-/* 	Value val = slider_reset(s); */
-/* 	label_reset(s->label, val); */
-
-/*     } */
-/* } */
-
-/* void delay_line_stereo_offset_gui_cb(Endpoint *ep) */
-/* { */
-/*     PageEl *el = track_settings_get_el("track_settings_delay_stereo_offset_slider"); */
-/*     if (el) { */
-/* 	Slider *s = (Slider *)el->component; */
-/* 	Value val = slider_reset(s); */
-/* 	label_reset(s->label, val); */
-/*     } */
-    
-/* } */
-
 void click_track_ebb_gui_cb(Endpoint *ep)
 {
     if (main_win->num_modals > 0) {

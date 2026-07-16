@@ -443,31 +443,21 @@ static Page *add_fir_filter_page(FIRFilter *f, EffectChain *ec, TabView *tv)
     textbox_set_align(tb, CENTER_LEFT);
     textbox_reset_full(tb);
 
-    /* p.toggle_p.value = &f->active; */
-    /* p.toggle_p.target = NULL; */
-    /* p.toggle_p.action = NULL; */
     p.toggle_p.ep = &f->effect->active_ep;
     page_add_el(page, EL_TOGGLE, p, "track_settings_filter_toggle", "toggle_filter_on");
-    
-    f->cutoff_freq_unscaled = unscale_freq(f->cutoff_freq);
-    p.slider_p.create_label_fn = label_freq_raw_to_hz;
+       
     p.slider_p.style = SLIDER_TICK;
     p.slider_p.orientation = SLIDER_HORIZONTAL;
-    p.slider_p.min = (Value){.double_v = 0.0};
-    p.slider_p.max = (Value){.double_v = 1.0};
-    p.slider_p.ep = &f->cutoff_ep;
+    
+    page_el_params_slider_from_ep(&p, &f->cutoff_ep);
     el = page_add_el(page, EL_SLIDER, p, "track_settings_filter_cutoff_slider", "cutoff_slider");
 
-    f->bandwidth_unscaled = unscale_freq(f->bandwidth);
-    p.slider_p.ep = &f->bandwidth_ep;
+    page_el_params_slider_from_ep(&p, &f->bandwidth_ep);
     el = page_add_el(page, EL_SLIDER, p, "track_settings_filter_bandwidth_slider", "bandwidth_slider");
 
-    p.slider_p.ep = &f->impulse_response_len_ep;
-
-    p.slider_p.min = (Value){.int_v = 4};
-    p.slider_p.max = (Value){.int_v = session->proj.fourier_len_sframes};
-    p.slider_p.create_label_fn = NULL;
-    el = page_add_el(page, EL_SLIDER, p, "track_settings_filter_irlen_slider",  "irlen_slider");    
+    page_el_params_slider_from_ep(&p, &f->impulse_response_len_ep);
+    el = page_add_el(page, EL_SLIDER, p, "track_settings_filter_irlen_slider",  "irlen_slider");
+    
     Slider *sl = (Slider *)el->component;
     sl->disallow_unsafe_mode = true;
     slider_reset(sl);

@@ -34,13 +34,10 @@ typedef enum filter_type {
 } FilterType;
 
 typedef struct fir_filter {
-    /* bool active; */
     bool initialized;
     FilterType type;
-    double cutoff_freq_unscaled; /* For gui components and automations */
-    double cutoff_freq; /* 0 < cutoff_freq < 0.5 */
-    double bandwidth_unscaled; /* For gui components and automations */
-    double bandwidth;
+    double cutoff_freq_ctrl; /* For gui components and automations */
+    double bandwidth_ctrl; /* For gui components and automations */
     double *impulse_response;
     double complex *frequency_response;
     double *frequency_response_mag;
@@ -48,27 +45,16 @@ typedef struct fir_filter {
     float *overlap_buffer_R;
     double *output_freq_mag_L;
     double *output_freq_mag_R;
-    /* float *freq_mag_L; */
-    /* float *freq_mag_R; */
     uint16_t impulse_response_len; /* Only modified in callbacks */
     uint16_t impulse_response_len_internal;
     uint16_t chunk_len;
-    /* uint16_t impulse_response_len_internal; */
     uint16_t frequency_response_len;
     uint16_t overlap_len;
-    /* pthread_mutex_t lock; */
-
-    /* float *buf_L_freq */
-    /* Track *track; */
-
     Endpoint type_ep;
     Endpoint cutoff_ep;
     Endpoint bandwidth_ep;
     Endpoint impulse_response_len_ep;
-
     Effect *effect;
-
-    /* SDL_mutex *lock;audio.c */
 } FIRFilter;
 
 
@@ -78,7 +64,6 @@ void filter_init(FIRFilter *filter, FilterType type, uint16_t impulse_response_l
 
 /* Bandwidth param only required for band-pass and band-cut filters */
 void filter_set_params(FIRFilter *filter, FilterType type,  double cutoff, double bandwidth);
-void filter_set_params_hz(FIRFilter *filter, FilterType type, double cutoff_hz, double bandwidth_hz);
 
 void filter_set_cutoff(FIRFilter *filter, double cutoff);
 void filter_set_cutoff_hz(FIRFilter *filter, double cutoff);

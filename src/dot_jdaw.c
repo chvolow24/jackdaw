@@ -381,8 +381,8 @@ static void jdaw_write_fir_filter(FILE *f, FIRFilter *filter)
     fwrite(&filter->effect->active, 1, 1, f);    
     uint8_t type_byte = (uint8_t)(filter->type);
     fwrite(&type_byte, 1, 1, f);
-    float_ser40_le(f, filter->cutoff_freq);
-    float_ser40_le(f, filter->bandwidth);
+    float_ser40_le(f, filter->cutoff_freq_ctrl);
+    float_ser40_le(f, filter->bandwidth_ctrl);
     uint16_ser_le(f, &filter->impulse_response_len);
 }
 
@@ -1407,20 +1407,22 @@ static int jdaw_read_fir_filter(FILE *f, FIRFilter *filter)
     filter->effect->active = uint8_deser(f);
     uint8_t type_byte;
     FilterType type;
-    double cutoff_freq;
-    double bandwidth;
+    double cutoff_freq_ctrl;
+    double bandwidth_ctrl;
     uint16_t impulse_response_len;
     fread(&type_byte, 1, 1, f);
     type = (FilterType)type_byte;
-    cutoff_freq = float_deser40_le(f);
-    bandwidth = float_deser40_le(f);
+    cutoff_freq_ctrl = float_deser40_le(f);
+    bandwidth_ctrl = float_deser40_le(f);
     impulse_response_len = uint16_deser_le(f);
     if (impulse_response_len > proj_reading->fourier_len_sframes) {
 	impulse_response_len = proj_reading->fourier_len_sframes;
     }
-
+    endpoint_write(&filter->cutoff_ep, (Value){.double_v = cutoff_freq_ctrl}, true, true, true, false);
+    endpoint_write(&filter->bandwidth_ep, (Value){.double_v = bandwidth_ctrl}, true, true, true, false);
+    endpoint_write(&filter->impulse_response_len_ep, (Value){.uint16_v=impulse_response_len}, true, true, true, false);
     filter_set_impulse_response_len(filter, impulse_response_len);
-    filter_set_params(filter, type, cutoff_freq, bandwidth);
+    filter_set_params(filter, type, cutoff_freq_ctrl, bandwidth_ctrl);
     return 0;
 }
 static int jdaw_read_delay(FILE *f, DelayLine *dl)

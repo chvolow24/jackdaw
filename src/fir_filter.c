@@ -20,8 +20,12 @@
 #include "dsp_utils.h"
 #include "endpoint_callbacks.h"
 #include "fir_filter.h"
+#include "label.h"
 #include "page.h"
 #include "project.h"
+
+#define CUTOFF_CTRL_DEFAULT 0.5
+#define BANDWIDTH_CTRL_DEFAULT 0.5
 
 static double lowpass_IR(int x, int offset, double cutoff)
 {
@@ -88,22 +92,21 @@ static double bandcut_IR(int x, int offset, double center_freq, double bandwidth
 static void filter_cutoff_dsp_cb(Endpoint *ep)
 {
     FIRFilter *f = (FIRFilter *)ep->xarg1;
-    Value cutoff = endpoint_safe_read(ep, NULL);
-    double cutoff_hz = dsp_scale_freq_to_hz(cutoff.double_v);
-    filter_set_cutoff_hz(f, cutoff_hz);
-    /* fprintf(stderr, "DSP callback\n"); */
+    double cutoff_ctrl = ep->current_write_val.double_v;
+    double bandwidth_ctrl = f->bandwidth_ctrl;
+    filter_set_params(f, f->type, cutoff_ctrl, bandwidth_ctrl);
 }
 
-void filter_bandwidth_dsp_cb(Endpoint *ep)
+static void filter_bandwidth_dsp_cb(Endpoint *ep)
 {
     FIRFilter *f = (FIRFilter *)ep->xarg1;
-    Value bandwidth = endpoint_safe_read(ep, NULL);
-    double bandwidth_hz = dsp_scale_freq_to_hz(bandwidth.double_v);
-    filter_set_bandwidth_hz(f, bandwidth_hz);
+    double cutoff_ctrl = f->cutoff_freq_ctrl;
+    double bandwidth_ctrl = ep->current_write_val.double_v;
+    filter_set_params(f, f->type, cutoff_ctrl, bandwidth_ctrl);    
 }
 
 
-void filter_irlen_dsp_cb(Endpoint *ep)
+static void filter_irlen_dsp_cb(Endpoint *ep)
 {
     FIRFilter *f = (FIRFilter *)ep->xarg1;
     Value irlen_val = endpoint_safe_read(ep, NULL);
@@ -111,7 +114,7 @@ void filter_irlen_dsp_cb(Endpoint *ep)
 }
 
 
-void filter_type_dsp_cb(Endpoint *ep)
+static void filter_type_dsp_cb(Endpoint *ep)
 {
     FIRFilter *f = (FIRFilter *)ep->xarg1;
     Value val = endpoint_safe_read(ep, NULL);
@@ -177,15 +180,13 @@ void filter_init(FIRFilter *filter, FilterType type, uint16_t impulse_response_l
     filter->chunk_len = chunk_len;
     FIR_filter_alloc_buffers(filter);
 
-    filter->cutoff_freq = 0.02;
-    filter->bandwidth = 0.1;
     filter_set_impulse_response_len(filter, impulse_response_len);
 
     /* filter_set_params(filter, LOWPASS, 0.02, 0.1); */
     
     endpoint_init(
 	&filter->cutoff_ep,
-	&filter->cutoff_freq_unscaled,
+	&filter->cutoff_freq_ctrl,
 	JDAW_DOUBLE,
 	"freq",
 	"Cutoff or center freq",
@@ -197,26 +198,26 @@ void filter_init(FIRFilter *filter, FilterType type, uint16_t impulse_response_l
 	&filter->cutoff_ep,
 	(Value){.double_v = 0.0},
 	(Value){.double_v = 1.0});
-    endpoint_set_default_value(&filter->cutoff_ep, (Value){.double_v = 0.1});
+    endpoint_set_default_value(&filter->cutoff_ep, (Value){.double_v = CUTOFF_CTRL_DEFAULT});
     endpoint_set_label_fn(&filter->cutoff_ep, label_freq_raw_to_hz);
     api_endpoint_register(&filter->cutoff_ep, &filter->effect->api_node);
 
     endpoint_init(
 	&filter->bandwidth_ep,
-	&filter->bandwidth_unscaled,
+	&filter->bandwidth_ctrl,
 	JDAW_DOUBLE,
 	"bandwidth",
 	"Bandwidth",
 	JDAW_THREAD_DSP,
 	/* filter_bandwidth_gui_cb, NULL, filter_bandwidth_dsp_cb, */
-	page_el_gui_cb, NULL, filter_bandwidth_dsp_cb,
+	component_gui_cb, NULL, filter_bandwidth_dsp_cb,
 	filter, NULL, &filter->effect->page, "track_settings_filter_bandwidth_slider");
     endpoint_set_allowed_range(
 	&filter->bandwidth_ep,
 	(Value){.double_v = 0.0},
 	(Value){.double_v = 1.0});
-    endpoint_set_default_value(&filter->bandwidth_ep, (Value){.double_v = 0.1});
-    endpoint_set_label_fn(&filter->bandwidth_ep, label_freq_raw_to_hz);
+    endpoint_set_default_value(&filter->bandwidth_ep, (Value){.double_v = BANDWIDTH_CTRL_DEFAULT});
+    endpoint_set_label_fn(&filter->bandwidth_ep, label_percent);
     api_endpoint_register(&filter->bandwidth_ep, &filter->effect->api_node);
 
     endpoint_init(
@@ -227,12 +228,13 @@ void filter_init(FIRFilter *filter, FilterType type, uint16_t impulse_response_l
 	"IR Length",
 	JDAW_THREAD_DSP,
 	/* filter_irlen_gui_cb, NULL, filter_irlen_dsp_cb, */
-	page_el_gui_cb, NULL, filter_irlen_dsp_cb,
+	component_gui_cb, NULL, filter_irlen_dsp_cb,
 	filter, NULL, &filter->effect->page, "track_settings_filter_irlen_slider");
     endpoint_set_allowed_range(
 	&filter->impulse_response_len_ep,
 	(Value){.uint16_v = 4},
 	(Value){.uint16_v = filter->chunk_len});
+    endpoint_set_default_value(&filter->impulse_response_len_ep, (Value){.uint16_v = filter->chunk_len});
     /* endpoint_set_default_value(&filter->impulse_response_len_ep, (Value){.double_v = 0.1}); */
     /* endpoint_set_label_fn(&filter->impulse_response_len_ep, label_msec); */
     /* api_endpoint_register(&filter->impulse_response_len_ep, &filter->effect->api_node); */
@@ -246,12 +248,12 @@ void filter_init(FIRFilter *filter, FilterType type, uint16_t impulse_response_l
 	"Type",
 	JDAW_THREAD_DSP,
 	/* filter_type_gui_cb, NULL, filter_type_dsp_cb, */
-	page_el_gui_cb, NULL, filter_type_dsp_cb,
+	component_gui_cb, NULL, filter_type_dsp_cb,
 	filter, NULL, &filter->effect->page, "track_settings_filter_type_radio");
 
-    
-    filter_set_params_hz(filter, LOWPASS, 1000, 1000); /* Defaults */
 
+    endpoint_write_default(&filter->impulse_response_len_ep);
+    api_node_set_defaults(&filter->effect->api_node);
     
     filter->initialized = true;
 
@@ -261,17 +263,15 @@ extern pthread_t DSP_THREAD_ID;
 extern Project *proj;
 
 /* Bandwidth param only required for band-pass and band-cut filters */
-void filter_set_params(FIRFilter *filter, FilterType type, double cutoff, double bandwidth)
+void filter_set_params(FIRFilter *filter, FilterType type, double cutoff_ctrl, double bandwidth_ctrl)
 {
-    /* DSP_THREAD_ONLY_WHEN_ACTIVE("filter_set_params"); */
-    /* pthread_mutex_lock(&filter->lock); */
     filter->type = type;
-    filter->cutoff_freq = cutoff;
-    filter->bandwidth = bandwidth;
+    double cutoff = dsp_scale_freq(cutoff_ctrl) / 2;
+    double bandwidth = cutoff * 2.0 * bandwidth_ctrl;
     double *ir = filter->impulse_response;
     uint16_t len = filter->impulse_response_len;
     uint16_t offset = len/2;
-    
+
     switch (filter->type) {
         case LOWPASS:
             for (uint16_t i=0; i<len; i++) {
@@ -334,63 +334,62 @@ void filter_set_arbitrary_IR(FIRFilter *filter, float *ir_in, int ir_len)
 
 }
 
-void filter_set_params_hz(FIRFilter *filter, FilterType type, double cutoff_hz, double bandwidth_hz)
-{
-    double cutoff = cutoff_hz / (double)filter->effect->effect_chain->proj->sample_rate;
-    double bandwidth = bandwidth_hz / (double)filter->effect->effect_chain->proj->sample_rate;;
-    filter_set_params(filter, type, cutoff, bandwidth);
-}
+/* void filter_set_params_hz(FIRFilter *filter, FilterType type, double cutoff_hz, double bandwidth_hz) */
+/* { */
+/*     double cutoff = cutoff_hz / (double)filter->effect->effect_chain->proj->sample_rate; */
+/*     double bandwidth = bandwidth_hz / (double)filter->effect->effect_chain->proj->sample_rate;; */
+/*     filter_set_params(filter, type, cutoff, bandwidth); */
+/* } */
 
-void filter_set_cutoff(FIRFilter *f, double cutoff)
-{
-    FilterType t = f->type;
-    double bandwidth = f->bandwidth;
-    filter_set_params(f, t, cutoff, bandwidth);
+/* void filter_set_cutoff(FIRFilter *f, double cutoff) */
+/* { */
+/*     FilterType t = f->type; */
+/*     double bandwidth = f->bandwidth; */
+/*     filter_set_params(f, t, cutoff, bandwidth); */
 
-}
-void filter_set_cutoff_hz(FIRFilter *f, double cutoff_hz)
-{
-    FilterType t = f->type;
-    double bandwidth = f->bandwidth;
-    double cutoff = cutoff_hz / (double)f->effect->effect_chain->proj->sample_rate;
-    filter_set_params(f, t, cutoff, bandwidth);
-}
-void filter_set_bandwidth(FIRFilter *f, double bandwidth)
-{
-    FilterType t = f->type;
-    double cutoff = f->cutoff_freq;
-    filter_set_params(f, t, cutoff, bandwidth);
-}
-void filter_set_bandwidth_hz(FIRFilter *f, double bandwidth_h)
-{
-    FilterType t = f->type;
-    double bandwidth = bandwidth_h / f->effect->effect_chain->proj->sample_rate;
-    double cutoff = f->cutoff_freq;
-    filter_set_params(f, t, cutoff, bandwidth);
-}
+/* } */
+/* void filter_set_cutoff_hz(FIRFilter *f, double cutoff_hz) */
+/* { */
+/*     FilterType t = f->type; */
+/*     double bandwidth = f->bandwidth; */
+/*     double cutoff = cutoff_hz / (double)f->effect->effect_chain->proj->sample_rate; */
+/*     filter_set_params(f, t, cutoff, bandwidth); */
+/* } */
+/* void filter_set_bandwidth(FIRFilter *f, double bandwidth) */
+/* { */
+/*     FilterType t = f->type; */
+/*     double cutoff = f->cutoff_freq; */
+/*     filter_set_params(f, t, cutoff, bandwidth); */
+/* } */
+/* void filter_set_bandwidth_hz(FIRFilter *f, double bandwidth_h) */
+/* { */
+/*     FilterType t = f->type; */
+/*     double bandwidth = bandwidth_h / f->effect->effect_chain->proj->sample_rate; */
+/*     double cutoff = f->cutoff_freq; */
+/*     filter_set_params(f, t, cutoff, bandwidth); */
+/* } */
 
 void filter_set_impulse_response_len(FIRFilter *f, int new_len)
 {
     /* DSP_THREAD_ONLY_WHEN_ACTIVE("filter_set_params"); */
     if (new_len > f->effect->effect_chain->chunk_len_sframes) {
-	fprintf(stderr, "RESETTING IR LEN TO MATCH EC\n");
 	new_len = f->effect->effect_chain->chunk_len_sframes;
     }
     f->impulse_response_len = new_len;
     f->overlap_len = new_len - 1;
-    double cutoff = f->cutoff_freq;
-    double bandwidth = f->bandwidth;
+    double cutoff_ctrl = f->cutoff_freq_ctrl;
+    double bandwidth_ctrl = f->bandwidth_ctrl;
     FilterType t = f->type;
-    filter_set_params(f, t, cutoff, bandwidth);
+    filter_set_params(f, t, cutoff_ctrl, bandwidth_ctrl);
     memset(f->overlap_buffer_L, '\0', f->overlap_len * sizeof(float));
     memset(f->overlap_buffer_R, '\0', f->overlap_len * sizeof(float));
 }
 
 void filter_set_type(FIRFilter *f, FilterType t)
 {
-    double cutoff = f->cutoff_freq;
-    double bandwidth = f->bandwidth;
-    filter_set_params(f, t, cutoff, bandwidth);
+    double cutoff_ctrl = f->cutoff_freq_ctrl;
+    double bandwidth_ctrl = f->bandwidth_ctrl;
+    filter_set_params(f, t, cutoff_ctrl, bandwidth_ctrl);
 }
 
 void filter_deinit(FIRFilter *filter) 

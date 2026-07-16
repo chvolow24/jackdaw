@@ -178,14 +178,14 @@ TRCK_FX	      1-255		char[]			  effect name
 ONE OF:
 FIR_FILTER    1			bool			  fir filter active
 FIR_FILTER    1			uint8_t			  fir filter type
-FIR_FILTER    5			double			  fir filter cutoff_freq
-FIR_FILTER    16		double			  fir filter bandwidth
+FIR_FILTER    5			double			  fir filter cutoff_freq_ctrl
+FIR_FILTER    5 		double			  fir filter bandwidth_ctrl
 FIR_FILTER    2			uint16_t       		  fir filter impulse_response_len
 
 DELAY	      1			bool			  delay line active
 DELAY	      4			int32_t			  delay line len
-DELAY	      16		double			  delay line stereo_offset
-DELAY	      16		double			  delay line amp
+DELAY	      5 		double			  delay line stereo_offset
+DELAY	      5 		double			  delay line amp
 
 SATURATION    1			bool			  saturation active
 SATURATION    5			double			  saturation gain

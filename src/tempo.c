@@ -459,22 +459,15 @@ ClickTrackPos click_track_pos_do_decrement(ClickTrackPos ctp, BeatProminence bp)
 }
 
 
-
+#define CLICK_SAMPLE_STR_LEN 7
 static void click_track_set_readout_ctp(ClickTrack *ct, ClickTrackPos ctp)
 {
     if (!ctp.seg) {
 	snprintf(ct->pos_str, CLICK_POS_STR_LEN, "(-∞)");
 	return;
     }
-    static const int sample_str_len = 7;
-    char sample_str[sample_str_len];
-    /* if (remainder < -99999) { */
-    /* 	snprintf(sample_str, sample_str_len, "%s", "-∞"); */
-    /* } else if (remainder > 999999) { */
-    /* 	snprintf(sample_str, sample_str_len, "%s", "∞"); */
-    /* } else { */
-    snprintf(sample_str, sample_str_len, "%d", (int32_t)(ctp.remainder * get_sd_len(ctp.seg, ctp.beat)));
-    /* } */
+    char sample_str[CLICK_SAMPLE_STR_LEN];
+    snprintf(sample_str, CLICK_SAMPLE_STR_LEN, "%d", (int32_t)(ctp.remainder * get_sd_len(ctp.seg, ctp.beat)));
     snprintf(ct->pos_str, CLICK_POS_STR_LEN, "%d.%d.%d:%s", ctp.measure, 1 + ctp.beat, 1 + ctp.sd * 4 + ctp.ssd * 2 + ctp.sssd, sample_str);
     textbox_reset_full(ct->readout);
 }

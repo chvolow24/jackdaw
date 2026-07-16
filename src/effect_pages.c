@@ -202,10 +202,6 @@ bool filter_tabs_onclick(SDL_Point p, Canvas *self, void *draw_arg1, void *draw_
 int filter_active_toggle(void *self, void *target);
 void filter_type_selector_canvas_draw(void *draw_arg1, void *draw_arg2);
 int filter_type_button_action(void *self, void *target);
-/* static void create_track_selection_area(Page *page, Track *track); */
-/* static int next_track(void *self_v, void *target); */
-/* static int previous_track(void *self_v, void *target); */
-static double unscale_freq(double scaled);
 
 static Page *add_eq_page(EQ *eq, EffectChain *ec, TabView *tv)
 {
@@ -1098,68 +1094,3 @@ int filter_type_button_action(void *self, void *target)
     eq_set_filter_type(eq, sb->stashed_val.int_v);
     return 0;
 }
-
-/* void user_tl_track_selector_up(void *); */
-/* void user_tl_track_selector_down(void *); */
-
-/* void user_tl_track_open_settings(void *); */
-/* static int previous_track(void *self_v, void *target) */
-/* { */
-/*     user_tl_track_open_settings(NULL); */
-/*     user_tl_track_selector_up(NULL); */
-/*     user_tl_track_open_settings(NULL); */
-/*     return 0; */
-/* } */
-
-/* static int next_track(void *self_v, void *target) */
-/* { */
-/*     user_tl_track_open_settings(NULL); */
-/*     user_tl_track_selector_down(NULL); */
-/*     user_tl_track_open_settings(NULL); */
-/*     return 0; */
-/* } */
-
-static double unscale_freq(double scaled)
-{
-    return log(scaled * session_get_sample_rate()) / log(session_get_sample_rate());
-}
-
-
-/* static int toggle_delay_line_target_action(void *self_v, void *target) */
-/* { */
-/*     DelayLine *dl = (DelayLine *)target; */
-/*     delay_line_clear(dl); */
-/*     return 0; */
-/* } */
-
-/* static int toggle_saturation_gain_comp(void *self_v, void *target) */
-/* { */
-/*     Saturation *s = (Saturation *)target; */
-/*     /\* fprintf(stderr, "WRITING TYPE: %d\n", s->type); *\/ */
-/*     endpoint_write(&s->gain_comp_ep, (Value){.bool_v = s->do_gain_comp}, true, true, true, true); */
-/*     return 0; */
-/* } */
-
-
-
-
-/* static int toggle_eq_active(void *self_v, void *target) */
-/* { */
-    
-/* } */
-/* static int toggle_fir_filter_active(void *self_v, void *target) */
-/* { */
-
-/* } */
-/* static int toggle_delay_line_active(void *self_v, void *target) */
-/* { */
-
-/* } */
-/* static int toggle_saturation_active(void *self_v, void *target) */
-/* { */
-
-/* } */
-/* static int toggle_compressor_active(void *self_v, void *target) */
-/* { */
-
-/* } */

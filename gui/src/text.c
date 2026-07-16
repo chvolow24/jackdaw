@@ -886,6 +886,16 @@ void txt_area_create_lines(TextArea *txtarea)
 }
 
 
+void txt_area_align_center(TextArea *ta)
+{
+    for (int i=0; i<ta->num_lines; i++) {
+        layout_center_agnostic(ta->layout->children[i], true, false);
+        layout_reset(ta->layout->children[i]);
+    }
+    layout_reset(ta->layout);
+    
+}
+
 TextArea *txt_area_create(const char *value, Layout *layout, Font *font, uint8_t text_size, SDL_Color color, Window *win)
 {
     TextArea *txtarea = malloc(sizeof(TextArea));

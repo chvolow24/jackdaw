@@ -255,6 +255,7 @@ ModalEl *modal_add_p(Modal *modal, const char *text, SDL_Color *color)
 {
     ModalEl *el = modal_add_el(modal);
     el->type = MODAL_EL_TEXTAREA;
+    layout_center_agnostic(el->layout, true, false);
     TextArea *ta = txt_area_create(text, el->layout, main_win->std_font, MODAL_P_FONTSIZE, *color, main_win);
     el->obj = (void *)ta;
     return el;
@@ -278,7 +279,7 @@ ModalEl *modal_add_dirnav(Modal *modal, const char *dirpath, int (*dir_to_tline_
     return el;
 }
 
-ModalEl *modal_add_button(Modal *modal, char *text, ComponentFn action)
+ModalEl *modal_add_button(Modal *modal, const char *text, ComponentFn action)
 {
     ModalEl *el = modal_add_el(modal);
     el->type = MODAL_EL_BUTTON;
@@ -702,7 +703,12 @@ void modal_select(Modal *modal)
 	modal_next_escape(modal);
 	break;
     case MODAL_EL_BUTTON: {
-	((Button *)(current_el->obj))->action(modal, modal->stashed_obj);
+        Button *button = current_el->obj;
+        if (!button->target) {
+            button->action(modal, modal->stashed_obj);
+        } else {
+            button->action(button, button->target);
+        }
     }
 	break;
     case MODAL_EL_RADIO:
@@ -787,8 +793,14 @@ bool modal_triage_mouse(Modal *modal, SDL_Point *mousep, bool click)
 		}
 	    }
 	    switch (el->type) {
-	    case MODAL_EL_BUTTON:
-		((Button *)(el->obj))->action(modal, modal->stashed_obj);
+	    case MODAL_EL_BUTTON: {
+                Button *button = el->obj;
+                if (!button->target) {
+                    button->action(modal, modal->stashed_obj);
+                } else {
+                    button->action(button, button->target);
+                }
+            }
 		break;
 	    case MODAL_EL_DIRNAV:
 		dirnav_triage_click(el->obj, mousep);

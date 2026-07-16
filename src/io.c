@@ -111,9 +111,9 @@ static int open_jdaw_file_runtime_only(const char *filepath)
     }
     if (session_proj_has_unsaved_changes()) {
         char msg[255];
-        snprintf(msg, 255, "Save \"%s\" before opening \"%s\"?", session->proj.name, filename);
-        const char *options[] = {"Yes", "Save As", "No", "Cancel"};
-        int saveret = prompt_user("Save project?", msg, 4, options);
+        snprintf(msg, 255, "\"%s\" has unsaved changes.\n\nSave before opening \"%s\"?", session->proj.name, filename);
+        const char *options[] = {"Yes", "No", "Cancel"};
+        int saveret = prompt_user("Save project?", msg, 3, options, 2);
         switch (saveret) {
         case 0:
             user_global_save_project(NULL);
@@ -126,14 +126,8 @@ static int open_jdaw_file_runtime_only(const char *filepath)
             }
             break;
         case 1:
-            fprintf(stderr, "TRIGGER SAVE AS!\n");
-            user_global_save_as(NULL);
-            /* must exit */
-            return 2;
             break;
         case 2:
-            break;
-        case 3:
             return 1;
         }
     }
@@ -458,7 +452,7 @@ IOFileType io_write_file(const char *filepath, IOFileType type, bool force_allow
         if (file_exists) {
             char hdr[255];
             snprintf(hdr, 255, "File \"%s\" already exists. Overwrite it?", filename);
-            int sel = prompt_user("Overwrite?", hdr, 2, overwrite_opts);
+            int sel = prompt_user("Overwrite?", hdr, 2, overwrite_opts, 1);
             if (sel == 1) {
                 ret = IO_FILE_NO_OVERWRITE;
                 goto cleanup_and_ret;
@@ -471,6 +465,7 @@ IOFileType io_write_file(const char *filepath, IOFileType type, bool force_allow
     case IO_FILE_PROJ:
 	if (jdaw_write_project(full_path) == 0) {
             session_set_proj_path(full_path);
+            session_set_proj_name(filename); 
         } else {
             ret = IO_FILE_ERROR;
         }

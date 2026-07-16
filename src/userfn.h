@@ -8,6 +8,7 @@ void user_global_undo(void *nullarg);
 void user_global_redo(void *nullarg);
 void user_global_show_output_freq_domain(void *nullarg);
 void user_global_save_project(void *nullarg);
+void user_global_save_as(void *nullarg);
 void user_global_open_file(void *nullarg);
 void user_global_start_server(void *nullarg);
 void user_global_function_lookup(void *nullarg);

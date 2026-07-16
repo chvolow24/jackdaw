@@ -1840,6 +1840,7 @@ void midi_monitor_clear()
     }
 }
 
+#ifdef TESTBUILD
 static void tl_pr_tracks(Timeline *tl)
 {
     fprintf(stderr, "Main:\n");
@@ -1850,8 +1851,8 @@ static void tl_pr_tracks(Timeline *tl)
     for (int i=0; i<tl->num_tracks; i++) {
 	fprintf(stderr, "\t%d) %p\n", i, tl->tracks_proc_order[i]);
     }
-
 }
+#endif
 
 TEST_FN_DEF(timeline_track_array_integrity, {
 	for (int i=0; i<tl->num_tracks; i++) {
@@ -2650,7 +2651,7 @@ int load_stems_dir(const char *path, char ***paths_dst)
     char hdr[255] = {0};
     snprintf(hdr, 255, "Load %d stems in new project?", num_stemfiles);
     
-    int choice = prompt_user(hdr, NULL, 2, options);
+    int choice = prompt_user(hdr, NULL, 2, options, 1);
     /* int c = fgetc(stdin); */
     if (choice == 0) {
 	*paths_dst = malloc(sizeof(char *) * num_stemfiles);
@@ -2667,5 +2668,4 @@ cleanup_and_return:
     dirpath_destroy(dp);
     return num_stemfiles;
 }
-
 

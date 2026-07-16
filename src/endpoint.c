@@ -135,6 +135,8 @@ NEW_EVENT_FN(undo_redo_endpoint_write, "")
 #define EP_WRITE_RANGE_VIOLATION_OTHER_THREAD 11
 #define EP_WRITE_ERROR_UNDO -1
 
+#define EP_ERRSTR_LEN 32
+
 /* Return value is one of:
    0: value written synchronously
    1: value change scheduled other thread
@@ -171,12 +173,11 @@ int endpoint_write(
     }
     if (range_violation) {
 	ret += 10;
-	const static int errstr_len = 32;
-	char errstr[errstr_len];
+	char errstr[EP_ERRSTR_LEN];
 	int index = 0;
-	index += jdaw_val_to_str(errstr, errstr_len, ep->min, ep->val_type, 2);
-	index += snprintf(errstr + index, errstr_len - index, " <= %s <= ", ep->local_id);
-	index += jdaw_val_to_str(errstr + index, errstr_len - index, ep->max, ep->val_type, 2);
+	index += jdaw_val_to_str(errstr, EP_ERRSTR_LEN, ep->min, ep->val_type, 2);
+	index += snprintf(errstr + index, EP_ERRSTR_LEN - index, " <= %s <= ", ep->local_id);
+	index += jdaw_val_to_str(errstr + index, EP_ERRSTR_LEN - index, ep->max, ep->val_type, 2);
 	/* fprintf(stderr, "Writing range violation from %s, ep %s: \"%s\"\n", get_thread_name(), ep->local_id, errstr); */
 	/* char rv[32] = {0}; */
 	/* jdaw_val_to_str(rv, 32, range_violation_write_val, ep->val_type, 5); */

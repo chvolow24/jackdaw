@@ -268,6 +268,8 @@ void txt_area_create_lines(TextArea *txtarea);
 /* Free all line textures and the textarea itself. Destroy its layout. */
 void txt_area_destroy(TextArea *ta);
 
+void txt_area_align_center(TextArea *ta);
+
 /* Destroy the font array and free the Font */
 void ttf_destroy_font(Font *font);
 

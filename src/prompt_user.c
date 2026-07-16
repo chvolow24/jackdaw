@@ -1,6 +1,7 @@
 #include "SDL_events.h"
 #include "color.h"
 #include "layout.h"
+#include "input.h"
 #include "modal.h"
 #include "session.h"
 #include "window.h"
@@ -9,81 +10,118 @@
 extern Window *main_win;
 extern struct colors colors;
 
-int prompt_user(const char *header, const char *description, int num_options, const char **option_titles)
+static int prompt_user_sel;
+static bool prompt_user_exit;
+ComponentFnDef(prompt_buttonfn) {
+
+    Button *button = self;
+    /* button targets are 1-indexed (see below) */
+    prompt_user_sel = (int)(long)button->target - 1;
+    prompt_user_exit = true;
+    return 0;
+}
+
+int prompt_user(const char *header, const char *description, int num_options, const char **option_titles, int cancel_index)
 {
+
     Session *session = session_get();
     Layout *layout = layout_add_child(main_win->layout);
     layout_set_default_dims(layout);
     Modal *modal = modal_create(layout);
 
     if (header)
-	modal_add_header(modal, header, &colors.light_grey, 3);
-    if (description)
-	modal_add_p(modal, description, &colors.white);
-    char *sel_buf = malloc(SEL_BUF_LEN);
-    char sel_char = '1';
-    int buf_i = 0;
-    for (int i=0; i<num_options; i++) {
-	buf_i += snprintf(sel_buf + buf_i, SEL_BUF_LEN - buf_i, "%c:\t%s\n", sel_char, option_titles[i]);
-	if (sel_char == '9') {
-	    sel_char = 'a';
-	} else {
-	    sel_char++;
-	}
+	modal_add_header(modal, header, &colors.light_grey, 4);
+    if (description) {
+	ModalEl *el = modal_add_p(modal, description, &colors.white);
+        layout_center_agnostic(el->layout, true, false);
+        /* layout_reset(modal->layout); */
+        TextArea *ta = el->obj;
+        txt_area_align_center(ta);
+
     }
-    sel_buf[buf_i] = '\0';
-    ModalEl *el = modal_add_p_custom_fontsize(modal, sel_buf, &colors.white, 14);
-    /* RadioButton *r = modal_add_radio(modal, &colors.light_grey, NULL, (const char **)option_titles, num_options)->obj; */
-    modal_reset(modal);
-    el->layout->w.type = REL;
-    /* layout_write(stderr, el->layout, 0); */
-    layout_size_to_fit_children_h(el->layout, true, 0);
-    layout_center_agnostic(el->layout, true, false);
+    Button *buttons[num_options];
+    int max_width = 0;
+    modal_add_header(modal, "", &colors.light_grey, 5);
+    for (int i=0; i<num_options; i++) {
+        ModalEl *el = modal_add_button(modal, option_titles[i], prompt_buttonfn);
+        Button *button = el->obj;
+        button->target = (void *)(long)(i + 1);
+        if (button->tb->layout->w.value > max_width) {
+            max_width = button->tb->layout->w.value;
+        }
+        buttons[i] = button;
+    }
+    for (int i=0; i<num_options; i++) {
+        buttons[i]->tb->layout->w.value = max_width;
+        layout_reset(buttons[i]->tb->layout);
+        textbox_reset(buttons[i]->tb);
+        layout_center_agnostic(buttons[i]->tb->layout, true, false);
+        
+    }
     modal_reset(modal);
 
     SymbolButton *saved_modal_x = modal->x;
     modal->x = NULL;
     window_end_draw(main_win);
     SDL_Event e;
-    int i=10000;
-    int sel = 0;
+    bool first_frame = true;
+    prompt_user_sel = 0;
+    prompt_user_exit = false;
     bool needs_draw = true;
-    while (i > 0) {
+    while (!prompt_user_exit) {
 	while (SDL_PollEvent(&e)) {
 	    switch (e.type) {
 	    case SDL_QUIT:
 		SDL_PushEvent(&e); /* Push quit event to be handled later */
-		i=1000;
 		return 1;
+            case SDL_MOUSEMOTION:
+                window_set_mouse_point(main_win, e.motion.x, e.motion.y);
+                break;
+            case SDL_MOUSEBUTTONDOWN:
+                modal_triage_mouse(modal, &main_win->mousep, true);
+                break;
+            case SDL_KEYUP:
+                /* i_state handling */
+                switch (e.key.keysym.scancode) {
+                case SDL_SCANCODE_LSHIFT:
+                case SDL_SCANCODE_RSHIFT:
+                    main_win->i_state &= ~I_STATE_SHIFT;
+                    break;
+                default: break;
+                }
+                break;
 	    case SDL_KEYDOWN: {
-		int sym = e.key.keysym.sym;
-		if (sym >= '1' && sym <= '9') {
-		    sel = sym - '1';
-		    if (sel >= num_options) break;
-		    i=0;
-		} else if (sym >= 'a' && sym <= 'z') {
-		    sel = 10 + sym - 'a';
-		    if (sel >= num_options) break;
-		    i=0;
-		} else {
-		    switch (e.key.keysym.scancode) {
-			/* case SDL_SCANCODE_LSHIFT: */
-			/* case SDL_SCANCODE_RSHIFT: */
-			/*     shift_down = true; */
-			/*     break; */
-		    case SDL_SCANCODE_ESCAPE:
-		    case SDL_SCANCODE_RETURN:
-			i=0;
-			break;
-		    default:
-			break;
-		    }
-		}
-		break;
+                /* i_state handling */
+                switch (e.key.keysym.scancode) {
+                case SDL_SCANCODE_LSHIFT:
+                case SDL_SCANCODE_RSHIFT:
+                    main_win->i_state |= I_STATE_SHIFT;
+                    break;
+                case SDL_SCANCODE_RETURN:
+                    modal_select(modal);
+                    prompt_user_exit = true;
+                    break;
+                case SDL_SCANCODE_TAB:
+                    if (main_win->i_state & I_STATE_SHIFT) {
+                        modal_previous_escape(modal);
+                    } else {
+                        modal_next_escape(modal);
+                    }
+                    needs_draw = true;
+                    break;
+                case SDL_SCANCODE_ESCAPE:
+                    prompt_user_sel = cancel_index;
+                    prompt_user_exit = true;
+                    break;
+                default:
+                    break;
+                }
+                if (prompt_user_exit) break;
 	    }
-	    case SDL_MOUSEBUTTONUP:
+                break;
 	    case SDL_AUDIODEVICEADDED:
 	    case SDL_AUDIODEVICEREMOVED:
+            case SDL_WINDOWEVENT:
 		SDL_PushEvent(&e);
 		break;
 	    default:
@@ -92,8 +130,11 @@ int prompt_user(const char *header, const char *description, int num_options, co
 	}
         if (needs_draw) {
             window_start_draw(main_win, NULL);
-            SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 150);
-            SDL_RenderFillRect(main_win->rend, &main_win->layout->rect);
+            if (first_frame) {
+                SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 150);
+                SDL_RenderFillRect(main_win->rend, &main_win->layout->rect);
+                first_frame = false;
+            }
 
             /* project_draw(); */
             modal_draw(modal);
@@ -101,13 +142,12 @@ int prompt_user(const char *header, const char *description, int num_options, co
             needs_draw = false;
         }
 	SDL_Delay(1);
-	i--;
     }
     /* int sel = r->selected_item; */
-    free(sel_buf);
+    /* free(sel_buf); */
     modal->x = saved_modal_x;
     modal_destroy(modal);
     ACTIVE_TL->needs_redraw = true;
     main_win->i_state = 0;
-    return sel;
+    return prompt_user_sel;
 }

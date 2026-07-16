@@ -30,6 +30,7 @@
   - C-y		: redo
   - C-S-z	: redo
   - C-s		: save_project
+  - C-S-s       : save_project_as
   - C-o		: open_file
   - A-S-<del>	: chaotic_user_test
   - C-S-p	: start_api_server

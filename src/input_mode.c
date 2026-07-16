@@ -204,8 +204,14 @@ static void mode_load_global()
 
     fn = create_user_fn(
 	"save_project",
-	"Save Project",
+	"Save project",
 	user_global_save_project);
+    mode_subcat_add_fn(mc, fn);
+
+    fn = create_user_fn(
+	"save_project_as",
+	"Save project as",
+	user_global_save_as);
     mode_subcat_add_fn(mc, fn);
 
     fn = create_user_fn(

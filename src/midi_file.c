@@ -668,15 +668,22 @@ int midi_file_open(const char *filepath, bool automatically_add_tracks)//, MIDIC
     if (num_dst_tracks > tl->num_tracks - sel_track_i) {
 	const char *option_titles[] = {
 	    "Add tracks",
-	    "Ignore extra tracks"
+	    "Ignore extra tracks",
+            "Cancel"
 	};
 	char desc[256];
 
 	if (file_info.format == 1) {
 	    snprintf(desc, 256, "The MIDI file contains %d tracks, which will not fit in the current timeline.\nWould you like to automatically add more tracks, or ignore tracks that don't fit?", file_info.num_tracks);
 	    if (!automatically_add_tracks) {
-		int selection = prompt_user(NULL, desc, 2, option_titles);
-		if (selection == 0) automatically_add_tracks = true;
+		int selection = prompt_user(NULL, desc, 3, option_titles, 2);
+		if (selection == 0) {
+                    automatically_add_tracks = true;
+                } else if (selection == 2) {
+                    fclose(f);
+                    user_event_unpause();
+                    return -2;
+                }
 	    }
 	    if (automatically_add_tracks) {
 		while (tl->num_tracks - sel_track_i < num_dst_tracks) {
@@ -690,8 +697,14 @@ int midi_file_open(const char *filepath, bool automatically_add_tracks)//, MIDIC
 	    /* TODO: determine behavior for multi-channel */
 	    if (!automatically_add_tracks) {		
 		snprintf(desc, 256, "The MIDI file may contain up to 16 tracks, which will not fit in the current timeline.\nWould you like to automatically add more tracks, or ignore tracks that don't fit?");
-		int selection = prompt_user(NULL, desc, 2, option_titles);
-		if (selection == 0) automatically_add_tracks = true;
+		int selection = prompt_user(NULL, desc, 3, option_titles, 2);
+                if (selection == 0) {
+                    automatically_add_tracks = true;
+                } else if (selection == 2) {
+                    fclose(f);
+                    user_event_unpause();
+                    return -2;
+                }
 	    }
 	    if (automatically_add_tracks) {
 		while (tl->num_tracks - sel_track_i < num_dst_tracks)  {

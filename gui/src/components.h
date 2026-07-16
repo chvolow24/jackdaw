@@ -274,7 +274,7 @@ void slider_nudge_left(Slider *slider);
 /* Button *button_create(Layout *lt, char *text, ComponentFn action, SDL_Color *text_color, SDL_Color *background_color); */
 Button *button_create(
     Layout *layout,
-    char *text,
+    const char *text,
     ComponentFn action,
     void *target,
     Font *font,

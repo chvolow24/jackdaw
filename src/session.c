@@ -452,12 +452,13 @@ void session_check_reset_window_title()
     static bool title_uninit = true;
     static bool unsaved_changes = false;
     bool new_unsaved_changes = session_proj_has_unsaved_changes();
-    if (title_uninit || new_unsaved_changes != unsaved_changes) {
+    if (session->proj_title_reset || title_uninit || new_unsaved_changes != unsaved_changes) {
         unsaved_changes = new_unsaved_changes;
         session_reset_window_title(unsaved_changes);
         /* snprintf(session->gui.window_title, MAX_WINDOW_TITLE_LEN, "Jackdaw    |    %s    %s", session->proj.name, unsaved_changes ? "|    * unsaved changes * ":""); */
         /* SDL_SetWindowTitle(main_win->win, session->gui.window_title); */
         title_uninit = false;
+        session->proj_title_reset = false;
     }   
 }
 
@@ -466,5 +467,13 @@ void session_set_proj_path(const char *path)
     snprintf(session->proj_path, PATH_MAX, "%s", path);
     session->proj_path_set = true;
 }
+
+void session_set_proj_name(const char *name)
+{
+    snprintf(session->proj.name, MAX_NAMELENGTH, "%s", name);
+    session->proj_title_reset = true;
+    session_check_reset_window_title();
+}
+
 
 

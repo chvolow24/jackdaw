@@ -51,7 +51,7 @@ ModalEl *modal_add_textentry(
     int (*completion)(Text *, void *),
     void *completion_target);
 /* ModalEl *modal_add_textentry(Modal *modal, char *init_val, int (*validation)(Text *txt, char input), ComponentFn completion); */
-ModalEl *modal_add_button(Modal *modal, char *text, ComponentFn action);
+ModalEl *modal_add_button(Modal *modal, const char *text, ComponentFn action);
     /* Layout *layout, */
     /* int text_size, */
     /* SDL_Color *text_color, */

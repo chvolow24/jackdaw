@@ -14,6 +14,7 @@
 #include "log.h"
 #include "midi_file.h"
 #include "session.h"
+#include "status.h"
 #include "wav.h"
 
 struct saved_dirs {
@@ -371,7 +372,11 @@ IOFileType io_open_file(const char *filepath, IOFileType type, Track *dst_track,
 		dst_track->synth = synth_create(dst_track);
 	    if (synth_read_preset_file(rp, dst_track->synth) < 0) {
 		ret = IO_FILE_ERROR;
-	    }
+	    } else {
+                snprintf(dst_track->synth->preset_filepath, PATH_MAX, "%s", rp);
+                fprintf(stderr, "Synth preset filepath: %s\n", dst_track->synth->preset_filepath);
+                /* dst_track->synth-> */
+            }
 	}
 	break;
     case IO_FILE_AUDIO:
@@ -414,8 +419,38 @@ IOFileType io_open_file(const char *filepath, IOFileType type, Track *dst_track,
     return ret;
 }
 
+const char *io_file_type_str(IOFileType t)
+{
+    switch (t) {
+    case IO_FILE_PROJ:
+        return "project";
+    case IO_FILE_MIDI:
+        return "midi";
+    case IO_FILE_SYNTH:
+        return "synth preset";
+    case IO_FILE_AUDIO:
+        return "audio";
+    case IO_FILE_DIR:
+        return "directory";
+    case IO_FILE_INVALID_PATH:
+        return "invalid path";
+    case IO_FILE_NONREG:
+        return "not a regular file or directory";
+    case IO_FILE_EXT_UNKNOWN:
+        return "file extension unknown";
+    case IO_FILE_TYPE_UNDETERMINED:
+        return "file type undetermined";
+    case IO_FILE_NO_OVERWRITE:
+        return "user cancelled overwrite";
+    case IO_FILE_ERROR:
+        return "file IO error";
+    case NUM_IO_FILE_TYPES:
+        return "";
+    }
+}
 
-IOFileType io_write_file(const char *filepath, IOFileType type, bool force_allow_overwrite)
+
+IOFileType io_write_file(const char *filepath, IOFileType type, bool force_allow_overwrite, void *object_to_write)
 {
     if (!IO_FILE_TYPE_OK(type) || type == IO_FILE_DIR) {
 	log_tmp(LOG_ERROR, "io_save_file received file type %d\n", type);
@@ -473,7 +508,7 @@ IOFileType io_write_file(const char *filepath, IOFileType type, bool force_allow
     case IO_FILE_MIDI:
 	break;
     case IO_FILE_SYNTH:
-	
+	synth_write_preset_file(full_path, object_to_write);
 	break;
     case IO_FILE_AUDIO:
 	/* TODO: replace with universal FFMPEG file writer */
@@ -482,7 +517,11 @@ IOFileType io_write_file(const char *filepath, IOFileType type, bool force_allow
     default:
 	break;	
     }
-    
+    if (IO_FILE_TYPE_OK(type)) {
+        status_set_alertstr("Wrote %s file at %s", io_file_type_str(type), full_path);
+    } else if (type == IO_FILE_NO_OVERWRITE) {
+        status_set_alertstr("File write canceled");
+    }
 cleanup_and_ret:
     if (dir) free(dir);
     if (filename) free(filename);

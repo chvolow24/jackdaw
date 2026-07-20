@@ -243,15 +243,10 @@ static int submit_save_as_form(void *mod_v, void *target)
     strcat(buf, dirpath);
     strcat(buf, "/");
     strcat(buf, name);
-    IOFileType t = io_write_file(buf, IO_FILE_PROJ, false);
+    IOFileType t = io_write_file(buf, IO_FILE_PROJ, false, NULL);
     if (t == IO_FILE_PROJ) {
 	io_set_default_dir(IO_DIR_PROJ, dirpath);
 	window_pop_modal(main_win);
-    } else if (t == IO_FILE_NO_OVERWRITE) {
-        status_set_alertstr("File write canceled");
-	/* status_set_errstr("Unable to write file \"%s\"", dirpath); */
-    } else {
-	status_set_errstr("Unable to write file \"%s\"", dirpath);
     }
     Timeline *tl = ACTIVE_TL;
     tl->needs_redraw = true;
@@ -395,7 +390,7 @@ void user_global_save_project(void *nullarg)
     if (session->proj_path_set) {
         /* Quick save */
         if (session_proj_has_unsaved_changes()) {
-            IOFileType t = io_write_file(session->proj_path, IO_FILE_PROJ, true);
+            IOFileType t = io_write_file(session->proj_path, IO_FILE_PROJ, true, NULL);
             if (t == IO_FILE_PROJ) {
                 status_set_alertstr("Project saved at %s", session->proj_path);
             } else {
@@ -556,10 +551,9 @@ static void openfile_file_select_action(DirNav *dn, DirPath *dp)
 {
     Session *session = session_get();
     IOFileType t = io_open_file(dp->path, IO_FILE_TYPE_UNDETERMINED, timeline_selected_track(ACTIVE_TL), ACTIVE_TL->play_pos_sframes);
-    if (!(IO_FILE_TYPE_OK(t))) {
-	status_set_errstr("Unknown file type");
+    if (IO_FILE_TYPE_OK(t)) {
+        window_pop_modal(main_win);
     }
-    window_pop_modal(main_win);
     Timeline *tl = ACTIVE_TL;
     tl->needs_redraw = true;
 }
@@ -2710,7 +2704,7 @@ static int submit_save_wav_form(void *mod_v, void *target)
     strcat(buf, dirpath);
     strcat(buf, "/");
     strcat(buf, name);
-    IOFileType t = io_write_file(buf, IO_FILE_AUDIO, false);
+    IOFileType t = io_write_file(buf, IO_FILE_AUDIO, false, NULL);
     
     /* Return OK */
     if (t == IO_FILE_AUDIO) {

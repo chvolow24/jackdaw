@@ -941,14 +941,18 @@ void layout_force_reset(Layout *lt)
     }
     Layout *top_parent = lt;
 
+    #ifndef LAYOUT_BUILD
     int iters = 0;
+    #endif
     while (lt) {
 	/* DO CALCS */
+        #ifndef LAYOUT_BUILD
 	iters++;
 	if (iters > 500) {
 	    breakfn();
 	    /* TESTBREAK; */
 	}
+        #endif
 	if (!set_rect_wh(lt)) {
 	    fprintf(stderr, "Error: failed to set wh on %s\n", lt->name);
 	}
@@ -1256,7 +1260,6 @@ void layout_reparent(Layout *child, Layout *parent)
 {
     if (child == parent) {
 	fprintf(stderr, "Call to make layout %p (%s) own parent\n", child, child->name);
-	breakfn();
 	exit(1);
 	/* ret */
     }
@@ -1418,7 +1421,7 @@ void layout_size_to_fit_children(Layout *lt, bool fixed_origin, int padding)
     int right, bottom;
     for (int16_t i=0; i<lt->num_children; i++) {
 	Layout *child = lt->children[i];
-	if (child->rect.x < min_x) min_x = child->rect.x;
+        if (child->rect.x < min_x) min_x = child->rect.x;
 	if (child->rect.y < min_y) min_y = child->rect.y;
 	if ((right = child->rect.x + child->rect.w) > max_x) max_x = right;
 	if ((bottom = child->rect.y + child->rect.h) > max_y) max_y = bottom;
@@ -1665,7 +1668,6 @@ void layout_displace_child(Layout *child, int by)
     Layout **tmp = calloc(child->parent->num_children, sizeof(Layout *));
     int new_dst_loc = child->index + by;
     if (new_dst_loc < 0 || new_dst_loc >= child->parent->num_children) {
-	breakfn();
 	fprintf(stderr, "Error: call to displace child outside of parent->children bounds.\n");
 	return;
     }

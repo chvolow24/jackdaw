@@ -249,7 +249,15 @@ void txt_reset_display_value(Text *txt)
             txt->display_value[i] = '.';
 	   
         }
-	txt->display_value[approx_allowable_chars] = '\0';
+        if (approx_allowable_chars < 0) {
+            txt->display_value[0] = '\0';
+        } else {
+            txt->display_value[approx_allowable_chars] = '\0';
+        }
+        if (approx_allowable_chars >= TEXT_BUFLEN) {
+            txt->display_value[TEXT_BUFLEN - 1] = '\0';
+        }
+
     } else {
         strcpy(txt->display_value, txt->value_handle);
     }

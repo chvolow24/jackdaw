@@ -116,28 +116,13 @@ static void input_init()
 
 static void init()
 {
-    /* FILE *test = open_asset("layouts/jackdaw_main_layout.xml", "r"); */
-    /* exit(0); */
     set_thread_id(JDAW_THREAD_MAIN);
-    /* MAIN_THREAD_ID = pthread_self(); */
-    /* CURRENT_THREAD_ID = MAIN_THREAD_ID; */
-    /* error_register_signal_handlers(); */
     log_init();
     init_SDL();
     get_native_byte_order();
     input_init();
     mqwert_init();
     pd_jackdaw_shm_init();
-    /* char *realpath_ret; */
-    /* if (!(realpath_ret = realpath(".", NULL))) { */
-    /* 	perror("Error in realpath"); */
-    /* } else { */
-    /* 	snprintf(DIRPATH_SAVED_PROJ, MAX_PATHLEN, "%s", realpath_ret);  */
-    /* 	/\* strlcpy(DIRPATH_SAVED_PROJ, realpath_ret, MAX_PATHLEN); *\/ */
-    /* 	free(realpath_ret); */
-    /* } */
-    /* strcpy(DIRPATH_OPEN_FILE, DIRPATH_SAVED_PROJ); */
-    /* strcpy(DIRPATH_EXPORT, DIRPATH_SAVED_PROJ); */
     midi_io_init();
     init_dsp();
 }
@@ -198,16 +183,6 @@ static const char *helpstr = "\
 
 int main(int argc, char **argv)
 {
-    /* fprintf(stderr, "%s\n", usagestr); */
-    /* exit(0); */
-    /* char *file_to_open = NULL; */
-    /* bool invoke_open_wav_file = false; */
-    /* bool invoke_open_jdaw_file = false; */
-    /* bool invoke_open_midi_file = false; */
-    /* bool invoke_open_jsynth_file = false; */
-    /* bool invoke_open_audio_file = false; */
-    /* char **stems_paths = NULL; */
-    /* int num_stems = 0; */
     const char *command_line_arg = NULL;
     if (argc > 2) {
 	fprintf(stderr, "%s\n", usagestr);
@@ -240,34 +215,6 @@ int main(int argc, char **argv)
 	} else {
 	    command_line_arg = argv[1];
 	}
-	/* file_to_open = argv[1]; */
-	/* const char *audio_file_extensions[] = {AUDIO_FILE_EXTENSIONS}; */
-	/* int num_extensions = sizeof(audio_file_extensions) / sizeof(float *); */
-	/* char *dotpos = strrchr(file_to_open, '.'); */
-	/* if (!dotpos) goto unrecognized_arg; */
-	/* char *ext = dotpos + 1; */
-	/* if (strncmp("wav", ext, 3) * strcmp("WAV", ext) == 0) { */
-	/*     fprintf(stderr, "Passed WAV file.\n"); */
-	/*     invoke_open_wav_file = true; */
-	/* } else if (strncmp("jdaw", ext, 4) * strcmp("JDAW", ext) * strcmp("bak", ext)  == 0) { */
-	/*     fprintf(stderr, "Passed JDAW file.\n"); */
-	/*     invoke_open_jdaw_file = true; */
-	/* } else if ( */
-	/*     strncmp("mid", ext, 3) * strncmp("MID", ext, 3) == 0) { */
-	/*     invoke_open_midi_file = true; */
-	/* } else if ( */
-	/*     strncmp("jsynth", ext, 6) * strncmp("JSYNTH", ext, 6) == 0) { */
-	/*     invoke_open_jsynth_file = true; */
-	/* } else if (file_extension_in_list(file_to_open, audio_file_extensions, num_extensions)) { */
-	/*     invoke_open_audio_file = true; */
-	/* } else { */
-	/* unrecognized_arg: */
-	/*     num_stems = load_stems_dir(file_to_open, &stems_paths); */
-	/*     if (num_stems <= 0) { */
-	/* 	fprintf(stderr, "Error: argument \"%s\" not recognized. Pass a .jdaw, .wav, .mid, or .jsynth file to open that file, or a directory to open stems.\n", argv[1]); */
-	/* 	exit(1); */
-	/*     } */
-	/* } */
     }
     char rp[PATH_MAX] = {0};
     IOFileType in_file_type = IO_FILE_TYPE_UNDETERMINED;
@@ -316,86 +263,8 @@ int main(int argc, char **argv)
 
     window_push_mode(main_win, MODE_TIMELINE);
     if (command_line_arg) {
-	io_open_file(command_line_arg, in_file_type, session->proj.timelines[0]->tracks[0], 0);
-	
+	io_open_file(rp, in_file_type, session->proj.timelines[0]->tracks[0], 0);	
     }
-
-    /* if (invoke_open_wav_file) { */
-    /* 	/\* Track *track = timeline_add_track(session->proj.timelines[0], -1); *\/ */
-    /* 	wav_load_to_track(session->proj.timelines[0]->tracks[0], file_to_open, 0); */
-    /* 	char *filepath = realpath(file_to_open, NULL); */
-    /* 	if (!filepath) { */
-    /* 	    fprintf(stderr, "Could not find file at \"%s\"\n", file_to_open); */
-    /* 	    return 1; */
-    /* 	} else { */
-    /* 	    char *last_slash_pos = strrchr(filepath, '/'); */
-    /* 	    if (last_slash_pos) { */
-    /* 		*last_slash_pos = '\0'; */
-    /* 		snprintf(DIRPATH_OPEN_FILE, MAX_PATHLEN, "%s", filepath); */
-    /* 		/\* strlcpy(DIRPATH_OPEN_FILE, filepath, MAX_PATHLEN); *\/ */
-    /* 	    } else { */
-    /* 		fprintf(stderr, "Error: no slash in real path of opened file\n"); */
-    /* 	    } */
-    /* 	    free(filepath); */
-    /* 	} */
-    /* } else if (invoke_open_audio_file) { */
-    /* 	float *L, *R; */
-    /* 	int32_t length_sframes = av_open_file(file_to_open, &L, &R); */
-    /* 	int32_t length_seconds = length_sframes / session_get_sample_rate(); */
-    /* 	fprintf(stderr, "DECODED %d:%d of audio (%d)\n", length_seconds / 60, length_seconds - (length_seconds / 60), length_sframes); */
-    /* 	if (length_sframes == 0) { */
-    /* 	    fprintf(stderr, "Unable to decode file at %s. run './jackdaw log' for details\n", file_to_open); */
-    /* 	    exit(1); */
-    /* 	} */
-    /* 	Track *dst_track = session->proj.timelines[0]->tracks[0]; */
-    /* 	Clip *clip = clip_create(NULL, dst_track); */
-    /* 	clip->L = L; */
-    /* 	clip->R = R; */
-    /* 	clip->channels = 2; */
-    /* 	clip->len_sframes = length_sframes; */
-    /* 	clip_init_or_update_waveform(clip); */
-    /* 	ClipRef *cr = clipref_create(dst_track, 0, CLIP_AUDIO, clip); */
-    /* 	timeline_reset(cr->track->tl, true); */
-    /* } else if (invoke_open_midi_file) { */
-    /* 	midi_file_open(file_to_open, true); */
-    /* 	char *filepath = realpath(file_to_open, NULL); */
-    /* 	if (!filepath) { */
-    /* 	    perror("Error in realpath"); */
-    /* 	} else { */
-    /* 	    char *last_slash_pos = strrchr(filepath, '/'); */
-    /* 	    if (last_slash_pos) { */
-    /* 		*last_slash_pos = '\0'; */
-    /* 		snprintf(DIRPATH_OPEN_FILE, MAX_PATHLEN, "%s", filepath); */
-    /* 		/\* strlcpy(DIRPATH_OPEN_FILE, filepath, MAX_PATHLEN); *\/ */
-    /* 	    } else { */
-    /* 		fprintf(stderr, "Error: no slash in real path of opened file\n"); */
-    /* 	    } */
-    /* 	    free(filepath); */
-    /* 	} */
-    /* } else if (invoke_open_jsynth_file) { */
-    /* 	char *filepath = realpath(file_to_open, NULL); */
-    /* 	if (!filepath) { */
-    /* 	    perror("Error in realpath"); */
-    /* 	} else { */
-    /* 	    Track *track = session->proj.timelines[0]->tracks[0]; */
-    /* 	    track->synth = synth_create(track); */
-    /* 	    track->midi_out = track->synth; */
-    /* 	    synth_read_preset_file(filepath, track->synth); */
-    /* 	    log_tmp(LOG_DEBUG, "Opening synth in main.c\n"); */
-    /* 	    user_tl_track_open_synth(NULL); */
-    /* 	} */
-    /* } else if (num_stems > 0) { */
-    /* 	Timeline *tl = session->proj.timelines[0]; */
-    /* 	for (int i=0; i<num_stems; i++) { */
-    /* 	    Track *track; */
-    /* 	    if (i != 0) { */
-    /* 		track = timeline_add_track(tl, i); */
-    /* 	    } else { */
-    /* 		track = tl->tracks[0]; */
-    /* 	    } */
-    /* 	    wav_load_to_track(track, stems_paths[i], 0); */
-    /* 	} */
-    /* } */
     session_check_reset_window_title();
     loop_project_main();
     quit();    

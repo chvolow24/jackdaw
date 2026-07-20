@@ -21,6 +21,8 @@ ComponentFnDef(prompt_buttonfn) {
     return 0;
 }
 
+void handle_window_events(SDL_Event e, Window *win);
+
 int prompt_user(const char *header, const char *description, int num_options, const char **option_titles, int cancel_index)
 {
 
@@ -73,12 +75,18 @@ int prompt_user(const char *header, const char *description, int num_options, co
 	    switch (e.type) {
 	    case SDL_QUIT:
 		SDL_PushEvent(&e); /* Push quit event to be handled later */
-		return 1;
+		return cancel_index;
+            case SDL_WINDOWEVENT:
+                handle_window_events(e, main_win);
+                /* modal_reset(modal); */
+                needs_draw = true;
+                break;
             case SDL_MOUSEMOTION:
                 window_set_mouse_point(main_win, e.motion.x, e.motion.y);
                 break;
             case SDL_MOUSEBUTTONDOWN:
                 modal_triage_mouse(modal, &main_win->mousep, true);
+                needs_draw = true;
                 break;
             case SDL_KEYUP:
                 /* i_state handling */
@@ -121,9 +129,6 @@ int prompt_user(const char *header, const char *description, int num_options, co
                 break;
 	    case SDL_AUDIODEVICEADDED:
 	    case SDL_AUDIODEVICEREMOVED:
-            case SDL_WINDOWEVENT:
-		SDL_PushEvent(&e);
-		break;
 	    default:
 		break;
 	    }
@@ -136,15 +141,12 @@ int prompt_user(const char *header, const char *description, int num_options, co
                 first_frame = false;
             }
 
-            /* project_draw(); */
             modal_draw(modal);
             window_end_draw(main_win);
             needs_draw = false;
         }
 	SDL_Delay(1);
     }
-    /* int sel = r->selected_item; */
-    /* free(sel_buf); */
     modal->x = saved_modal_x;
     modal_destroy(modal);
     ACTIVE_TL->needs_redraw = true;

@@ -501,26 +501,18 @@ void modal_add_dropdown_from_ep(
 
 static void modal_el_reset(ModalEl *el)
 {
-    /* fprintf(stdout, "Resetting el... \n"); */
-    /* SDL_Delay(1000); */
-    /* layout_force_reset(el->layout); */
     switch (el->type) {
     case MODAL_EL_MENU:
 	menu_reset_layout((Menu *)el->obj);
 	break;
     case MODAL_EL_TEXT:
-	/* textbox_size_to_fit((Textbox *)el->obj, 0, MODAL_V_PADDING); */
-	/* fprintf(stdout, "Reseting Textbox %s to lt %d %d %d %d\n", ((Textbox *)el->obj)->text->value_handle, ((Textbox *)el->obj)->layout->rect.x, ((Textbox *)el->obj)->layout->rect.y, ((Textbox *)el->obj)->layout->rect.w, ((Textbox *)el->obj)->layout->rect.h); */
 	textbox_reset_full((Textbox *)el->obj);
 	break;
     case MODAL_EL_TEXTENTRY:
-	/* fprintf(stdout, "Reseting Textbox %s to lt %d %d %d %d\n", ((Textbox *)el->obj)->text->value_handle, ((Textbox *)el->obj)->layout->rect.x, ((Textbox *)el->obj)->layout->rect.y, ((Textbox *)el->obj)->layout->rect.w, ((Textbox *)el->obj)->layout->rect.h); */
 	textentry_reset((TextEntry *)el->obj);
 	break;
     case MODAL_EL_TEXTAREA:
-	/* textbox_size_to_fit((Textbox *)el->obj, 0, MODAL_V_PADDING); */
-	/* fprintf(stdout, "Reseting Textbox %s to lt %d %d %d %d\n", ((Textbox *)el->obj)->text->value_handle, ((Textbox *)el->obj)->layout->rect.x, ((Textbox *)el->obj)->layout->rect.y, ((Textbox *)el->obj)->layout->rect.w, ((Textbox *)el->obj)->layout->rect.h); */
-	layout_size_to_fit_children_v(el->layout, 0, 0);
+	layout_size_to_fit_children_v(el->layout, true, 0);
 	layout_reset(el->layout->parent);
 	break;
     case MODAL_EL_SLIDER:
@@ -599,7 +591,6 @@ static void modal_el_draw(ModalEl *el)
 void layout_write(FILE *f, Layout *lt, int indent);
 void modal_draw(Modal *modal)
 {
-   
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(modal_color_background));
     geom_fill_rounded_rect(main_win->rend, &modal->layout->rect, MODAL_STD_CORNER_RAD);
 
@@ -626,7 +617,6 @@ void modal_draw(Modal *modal)
     }
     if (modal->x) 
 	symbol_button_draw(modal->x);
-
 }
 
 void modal_next(Modal *modal)

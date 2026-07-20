@@ -548,7 +548,7 @@ void eq_create_freq_plot(EQ *eq, Layout *container)
 	2,
 	NULL, NULL, 0,
 	fcolors, NULL,
-	40, (double)eq->effect->effect_chain->proj->sample_rate / 2,
+	20, (double)eq->effect->effect_chain->proj->sample_rate / 2,
 	container);
     waveform_reset_freq_plot(eq->fp);
 

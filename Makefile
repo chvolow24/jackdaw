@@ -358,8 +358,8 @@ $(EXEC): $(OBJS) $(GUI_OBJS) | deps-ready
 .PHONY: debug
 debug: $(EXEC)
 
-$(LT_EXEC): $(LT_OBJS)
-	$(CC) -o $@ $^ $(CFLAGS) $(CFLAGS_LT_ONLY) $(LDFLAGS)
+$(LT_EXEC): $(LT_OBJS) | deps-ready
+	$(CC) -o $@ $^ $(CFLAGS) $(CFLAGS_LT_ONLY) $(LDFLAGS) $(DEP_BUILD_TARGETS) $(PKG_LINK_FLAGS) $(LDFLAGS)
 
 $(BUILD_DIR):
 	mkdir $(BUILD_DIR)

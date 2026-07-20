@@ -6,6 +6,7 @@
 #include "geometry.h"
 #include "io.h"
 #include "layout.h"
+#include "log.h"
 #include "modal.h"
 #include "page.h"
 #include "project.h"
@@ -1206,7 +1207,7 @@ static int synth_save_form(void *mod_v, void *target)
 {
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
-    char full_path[MAX_NAMELENGTH];
+    char full_path[PATH_MAX];
     Modal *modal = mod_v;
     char *dirpath = NULL;
     char *name = NULL;
@@ -1228,13 +1229,18 @@ static int synth_save_form(void *mod_v, void *target)
     }
     int ret;
     if (dirpath && name) {
+        if (!realpath(dirpath, full_path)) {
+            log_tmp(LOG_ERROR, "In synth save form: realpath returned NULL on input %s\n", dirpath);
+            return -1;
+        }
 	Track *track = timeline_selected_track(tl);
 	if (track && track->synth) {
-	    int offset = snprintf(full_path, MAX_NAMELENGTH, "%s", dirpath);
-	    full_path[offset] = '/';
-	    offset++;
-	    offset += snprintf(full_path + offset, MAX_NAMELENGTH - offset, "%s", name);
-	    synth_write_preset_file(full_path, track->synth);
+            int offset = strlen(full_path);
+            snprintf(full_path + offset, PATH_MAX - offset, "/%s", name);            
+            IOFileType t = io_write_file(full_path, IO_FILE_SYNTH, false, track->synth);
+            if (t == IO_FILE_NO_OVERWRITE) {
+                status_set_errstr("Cancelled writing synth preset file");
+            }
 	}
 	ret = 0;
     } else {

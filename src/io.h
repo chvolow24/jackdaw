@@ -48,7 +48,7 @@ IOFileType io_open_file(const char *filepath, IOFileType type, Track *dst_track,
 
    'type' is return as-is on success, else some error type is returned
  */
-IOFileType io_write_file(const char *filepath, IOFileType type, bool force_allow_overwrite);
+IOFileType io_write_file(const char *filepath, IOFileType type, bool force_allow_overwrite, void *object_to_write);
 
 /* Use when jackdaw invoked on cmd line with project file arg.
     Returns 0 on success, <0 on error. */

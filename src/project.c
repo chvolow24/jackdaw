@@ -2149,6 +2149,16 @@ void track_destroy(Track *track, bool displace)
 	    t->tl_rank--;
 	    /* t->layout = t->layout->parent->iterator->iterations[t->tl_rank]; */
 	}
+        bool proc_order_displace = false;
+        for (int i=0; i<tl->num_tracks - 1; i++) {
+            Track *t = tl->tracks_proc_order[i];
+            if (t == track) {
+                proc_order_displace = true;
+            }
+            if (proc_order_displace) {
+                tl->tracks_proc_order[i] = tl->tracks_proc_order[i + 1];
+            }
+        }
 	layout_destroy(track->layout);
 	/* layout_remove_iter_at(track->layout->parent->iterator, track->tl_rank); */
 	tl->tracks[tl->num_tracks - 1] = NULL;

@@ -547,7 +547,7 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 	    case 0xC0: { // Program change
 		int pc_data = fgetc(f);
 		if (pc_data < sizeof(MIDI_PC_INSTRUMENT_NAMES) / sizeof(char *)) {
-		    if (file_info.format == 1 && track_index > 0) {
+		    if (file_info.format == 1 && track_index > 0 && track_index < num_clips) {
 			MIDIClip *mclip = mclips[track_index - 1];
 			if (mclip && !mclip->primary_instrument_name) {
 			    mclip->primary_instrument = pc_data;

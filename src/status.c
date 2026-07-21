@@ -19,6 +19,7 @@
 #define STAT_TIMER_MAX 50
 
 extern struct colors colors;
+extern Window *main_win;
 
 static const char *queued_errstr = NULL;
 
@@ -44,14 +45,18 @@ void status_frame()
 	(*alpha)--;
 	/* The alpha decrement appears to NEED to come after reset drawable.
 	   This makes no sense. */
+    } else {
+        session->status_bar.draw_err = false;
     }
-
+    
     alpha = &(session->status_bar.call->text->color.a);
     if (session->status_bar.call_timer > 0) {
 	session->status_bar.call_timer--;
     } else if (*alpha > 0) {
 	txt_reset_drawable(session->status_bar.call->text);
 	(*alpha)--;
+    } else {
+        session->status_bar.draw_call = false;
     }
 }
 
@@ -86,21 +91,17 @@ void status_set_alertstr(const char *fmt, ...)
     va_start(ap, fmt);
     Session *session = session_get();
     if (!on_thread(JDAW_THREAD_MAIN)) {
-	/* pthread_mutex_lock(&session->status_bar.errstr_lock); */
-	/* queued_errstr = errstr; */
-	/* pthread_mutex_unlock(&session->status_bar.errstr_lock); */
 	return;
     }
     vsnprintf(session->status_bar.errstr, MAX_STATUS_STRLEN, fmt, ap);
-    /* strcpy(session->status_bar.errstr, errstr); */
-    /* textbox_set_text_color(session->status_bar.error, &colors.red); */
-    textbox_size_to_fit(session->status_bar.error, 0, 0);
+    textbox_size_to_fit(session->status_bar.error, 4, 0);
     textbox_set_text_color(session->status_bar.error, &colors.cerulean);
     layout_center_agnostic(session->status_bar.error->layout, false, true);
 
     textbox_reset_full(session->status_bar.error);
     session->status_bar.err_timer = ERR_TIMER_MAX;
     session->status_bar.error->text->color.a = 255;
+    session->status_bar.draw_err = true;
 }
 
 
@@ -115,6 +116,7 @@ void status_set_undostr(const char *undostr)
     textbox_reset_full(session->status_bar.error);
     session->status_bar.err_timer = ERR_TIMER_MAX;
     session->status_bar.error->text->color.a = 255;
+    session->status_bar.draw_err = true;
 }
 
 void status_set_statstr(const char *fmt, ...)
@@ -147,6 +149,7 @@ void status_set_callstr(const char *callstr)
     textbox_reset_full(session->status_bar.call);
     session->status_bar.call_timer = CALL_TIMER_MAX;
     session->status_bar.call->text->color.a = 255;
+    session->status_bar.draw_call = true;
     /* layout_size_to_fit_children(session->status_bar.call->layout, false, 0); */
     /* layout_reset(session->status_bar.layout); */
 }
@@ -232,4 +235,3 @@ void status_stat_drag()
     }
     status_set_dragstr(buf);
 }
-

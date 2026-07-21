@@ -15,6 +15,7 @@
     * backups are executed every time a save is executed on an existing file
  *****************************************************************************************************************/
 
+/* NOTE: mostly obsoleted by io.c */
 
 #ifndef JDAW_FILE_BACKUP_H
 #define JDAW_FILE_BACKUP_H

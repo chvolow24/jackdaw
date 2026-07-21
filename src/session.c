@@ -201,19 +201,19 @@ static void session_init_status_bar(Session *session)
     session->status_bar.call = textbox_create_from_str(session->status_bar.callstr, calllt, main_win->mono_bold_font, 14, main_win);
     textbox_set_trunc(session->status_bar.call, false);
     textbox_set_text_color(session->status_bar.call, &colors.light_grey);
-    textbox_set_background_color(session->status_bar.call, &colors.clear);
+    textbox_set_background_color(session->status_bar.call, &colors.control_bar_bckgrnd);
     textbox_set_align(session->status_bar.call, CENTER_LEFT);
 
     session->status_bar.dragstat = textbox_create_from_str(session->status_bar.dragstr, draglt, main_win->mono_bold_font, 14, main_win);
     textbox_set_trunc(session->status_bar.dragstat, false);
     textbox_set_text_color(session->status_bar.dragstat, &colors.green);
-    textbox_set_background_color(session->status_bar.dragstat, &colors.clear);
+    textbox_set_background_color(session->status_bar.dragstat, &colors.control_bar_bckgrnd);
     textbox_set_align(session->status_bar.dragstat, CENTER_LEFT);
     
     session->status_bar.error = textbox_create_from_str(session->status_bar.errstr, errlt, main_win->mono_bold_font, 14, main_win);
     textbox_set_trunc(session->status_bar.error, false);
     textbox_set_text_color(session->status_bar.error, &colors.red);
-    textbox_set_background_color(session->status_bar.error, &colors.clear);
+    textbox_set_background_color(session->status_bar.error, &colors.control_bar_bckgrnd);
     textbox_set_align(session->status_bar.error, CENTER_LEFT);
     /* textbox_size_to_fit(session->status_bar.call, 0, 0); */
     /* textbox_size_to_fit(session->status_bar.error, 0, 0); */

@@ -463,10 +463,9 @@ void dirnav_destroy(DirNav *dn)
     free(dn);
 }
 
-extern SDL_Color control_bar_bckgrnd;
 void dirnav_draw(DirNav *dn)
 {
-    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(control_bar_bckgrnd));
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.control_bar_bckgrnd));
     SDL_RenderFillRect(main_win->rend, &dn->layout->rect);
     Layout *inner = dn->inner_layout;
     /* Layout *inner = layout_get_child_by_name_recursive(dn->layout, "dirnav_lines_container"); */

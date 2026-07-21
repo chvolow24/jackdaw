@@ -94,7 +94,7 @@ static void jdaw_write_timeline(FILE *f, Timeline *tl);
 static Project *proj;
 
 /* return 0 on success, negative on error */
-int jdaw_write_project(const char *path) 
+int jdaw_write_project(FILE *f) 
 {
     Session *session = session_get();
     proj = &session->proj;
@@ -103,20 +103,8 @@ int jdaw_write_project(const char *path)
         return -1;
     }    
 
-
-    if (file_exists(path)) {
-	/* session_loading_screen_update("Backing up existing file...", 0.1); */
-	file_backup(path);
-    }
-
     session_set_loading_screen("Saving project", "Writing project settings...", true);
     
-    FILE* f = fopen(path, "wb");
-
-    if (!f) {
-	fprintf(stderr, "Error: unable to write to file at path %s: file could not be found\n", path);
-	return -1;
-    }
     fwrite(hdr_jdaw, 1, 4, f);
     fwrite(hdr_version, 1, 8, f);
     fwrite(current_file_spec_version, 1, 5, f);
@@ -170,7 +158,6 @@ int jdaw_write_project(const char *path)
     /* for (uint8_t i=0; i<proj->tl->num_tracks; i++) { */
         /* write_track_to_jdaw(f, proj->tl->tracks[i]); */
     /* } */
-    fclose(f);
     session_set_proj_save_point();
     /* session->last_save_point_next_undo_id = session->history.next_undo ? session->history.next_undo->id : -1; */
     session_loading_screen_deinit();
@@ -648,22 +635,13 @@ static Project *proj_reading;
 const char *get_fmt_str(SDL_AudioFormat f);
 
 /* Ret -2: file does not exist. -1: parse error */
-int jdaw_read_file(Project *dst, const char *path)
+int jdaw_read_file(Project *dst, FILE *f)
 {
-    /* Session *session_to_set_proj_reading = session_get(); */
-    /* session_to_set_proj_reading->proj_reading = dst; */
-    FILE *f = fopen(path, "r");
-    if (!f) {
-        fprintf(stderr, "Error: could not find project file at path %s\n", path);
-	/* goto jdaw_parse_error; */
-	/* session_to_set_proj_reading->proj_reading = NULL; */
-        return -2;
-    }
     char hdr_buffer[9];
     fread(hdr_buffer, 1, 4, f);
     hdr_buffer[4] = '\0';
     if (strncmp(hdr_buffer, hdr_jdaw, 4) != 0) {
-        fprintf(stderr, "Error: unable to read file. 'JDAW' specifier missing %s\n", path);
+        fprintf(stderr, "Error: unable to read file. 'JDAW' specifier missing\n");
         /* free(proj); */
 	goto jdaw_parse_error;
 	/* session_to_set_proj_reading->proj_reading = NULL; */
@@ -786,7 +764,6 @@ int jdaw_read_file(Project *dst, const char *path)
 	num_timelines--;
     }
     /* timeline_reset(proj->timelines[0]); */
-    fclose(f);
     session_loading_screen_deinit();
     session_set_proj_save_point();
     /* session_to_set_proj_reading->proj_reading = NULL; */
@@ -794,8 +771,7 @@ int jdaw_read_file(Project *dst, const char *path)
     
 jdaw_parse_error:
     debug_print_bytes_around(f);
-    fclose(f);
-    fprintf(stderr, "Error parsing .jdaw file at %s, filespec version %s\n", path, read_file_spec_version);
+    fprintf(stderr, "Error parsing .jdaw file (filespec version %s)\n", read_file_spec_version);
     breakfn();
     session_loading_screen_deinit();
     session_set_proj_save_point();

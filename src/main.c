@@ -263,9 +263,10 @@ int main(int argc, char **argv)
 
     window_push_mode(main_win, MODE_TIMELINE);
     if (command_line_arg) {
-	io_open_file(rp, in_file_type, session->proj.timelines[0]->tracks[0], 0);	
+	io_open_file(rp, in_file_type, session->proj.timelines[0]->tracks[0], 0);
     }
     session_check_reset_window_title();
+    session->init_complete = true;
     loop_project_main();
     quit();    
 }

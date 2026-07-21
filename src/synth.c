@@ -2369,13 +2369,11 @@ void synth_clear_all(Synth *s)
     }
 }
 
-void synth_write_preset_file(const char *filepath, Synth *s)
+void synth_write_preset_file(FILE *f, Synth *s)
 {
-    FILE *f = fopen(filepath, "w");
     fprintf(f, "JSYNTHv02\n");
     jdaw_write_effect_chain_external(f, &s->effect_chain);
     api_node_serialize(f, &s->api_node);
-    fclose(f);
 }
 
 /* struct synth_and_preset_path { */
@@ -2398,7 +2396,13 @@ static char *synth_write_backup_file(Synth *synth)
     snprintf(backup_filename, 32, "jackdaw_synth%d.jsynth", backup_file_index);
     backup_file_index++;
     char *backup_filepath = create_tmp_file(backup_filename);
-    synth_write_preset_file(backup_filepath, synth);
+    FILE *f = fopen(backup_filepath, "w");
+    if (!f) {
+        log_tmp(LOG_ERROR, "Unable to write synth backup file at %s: %s\n", backup_filepath, strerror(errno));
+        return NULL;
+    }
+    synth_write_preset_file(f, synth);
+    fclose(f);
     return backup_filepath;
 }
 

@@ -301,7 +301,7 @@ void synth_set_pitch_bend(Synth *s, float cents);
 
 void synth_destroy(Synth *s);
 
-void synth_write_preset_file(const char *filepath, Synth *s);
+void synth_write_preset_file(FILE *f, Synth *s);
 int synth_read_preset_file(const char *filepath, Synth *s);
 
 /* Swap pitch/velocity for stereo audio buffers and return the length.

@@ -56,6 +56,8 @@ const struct colors colors = {
     
     .freq_L = {130, 255, 255, 255},
     .freq_R = {255, 255, 130, 220},
+
+    .control_bar_bckgrnd = {22, 28, 34, 255}
 };
 
 void color_diff_set(ColorDiff *diff, SDL_Color a, SDL_Color b)

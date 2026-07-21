@@ -132,6 +132,8 @@ struct status_bar {
     int stat_timer;
     int call_timer;
     int err_timer;
+    bool draw_call;
+    bool draw_err;
 };
 
 #define MAX_QUEUED_BUFS 64
@@ -239,6 +241,8 @@ typedef struct session {
     char proj_path[PATH_MAX];
     bool proj_path_set;
     bool proj_title_reset;
+    
+    bool init_complete; /* set in main before entering main loop */
 } Session;
 
 

@@ -92,22 +92,10 @@ static void write_wav_header(FILE *f, uint32_t num_samples, uint16_t bits_per_sa
     
 }
 
-static void write_wav(const char *fname, int16_t *samples, uint32_t num_samples, uint16_t bits_per_sample, uint8_t channels)
+static void write_wav(FILE *f, int16_t *samples, uint32_t num_samples, uint16_t bits_per_sample, uint8_t channels)
 {
-    Session *session = session_get();
-    Project *proj = &session->proj;
-    
-    fprintf(stderr, "Write wav, num_samples: %d, chanels: %d, bitspsamle: %d\n", num_samples, channels, bits_per_sample);
-    FILE* f = fopen(fname, "wb");
-    if (!f) {
-        fprintf(stderr, "Error: failed to open file at %s\n", fname);
-    } else {
-	fprintf(stderr, "Writing %lu samples (or %f minutes) to wav\n", (long unsigned) num_samples, (double)num_samples / 2.0f / 2.0f / proj->sample_rate / 60.0f);
-        write_wav_header(f, num_samples, bits_per_sample, channels);
-        fwrite(samples, bits_per_sample / 8, num_samples, f);
-    }
-    fclose(f);
-    fprintf(stderr, "\t-> Done writing wav.\n");
+    write_wav_header(f, num_samples, bits_per_sample, channels);
+    fwrite(samples, bits_per_sample / 8, num_samples, f);
 }
 
 const char *get_fmt_str(SDL_AudioFormat f)
@@ -150,7 +138,7 @@ const char *get_fmt_str(SDL_AudioFormat f)
 
 /* extern double update, events, draw_start_and_end, draw_box, draw_prog, render_copy, render_present; */
 
-void wav_write_mixdown(const char *filepath)
+void wav_write_mixdown(FILE *f)
 {
     Session *session = session_get();
     Project *proj = &session->proj;
@@ -214,7 +202,7 @@ void wav_write_mixdown(const char *filepath)
 
     session_loading_screen_update("Writing file...", 0.95);
 
-    write_wav(filepath, samples, len_samples, 16, proj->channels);
+    write_wav(f, samples, len_samples, 16, proj->channels);
     free(samples);
     timeline_full_pause(tl);
     timeline_play_speed_set(0.0);

@@ -16,7 +16,7 @@
 
 
 /* Gets a mixdown chunk and calls functions in wav.c to create a wav file */
-void wav_write_mixdown(const char *filepath);
+void wav_write_mixdown(FILE *f);
 
 // void write_wav(const char *fname, int16_t *samples, uint32_t num_samples, uint16_t bits_per_sample, uint8_t channels);
 int32_t wav_load(const char *filename, float **L, float **R);

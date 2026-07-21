@@ -64,6 +64,7 @@ struct colors {
 
     SDL_Color freq_L;
     SDL_Color freq_R;
+    SDL_Color control_bar_bckgrnd;
 };
 
 void color_diff_set(ColorDiff *diff, SDL_Color a, SDL_Color b);

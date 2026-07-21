@@ -9,6 +9,7 @@
 #include "prompt_user.h"
 #include "dir.h"
 #include "dot_jdaw.h"
+#include "file_backup.h"
 #include "io.h"
 #include "jdaw_ffmpeg.h"
 #include "log.h"
@@ -103,7 +104,7 @@ void user_global_save_project(void *nullarg);
 void user_global_save_as(void *nullarg);
 
 /* Return 1 to cancel; 0 on success; negative on error */
-static int open_jdaw_file_runtime_only(const char *filepath)
+static int open_jdaw_file_runtime_only(FILE *f, const char *filepath)
 {
     const char *filename = path_get_tail(filepath);
     Session *session = session_get();
@@ -142,7 +143,7 @@ static int open_jdaw_file_runtime_only(const char *filepath)
     Project new_proj;
     memset(&new_proj, '\0', sizeof(new_proj));
     session->proj_reading = &new_proj;
-    int ret = jdaw_read_file(&new_proj, filepath);
+    int ret = jdaw_read_file(&new_proj, f);
     if (ret == 0) {
 	session_set_proj(session, &new_proj);
         session_set_proj_path(filepath);
@@ -161,11 +162,16 @@ static int open_jdaw_file_runtime_only(const char *filepath)
 /* Return 0 on success, -1 on error */
 int open_jdaw_file_starttime(const char *filepath)
 {
+    FILE *f = fopen(filepath, "r");
+    if (!f) {
+        fprintf(stderr, "Unable to open file at %s: %s\n", filepath, strerror(errno));
+        return -1;
+    }
     Session *session = session_get();
     Project new_proj;
     memset(&new_proj, '\0', sizeof(new_proj));
     session->proj_reading = &new_proj;
-    int ret = jdaw_read_file(&new_proj, filepath);
+    int ret = jdaw_read_file(&new_proj, f);
     if (ret == 0) {
 	session_set_proj(session, &new_proj);
 	session->proj_initialized = true;
@@ -355,14 +361,22 @@ IOFileType io_open_file(const char *filepath, IOFileType type, Track *dst_track,
 
     Session *session = session_get();
     IOFileType ret = type;
+
+    FILE *f = fopen(rp, "r");
+    if (!f) {
+        const char *errstr = strerror(errno);
+        status_set_errstr("Error opening file: %s", errstr);
+        return IO_FILE_ERROR;
+    }    
+    
     switch (type) {
     case IO_FILE_PROJ:
-	if (open_jdaw_file_runtime_only(rp) < 0) {
+	if (open_jdaw_file_runtime_only(f, rp) < 0) {
 	    ret = IO_FILE_ERROR;
 	}
 	break;
     case IO_FILE_MIDI:
-	if (midi_file_open(rp, false) < 0) {
+	if (midi_file_open(rp, !session->init_complete) < 0) {
 	    ret = IO_FILE_ERROR;
 	}
 	break;
@@ -492,13 +506,23 @@ IOFileType io_write_file(const char *filepath, IOFileType type, bool force_allow
                 ret = IO_FILE_NO_OVERWRITE;
                 goto cleanup_and_ret;
             }
+            /* Write a backup file at [project].jdaw.bak */
+            file_backup(full_path);
         }
+    }
+
+    FILE *f = fopen(full_path, "w");
+    if (!f) {
+        const char *errstr = strerror(errno);
+        status_set_errstr("Error writing file: %s", errstr);
+        ret = IO_FILE_ERROR;
+        goto cleanup_and_ret;
     }
     
     /* TODO: Handle errors and return info to caller */
     switch (type) {
     case IO_FILE_PROJ:
-	if (jdaw_write_project(full_path) == 0) {
+	if (jdaw_write_project(f) == 0) {
             session_set_proj_path(full_path);
             session_set_proj_name(filename); 
         } else {
@@ -506,13 +530,14 @@ IOFileType io_write_file(const char *filepath, IOFileType type, bool force_allow
         }
 	break;
     case IO_FILE_MIDI:
+        /* TODO: write MIDI files. maybe. */
 	break;
     case IO_FILE_SYNTH:
-	synth_write_preset_file(full_path, object_to_write);
+	synth_write_preset_file(f, object_to_write);
 	break;
     case IO_FILE_AUDIO:
 	/* TODO: replace with universal FFMPEG file writer */
-	wav_write_mixdown(full_path);
+	wav_write_mixdown(f);
 	break;
     default:
 	break;	
@@ -522,6 +547,7 @@ IOFileType io_write_file(const char *filepath, IOFileType type, bool force_allow
     } else if (type == IO_FILE_NO_OVERWRITE) {
         status_set_alertstr("File write canceled");
     }
+    fclose(f);
 cleanup_and_ret:
     if (dir) free(dir);
     if (filename) free(filename);

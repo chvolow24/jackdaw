@@ -61,7 +61,6 @@ SDL_Color console_column_bckgrnd = {45, 50, 55, 255};
 SDL_Color timeline_marked_bckgrnd = {255, 255, 255, 30};
 SDL_Color ruler_bckgrnd = {10, 10, 10, 255};
 /* SDL_Color control_bar_bckgrnd = {20, 20, 20, 255}; */
-SDL_Color control_bar_bckgrnd = {22, 28, 34, 255};
 SDL_Color track_selector_color = {100, 190, 255, 255};
 
 SDL_Color grey_mask = {30, 30, 30, 210};
@@ -330,7 +329,7 @@ static void track_draw(Track *track)
 	    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(console_bckgrnd_selector));
 	}
 	SDL_RenderFillRect(main_win->rend, track->console_rect);
-	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(control_bar_bckgrnd));
+	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.control_bar_bckgrnd));
 	SDL_RenderDrawRect(main_win->rend, track->console_rect);
     } else {
 	if (track->active) {
@@ -912,7 +911,7 @@ static int timeline_draw(Timeline *tl)
 static void control_bar_draw()
 {
     Session *session = session_get();
-    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(control_bar_bckgrnd));
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.control_bar_bckgrnd));
     SDL_RenderFillRect(main_win->rend, session->gui.control_bar_rect);
 
     panel_area_draw(session->gui.panels);
@@ -923,7 +922,7 @@ static void control_bar_draw()
     mask.w += 40;
     mask.y -= 20;
     mask.h += 40;
-    SDL_Color c = control_bar_bckgrnd;
+    SDL_Color c = colors.control_bar_bckgrnd;
     c.a = 0;
     int rad = (10 * main_win->dpi_scale_factor);
     while (mask.w > rad) {
@@ -940,6 +939,22 @@ static void control_bar_draw()
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(track_bckgrnd));
     for (int i=0; i<3; i++) {
 	SDL_RenderFillRect(main_win->rend, session->gui.bun_patty_bun[i]);
+    }
+}
+
+void status_bar_draw()
+{
+    Session *session = session_get();
+    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.control_bar_bckgrnd));
+    SDL_RenderFillRect(main_win->rend, &session->status_bar.layout->rect);
+    if (session->dragging || session->midi_qwerty) {
+	textbox_draw(session->status_bar.dragstat);
+    }
+    if (session->status_bar.draw_call > 0)
+        textbox_draw(session->status_bar.call);
+    /* Alerts also use status_bar.error */
+    if (session->status_bar.draw_err > 0) {
+        textbox_draw(session->status_bar.error);
     }
 }
 
@@ -976,58 +991,14 @@ void project_draw()
 	tabview_draw(main_win->active_tabview);
     }
 
-    /* piano_roll_draw(); */
+    status_bar_draw();
     
-    SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(control_bar_bckgrnd));
-    SDL_RenderFillRect(main_win->rend, &session->status_bar.layout->rect);
-    textbox_draw(session->status_bar.error);
-    if (session->dragging || session->midi_qwerty) {
-	textbox_draw(session->status_bar.dragstat);
-    }
-    textbox_draw(session->status_bar.call);
     window_draw_modals(main_win);
     window_draw_menus(main_win);
-
-    /* tl->needs_redraw = false; */
-
 
     if (main_win->ac_active) {
 	autocompletion_draw(&main_win->ac);
     }
-
-    /* static VUMeter *vu_meter = NULL; */
-    /* if (!vu_meter && track_1_ef_init) { */
-    /* 	Layout *container = layout_add_child(main_win->layout); */
-    /* 	layout_set_default_dims(container); */
-    /* 	layout_reset(container); */
-    /* 	container->w.value = 40; */
-    /* 	container->h.value = 240; */
-    /* 	vu_meter = vu_meter_create(container, false, &track_1_ef, NULL); */
-    /* } */
-    /* if (vu_meter) { */
-    /* 	vu_meter_draw(vu_meter); */
-    /* } */
-/* end_draw: */
-    /* SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 100); */
-    /* SDL_RenderFillRect(main_win->rend, &glob_onscreen_rect); */
-    /* fprintf(stderr, "%d, %d, %d, %d\n", glob_onscreen_rect.x, glob_onscreen_rect.y, glob_onscreen_rect.w, glob_onscreen_rect.h); */
-    /* static PageList *pl = NULL; */
-    /* if (!pl && ACTIVE_TL->num_tracks > 0 && ACTIVE_TL->tracks[0]->num_routes > 2) { */
-    /* 	Layout *pl_lt = layout_add_child(main_win->layout); */
-    /* 	layout_set_default_dims(pl_lt); */
-    /* 	layout_reset(pl_lt); */
-    /* 	pl = page_list_create( */
-    /* 	    pl_lt, */
-    /* 	    ACTIVE_TL->tracks[0]->routes, */
-    /* 	    ACTIVE_TL->tracks[0]->num_routes, */
-    /* 	    sizeof(AudioRoute *), */
-    /* 	    "/testpage.xml", */
-    /* 	    test_create_page_item);	    	    	     */
-    /* } */
-    /* if (pl) { */
-    /* 	page_list_draw(pl); */
-    /* } */
-
     window_end_draw(main_win);
 }
 

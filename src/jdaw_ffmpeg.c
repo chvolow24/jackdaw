@@ -10,8 +10,17 @@
 #include "libavutil/frame.h"
 #include "libavutil/samplefmt.h"
 
+#include "jdaw_ffmpeg.h"
 #include "log.h"
 #include "session.h"
+
+#define AV_ERR_CHECK(function_name, ...) \
+    av_ret = function_name(__VA_ARGS__); \
+    if (av_ret < 0) { \
+        av_log_error(#function_name " failed", av_ret); \
+        ret = -1;                                       \
+        goto cleanup_and_ret; \
+    }
 
 static void av_log_error(const char *wrapper_msg, int av_err)
 {
@@ -233,3 +242,175 @@ cleanup_and_return:
     
     return buf_index;   
 }
+
+
+
+
+/*------ Encode FLAC for .jdaw files ---------------------------------*/
+
+#define ENCODE_FLAC_FRAME_SIZE 4096
+
+int encode_flac(float *buf, int32_t len_sframes, enum ProjectAudioBitDepth bit_depth, uint8_t **encoded_dst, size_t *size_dst)
+{
+    AVIOContext *mem_writer;
+    int ret = 0, av_ret = 0;
+    AVFormatContext *fmt = NULL;
+    AVStream *stream = NULL;
+    const AVCodec *codec = NULL;
+    AVCodecContext *codec_ctx = NULL;
+
+    AVFrame *frame = NULL;
+    AVPacket *packet = NULL;
+
+    uint8_t *data_buf = NULL;
+
+    /*------ Setup -------------------------------------------------------*/
+    
+    AV_ERR_CHECK(avformat_alloc_output_context2, &fmt, NULL, "flac", NULL);
+    fprintf(stderr, "%s\n", fmt->oformat->name);
+    fprintf(stderr, "%s\n", fmt->oformat->long_name);
+    AV_ERR_CHECK(avio_open_dyn_buf, &fmt->pb);
+
+    codec = avcodec_find_encoder(AV_CODEC_ID_FLAC);
+    if (!codec) {
+        log_tmp(LOG_ERROR, "avcodec_find_encoder failed\n");
+        ret = -1;
+        goto cleanup_and_ret;
+    }
+    
+    codec_ctx = avcodec_alloc_context3(codec);
+    if (!codec_ctx) {
+        log_tmp(LOG_ERROR, "avcodec_alloc_context3 failed\n");
+        ret = -1;
+        goto cleanup_and_ret;
+    }
+    codec_ctx->frame_size = ENCODE_FLAC_FRAME_SIZE;
+
+    stream = avformat_new_stream(fmt, codec);
+    if (!stream) {
+        log_tmp(LOG_ERROR, "avcodec_new_stream failed");
+        ret = -1;
+        goto cleanup_and_ret;
+    }
+
+
+    codec_ctx->sample_rate = session_get_sample_rate();
+    codec_ctx->ch_layout = (AVChannelLayout)AV_CHANNEL_LAYOUT_MONO;
+    switch (bit_depth) {
+    case PROJ_AUDIO_16:
+        codec_ctx->sample_fmt = AV_SAMPLE_FMT_S16;
+        break;
+    case PROJ_AUDIO_32:
+        codec_ctx->sample_fmt = AV_SAMPLE_FMT_S32;
+        break;
+    }
+    codec_ctx->time_base = (AVRational){1, codec_ctx->sample_rate};
+
+    
+    AV_ERR_CHECK(avcodec_open2, codec_ctx, codec, NULL);
+    AV_ERR_CHECK(avcodec_parameters_from_context, stream->codecpar, codec_ctx);
+    stream->time_base = codec_ctx->time_base;
+   
+    
+    frame = av_frame_alloc();
+    if (!frame) {
+        log_tmp(LOG_ERROR, "av_frame_alloc failed\n");
+        ret = -1;
+        goto cleanup_and_ret;
+    }
+    
+    packet = av_packet_alloc();
+    if (!packet) {
+        log_tmp(LOG_ERROR, "av_packet_alloc failed\n");
+        ret = -1;
+        goto cleanup_and_ret;
+    }
+    
+    /*------ Write data --------------------------------------------------*/
+    
+    AV_ERR_CHECK(avformat_write_header, fmt, NULL);
+    int32_t encode_index = 0;
+    bool flushed = false;
+    while (!flushed) {
+        int iter_len = len_sframes - encode_index < ENCODE_FLAC_FRAME_SIZE ? len_sframes - encode_index : ENCODE_FLAC_FRAME_SIZE;
+        av_frame_unref(frame);
+        frame->format = codec_ctx->sample_fmt;
+        frame->sample_rate = codec_ctx->sample_rate;
+        av_channel_layout_copy(&frame->ch_layout, &codec_ctx->ch_layout);
+        frame->nb_samples = iter_len;
+        frame->pts = encode_index;
+        fprintf(stderr, "Sending %d samples...\n", frame->nb_samples);
+        AV_ERR_CHECK(av_frame_get_buffer, frame, 0);
+        AV_ERR_CHECK(av_frame_make_writable, frame);
+        int16_t *d16 = (int16_t *)frame->data[0];
+        int32_t *d32 = (int32_t *)frame->data[0];
+
+        for (int i=0; i<iter_len; i++) {
+            switch (bit_depth) {
+            case PROJ_AUDIO_16:
+                d16[i] = buf[encode_index] * INT16_MAX;
+                break;
+            case PROJ_AUDIO_32:
+                d32[i] = buf[encode_index] * INT32_MAX;
+                break;
+            }
+            encode_index++;
+        }
+        AV_ERR_CHECK(avcodec_send_frame, codec_ctx, frame);
+    handle_packets:
+        /* Read packets until exhausted */
+        while (av_ret >= 0) {
+            av_ret = avcodec_receive_packet(codec_ctx, packet);
+            if (av_ret == AVERROR(EAGAIN) || av_ret == AVERROR_EOF) {
+                break;
+            } else if (av_ret < 0) {
+                av_log_error("avcodec_receive_packet failed", av_ret);
+                ret = -1;
+                goto cleanup_and_ret;
+            }
+            AV_ERR_CHECK(av_write_frame, fmt, packet);
+            av_packet_unref(packet);
+            /* Packet data is automatically writen to the buf */
+            
+        }
+        if (encode_index == len_sframes && !flushed) {
+            /* Flush */
+            AV_ERR_CHECK(avcodec_send_frame, codec_ctx, NULL);
+            flushed = true;
+            goto handle_packets;
+        }
+    }
+    AV_ERR_CHECK(av_write_trailer, fmt);
+
+    /*------ Denoument ---------------------------------------------------*/
+    
+    int size = avio_close_dyn_buf(fmt->pb, &data_buf);
+    *size_dst = size;
+    fprintf(stderr, "ENCODED %d bytes (%fx)\n", size, (float)size / (len_sframes * sizeof(float)));
+cleanup_and_ret:
+    if (fmt) avformat_free_context(fmt);
+    if (data_buf && ret < 0) av_free(data_buf);
+    if (codec_ctx) avcodec_free_context(&codec_ctx);
+    if (frame) av_frame_free(&frame);
+    if (packet) av_packet_free(&packet);
+    return ret;
+}
+
+
+/*--------------------------------------------------------------------*/
+
+
+
+
+/*------ Decode FLAC for .jdaw files ---------------------------------*/
+
+#define DECODE_FLAC_DATA_SIZE 20480
+
+/* buf should be allocated to len_sframes */
+int decode_flac(void *data, size_t data_size, float *buf, int32_t len_sframes, enum ProjectAudioBitDepth bit_depth)
+{
+
+}
+
+
+/*--------------------------------------------------------------------*/

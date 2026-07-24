@@ -25,11 +25,8 @@
 #include "SDL.h"
 #include "SDL_ttf.h"
 #include "assets.h"
-#include "audio_clip.h"
 #include "clipref.h"
 #include "consts.h"
-#include "dir.h"
-#include "dot_jdaw.h"
 #include "dsp_utils.h"
 #include "function_lookup.h"
 #include "init_panels.h"
@@ -37,18 +34,14 @@
 #include "io.h"
 #include "log.h"
 #include "midi_io.h"
-#include "midi_file.h"
 #include "midi_qwerty.h"
 #include "project.h"
 #include "pure_data.h"
 #include "session.h"
 #include "symbol.h"
-#include "synth.h"
 #include "tempo.h"
 #include "text.h"
 #include "transport.h"
-#include "userfn.h"
-#include "wav.h"
 #include "window.h"
 
 #include "jdaw_ffmpeg.h"
@@ -183,6 +176,18 @@ static const char *helpstr = "\
 
 int main(int argc, char **argv)
 {
+    /* float buf[] = {-3.5, 1.2, -2.3, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 2.0}; */
+    /* float buf[] = {-1.0, 1.0, 0.4, -0.5}; */
+    srand(time(NULL));
+    int len_seconds = 15;
+    float buf[len_seconds * 96000];
+    for (int i=0; i<len_seconds * 96000; i++) {
+        buf[i] = (float)(rand() % 100) / 100 - 0.5;
+    }
+    uint8_t *encoded_data = NULL;
+    size_t encoded_size = 0;
+    encode_flac(buf, sizeof(buf) / sizeof(float), PROJ_AUDIO_16, &encoded_data, &encoded_size);
+    return 0;
     const char *command_line_arg = NULL;
     if (argc > 2) {
 	fprintf(stderr, "%s\n", usagestr);

@@ -1095,7 +1095,6 @@ void transport_stop_recording()
 
     ClipRef **created_clips = calloc(tl->num_tracks * 2, sizeof(ClipRef *));
     uint16_t num_created = 0;
-    fprintf(stderr, "DOING created clips, active clip index == %d\n", session->proj.active_clip_index);
     for (uint16_t i=session->proj.active_clip_index; i<session->proj.num_clips; i++) {
 	Clip *clip = session->proj.clips[i];
 	if (clip->len_sframes == 0) {

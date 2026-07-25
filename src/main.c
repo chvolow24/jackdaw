@@ -177,16 +177,37 @@ static const char *helpstr = "\
 int main(int argc, char **argv)
 {
     /* float buf[] = {-3.5, 1.2, -2.3, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 2.0}; */
-    /* float buf[] = {-1.0, 1.0, 0.4, -0.5}; */
     srand(time(NULL));
-    int len_seconds = 15;
-    float buf[len_seconds * 96000];
-    for (int i=0; i<len_seconds * 96000; i++) {
+    const int print_samples = 32;
+    enum ProjectAudioBitDepth bd = PROJ_AUDIO_32;
+    int BUFLEN = 96000 * 60 * 2;
+    float *buf = malloc(BUFLEN * sizeof(float));
+    fprintf(stderr, "INPUT: \n");
+    for (int i=0; i<BUFLEN; i++) {
         buf[i] = (float)(rand() % 100) / 100 - 0.5;
+        if (i < print_samples) {
+            fprintf(stderr, "%f, ", buf[i]);
+        }
     }
+    fprintf(stderr, "\n");
     uint8_t *encoded_data = NULL;
     size_t encoded_size = 0;
-    encode_flac(buf, sizeof(buf) / sizeof(float), PROJ_AUDIO_16, &encoded_data, &encoded_size);
+    encode_flac(buf, BUFLEN, bd, &encoded_data, &encoded_size);
+    int32_t samples_recd = 0;
+    float *buf2 = malloc(BUFLEN * sizeof(float));
+    decode_flac(encoded_data, encoded_size, buf2, &samples_recd, bd);
+    fprintf(stderr, "OUTPUT: \n");
+    for (int i=0; i<print_samples; i++) {
+        fprintf(stderr, "%f, ", buf2[i]);
+    }
+    fprintf(stderr, "\n");
+    double cum_error = 0.0;
+    for (int i=0; i<BUFLEN; i++) {
+        cum_error += fabs(buf2[i] - buf[i]);
+    }
+    fprintf(stderr, "CUM ERROR: %f\n", cum_error);
+    
+    
     return 0;
     const char *command_line_arg = NULL;
     if (argc > 2) {

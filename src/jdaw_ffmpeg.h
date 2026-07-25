@@ -31,5 +31,5 @@ int32_t av_open_file(const char *filepath, float **L_dst, float **R_dst);
 */
 int encode_flac(float *buf, int32_t len_sframes, enum ProjectAudioBitDepth bit_depth, uint8_t **encoded_dst, size_t *size_dst);
 
-int decode_flac(void *data, size_t data_size, float *buf, int32_t len_sframes, enum ProjectAudioBitDepth bit_depth);
+int decode_flac(void *data, size_t data_size, float *buf, int32_t *len_sframes_dst, enum ProjectAudioBitDepth bit_depth);
 #endif

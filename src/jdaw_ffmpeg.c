@@ -14,6 +14,9 @@
 #include "log.h"
 #include "session.h"
 
+#define FLOAT_INT16_MAX 32767.0f
+#define DOUBLE_INT32_MAX 2147483647.0f
+
 #define AV_ERR_CHECK(function_name, ...) \
     av_ret = function_name(__VA_ARGS__); \
     if (av_ret < 0) { \
@@ -186,47 +189,48 @@ int32_t av_open_file(const char *filepath, float **L_dst, float **R_dst)
     /* Main decode loop */
     while (av_read_frame(fmt, pkt) >= 0) {
 	/* Only read from 'best' stream */
-	if (pkt->stream_index == stream_index) {
-	    avcodec_send_packet(codec_ctx, pkt);
-	    while (1) {
-		/* Call avcodec_receive_frame until prompted to send a new packet (EAGAIN) or file done */
-		ret = avcodec_receive_frame(codec_ctx, frame);
-		if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
-		    break;
-		}
-		if (ret < 0) {
-		    break;
-		}
-		const int max_out_samples = av_rescale_rnd(
-		    swr_get_delay(swr, codec_ctx->sample_rate) + frame->nb_samples,
-		    out_sr,
-		    codec_ctx->sample_rate,
-		    AV_ROUND_UP);
-		if (buf_index + max_out_samples > buf_alloc_len_sframes) {
-		    buf_alloc_len_sframes *= 2;
-		    L = realloc(L, buf_alloc_len_sframes * sizeof(float));
-		    R = realloc(R, buf_alloc_len_sframes * sizeof(float));
-		}
-		uint8_t *out[] = {
-		    (uint8_t *)(L + buf_index),
-		    (uint8_t *)(R + buf_index)
-		};
-		int out_samples = swr_convert(
-		    swr,
-		    out,
-		    max_out_samples,
-		    (const uint8_t **)frame->data,
-		    frame->nb_samples);
-		buf_index += out_samples;
-		loading_scr_sframe_mod += out_samples;
-		if (loading_scr_sframe_mod > loading_scr_every_n_sframes) {
-		    if (session_loading_screen_update("Decoding file...", (float)buf_index / dur_sframes) == 1) {
-			goto cleanup_and_return;
-			status_set_errstr("File load aborted!");
-		    }
-		    loading_scr_sframe_mod = 0;
-		}
-	    }
+	if (pkt->stream_index != stream_index) {
+            continue;
+        }
+        avcodec_send_packet(codec_ctx, pkt);
+        while (1) {
+            /* Call avcodec_receive_frame until prompted to send a new packet (EAGAIN) or file done */
+            ret = avcodec_receive_frame(codec_ctx, frame);
+            if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+                break;
+            }
+            if (ret < 0) {
+                break;
+            }
+            const int max_out_samples = av_rescale_rnd(
+                swr_get_delay(swr, codec_ctx->sample_rate) + frame->nb_samples,
+                out_sr,
+                codec_ctx->sample_rate,
+                AV_ROUND_UP);
+            if (buf_index + max_out_samples > buf_alloc_len_sframes) {
+                buf_alloc_len_sframes *= 2;
+                L = realloc(L, buf_alloc_len_sframes * sizeof(float));
+                R = realloc(R, buf_alloc_len_sframes * sizeof(float));
+            }
+            uint8_t *out[] = {
+                (uint8_t *)(L + buf_index),
+                (uint8_t *)(R + buf_index)
+            };
+            int out_samples = swr_convert(
+                swr,
+                out,
+                max_out_samples,
+                (const uint8_t **)frame->data,
+                frame->nb_samples);
+            buf_index += out_samples;
+            loading_scr_sframe_mod += out_samples;
+            if (loading_scr_sframe_mod > loading_scr_every_n_sframes) {
+                if (session_loading_screen_update("Decoding file...", (float)buf_index / dur_sframes) == 1) {
+                    goto cleanup_and_return;
+                    status_set_errstr("File load aborted!");
+                }
+                loading_scr_sframe_mod = 0;
+            }
 	}
     }
 
@@ -252,7 +256,6 @@ cleanup_and_return:
 
 int encode_flac(float *buf, int32_t len_sframes, enum ProjectAudioBitDepth bit_depth, uint8_t **encoded_dst, size_t *size_dst)
 {
-    AVIOContext *mem_writer;
     int ret = 0, av_ret = 0;
     AVFormatContext *fmt = NULL;
     AVStream *stream = NULL;
@@ -262,13 +265,12 @@ int encode_flac(float *buf, int32_t len_sframes, enum ProjectAudioBitDepth bit_d
     AVFrame *frame = NULL;
     AVPacket *packet = NULL;
 
+    // TODO: see if this can be removed */
     uint8_t *data_buf = NULL;
 
     /*------ Setup -------------------------------------------------------*/
-    
+
     AV_ERR_CHECK(avformat_alloc_output_context2, &fmt, NULL, "flac", NULL);
-    fprintf(stderr, "%s\n", fmt->oformat->name);
-    fprintf(stderr, "%s\n", fmt->oformat->long_name);
     AV_ERR_CHECK(avio_open_dyn_buf, &fmt->pb);
 
     codec = avcodec_find_encoder(AV_CODEC_ID_FLAC);
@@ -305,6 +307,9 @@ int encode_flac(float *buf, int32_t len_sframes, enum ProjectAudioBitDepth bit_d
         break;
     }
     codec_ctx->time_base = (AVRational){1, codec_ctx->sample_rate};
+    /* FLAC offers 24 bits max, but FFMpeg puts it into a 32-bit container.
+     This silences a printed warning from FFMpeg. */
+    codec_ctx->bits_per_raw_sample = 24;
 
     
     AV_ERR_CHECK(avcodec_open2, codec_ctx, codec, NULL);
@@ -339,7 +344,6 @@ int encode_flac(float *buf, int32_t len_sframes, enum ProjectAudioBitDepth bit_d
         av_channel_layout_copy(&frame->ch_layout, &codec_ctx->ch_layout);
         frame->nb_samples = iter_len;
         frame->pts = encode_index;
-        fprintf(stderr, "Sending %d samples...\n", frame->nb_samples);
         AV_ERR_CHECK(av_frame_get_buffer, frame, 0);
         AV_ERR_CHECK(av_frame_make_writable, frame);
         int16_t *d16 = (int16_t *)frame->data[0];
@@ -348,10 +352,10 @@ int encode_flac(float *buf, int32_t len_sframes, enum ProjectAudioBitDepth bit_d
         for (int i=0; i<iter_len; i++) {
             switch (bit_depth) {
             case PROJ_AUDIO_16:
-                d16[i] = buf[encode_index] * INT16_MAX;
+                d16[i] = lrintf(buf[encode_index] * FLOAT_INT16_MAX);
                 break;
             case PROJ_AUDIO_32:
-                d32[i] = buf[encode_index] * INT32_MAX;
+                d32[i] = lrint((double)buf[encode_index] * DOUBLE_INT32_MAX);
                 break;
             }
             encode_index++;
@@ -386,6 +390,7 @@ int encode_flac(float *buf, int32_t len_sframes, enum ProjectAudioBitDepth bit_d
     
     int size = avio_close_dyn_buf(fmt->pb, &data_buf);
     *size_dst = size;
+    *encoded_dst = data_buf;
     fprintf(stderr, "ENCODED %d bytes (%fx)\n", size, (float)size / (len_sframes * sizeof(float)));
 cleanup_and_ret:
     if (fmt) avformat_free_context(fmt);
@@ -406,10 +411,124 @@ cleanup_and_ret:
 
 #define DECODE_FLAC_DATA_SIZE 20480
 
-/* buf should be allocated to len_sframes */
-int decode_flac(void *data, size_t data_size, float *buf, int32_t len_sframes, enum ProjectAudioBitDepth bit_depth)
+int decode_flac(void *data, size_t data_size, float *buf, int32_t *len_sframes_dst, enum ProjectAudioBitDepth bit_depth)
 {
+    int ret = 0, av_ret = 0;
+    AVIOContext *avio = NULL;
+    AVFormatContext *fmt = NULL;
+    const AVStream *stream = NULL;
+    const AVCodec *codec = NULL;
+    AVCodecContext *codec_ctx = NULL;
 
+    AVFrame *frame = NULL;
+    AVPacket *packet = NULL;
+
+    /*------ Setup -------------------------------------------------------*/
+
+    avio = avio_alloc_context(data, data_size,
+                   0, NULL,
+                   NULL, NULL, NULL);
+    if (!avio) {
+        log_tmp(LOG_ERROR, "avio_alloc_context failed\n");
+        ret = -1;
+        goto cleanup_and_ret;
+    }
+    
+    fmt = avformat_alloc_context();
+    if (!fmt) {
+        log_tmp(LOG_ERROR, "avformat_alloc_context failed\n");
+        ret = -1;
+        goto cleanup_and_ret;
+    }
+    fmt->pb = avio;
+    fmt->flags |= AVFMT_FLAG_CUSTOM_IO;
+    AV_ERR_CHECK(avformat_open_input, &fmt, NULL, av_find_input_format("flac"), NULL);
+
+    AV_ERR_CHECK(avformat_find_stream_info, fmt, NULL);
+    int stream_index = av_find_best_stream(fmt, AVMEDIA_TYPE_AUDIO, -1, -1, NULL, 0);
+    if (stream_index < 0) {
+        log_tmp(LOG_ERROR, "av_find_best_stream failed\n");
+        ret = -1;
+        goto cleanup_and_ret;
+    }
+    stream = fmt->streams[stream_index];
+
+    codec = avcodec_find_decoder(AV_CODEC_ID_FLAC);
+    if (!codec) {
+        log_tmp(LOG_ERROR, "avcodec_find_decoder failed\n");
+        ret = -1;
+        goto cleanup_and_ret;
+    }
+    
+    codec_ctx = avcodec_alloc_context3(codec);
+    if (!codec_ctx) {
+        log_tmp(LOG_ERROR, "avcodec_alloc_context3 failed\n");
+        ret = -1;
+        goto cleanup_and_ret;
+    }
+
+    AV_ERR_CHECK(avcodec_parameters_to_context, codec_ctx, stream->codecpar);    
+    AV_ERR_CHECK(avcodec_open2, codec_ctx, codec, NULL);
+    AV_ERR_CHECK(avcodec_parameters_from_context, stream->codecpar, codec_ctx);
+   
+    
+    frame = av_frame_alloc();
+    if (!frame) {
+        log_tmp(LOG_ERROR, "av_frame_alloc failed\n");
+        ret = -1;
+        goto cleanup_and_ret;
+    }
+    
+    packet = av_packet_alloc();
+    if (!packet) {
+        log_tmp(LOG_ERROR, "av_packet_alloc failed\n");
+        ret = -1;
+        goto cleanup_and_ret;
+    }
+
+    /*------ Read data ---------------------------------------------------*/
+
+    int32_t write_index = 0;
+    while (av_read_frame(fmt, packet) >= 0) {
+        if (packet->stream_index != stream_index) {
+            continue;
+        }
+        avcodec_send_packet(codec_ctx, packet);
+        av_ret = avcodec_receive_frame(codec_ctx, frame);
+        if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+            break;
+        }
+        if (ret < 0) {
+            break;
+        }
+        int16_t *d16 = (int16_t *)frame->data[0];
+        int32_t *d32 = (int32_t *)frame->data[0];
+        for (int i=0; i<frame->nb_samples; i++) {
+            switch (bit_depth) {
+            case PROJ_AUDIO_16:                
+                buf[write_index] = (float)d16[i] / FLOAT_INT16_MAX;
+                break;
+            case PROJ_AUDIO_32:
+                buf[write_index] = (float)((double)d32[i] / DOUBLE_INT32_MAX);
+                break;                    
+            }
+            write_index++;
+        }
+    }
+    
+
+    /*------ Denoument ---------------------------------------------------*/
+
+    *len_sframes_dst = write_index;
+cleanup_and_ret:
+    avformat_close_input(&fmt);
+    if (fmt) avformat_free_context(fmt);
+    if (avio) avio_context_free(&avio);
+    /* if (data_buf && ret < 0) av_free(data_buf); */
+    if (codec_ctx) avcodec_free_context(&codec_ctx);
+    if (frame) av_frame_free(&frame);
+    if (packet) av_packet_free(&packet);
+    return ret;
 }
 
 

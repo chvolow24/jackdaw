@@ -177,38 +177,39 @@ static const char *helpstr = "\
 int main(int argc, char **argv)
 {
     /* float buf[] = {-3.5, 1.2, -2.3, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 2.0}; */
-    srand(time(NULL));
-    const int print_samples = 32;
-    enum ProjectAudioBitDepth bd = PROJ_AUDIO_32;
-    int BUFLEN = 96000 * 60 * 2;
-    float *buf = malloc(BUFLEN * sizeof(float));
-    fprintf(stderr, "INPUT: \n");
-    for (int i=0; i<BUFLEN; i++) {
-        buf[i] = (float)(rand() % 100) / 100 - 0.5;
-        if (i < print_samples) {
-            fprintf(stderr, "%f, ", buf[i]);
-        }
-    }
-    fprintf(stderr, "\n");
-    uint8_t *encoded_data = NULL;
-    size_t encoded_size = 0;
-    encode_flac(buf, BUFLEN, bd, &encoded_data, &encoded_size);
-    int32_t samples_recd = 0;
-    float *buf2 = malloc(BUFLEN * sizeof(float));
-    decode_flac(encoded_data, encoded_size, buf2, &samples_recd, bd);
-    fprintf(stderr, "OUTPUT: \n");
-    for (int i=0; i<print_samples; i++) {
-        fprintf(stderr, "%f, ", buf2[i]);
-    }
-    fprintf(stderr, "\n");
-    double cum_error = 0.0;
-    for (int i=0; i<BUFLEN; i++) {
-        cum_error += fabs(buf2[i] - buf[i]);
-    }
-    fprintf(stderr, "CUM ERROR: %f\n", cum_error);
+    /* srand(time(NULL)); */
+    /* const int print_samples = 32; */
+    /* enum ProjectAudioBitDepth bd = PROJ_AUDIO_32; */
+    /* int BUFLEN = 96000 * 60 * 2; */
+    /* float *buf = malloc(BUFLEN * sizeof(float)); */
+    /* fprintf(stderr, "INPUT: \n"); */
+    /* for (int i=0; i<BUFLEN; i++) { */
+    /*     buf[i] = (float)(rand() % 100) / 100 - 0.5; */
+    /*     if (i < print_samples) { */
+    /*         fprintf(stderr, "%f, ", buf[i]); */
+    /*     } */
+    /* } */
+    /* fprintf(stderr, "\n"); */
+    /* uint8_t *encoded_data = NULL; */
+    /* size_t encoded_size = 0; */
+    /* encode_flac(buf, BUFLEN, bd, &encoded_data, &encoded_size); */
+    /* int32_t samples_recd = 0; */
+    /* float *buf2 = malloc(BUFLEN * sizeof(float)); */
+    /* decode_flac(encoded_data, encoded_size, buf2, &samples_recd, bd); */
+    /* fprintf(stderr, "OUTPUT: \n"); */
+    /* for (int i=0; i<print_samples; i++) { */
+    /*     fprintf(stderr, "%f, ", buf2[i]); */
+    /* } */
+    /* fprintf(stderr, "\n"); */
+    /* double cum_error = 0.0; */
+    /* for (int i=0; i<BUFLEN; i++) { */
+    /*     cum_error += fabs(buf2[i] - buf[i]); */
+    /* } */
+    /* fprintf(stderr, "CUM ERROR: %f\n", cum_error); */
+    /* fprintf(stderr, "Space v. 16 PCM: %f\n", (double)encoded_size / (double)(BUFLEN * 2)); */
+    /* fprintf(stderr, "Space v. 32 PCM: %f\n", (double)encoded_size / (double)(BUFLEN * 4)); */
     
-    
-    return 0;
+    /* return 0; */
     const char *command_line_arg = NULL;
     if (argc > 2) {
 	fprintf(stderr, "%s\n", usagestr);

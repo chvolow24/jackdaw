@@ -507,9 +507,9 @@ IOFileType io_write_file(const char *filepath, IOFileType type, bool force_allow
                 goto cleanup_and_ret;
             }
             /* Write a backup file at [project].jdaw.bak */
-            file_backup(full_path);
         }
     }
+    file_backup(full_path);
 
     FILE *f = fopen(full_path, "w");
     if (!f) {

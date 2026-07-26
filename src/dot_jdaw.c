@@ -20,6 +20,7 @@
 #include "eq.h"
 #include "file_backup.h"
 #include "fir_filter.h"
+#include "jdaw_ffmpeg.h"
 #include "log.h"
 #include "midi_clip.h"
 #include "midi_file.h"
@@ -58,7 +59,7 @@ const static char hdr_trck_efct[] = "EFCT";
 const static char hdr_trck_synth[] = "SYNTH";
 const static char hdr_aud_rt[] = "AUDRT";
 
-const static char current_file_spec_version[] = "00.26";
+const static char current_file_spec_version[] = "00.27";
 
 static char read_file_spec_version[6];
 bool read_file_version_older_than(const char *cmp_version)
@@ -177,32 +178,53 @@ static void jdaw_write_clip(FILE *f, Clip *clip, int index)
     uint32_ser_le(f, &len_sframes);
 
     fwrite(hdr_data, 1, 4, f);
-
-    /* Write clip sample data */
-    uint32_t len_samples = clip->len_sframes * clip->channels;
-    int16_t *clip_samples = malloc(sizeof(int16_t) * len_samples);
-    if (!clip_samples) {
-        fprintf(stderr, "Error: unable to allocate space for clip_samples\n");
+    uint8_t *data = NULL;
+    size_t data_size = 0;
+    if (encode_flac(clip->L, len_sframes, PROJ_AUDIO_32, &data, &data_size) != 0) {
         exit(1);
     }
-    if (clip->channels == 2) {
-        for (uint32_t i=0; i<len_samples; i+=2) {
-	    clip_samples[i] = clip_float_sample(clip->L[i/2]) * INT16_MAX;
-	    clip_samples[i+1] = clip_float_sample(clip->R[i/2]) * INT16_MAX;
+    uint32_t data_size_u32 = data_size;
+    uint32_ser_le(f, &data_size_u32);
+    fwrite(data, 1, data_size, f);
+    free(data);
+    data = NULL;
+    data_size = 0;
+    if (clip->channels > 1) {
+        if (encode_flac(clip->R, len_sframes, PROJ_AUDIO_32, &data, &data_size) != 0) {
+            exit(1);
         }
-    } else if (clip->channels == 1) {
-        for (uint32_t i=0; i<len_samples; i++) {
-	    clip_samples[i] = clip_float_sample(clip->L[i]) * INT16_MAX;
-        }
+        data_size_u32 = data_size;
+        uint32_ser_le(f, &data_size_u32);
+        fwrite(data, 1, data_size, f);
+        free(data);
     }
-    if (SYS_BYTEORDER_LE) {
-	fwrite(clip_samples, 2, len_samples, f);
-    } else {
-	for (uint32_t i=0; i<clip->len_sframes * clip->channels; i++) {
-	    int16_ser_le(f, clip_samples + i);
-	}
-    }
-    free(clip_samples);
+    
+
+    /* Write clip sample data */
+    /* uint32_t len_samples = clip->len_sframes * clip->channels; */
+    /* int16_t *clip_samples = malloc(sizeof(int16_t) * len_samples); */
+    /* if (!clip_samples) { */
+    /*     fprintf(stderr, "Error: unable to allocate space for clip_samples\n"); */
+    /*     exit(1); */
+    /* } */
+    /* if (clip->channels == 2) { */
+    /*     for (uint32_t i=0; i<len_samples; i+=2) { */
+    /*         clip_samples[i] = clip_float_sample(clip->L[i/2]) * INT16_MAX; */
+    /*         clip_samples[i+1] = clip_float_sample(clip->R[i/2]) * INT16_MAX; */
+    /*     } */
+    /* } else if (clip->channels == 1) { */
+    /*     for (uint32_t i=0; i<len_samples; i++) { */
+    /*         clip_samples[i] = clip_float_sample(clip->L[i]) * INT16_MAX; */
+    /*     } */
+    /* } */
+    /* if (SYS_BYTEORDER_LE) { */
+    /*     fwrite(clip_samples, 2, len_samples, f); */
+    /* } else { */
+    /*     for (uint32_t i=0; i<clip->len_sframes * clip->channels; i++) { */
+    /*         int16_ser_le(f, clip_samples + i); */
+    /*     } */
+    /* } */
+    /* free(clip_samples); */
 }
 
 
@@ -818,31 +840,52 @@ static int jdaw_read_clip(FILE *f, Project *proj)
 
     /* Read clip data */
     create_clip_buffers(clip, clip->len_sframes);
-    uint32_t clip_len_samples = clip->len_sframes * clip->channels;
-    int16_t *interleaved_clip_samples = malloc(sizeof(int16_t) * clip_len_samples);
-
-    /* Read data */
-    fread(interleaved_clip_samples, sizeof(int16_t), clip_len_samples, f);
-    if (!SYS_BYTEORDER_LE) {
-	for (uint32_t i=0; i<clip_len_samples; i++) {
-	    char *buf =(char *)(interleaved_clip_samples + i);
-	    uint16_t sample_u = uint16_fromstr_le(buf);
-	    interleaved_clip_samples[i] = *((int16_t *)&sample_u);
-	}
-    }
-    
-    /* write data to clip */
-    if (clip->channels == 2) {
-        for (uint32_t i=0; i<clip_len_samples; i+=2) {
-            clip->L[i/2] = (float)interleaved_clip_samples[i] / INT16_MAX;
-            clip->R[i/2] = (float)interleaved_clip_samples[i+1] / INT16_MAX;
+    if (!read_file_version_older_than("00.27")) {
+        uint32_t data_size_u32 = uint32_deser_le(f);
+        size_t data_size = data_size_u32;
+        uint8_t *data = malloc(data_size);
+        fread(data, 1, data_size, f);
+        int32_t len_sframes_check = 0;
+        decode_flac(data, data_size, clip->L, &len_sframes_check, PROJ_AUDIO_32);
+        free(data);
+        fprintf(stderr, "LEN CHECK: %d, %d\n", clip->len_sframes, len_sframes_check);
+        if (clip->channels > 1) {
+            data_size_u32 = uint32_deser_le(f);
+            data_size = data_size_u32;
+            data = malloc(data_size);
+            fread(data, 1, data_size, f);
+            int32_t len_sframes_check = 0;
+            decode_flac(data, data_size, clip->R, &len_sframes_check, PROJ_AUDIO_32);
+            free(data);
+            fprintf(stderr, "LEN CHECK: %d, %d\n", clip->len_sframes, len_sframes_check);
         }
     } else {
-        for (uint32_t i=0; i<clip_len_samples; i++) {
-            clip->L[i] = (float)interleaved_clip_samples[i] / INT16_MAX;
+        uint32_t clip_len_samples = clip->len_sframes * clip->channels;
+        int16_t *interleaved_clip_samples = malloc(sizeof(int16_t) * clip_len_samples);
+
+        /* Read data */
+        fread(interleaved_clip_samples, sizeof(int16_t), clip_len_samples, f);
+        if (!SYS_BYTEORDER_LE) {
+            for (uint32_t i=0; i<clip_len_samples; i++) {
+                char *buf =(char *)(interleaved_clip_samples + i);
+                uint16_t sample_u = uint16_fromstr_le(buf);
+                interleaved_clip_samples[i] = *((int16_t *)&sample_u);
+            }
         }
+    
+        /* write data to clip */
+        if (clip->channels == 2) {
+            for (uint32_t i=0; i<clip_len_samples; i+=2) {
+                clip->L[i/2] = (float)interleaved_clip_samples[i] / INT16_MAX;
+                clip->R[i/2] = (float)interleaved_clip_samples[i+1] / INT16_MAX;
+            }
+        } else {
+            for (uint32_t i=0; i<clip_len_samples; i++) {
+                clip->L[i] = (float)interleaved_clip_samples[i] / INT16_MAX;
+            }
+        }
+        free(interleaved_clip_samples);
     }
-    free(interleaved_clip_samples);
     clip_init_or_update_waveform(clip);
     return 0;
 }

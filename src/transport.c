@@ -497,14 +497,14 @@ static void *transport_dsp_thread_fn(void *arg)
 	    Clip *clip = tl->proj->clips[i];
 	    AudioConn *conn = clip->recorded_from;
 	    if (!conn) continue;
-	    if (conn->type == JACKDAW) {
+	    if (conn->type == AUDIO_CONN_JDAW_OUT) {
 		JDAWConn *jconn = conn->obj;
 		/* if (jconn->write_bufpos_sframes + len < jconn->rec_buf_len_sframes) { */
 		memcpy(jconn->rec_buffer_L + jconn->write_bufpos_sframes, buf_L, sizeof(float) * len);
 		memcpy(jconn->rec_buffer_R + jconn->write_bufpos_sframes, buf_R, sizeof(float) * len);
 		jconn->write_bufpos_sframes += len;
 		if (jconn->write_bufpos_sframes + 2 * len >= jconn->rec_buf_len_sframes) {
-		    copy_conn_buf_to_clip(clip, JACKDAW);
+		    copy_conn_buf_to_clip(clip, AUDIO_CONN_JDAW_OUT);
 		}
 		break;
 	    }
@@ -982,11 +982,11 @@ static void copy_device_buf_to_clips(AudioDevice *dev)
 void copy_conn_buf_to_clip(Clip *clip, enum audio_conn_type type)
 {
     switch (type) {
-    case DEVICE:
+    case AUDIO_CONN_DEVICE:
 	log_tmp(LOG_ERROR, "copy_conn_buf_to_clip deprecated for audio devices; use copy_device_buf_to_clips (one per cb!) instead\n");
 	error_exit("copy_conn_buf_to_clip deprecated for audio devices; use copy_device_buf_to_clips (one per cb!) instead\n");
 	break;
-    case PURE_DATA: {
+    case AUDIO_CONN_PD: {
 	PdConn *pdconn = clip->recorded_from->obj;
 	clip->len_sframes = clip->write_bufpos_sframes + pdconn->write_bufpos_sframes;
 	create_clip_buffers(clip, clip->len_sframes);
@@ -996,7 +996,7 @@ void copy_conn_buf_to_clip(Clip *clip, enum audio_conn_type type)
 	clip_init_or_update_waveform(clip);
     }
 	break;
-    case JACKDAW: {
+    case AUDIO_CONN_JDAW_OUT: {
 	/* OUROBOROS */
 	JDAWConn *jconn = clip->recorded_from->obj;
 	clip->len_sframes = clip->write_bufpos_sframes + jconn->write_bufpos_sframes;
@@ -1059,7 +1059,7 @@ void transport_stop_recording()
 	    num_conns_to_close++;
 	    /* audioconn_close(conn); */
 	    conn->active = false;
-	    if (conn->type == DEVICE) {
+	    if (conn->type == AUDIO_CONN_DEVICE) {
 		bool included = false;
 		for (int j=0; j<num_devices_to_dump; j++) {
 		    if (devices_to_dump[j] == conn->obj) {
@@ -1130,16 +1130,16 @@ void transport_stop_recording()
 	    continue;
 	}
 	switch (clip->recorded_from->type) {
-	case DEVICE:
+	case AUDIO_CONN_DEVICE:
 	    clip->recorded_from->current_clip = NULL;
 	    /* Do nothing; handled above */
 	    break;
-	case PURE_DATA:
-	    copy_conn_buf_to_clip(clip, PURE_DATA);
+	case AUDIO_CONN_PD:
+	    copy_conn_buf_to_clip(clip, AUDIO_CONN_PD);
 	    /* complete_pd_clip(clip); */
 	    break;
-	case JACKDAW:
-	    copy_conn_buf_to_clip(clip, JACKDAW);
+	case AUDIO_CONN_JDAW_OUT:
+	    copy_conn_buf_to_clip(clip, AUDIO_CONN_JDAW_OUT);
 	    break;
 	    
 	}
@@ -1258,15 +1258,15 @@ void transport_recording_update_cliprects()
 	int32_t clipref_len;
 	if (!clip->recorded_from) continue; /* E.g. wav loaded during recording */
 	switch(clip->recorded_from->type) {
-	case DEVICE:
+	case AUDIO_CONN_DEVICE:
 	    /* Handled in buf to clip */
 	    clipref_len = ((AudioDevice *)clip->recorded_from->obj)->write_bufpos_samples / ((AudioDevice *)clip->recorded_from->obj)->spec.channels + clip->write_bufpos_sframes;
 	    /* fprintf(stderr, "Reset clip len in MAIN: %d\n", clip->len_sframes); */
 	    break;
-	case PURE_DATA:
+	case AUDIO_CONN_PD:
 	    clipref_len = ((PdConn *)clip->recorded_from->obj)->write_bufpos_sframes + clip->write_bufpos_sframes;
 	    break;
-	case JACKDAW:
+	case AUDIO_CONN_JDAW_OUT:
 	    clipref_len = ((JDAWConn *)clip->recorded_from->obj)->write_bufpos_sframes + clip->write_bufpos_sframes;
 	    break;
 	}

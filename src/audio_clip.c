@@ -40,7 +40,7 @@ Clip *clip_create(AudioConn *conn, Track *target)
 
     if (conn) {
 	clip->recorded_from = conn;
-	if (conn->type == DEVICE) {
+	if (conn->type == AUDIO_CONN_DEVICE) {
 	    clip->channels = conn->channel_cfg.R_src >= 0 ? 2 : 1; /* If R src specified, clip is stereo; else mono */
 	} else {
 	    clip->channels = 2;
@@ -426,12 +426,18 @@ static int clip_destroy_mmap(Clip *clip)
     if (clip->flac_stream_mmap_L) {
         munmap(clip->flac_stream_mmap_L, clip->flac_stream_size_L);
     }
-    if (clip->flac_stream_filepath_L) safe_delete_tmp_file(clip->flac_stream_filepath_L);
+    if (clip->flac_stream_filepath_L) {
+        safe_delete_tmp_file(clip->flac_stream_filepath_L);
+        free(clip->flac_stream_filepath_L);
+    }
 
     if (clip->flac_stream_mmap_R) {
         munmap(clip->flac_stream_mmap_R, clip->flac_stream_size_R);
     }
-    if (clip->flac_stream_filepath_R) safe_delete_tmp_file(clip->flac_stream_filepath_R);
+    if (clip->flac_stream_filepath_R) {
+        safe_delete_tmp_file(clip->flac_stream_filepath_R);
+        free(clip->flac_stream_filepath_R);
+    }
     return 0;
 }
 

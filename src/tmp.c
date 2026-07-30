@@ -27,7 +27,7 @@ const char* system_tmp_dir() {
     }
 
     /* else use cwd */
-    ret = ".";
+    ret = "./";
     return ret;
 }
 

@@ -47,7 +47,7 @@ static void set_default_index(Session *session, int iscapture)
     int num_conns = iscapture ? session->audio_io.num_record_conns : session->audio_io.num_playback_conns;
     int *default_index = iscapture ? &session->audio_io.default_record_conn_index : &session->audio_io.default_playback_conn_index;
     for (int i=0; i<num_conns; i++) {
-	if (conn_list[i]->type == DEVICE && ((AudioDevice*)conn_list[i]->obj)->is_default && conn_list[i]->channel_cfg.L_src == 0) {
+	if (conn_list[i]->type == AUDIO_CONN_DEVICE && ((AudioDevice*)conn_list[i]->obj)->is_default && conn_list[i]->channel_cfg.L_src == 0) {
 	    conn_list[i]->is_default = true;
 	    *default_index = i;	    
 	}
@@ -191,7 +191,7 @@ int audio_io_get_connections(Session *session, int iscapture)
 
     if (iscapture) {
 	AudioConn *pd = calloc(sizeof(AudioConn), 1);
-	pd->type = PURE_DATA;
+	pd->type = AUDIO_CONN_PD;
 	strcpy(pd->name, "Pure data");
 	pd->index = num_devices;
 	pd->iscapture = iscapture;
@@ -201,7 +201,7 @@ int audio_io_get_connections(Session *session, int iscapture)
 	(*conn_index)++;
 	    
 	AudioConn *jdaw = calloc(sizeof(AudioConn), 1);
-	jdaw->type = JACKDAW;
+	jdaw->type = AUDIO_CONN_JDAW_OUT;
 	strcpy(jdaw->name, "Jackdaw out");
 	jdaw->index = num_devices;
 	jdaw->iscapture = iscapture;
@@ -229,7 +229,7 @@ int audioconn_open(Session *session, AudioConn *conn)
     }
     log_tmp(LOG_INFO, "Call to open audio conn \"%s\"\n", conn->name);
     switch (conn->type) {
-    case DEVICE: {
+    case AUDIO_CONN_DEVICE: {
 	AudioDevice *device = conn->obj;
 	if (device->open) {
 	    log_tmp(LOG_WARN, "Audio device \"%s\" already open\n", device->name);
@@ -284,7 +284,7 @@ int audioconn_open(Session *session, AudioConn *conn)
 	}
     }
 	break;
-    case PURE_DATA:
+    case AUDIO_CONN_PD:
 	fprintf(stdout, "Opening pd\n");
 	PdConn *pdconn = conn->obj;
 	if (conn->iscapture) {
@@ -302,9 +302,8 @@ int audioconn_open(Session *session, AudioConn *conn)
 	/* SDL_UnlockMutex(pdconn->buf_lock); */
 	fprintf(stdout, "Successfully opened pd conn\n");
 	/* conn->index = -1; */
-	conn->open = true;
 	break;
-    case JACKDAW:
+    case AUDIO_CONN_JDAW_OUT:
 	if (conn->iscapture) {
 	    JDAWConn *jconn = conn->obj;
 	    jconn->rec_buf_len_sframes = PD_BUFLEN_CHUNKS * 64;
@@ -313,6 +312,7 @@ int audioconn_open(Session *session, AudioConn *conn)
 	}
 	break;
     }
+    conn->open = true;
     return 0;
 }
 
@@ -337,6 +337,15 @@ int audioconn_open(Session *session, AudioConn *conn)
 /*     } */
 /* } */
 
+void jdaw_conn_destroy(JDAWConn *jconn)
+{
+    if (jconn->rec_buffer_L) {
+	free(jconn->rec_buffer_L);
+    }
+    if (jconn->rec_buffer_R) {
+	free(jconn->rec_buffer_R);
+    }
+}
 
 void audioconn_destroy(AudioConn *conn)
 {
@@ -345,6 +354,10 @@ void audioconn_destroy(AudioConn *conn)
     if (conn->open) {
 	audioconn_close(conn);
     }
+    if (conn->type == AUDIO_CONN_JDAW_OUT) {
+        jdaw_conn_destroy(conn->obj);
+    }
+
     free(conn);
 }
 
@@ -357,16 +370,6 @@ void audio_device_destroy(AudioDevice *dev)
 	free(dev->rec_buffer);
     }
     free(dev);
-}
-
-void jdaw_conn_destroy(JDAWConn *jconn)
-{
-    if (jconn->rec_buffer_L) {
-	free(jconn->rec_buffer_L);
-    }
-    if (jconn->rec_buffer_R) {
-	free(jconn->rec_buffer_R);
-    }
 }
 
 static void device_close(AudioDevice *device)
@@ -384,17 +387,20 @@ static void device_close(AudioDevice *device)
 
 void jdaw_conn_close(JDAWConn *jconn)
 {
-    if (jconn->rec_buffer_L) {
-	free(jconn->rec_buffer_L);
-    }
-    if (jconn->rec_buffer_R) {
-	free(jconn->rec_buffer_R);
-    }
+    jconn->write_bufpos_sframes = 0;
+    /* if (jconn->rec_buffer_L) { */
+    /*     free(jconn->rec_buffer_L); */
+    /*     jconn->rec_buffer_L = NULL; */
+    /* } */
+    /* if (jconn->rec_buffer_R) { */
+    /*     free(jconn->rec_buffer_R); */
+    /*     jconn->rec_buffer_R = NULL; */
+    /* } */
 }
 
 void audioconn_halt(AudioConn *conn)
 {
-    if (conn->type == DEVICE) {
+    if (conn->type == AUDIO_CONN_DEVICE) {
 	SDL_CloseAudioDevice(((AudioDevice *)conn->obj)->id);
     }
 }
@@ -409,17 +415,17 @@ void audioconn_close(AudioConn *conn)
     if (conn->playing) {
 	audioconn_stop_playback(conn);
     }
-    conn->open = false;
     switch (conn->type) {
-    case DEVICE:
+    case AUDIO_CONN_DEVICE:
 	device_close(conn->obj);
 	break;
-    case PURE_DATA:
+    case AUDIO_CONN_PD:
 	break;
-    case JACKDAW:
+    case AUDIO_CONN_JDAW_OUT:
 	jdaw_conn_close(conn->obj);
 	break;
     }    
+    conn->open = false;
 }
 
 static void device_start_playback(AudioDevice *dev)
@@ -451,12 +457,12 @@ int audioconn_start_playback(AudioConn *conn)
 	}
     }
     switch (conn->type) {
-    case DEVICE:
+    case AUDIO_CONN_DEVICE:
 	device_start_playback(conn->obj);
 	break;
-    case PURE_DATA:
+    case AUDIO_CONN_PD:
 	break;
-    case JACKDAW:
+    case AUDIO_CONN_JDAW_OUT:
 	break;
     }
     conn->playing = true;
@@ -485,12 +491,12 @@ void audioconn_stop_playback(AudioConn *conn)
     if (!conn->playing) return;
     log_tmp(LOG_DEBUG, "Stop playback on conn: \"%s\"\n", conn->name);
     switch (conn->type) {
-    case DEVICE:
+    case AUDIO_CONN_DEVICE:
 	device_stop_playback(conn->obj);
 	break;
-    case PURE_DATA:
+    case AUDIO_CONN_PD:
 	break;
-    case JACKDAW:
+    case AUDIO_CONN_JDAW_OUT:
 	break;
     }
     conn->playing = false;
@@ -506,12 +512,12 @@ static void device_stop_recording(AudioDevice *dev)
 void audioconn_stop_recording(AudioConn *conn)
 {
     switch (conn->type) {
-    case DEVICE:
+    case AUDIO_CONN_DEVICE:
 	device_stop_recording(conn->obj);
 	break;
-    case PURE_DATA:
+    case AUDIO_CONN_PD:
 	break;
-    case JACKDAW:
+    case AUDIO_CONN_JDAW_OUT:
 	break;
     }
 }
@@ -524,15 +530,15 @@ static void device_start_recording(AudioDevice *dev)
 void audioconn_start_recording(AudioConn *conn)
 {
     switch (conn->type) {
-    case DEVICE:
+    case AUDIO_CONN_DEVICE:
 	device_start_recording(conn->obj);
 	break;
-    case PURE_DATA: {
+    case AUDIO_CONN_PD: {
 	pthread_t pd_thread;
 	pthread_create(&pd_thread, NULL, pd_jackdaw_record_on_thread, conn);
     }
 	break;
-    case JACKDAW:
+    case AUDIO_CONN_JDAW_OUT:
 	break;
     }
 }
@@ -616,7 +622,7 @@ void audioconn_remove(AudioConn *conn)
 	conn_list[i]->index = i;
     }
 
-    if (conn->type == DEVICE) {
+    if (conn->type == AUDIO_CONN_DEVICE) {
 	audio_device_remove(conn->obj, conn->iscapture);
     }
     if (!conn->iscapture) {
@@ -683,7 +689,7 @@ void audioconn_reset_chunk_size(AudioConn *c, uint16_t new_chunk_size)
 	audioconn_close(c);
     }
     switch (c->type) {
-    case DEVICE:
+    case AUDIO_CONN_DEVICE:
 	((AudioDevice *)c->obj)->spec.samples = new_chunk_size;
 	break;
     default:

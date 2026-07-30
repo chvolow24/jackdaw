@@ -78,9 +78,9 @@ typedef struct jdaw_conn {
 } JDAWConn;
 
 enum audio_conn_type {
-    DEVICE,
-    PURE_DATA,
-    JACKDAW
+    AUDIO_CONN_DEVICE,
+    AUDIO_CONN_PD,
+    AUDIO_CONN_JDAW_OUT
 };
 
 /* union audio_conn_substruct { */

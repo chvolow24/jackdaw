@@ -4,11 +4,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <limits.h>
 
 const char* system_tmp_dir() {
     static char *ret = NULL;
     if (ret) return ret;
-    static char temp_path[1024] = {0};
+    static char temp_path[PATH_MAX] = {0};
 
     /* check TMPDIR env var */
     char *env_tmp = getenv("TMPDIR");
@@ -19,9 +20,8 @@ const char* system_tmp_dir() {
     }
 
     /* else check /tmp */
-    if (access("/tmp", W_OK) == 0) {
-	snprintf(temp_path, sizeof(temp_path), "/tmp");
-        strncpy(temp_path, "/tmp", sizeof(temp_path) - 1);
+    if (access("/tmp/", W_OK) == 0) {
+	snprintf(temp_path, sizeof(temp_path), "/tmp/");
         ret = temp_path;
 	return ret;
     }

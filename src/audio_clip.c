@@ -375,7 +375,7 @@ static int clip_create_or_update_mmap_channel(Clip *clip, int channel, uint8_t *
     if (!*filepath_dst) {
         *filepath_dst= create_clip_mmap_filepath(clip, channel);
     }
-    int fd = open(*filepath_dst, O_RDWR | O_CREAT);
+    int fd = open(*filepath_dst, O_RDWR | O_CREAT, 0666);
     if (fd < 0) {
         perror("'open' failed in clip_create_or_update_mmap_channel");
         if (free_buf) free(buf);

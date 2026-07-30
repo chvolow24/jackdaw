@@ -382,8 +382,8 @@ void waveform_draw_channel(float *buf, int32_t len, int start_x, int max_x, int 
     for (int x = start_x; x <= max_x; x++) {
 	int32_t index = floor(index_d);
 	int32_t end_index = ceil(index_d + sfpp);
-	float min = 1.0;
-	float max = -1.0;
+	float min = buf[index];
+	float max = buf[index];
 	while (index < end_index && index < len) {
 	    min = fminf(min, buf[index]);
 	    max = fmaxf(max, buf[index]);

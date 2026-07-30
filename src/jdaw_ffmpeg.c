@@ -371,9 +371,18 @@ void resample_destroy_ctx(void *swr_v)
 #define ENCODE_FLAC_FRAME_SIZE 4096
 #define ENCODE_FLAC_SAMPLE_RATE 48000
 
-int encode_flac(float *buf, int32_t len_sframes, enum ProjectAudioBitDepth bit_depth, uint8_t **encoded_dst, size_t *size_dst)
+int encode_flac(float *buf, int32_t len_sframes, enum ProjectAudioBitDepth bit_depth, uint8_t **encoded_dst, size_t *size_dst, float *gain_dst)
 {
-
+    double max = 1.0f;
+    for (int i=0; i<len_sframes; i++) {
+        double fabsample = fabs(buf[i]);
+        if (fabsample > max) {
+            max = fabsample;
+        }
+    }
+    double gain = 1.0f / max;
+    *gain_dst = gain;
+    
     int ret = 0, av_ret = 0;
     AVFormatContext *fmt = NULL;
     AVStream *stream = NULL;
@@ -470,10 +479,13 @@ int encode_flac(float *buf, int32_t len_sframes, enum ProjectAudioBitDepth bit_d
         for (int i=0; i<iter_len; i++) {
             switch (bit_depth) {
             case PROJ_AUDIO_16:
-                d16[i] = lrintf(buf[encode_index] * FLOAT_INT16_MAX);
+                d16[i] = lrintf(gain * buf[encode_index] * FLOAT_INT16_MAX);
                 break;
             case PROJ_AUDIO_32:
-                d32[i] = lrint((double)buf[encode_index] * DOUBLE_INT32_MAX);
+                if (fabs((double)gain * (double)buf[encode_index])> 1.0) {
+                    fprintf(stderr, "SAMPLE ERROR! sample is %f, gain is %f, prod is %f\n", buf[encode_index], gain, buf[encode_index] * gain);
+                }
+                d32[i] = lrint((double)gain * (double)buf[encode_index] * DOUBLE_INT32_MAX);
                 break;
             }
             encode_index++;
@@ -509,7 +521,6 @@ int encode_flac(float *buf, int32_t len_sframes, enum ProjectAudioBitDepth bit_d
     int size = avio_close_dyn_buf(fmt->pb, &data_buf);
     *size_dst = size;
     *encoded_dst = data_buf;
-    fprintf(stderr, "ENCODED %d bytes (%fx)\n", size, (float)size / (len_sframes * sizeof(float)));
 cleanup_and_ret:
     if (fmt) avformat_free_context(fmt);
     if (data_buf && ret < 0) av_free(data_buf);
@@ -529,7 +540,7 @@ cleanup_and_ret:
 
 #define DECODE_FLAC_DATA_SIZE 20480
 
-int decode_flac(void *data, size_t data_size, float *buf, int32_t *len_sframes_dst, enum ProjectAudioBitDepth bit_depth)
+int decode_flac(void *data, size_t data_size, float *buf, int32_t *len_sframes_dst, enum ProjectAudioBitDepth bit_depth, float regain)
 {
     int ret = 0, av_ret = 0;
     AVIOContext *avio = NULL;
@@ -624,10 +635,10 @@ int decode_flac(void *data, size_t data_size, float *buf, int32_t *len_sframes_d
         for (int i=0; i<frame->nb_samples; i++) {
             switch (bit_depth) {
             case PROJ_AUDIO_16:                
-                buf[write_index] = (float)d16[i] / FLOAT_INT16_MAX;
+                buf[write_index] = regain * (float)d16[i] / FLOAT_INT16_MAX;
                 break;
             case PROJ_AUDIO_32:
-                buf[write_index] = (float)((double)d32[i] / DOUBLE_INT32_MAX);
+                buf[write_index] = (float)((double)regain * (double)d32[i] / DOUBLE_INT32_MAX);
                 break;                    
             }
             write_index++;

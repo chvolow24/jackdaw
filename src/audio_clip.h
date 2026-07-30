@@ -72,7 +72,9 @@ typedef struct clip {
     size_t flac_stream_size_L;
     char *flac_stream_filepath_R;
     uint8_t *flac_stream_mmap_R;
-    size_t flac_stream_size_R;    
+    size_t flac_stream_size_R;
+    float flac_stream_gain_L;
+    float flac_stream_gain_R;
 } Clip;
 
 

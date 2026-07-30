@@ -476,27 +476,15 @@ static bool internal_tl_needs_redraw = false;
 /* void waveform_draw_with_ck_data(WaveformData *wd, int32_t start_in_clip, int32_t draw_len, SDL_Rect *waveform_container, int min_x, int max_x, double sfpp, SDL_Color *draw_color, float gain); */
 void clipref_draw_waveform(ClipRef *cr)
 {
-    /* condpr(cr, "\nCall to cr wf draw. Redraw? %d Texture? %p\n", cr->waveform_redraw, cr->waveform_texture); */
     SDL_Rect audio_rect = *session_get()->gui.audio_rect;
     Clip *clip = cr->source_clip;
     if (clip->recording) {
 	pthread_mutex_lock(&clip->buf_realloc_lock);
     }
-    /* NULL cr->waveform_texture is the signal to redraw it (below) */
-    /* if (cr->waveform_redraw && cr->waveform_texture) { */
-    /* 	/\* Old texture is drawn rather than blank to prevent flashing *\/ */
-    /* 	if (cr->old_texture) { */
-    /* 	    SDL_DestroyTexture(cr->old_texture); */
-    /* 	} */
-    /* 	cr->old_texture = cr->waveform_texture; */
-    /* 	cr->waveform_texture = NULL; */
-    /* 	cr->waveform_redraw = false; */
-    /* } */
     int32_t cr_len = clipref_len(cr);
     int32_t start_in_clip = cr->start_in_clip;
     int32_t end_in_clip = cr->start_in_clip + cr_len;
     if (clip->recording) {
-	/* Draw the available waveform */
 	end_in_clip = clip->write_bufpos_sframes;
 	cr_len = end_in_clip - start_in_clip;
     } else if (end_in_clip - start_in_clip == 0) {
@@ -507,6 +495,9 @@ void clipref_draw_waveform(ClipRef *cr)
     }
     double sfpp = cr->track->tl->timeview.sample_frames_per_pixel;
     SDL_Rect onscreen_rect = cr->layout->rect;
+    uint8_t num_channels = clip->channels;
+    float *channels[num_channels];
+ 
 
     if (clip->recording) {
 	onscreen_rect.w = timeview_get_draw_w(&cr->track->tl->timeview, cr_len);
@@ -536,90 +527,29 @@ void clipref_draw_waveform(ClipRef *cr)
 	goto unlock_and_exit;
     }
 
-    /* if (!cr->waveform_texture) { */
-    if (true) {
-	/* int32_t start_in_clip = cr->start_in_clip; */
-	/* if (FRAME_WF_DRAW_TIME > MAX_WF_FRAME_DRAW_TIME) { */
-	/*     internal_tl_needs_redraw = true; */
-	/*     goto copy_texture_unlock_and_exit; */
-	/* } */
-	/* SDL_Texture *saved_targ = SDL_GetRenderTarget(main_win->rend); */
-	/* SDL_Rect onscreen_rect = cr->layout->rect; */
-
-	/* c = clock(); */
-	/* cr->waveform_texture = SDL_CreateTexture(main_win->rend, 0, SDL_TEXTUREACCESS_TARGET, onscreen_rect.w, onscreen_rect.h); */
-	/* /\* T_create_texture += ((double)clock() - c)/CLOCKS_PER_SEC; *\/ */
-	/* if (!cr->waveform_texture) { */
-	/*     fprintf(stderr, "Error: unable to create waveform texture. %s\n", SDL_GetError()); */
-	/*     fprintf(stderr, "Attempted to create with dims: %d, %d\n", onscreen_rect.w, onscreen_rect.h); */
-	/*     exit(1); */
-	/* } */
-	/* /\* c = clock(); *\/ */
-	/* SDL_SetTextureBlendMode(cr->waveform_texture, SDL_BLENDMODE_BLEND); */
-	/* SDL_SetRenderTarget(main_win->rend, cr->waveform_texture); */
-	/* SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 0); */
-	/* SDL_RenderClear(main_win->rend); */
-	
-	/* Do waveform draw here */
-	/* SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 255); */
-	uint8_t num_channels = clip->channels;
-	float *channels[num_channels];
-	/* uint32_t cr_len_sframes = clipref_len(cr); */
-	if (!clip->L) {
-	    goto unlock_and_exit;
-	}
-	channels[0] = clip->L + start_in_clip;
-	if (num_channels > 1) {
-	    channels[1] = clip->R + start_in_clip;
-	}
-	
-	/* Double check bounds (a bit sloppy) */
-	int32_t wf_len = end_in_clip - start_in_clip;
-	if (!clip->recording && wf_len + start_in_clip > clip->len_sframes) {
-	    wf_len = clip->len_sframes - start_in_clip;
-	} else if (clip->recording && wf_len + start_in_clip > clip->write_bufpos_sframes) {
-	    wf_len = clip->write_bufpos_sframes - start_in_clip;
-	}
-	
-	/* SDL_Rect waveform_container = {onscreen_rect.x, onscreen_rect.y, onscreen_rect.w, onscreen_rect.h}; */
-
-	/* clock_t c = clock(); */
-	if (clip->waveform.init_len > 0) {
-	/* if (clip->waveform.init_len == clip->len_sframes) { */
-	    /* glob_onscreen_rect = onscreen_rect; */
-	    waveform_draw_with_ck_data(&clip->waveform, start_in_clip, wf_len, &onscreen_rect, cr->track->tl->timeview.sample_frames_per_pixel, &colors.black, cr->gain);
-	} else {
-	    fprintf(stderr, "ERROR: Clip %s has no wf data\n", clip->name);
-	    /* waveform_draw_all_channels_generic((void **)channels, JDAW_FLOAT, num_channels, wf_len, &waveform_container, 0, onscreen_rect.w, cr->track->tl->timeview.sample_frames_per_pixel, &colors.black, cr->gain); */
-	}
-	/* FRAME_WF_DRAW_TIME += ((double)clock() - c) / CLOCKS_PER_SEC; */
-	/* SDL_SetRenderTarget(main_win->rend, saved_targ); */
-	/* condpr(cr, "Drew wf fresh\n"); */
+    if (!clip->L) {
+        goto unlock_and_exit;
     }
-/* copy_texture_unlock_and_exit: */
-    /* if (!cr->waveform_texture) { */
-    /* 	/\* condpr(cr, "No wf texture, old? %p\n", cr->old_texture); *\/ */
-    /* 	if (cr->old_texture) { */
-    /* 	    SDL_RenderCopy(main_win->rend, cr->old_texture, NULL, &onscreen_rect); */
-    /* 	    /\* condpr(cr, "Copy OLD texture %p to %d,%d,%d,%d\n", cr->old_texture, onscreen_rect.x, onscreen_rect.y, onscreen_rect.w, onscreen_rect.h); *\/ */
-    /* 	    /\* condpr(cr, "(wh: %d %d)\n", w, h); *\/ */
-    /* 	} */
-    /* } else { */
-    /* 	/\* condpr(cr, "Copy texture %p to %d,%d,%d,%d\n", cr->waveform_texture, onscreen_rect.x, onscreen_rect.y, onscreen_rect.w, onscreen_rect.h); *\/ */
-    /* 	/\* condpr(cr, "(wh: %d %d)\n", w, h); *\/ */
-
-    /* 	SDL_RenderCopy(main_win->rend, cr->waveform_texture, NULL, &onscreen_rect); */
-    /* } */
+    channels[0] = clip->L + start_in_clip;
+    if (num_channels > 1) {
+        channels[1] = clip->R + start_in_clip;
+    }
+	
+    /* Double check bounds (a bit sloppy) */
+    int32_t wf_len = end_in_clip - start_in_clip;
+    if (!clip->recording && wf_len + start_in_clip > clip->len_sframes) {
+        wf_len = clip->len_sframes - start_in_clip;
+    } else if (clip->recording && wf_len + start_in_clip > clip->write_bufpos_sframes) {
+        wf_len = clip->write_bufpos_sframes - start_in_clip;
+    }
+	
+    if (clip->waveform.init_len > 0) {
+        waveform_draw_with_ck_data(&clip->waveform, start_in_clip, wf_len, &onscreen_rect, cr->track->tl->timeview.sample_frames_per_pixel, &colors.black, cr->gain);
+    } else {
+        fprintf(stderr, "ERROR: Clip %s has no wf data\n", clip->name);
+    }
 unlock_and_exit:
-    /* condpr(cr, "Exit\n"); */
     pthread_mutex_unlock(&clip->buf_realloc_lock);
-    /* c = clock(); */
-    /* T_copy += ((double)clock() - c)/CLOCKS_PER_SEC; */
-
-    /* if (T_draw_waveform > 10.00) { */
-    /* 	fprintf(stderr, "OTHER: %f\nWAVEFORM: %f\nCOPY: %f\nCREATE: %f\n", T_other_ops, T_draw_waveform, T_copy, T_create_texture); */
-    /* 	exit(0); */
-    /* } */
 }
 
 void timeline_draw_marks(Timeline *tl, int top_y, SDL_Color mark_color, SDL_Color marked_background)

@@ -231,8 +231,8 @@ static void clip_waveform_append(Clip *clip, int32_t start_in_clip, int32_t len_
 	}
 	ck_len = 64 < ck_len ? 64 : ck_len;
 	WaveformChunk *Lck = clip->waveform.ck64[0] + ck64_i;
-	float min = 1.0;
-	float max = -1.0;
+	float min = 1.0f;
+	float max = -1.0f;
 	for (int32_t i=0; i<ck_len; i++) {
 	    min = fminf(clip->L[start_in_clip + i], min);
 	    max = fmaxf(clip->L[start_in_clip + i], max);
@@ -245,8 +245,8 @@ static void clip_waveform_append(Clip *clip, int32_t start_in_clip, int32_t len_
 	
 	if (clip->channels > 1) {	
 	    WaveformChunk *Rck = clip->waveform.ck64[1] + ck64_i;
-	    min = 1.0;
-	    max = -1.0;
+	    min = 1.0f;
+	    max = -1.0f;
 	    for (int32_t i=0; i<ck_len; i++) {
 		min = fminf(clip->R[start_in_clip + i], min);
 		max = fmaxf(clip->R[start_in_clip + i], max);
@@ -344,16 +344,19 @@ static int clip_create_or_update_mmap_channel(Clip *clip, int channel, uint8_t *
     char **filepath_dst = NULL;
     float *buf = NULL;
     int32_t len = clip->len_sframes;
+    float *flac_stream_gain_dst = NULL;
     if (channel == 0) {
         mmap_region_dst = &clip->flac_stream_mmap_L;
         mmap_size_dst = &clip->flac_stream_size_L;
         filepath_dst = &clip->flac_stream_filepath_L;
         buf = clip->L;
+        flac_stream_gain_dst = &clip->flac_stream_gain_L;
     } else {
         mmap_region_dst = &clip->flac_stream_mmap_R;
         mmap_size_dst = &clip->flac_stream_size_R;
         filepath_dst = &clip->flac_stream_filepath_R;
         buf = clip->R;
+        flac_stream_gain_dst = &clip->flac_stream_gain_R;
     }
 
     bool free_buf = false;
@@ -365,7 +368,7 @@ static int clip_create_or_update_mmap_channel(Clip *clip, int channel, uint8_t *
         buf = resample_dst;
         free_buf = true;
     }
-
+    *flac_stream_gain_dst = 1.0f;
     if (*mmap_region_dst) {
         munmap(*mmap_region_dst, *mmap_size_dst);
     }
@@ -386,7 +389,7 @@ static int clip_create_or_update_mmap_channel(Clip *clip, int channel, uint8_t *
         flac_data_heap_size = data_size_maybe;
     } else {
         fprintf(stderr, "Encoding %d samples compared to original %d\n", len, clip->len_sframes);
-        if (encode_flac(buf, len, PROJ_AUDIO_32, &flac_data_heap, &flac_data_heap_size) < 0) {
+        if (encode_flac(buf, len, PROJ_AUDIO_32, &flac_data_heap, &flac_data_heap_size, flac_stream_gain_dst) < 0) {
             fprintf(stderr, "FAILED TO ENCODE L\n");
             close(fd);
             if (free_buf) free(buf);

@@ -208,6 +208,8 @@ int main(int argc, char **argv)
     /* fprintf(stderr, "CUM ERROR: %f\n", cum_error); */
     /* fprintf(stderr, "Space v. 16 PCM: %f\n", (double)encoded_size / (double)(BUFLEN * 2)); */
     /* fprintf(stderr, "Space v. 32 PCM: %f\n", (double)encoded_size / (double)(BUFLEN * 4)); */
+
+    
     
     /* return 0; */
     const char *command_line_arg = NULL;

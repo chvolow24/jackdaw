@@ -247,15 +247,133 @@ cleanup_and_return:
     return buf_index;   
 }
 
+/* Mono only, floating point samples.
+ swr is opaque so callers don't need to include ffmpeg */
+void *resample_96_to_48_create_ctx()
+{
+    SwrContext *swr = NULL;
 
+    AVChannelLayout layout;
+    av_channel_layout_default(&layout, 1);
+
+    swr_alloc_set_opts2(
+        &swr,
+        &layout, AV_SAMPLE_FMT_FLT, 48000, /* out */
+        &layout, AV_SAMPLE_FMT_FLT, 96000, /* in */
+        0, NULL
+    );
+
+    swr_init(swr);
+    return (void *)swr;
+}
+
+/* Mono only, floating point samples.
+ swr is opaque so callers don't need to include ffmpeg */
+void *resample_48_to_96_create_ctx()
+{
+    SwrContext *swr = NULL;
+
+    AVChannelLayout layout;
+    av_channel_layout_default(&layout, 1);
+
+    swr_alloc_set_opts2(
+        &swr,
+        &layout, AV_SAMPLE_FMT_FLT, 96000, /* out */
+        &layout, AV_SAMPLE_FMT_FLT, 48000, /* in */
+        0, NULL
+    );
+
+    swr_init(swr);
+    return (void *)swr;
+}
+
+#define SWR_MAX_IN_SAMPLES 65536
+
+/* Returns new len */
+int32_t resample(void *swr_v, float *in, int32_t len_samples, float **out_dst)
+{
+    SwrContext *swr = swr_v;
+    int av_ret = swr_init(swr);
+    if (av_ret < 0) {
+        av_log_error("swr_init in resample", av_ret);
+        exit(1);
+    }
+    int32_t out_samples = swr_get_out_samples(swr, len_samples);
+    if (*out_dst) {
+        fprintf(stderr, "Let resample allocate outbuf!\n");
+        exit(1);
+    }
+    *out_dst = malloc(sizeof(float) * out_samples);
+    if (!*out_dst) {
+        fprintf(stderr, "MALLOC FAILED!\n");
+    }
+
+    int32_t read_samples = 0;
+    float *out_data[] = {*out_dst};
+    int32_t running_out_samples = 0;
+    while (read_samples < len_samples) {
+        int32_t chunk_len = SWR_MAX_IN_SAMPLES < len_samples - read_samples ? SWR_MAX_IN_SAMPLES : len_samples - read_samples;
+        const uint8_t *in_data[] = {(const uint8_t *)(in + read_samples)};
+        int32_t chunk_out_samples = swr_get_out_samples(swr, chunk_len);
+        int ret = swr_convert(
+            swr,
+            (uint8_t **)out_data,
+            chunk_out_samples,
+            in_data,
+            chunk_len
+            );
+        if (ret < 0) {
+            av_log_error("swr_convert in resample", running_out_samples);
+            breakfn();
+            exit(1);
+        }
+        running_out_samples += ret;
+        read_samples += chunk_len;
+        out_data[0] += ret;
+    }
+
+    int n = 0;
+    while (
+        (n = swr_convert(
+            swr,
+            (uint8_t **)out_data,
+            out_samples - running_out_samples,
+            NULL,
+            0))) {
+        if (n < 0) {
+            av_log_error("swr_convert in resample", running_out_samples);
+            breakfn();
+            exit(1);
+        }
+
+        running_out_samples += n;
+        out_data[0] += n;
+    }
+    
+    /* if (running_out_samples != out_samples) { */
+    /*     fprintf(stderr, "ERROR! out %d, actual out %d\n", out_samples, running_out_samples); */
+    /*     exit(1); */
+    /* } */
+    swr_close(swr);
+
+    return running_out_samples;
+}
+
+void resample_destroy_ctx(void *swr_v)
+{
+    SwrContext *swr = swr_v;
+    swr_free(&swr);
+}
 
 
 /*------ Encode FLAC for .jdaw files ---------------------------------*/
 
 #define ENCODE_FLAC_FRAME_SIZE 4096
+#define ENCODE_FLAC_SAMPLE_RATE 48000
 
 int encode_flac(float *buf, int32_t len_sframes, enum ProjectAudioBitDepth bit_depth, uint8_t **encoded_dst, size_t *size_dst)
 {
+
     int ret = 0, av_ret = 0;
     AVFormatContext *fmt = NULL;
     AVStream *stream = NULL;
@@ -296,7 +414,7 @@ int encode_flac(float *buf, int32_t len_sframes, enum ProjectAudioBitDepth bit_d
     }
 
 
-    codec_ctx->sample_rate = session_get_sample_rate();
+    codec_ctx->sample_rate = ENCODE_FLAC_SAMPLE_RATE;
     codec_ctx->ch_layout = (AVChannelLayout)AV_CHANNEL_LAYOUT_MONO;
     switch (bit_depth) {
     case PROJ_AUDIO_16:

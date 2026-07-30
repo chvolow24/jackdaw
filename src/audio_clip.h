@@ -66,6 +66,13 @@ typedef struct clip {
     bool recording;
     AudioConn *recorded_from;
     WaveformData waveform;
+
+    char *flac_stream_filepath_L;
+    uint8_t *flac_stream_mmap_L;
+    size_t flac_stream_size_L;
+    char *flac_stream_filepath_R;
+    uint8_t *flac_stream_mmap_R;
+    size_t flac_stream_size_R;    
 } Clip;
 
 
@@ -82,5 +89,10 @@ void clip_split_stereo_to_mono(Clip *to_split, Clip **new_L, Clip **new_R);
 /* void clip_initialize_waveform(Clip *clip); */
 
 void clip_init_or_update_waveform(Clip *clip);
+
+/* Create a memory-mapped temporary encoding clip data as FLAC */
+int clip_create_or_update_mmap(Clip *clip, void *resample_ctx_maybe);
+/* FLAC stream already exists, just need to create file and copy */
+int clip_create_or_update_mmap_from_data(Clip *clip, int channel, uint8_t *data, size_t data_size);
 
 #endif

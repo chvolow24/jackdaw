@@ -8,10 +8,17 @@
 
 *****************************************************************************************************************/
 
+#include <fcntl.h>
 #include <stdlib.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+
 #include "audio_clip.h"
 #include "clipref.h"
+#include "jdaw_ffmpeg.h"
+#include "log.h"
 #include "session.h"
+#include "tmp.h"
 
 #define DEFAULT_REFS_ALLOC_LEN 2
 
@@ -68,6 +75,8 @@ void waveform_data_deinit(WaveformData *wd)
     memset(wd, 0, sizeof(WaveformData));
 }
 
+static int clip_destroy_mmap(Clip *clip);
+
 void clip_destroy_no_displace(Clip *clip)
 {
     pthread_mutex_destroy(&clip->buf_realloc_lock);
@@ -81,6 +90,7 @@ void clip_destroy_no_displace(Clip *clip)
     }
     
     waveform_data_deinit(&clip->waveform);
+    clip_destroy_mmap(clip);
     if (clip->L) free(clip->L);
     if (clip->R) free(clip->R);
 
@@ -125,6 +135,7 @@ void clip_destroy(Clip *clip)
     proj->num_clips--;
     proj->active_clip_index = proj->num_clips;
     waveform_data_deinit(&clip->waveform);
+    clip_destroy_mmap(clip);
     if (clip->L) free(clip->L);
     if (clip->R) free(clip->R);
 
@@ -311,59 +322,129 @@ void clip_init_or_update_waveform(Clip *clip)
     clip_waveform_append(clip, start_in_clip, len_sframes);
     pthread_mutex_unlock(&clip->waveform.lock);
     return;
-    /* int32_t ck64_i = 0; */
-    /* int32_t ck512_i = 0; */
-    /* float ck512_Lmin = 1.0; */
-    /* float ck512_Lmax = -1.0; */
-    /* float ck512_Rmin = 1.0; */
-    /* float ck512_Rmax = -1.0; */
-
-    /* /\* int32_t start_in_clip = 0; *\/ */
-    /* int32_t ck_len; */
-    /* while ((ck_len = len_sframes - start_in_clip) > 0) { */
-    /* 	ck_len = 64 < ck_len ? 64 : ck_len; */
-    /* 	WaveformChunk *Lck = clip->waveform.ck64[0] + ck64_i; */
-    /* 	float min = 1.0; */
-    /* 	float max = -1.0; */
-    /* 	for (int32_t i=0; i<ck_len; i++) { */
-    /* 	    min = fminf(clip->L[start_in_clip + i], min); */
-    /* 	    max = fmaxf(clip->L[start_in_clip + i], max); */
-    /* 	} */
-    /* 	Lck->min = min; */
-    /* 	Lck->max = max; */
-
-    /* 	ck512_Lmin = fminf(min, ck512_Lmin); */
-    /* 	ck512_Lmax = fmaxf(max, ck512_Lmax); */
-	
-    /* 	if (clip->channels > 1) {	 */
-    /* 	    WaveformChunk *Rck = clip->waveform.ck64[1] + ck64_i; */
-    /* 	    min = 1.0; */
-    /* 	    max = -1.0; */
-    /* 	    for (int32_t i=0; i<ck_len; i++) { */
-    /* 		min = fminf(clip->R[start_in_clip + i], min); */
-    /* 		max = fmaxf(clip->R[start_in_clip + i], max); */
-    /* 	    } */
-    /* 	    Rck->min = min; */
-    /* 	    Rck->max = max; */
-    /* 	    ck512_Rmin = fminf(min, ck512_Rmin); */
-    /* 	    ck512_Rmax = fmaxf(max, ck512_Rmax); */
-    /* 	} */
-    /* 	ck64_i++; */
-    /* 	start_in_clip += ck_len; */
-    /* 	if (ck64_i % 8 == 0) { */
-    /* 	    WaveformChunk *Lck512 = clip->waveform.ck512[0] + ck512_i; */
-    /* 	    Lck512->min = ck512_Lmin; */
-    /* 	    Lck512->max = ck512_Lmax; */
-    /* 	    if (clip->R) { */
-    /* 		WaveformChunk *Rck512 = clip->waveform.ck512[1] + ck512_i; */
-    /* 		Rck512->min = ck512_Rmin; */
-    /* 		Rck512->max = ck512_Rmax; */
-    /* 	    } */
-    /* 	    ck512_Lmin = 1.0; */
-    /* 	    ck512_Lmax = -1.0; */
-    /* 	    ck512_Rmin = 1.0; */
-    /* 	    ck512_Rmax = -1.0; */
-    /* 	    ck512_i++; */
-    /* 	} */
-    /* } */
 }
+
+static char *create_clip_mmap_filepath(Clip *clip, int channel)
+{
+    /* Use the clip pointers, because these will be unique for the lifetime of the clip */
+    pid_t pid = getpid();
+    const char *tmpdir = system_tmp_dir();
+    char path[PATH_MAX];
+    snprintf(path, PATH_MAX, "%sjdawpid%dclip%p%s", tmpdir, pid, clip, channel == 0 ? "L" : "R");
+    return strdup(path);
+}
+
+static int clip_create_or_update_mmap_channel(Clip *clip, int channel, uint8_t *data_maybe, size_t data_size_maybe, void *resample_ctx_maybe)
+{
+    if (channel == 1 && !clip->R) {
+        return -1;
+    }
+    uint8_t **mmap_region_dst = NULL;
+    size_t *mmap_size_dst = 0;
+    char **filepath_dst = NULL;
+    float *buf = NULL;
+    int32_t len = clip->len_sframes;
+    if (channel == 0) {
+        mmap_region_dst = &clip->flac_stream_mmap_L;
+        mmap_size_dst = &clip->flac_stream_size_L;
+        filepath_dst = &clip->flac_stream_filepath_L;
+        buf = clip->L;
+    } else {
+        mmap_region_dst = &clip->flac_stream_mmap_R;
+        mmap_size_dst = &clip->flac_stream_size_R;
+        filepath_dst = &clip->flac_stream_filepath_R;
+        buf = clip->R;
+    }
+
+    bool free_buf = false;
+    if (resample_ctx_maybe) {
+        /* MUST set resample dst to NULL */
+        float *resample_dst = NULL;
+        int32_t new_len = resample(resample_ctx_maybe, buf, len, &resample_dst);
+        len = new_len;
+        buf = resample_dst;
+        free_buf = true;
+    }
+
+    if (*mmap_region_dst) {
+        munmap(*mmap_region_dst, *mmap_size_dst);
+    }
+    if (!*filepath_dst) {
+        *filepath_dst= create_clip_mmap_filepath(clip, channel);
+    }
+    int fd = open(*filepath_dst, O_RDWR | O_CREAT);
+    if (fd < 0) {
+        perror("'open' failed in clip_create_or_update_mmap_channel");
+        if (free_buf) free(buf);
+        return -1;
+    }
+    uint8_t *flac_data_heap = NULL;
+    size_t flac_data_heap_size = 0;
+    bool free_data = false;
+    if (data_maybe) {
+        flac_data_heap = data_maybe;
+        flac_data_heap_size = data_size_maybe;
+    } else {
+        fprintf(stderr, "Encoding %d samples compared to original %d\n", len, clip->len_sframes);
+        if (encode_flac(buf, len, PROJ_AUDIO_32, &flac_data_heap, &flac_data_heap_size) < 0) {
+            fprintf(stderr, "FAILED TO ENCODE L\n");
+            close(fd);
+            if (free_buf) free(buf);
+            return -1;
+        }
+        free_data = true;
+    }
+    ftruncate(fd, flac_data_heap_size);
+    *mmap_region_dst = mmap(
+        NULL,
+        flac_data_heap_size,
+        PROT_READ | PROT_WRITE,
+        MAP_SHARED,
+        fd,
+        0);
+    if (*mmap_region_dst == MAP_FAILED) {
+        *mmap_region_dst = NULL;
+        *mmap_size_dst = 0;
+        perror("mmap");
+        close(fd);
+        return -1;
+    }
+    memcpy(*mmap_region_dst, flac_data_heap, flac_data_heap_size);
+    *mmap_size_dst = flac_data_heap_size;
+    if (free_data) free(flac_data_heap);
+    if (free_buf) free(buf);
+    close(fd);
+    return 0;
+}
+
+
+static int clip_destroy_mmap(Clip *clip)
+{
+    if (clip->flac_stream_mmap_L) {
+        munmap(clip->flac_stream_mmap_L, clip->flac_stream_size_L);
+    }
+    if (clip->flac_stream_filepath_L) safe_delete_tmp_file(clip->flac_stream_filepath_L);
+
+    if (clip->flac_stream_mmap_R) {
+        munmap(clip->flac_stream_mmap_R, clip->flac_stream_size_R);
+    }
+    if (clip->flac_stream_filepath_R) safe_delete_tmp_file(clip->flac_stream_filepath_R);
+    return 0;
+}
+
+int clip_create_or_update_mmap(Clip *clip, void *resample_ctx_maybe)
+{
+    int ret = clip_create_or_update_mmap_channel(clip, 0, NULL, 0, resample_ctx_maybe);
+    if (ret < 0) return ret;
+    if (clip->channels > 1 && clip->R) {
+        ret = clip_create_or_update_mmap_channel(clip, 1, NULL, 0, resample_ctx_maybe);
+    }
+    return ret;
+}
+
+int clip_create_or_update_mmap_from_data(Clip *clip, int channel, uint8_t *data, size_t data_size)
+{
+    int ret = clip_create_or_update_mmap_channel(clip, channel, data, data_size, NULL);
+    return ret;
+}
+

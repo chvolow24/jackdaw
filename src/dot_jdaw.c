@@ -178,25 +178,23 @@ static void jdaw_write_clip(FILE *f, Clip *clip, int index)
     uint32_ser_le(f, &len_sframes);
 
     fwrite(hdr_data, 1, 4, f);
-    uint8_t *data = NULL;
-    size_t data_size = 0;
-    if (encode_flac(clip->L, len_sframes, PROJ_AUDIO_32, &data, &data_size) != 0) {
-        exit(1);
+    /* uint8_t *data = NULL; */
+    /* size_t data_size = 0; */
+    /* if (encode_flac(clip->L, len_sframes, PROJ_AUDIO_32, &data, &data_size) != 0) { */
+    /*     exit(1); */
+    /* } */
+    void *resample_ctx = resample_96_to_48_create_ctx();
+    if (!clip->flac_stream_mmap_L) {
+        clip_create_or_update_mmap(clip, resample_ctx);
     }
-    uint32_t data_size_u32 = data_size;
+    
+    uint32_t data_size_u32 = clip->flac_stream_size_L;
     uint32_ser_le(f, &data_size_u32);
-    fwrite(data, 1, data_size, f);
-    free(data);
-    data = NULL;
-    data_size = 0;
+    fwrite(clip->flac_stream_mmap_L, 1, clip->flac_stream_size_L, f);
     if (clip->channels > 1) {
-        if (encode_flac(clip->R, len_sframes, PROJ_AUDIO_32, &data, &data_size) != 0) {
-            exit(1);
-        }
-        data_size_u32 = data_size;
+        data_size_u32 = clip->flac_stream_size_R;
         uint32_ser_le(f, &data_size_u32);
-        fwrite(data, 1, data_size, f);
-        free(data);
+        fwrite(clip->flac_stream_mmap_R, 1, clip->flac_stream_size_R, f);
     }
     
 
@@ -647,7 +645,7 @@ static void jdaw_write_tl_automations(FILE *f, Timeline *tl)
 
 
 
-static int jdaw_read_clip(FILE *f, Project *proj);
+static int jdaw_read_clip(FILE *f, Project *proj, void *resample_ctx);
 static int jdaw_read_midi_clip(FILE *f, Project *proj);
 static int jdaw_read_timeline(FILE *f, Project *proj);
 
@@ -760,14 +758,16 @@ int jdaw_read_file(Project *dst, FILE *f)
     
     proj_reading->num_timelines = 0;
 
+    void *resample_ctx = resample_48_to_96_create_ctx();
     for (int i=0; i<num_clips; i++) {
     /* while (num_clips > 0) { */
 	session_loading_screen_update("Reading audio clips...", 0.8 * (float)i / num_clips);
-	if (jdaw_read_clip(f, proj_reading) != 0) {
+	if (jdaw_read_clip(f, proj_reading, resample_ctx) != 0) {
 	    goto jdaw_parse_error;
 	}
 	/* num_clips--; */
     }
+    resample_destroy_ctx(resample_ctx);
 
     /* fprintf(stderr, "Reading %d MIDI clips...\n", num_midi_clips); */
     session_loading_screen_update("Reading midi clips...", 0.8);
@@ -802,7 +802,7 @@ jdaw_parse_error:
     
 }
 
-static int jdaw_read_clip(FILE *f, Project *proj)
+static int jdaw_read_clip(FILE *f, Project *proj, void *resample_ctx)
 {
     char hdr_buffer[5];
     fread(hdr_buffer, 1, 4, f);
@@ -845,19 +845,34 @@ static int jdaw_read_clip(FILE *f, Project *proj)
         size_t data_size = data_size_u32;
         uint8_t *data = malloc(data_size);
         fread(data, 1, data_size, f);
-        int32_t len_sframes_check = 0;
-        decode_flac(data, data_size, clip->L, &len_sframes_check, PROJ_AUDIO_32);
+        float *raw_samples = malloc(sizeof(float) * clip->len_sframes);
+        int32_t raw_len = 0;
+        decode_flac(data, data_size, raw_samples, &raw_len, PROJ_AUDIO_32);
+        float *out = NULL;
+        resample(resample_ctx, raw_samples, clip->len_sframes, &out);
+        memcpy(clip->L, out, sizeof(float) * clip->len_sframes);
+        free(out);
+        free(raw_samples);
+        clip_create_or_update_mmap_from_data(clip, 0, data, data_size);
         free(data);
-        fprintf(stderr, "LEN CHECK: %d, %d\n", clip->len_sframes, len_sframes_check);
+        /* fprintf(stderr, "LEN CHECK: %d, %d\n", clip->len_sframes, len_sframes_check); */
         if (clip->channels > 1) {
             data_size_u32 = uint32_deser_le(f);
             data_size = data_size_u32;
             data = malloc(data_size);
             fread(data, 1, data_size, f);
-            int32_t len_sframes_check = 0;
-            decode_flac(data, data_size, clip->R, &len_sframes_check, PROJ_AUDIO_32);
+            float *raw_samples = malloc(sizeof(float) * clip->len_sframes);
+            int32_t raw_len = 0;
+            decode_flac(data, data_size, raw_samples, &raw_len, PROJ_AUDIO_32);
+            float *out = NULL;
+            resample(resample_ctx, raw_samples, clip->len_sframes, &out);
+            memcpy(clip->R, out, sizeof(float) * clip->len_sframes);
+            free(out);
+            free(raw_samples);
+            /* decode_flac(data, data_size, clip->R, &len_sframes_check, PROJ_AUDIO_32); */
+            clip_create_or_update_mmap_from_data(clip, 1, data, data_size);
             free(data);
-            fprintf(stderr, "LEN CHECK: %d, %d\n", clip->len_sframes, len_sframes_check);
+            /* fprintf(stderr, "LEN CHECK: %d, %d\n", clip->len_sframes, len_sframes_check); */
         }
     } else {
         uint32_t clip_len_samples = clip->len_sframes * clip->channels;
@@ -887,6 +902,7 @@ static int jdaw_read_clip(FILE *f, Project *proj)
         free(interleaved_clip_samples);
     }
     clip_init_or_update_waveform(clip);
+    /* clip_create_or_update_mmap(clip); */
     return 0;
 }
 

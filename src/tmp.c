@@ -1,3 +1,4 @@
+#include "log.h"
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,4 +41,18 @@ char *create_tmp_file(const char *name)
 	snprintf(filepath + offset, 1024 - offset, "/%s", name);
     }
     return strdup(filepath);    
+}
+
+int safe_delete_tmp_file(const char *filepath)
+{
+    const char *tmp_dir = system_tmp_dir();
+    if (strncmp(tmp_dir, filepath, strlen(tmp_dir)) == 0) {
+        if (remove(filepath) != 0) {
+            log_tmp(LOG_ERROR, "Error removing file at %s\n", filepath);
+        }
+        return 0;
+    } else {
+        log_tmp(LOG_ERROR, "Ignoring unsafe attempt to delete file at %s\n", filepath);
+        return -1;
+    }
 }

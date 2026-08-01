@@ -1828,8 +1828,10 @@ void user_tl_solo(void *nullarg)
     /* tl->needs_redraw = true; */
 }
 
-static Value vol_incr = {.float_v = 0.04};
-static Value pan_incr = {.float_v = 0.02};
+static const Value vol_incr = {.float_v = 0.04};
+static const Value pan_incr = {.float_v = 0.02};
+static const Value clip_gain_incr = {.float_v = 0.02};
+
 void user_tl_track_vol_up(void *nullarg)
 {
     Session *session = session_get();
@@ -1900,7 +1902,6 @@ void user_tl_track_vol_down(void *nullarg)
     }
 }
 
-
 void user_tl_track_pan_left(void *nullarg)
 {
     Session *session = session_get();
@@ -1954,6 +1955,24 @@ void user_tl_track_pan_right(void *nullarg)
     /* proj->pan_right = true; */
     /* tl->needs_redraw = true; */
 }
+
+void user_tl_clip_gain_up(void *nullarg)
+{
+    ClipRef *cr = clipref_at_cursor();
+    if (cr) {
+        endpoint_start_continuous_change(&cr->gain_ep, true, clip_gain_incr, JDAW_THREAD_MAIN, endpoint_safe_read(&cr->gain_ep, NULL));
+    }
+}
+
+void user_tl_clip_gain_down(void *nullarg)
+{
+    ClipRef *cr = clipref_at_cursor();
+    Value clip_gain_decr = jdaw_val_negate(clip_gain_incr, JDAW_FLOAT);
+    if (cr) {
+        endpoint_start_continuous_change(&cr->gain_ep, true, clip_gain_decr, JDAW_THREAD_MAIN, endpoint_safe_read(&cr->gain_ep, NULL));
+    }
+}
+
 
 void user_tl_track_add_effect(void *nullarg)
 {

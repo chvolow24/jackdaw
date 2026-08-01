@@ -860,6 +860,19 @@ static void mode_load_timeline()
 	"Track pan right",
 	user_tl_track_pan_right);
     mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+        "tl_clip_gain_up",
+        "Increase clip gain (at cursor)",
+        user_tl_clip_gain_up);
+    mode_subcat_add_fn(sc, fn);
+
+    fn = create_user_fn(
+        "tl_clip_gain_down",
+        "Decrease clip gain (at cursor)",
+        user_tl_clip_gain_down);
+    mode_subcat_add_fn(sc, fn);
+
     
     fn = create_user_fn(
 	"tl_track_rename",

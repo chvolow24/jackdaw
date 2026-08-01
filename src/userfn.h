@@ -136,6 +136,9 @@ void user_tl_track_vol_down(void *nullarg);
 void user_tl_track_pan_left(void *nullarg);
 void user_tl_track_pan_right(void *nullarg);
 
+void user_tl_clip_gain_up(void *nullarg);
+void user_tl_clip_gain_down(void *nullarg);
+
 
 void user_tl_record(void *nullarg);
 void user_tl_clipref_grab_ungrab(void *nullarg);

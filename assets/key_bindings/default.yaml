@@ -172,6 +172,8 @@
   - S--		: tl_track_vol_down
   - S-9		: tl_track_pan_left
   - S-0		: tl_track_pan_right
+  - C-S-=       : tl_clip_gain_up
+  - C-S--       : tl_clip_gain_down
   - A-t		: tl_add_new_timeline
   - A-j		: tl_previous_timeline
   - A-l		: tl_next_timeline

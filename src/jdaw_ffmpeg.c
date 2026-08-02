@@ -371,7 +371,7 @@ void resample_destroy_ctx(void *swr_v)
 #define ENCODE_FLAC_FRAME_SIZE 4096
 #define ENCODE_FLAC_SAMPLE_RATE 48000
 
-int encode_flac(float *buf, int32_t len_sframes, enum ProjectAudioBitDepth bit_depth, uint8_t **encoded_dst, size_t *size_dst, float *gain_dst)
+int encode_proj_audio_flac(float *buf, int32_t len_sframes, enum ProjectAudioBitDepth bit_depth, uint8_t **encoded_dst, size_t *size_dst, float *gain_dst)
 {
     double max = 1.0f;
     for (int i=0; i<len_sframes; i++) {
@@ -459,7 +459,7 @@ int encode_flac(float *buf, int32_t len_sframes, enum ProjectAudioBitDepth bit_d
     }
     
     /*------ Write data --------------------------------------------------*/
-    
+
     AV_ERR_CHECK(avformat_write_header, fmt, NULL);
     int32_t encode_index = 0;
     bool flushed = false;
@@ -540,7 +540,7 @@ cleanup_and_ret:
 
 #define DECODE_FLAC_DATA_SIZE 20480
 
-int decode_flac(void *data, size_t data_size, float *buf, int32_t *len_sframes_dst, enum ProjectAudioBitDepth bit_depth, float regain)
+int decode_proj_audio_flac(void *data, size_t data_size, float *buf, int32_t *len_sframes_dst, enum ProjectAudioBitDepth bit_depth, float regain)
 {
     int ret = 0, av_ret = 0;
     AVIOContext *avio = NULL;
@@ -659,6 +659,5 @@ cleanup_and_ret:
     if (packet) av_packet_free(&packet);
     return ret;
 }
-
 
 /*--------------------------------------------------------------------*/

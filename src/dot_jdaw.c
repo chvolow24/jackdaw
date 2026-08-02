@@ -843,38 +843,40 @@ static int jdaw_read_clip(FILE *f, Project *proj, void *resample_ctx)
     /* Read clip data */
     create_clip_buffers(clip, clip->len_sframes);
     if (!read_file_version_older_than("00.27")) {
-        float regain = 1.0f / float_deser40_le(f);
+        float gain = float_deser40_le(f);
+        float regain = 1.0f / gain;
         uint32_t data_size_u32 = uint32_deser_le(f);
         size_t data_size = data_size_u32;
         uint8_t *data = malloc(data_size);
         fread(data, 1, data_size, f);
         float *raw_samples = malloc(sizeof(float) * clip->len_sframes);
         int32_t raw_len = 0;
-        decode_flac(data, data_size, raw_samples, &raw_len, PROJ_AUDIO_32, regain);
+        decode_proj_audio_flac(data, data_size, raw_samples, &raw_len, PROJ_AUDIO_32, regain);
         float *out = NULL;
         resample(resample_ctx, raw_samples, clip->len_sframes, &out);
         memcpy(clip->L, out, sizeof(float) * clip->len_sframes);
         free(out);
         free(raw_samples);
-        clip_create_or_update_mmap_from_data(clip, 0, data, data_size);
+        clip_create_or_update_mmap_from_data(clip, 0, data, data_size, gain);
         free(data);
         /* fprintf(stderr, "LEN CHECK: %d, %d\n", clip->len_sframes, len_sframes_check); */
         if (clip->channels > 1) {
-            regain = 1.0f / float_deser40_le(f);
+            gain = float_deser40_le(f);
+            regain = 1.0f / gain;
             data_size_u32 = uint32_deser_le(f);
             data_size = data_size_u32;
             data = malloc(data_size);
             fread(data, 1, data_size, f);
             float *raw_samples = malloc(sizeof(float) * clip->len_sframes);
             int32_t raw_len = 0;
-            decode_flac(data, data_size, raw_samples, &raw_len, PROJ_AUDIO_32, regain);
+            decode_proj_audio_flac(data, data_size, raw_samples, &raw_len, PROJ_AUDIO_32, regain);
             float *out = NULL;
             resample(resample_ctx, raw_samples, clip->len_sframes, &out);
             memcpy(clip->R, out, sizeof(float) * clip->len_sframes);
             free(out);
             free(raw_samples);
             /* decode_flac(data, data_size, clip->R, &len_sframes_check, PROJ_AUDIO_32); */
-            clip_create_or_update_mmap_from_data(clip, 1, data, data_size);
+            clip_create_or_update_mmap_from_data(clip, 1, data, data_size, gain);
             free(data);
             /* fprintf(stderr, "LEN CHECK: %d, %d\n", clip->len_sframes, len_sframes_check); */
         }

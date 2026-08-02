@@ -16,7 +16,6 @@
 #include "audio_clip.h"
 #include "clipref.h"
 #include "jdaw_ffmpeg.h"
-#include "log.h"
 #include "session.h"
 #include "tmp.h"
 
@@ -334,7 +333,7 @@ static char *create_clip_mmap_filepath(Clip *clip, int channel)
     return strdup(path);
 }
 
-static int clip_create_or_update_mmap_channel(Clip *clip, int channel, uint8_t *data_maybe, size_t data_size_maybe, void *resample_ctx_maybe)
+static int clip_create_or_update_mmap_channel(Clip *clip, int channel, uint8_t *data_maybe, size_t data_size_maybe, void *resample_ctx_maybe, float gain)
 {
     if (channel == 1 && !clip->R) {
         return -1;
@@ -368,7 +367,6 @@ static int clip_create_or_update_mmap_channel(Clip *clip, int channel, uint8_t *
         buf = resample_dst;
         free_buf = true;
     }
-    *flac_stream_gain_dst = 1.0f;
     if (*mmap_region_dst) {
         munmap(*mmap_region_dst, *mmap_size_dst);
     }
@@ -387,9 +385,9 @@ static int clip_create_or_update_mmap_channel(Clip *clip, int channel, uint8_t *
     if (data_maybe) {
         flac_data_heap = data_maybe;
         flac_data_heap_size = data_size_maybe;
+        *flac_stream_gain_dst = gain;
     } else {
-        fprintf(stderr, "Encoding %d samples compared to original %d\n", len, clip->len_sframes);
-        if (encode_flac(buf, len, PROJ_AUDIO_32, &flac_data_heap, &flac_data_heap_size, flac_stream_gain_dst) < 0) {
+        if (encode_proj_audio_flac(buf, len, PROJ_AUDIO_32, &flac_data_heap, &flac_data_heap_size, flac_stream_gain_dst) < 0) {
             fprintf(stderr, "FAILED TO ENCODE L\n");
             close(fd);
             if (free_buf) free(buf);
@@ -443,17 +441,17 @@ static int clip_destroy_mmap(Clip *clip)
 
 int clip_create_or_update_mmap(Clip *clip, void *resample_ctx_maybe)
 {
-    int ret = clip_create_or_update_mmap_channel(clip, 0, NULL, 0, resample_ctx_maybe);
+    int ret = clip_create_or_update_mmap_channel(clip, 0, NULL, 0, resample_ctx_maybe, 1.0);
     if (ret < 0) return ret;
     if (clip->channels > 1 && clip->R) {
-        ret = clip_create_or_update_mmap_channel(clip, 1, NULL, 0, resample_ctx_maybe);
+        ret = clip_create_or_update_mmap_channel(clip, 1, NULL, 0, resample_ctx_maybe, 1.0);
     }
     return ret;
 }
 
-int clip_create_or_update_mmap_from_data(Clip *clip, int channel, uint8_t *data, size_t data_size)
+int clip_create_or_update_mmap_from_data(Clip *clip, int channel, uint8_t *data, size_t data_size, float gain)
 {
-    int ret = clip_create_or_update_mmap_channel(clip, channel, data, data_size, NULL);
+    int ret = clip_create_or_update_mmap_channel(clip, channel, data, data_size, NULL, gain);
     return ret;
 }
 

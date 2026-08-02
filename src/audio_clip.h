@@ -95,6 +95,6 @@ void clip_init_or_update_waveform(Clip *clip);
 /* Create a memory-mapped temporary encoding clip data as FLAC */
 int clip_create_or_update_mmap(Clip *clip, void *resample_ctx_maybe);
 /* FLAC stream already exists, just need to create file and copy */
-int clip_create_or_update_mmap_from_data(Clip *clip, int channel, uint8_t *data, size_t data_size);
+int clip_create_or_update_mmap_from_data(Clip *clip, int channel, uint8_t *data, size_t data_size, float gain);
 
 #endif

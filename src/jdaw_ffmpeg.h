@@ -23,9 +23,9 @@ int32_t av_open_file(const char *filepath, float **L_dst, float **R_dst);
 
    Return 0 on success, <0 on error.
 */
-int encode_flac(float *buf, int32_t len_sframes, enum ProjectAudioBitDepth bit_depth, uint8_t **encoded_dst, size_t *size_dst, float *gain_dst);
+int encode_proj_audio_flac(float *buf, int32_t len_sframes, enum ProjectAudioBitDepth bit_depth, uint8_t **encoded_dst, size_t *size_dst, float *gain_dst);
 
-int decode_flac(void *data, size_t data_size, float *buf, int32_t *len_sframes_dst, enum ProjectAudioBitDepth bit_depth, float regain);
+int decode_proj_audio_flac(void *data, size_t data_size, float *buf, int32_t *len_sframes_dst, enum ProjectAudioBitDepth bit_depth, float regain);
 
 void *resample_96_to_48_create_ctx();
 void *resample_48_to_96_create_ctx();

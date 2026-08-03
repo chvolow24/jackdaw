@@ -52,7 +52,6 @@
 #define NO_TRACK_ERRSTR "No track. Add new with C-t"
 
 /* #define ACTIVE_TRACK(timeline) (tl->tracks[tl->track_selector]) */
-#define TRACK_AUTO_SELECTED(track) (track->num_automations != 0 && track->selected_automation != -1)
 #define TABVIEW_BLOCK(str)	    \
     if (main_win->active_tabview) { \
 	status_set_errstr("Cannot " #str " when tabview active"); \

@@ -79,6 +79,8 @@
 session->proj_reading ? session->proj_reading->timelines[session->proj_reading->active_tl_index] : \
 session->proj.timelines[session->proj.active_tl_index]) \
 
+#define TRACK_AUTO_SELECTED(track) (track->num_automations != 0 && track->selected_automation != -1)
+
 typedef struct project Project;
 typedef struct timeline Timeline;
 /* typedef struct audio_device AudioDevice; */

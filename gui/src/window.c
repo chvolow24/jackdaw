@@ -102,6 +102,8 @@ Window *window_create(int w, int h, const char *name)
 
     window->screenrecording = false;
     window->txt_editing = NULL;
+    window->needs_redraw = true;
+    window->focused = true;
     return window;
 }
 

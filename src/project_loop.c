@@ -105,6 +105,10 @@ void handle_window_events(SDL_Event e, Window *win)
         main_win->dpi_scale_factor = new_dpi;
 
         window_check_monitor_dpi(main_win);
+    } else if (e.window.event == SDL_WINDOWEVENT_FOCUS_GAINED) {
+        main_win->focused = true;
+    } else if (e.window.event == SDL_WINDOWEVENT_FOCUS_LOST) {
+        main_win->focused = false;
     }
 }
 
@@ -198,6 +202,7 @@ void loop_project_main()
 		if (main_win->txt_editing) {
 		    txt_input_event_handler(main_win->txt_editing, &e);
 		}
+                main_win->needs_redraw = true;
 		break;
 	    case SDL_KEYDOWN: {
 		scrolling_lt = NULL;
@@ -473,7 +478,8 @@ void loop_project_main()
 
 	Timeline *tl = ACTIVE_TL;
 	if (!session->playback.playing && frames_since_event >= IDLE_AFTER_N_FRAMES) {
-	    goto end_frame;
+            /* fprintf(stderr, "IDLING!\n"); */
+	    /* goto end_frame; */
 	} else {
 	    frames_since_event++;
 	}	
@@ -496,6 +502,7 @@ void loop_project_main()
 		}
 		timeline_reset(tl, false);
 	    }
+            main_win->needs_redraw = true;
 	}
 	
 	first_frame = false;
@@ -557,22 +564,32 @@ void loop_project_main()
 	if (main_win->txt_editing) {
 	    if (main_win->txt_editing->cursor_countdown == 0) {
 		main_win->txt_editing->cursor_countdown = CURSOR_COUNTDOWN_MAX;
-
 	    } else {
 		main_win->txt_editing->cursor_countdown--;
 	    }
+            main_win->needs_redraw = true;
 	}
 	if (session->playback.recording) {
 	    transport_recording_update_cliprects();
+            main_win->needs_redraw = true;
 	}
-	status_frame();
+	if (status_frame()) {
+            main_win->needs_redraw = true;
+        }
 
-	session_do_ongoing_changes(session, JDAW_THREAD_MAIN);
-	session_flush_val_changes(session, JDAW_THREAD_MAIN);
-	session_flush_callbacks(session, JDAW_THREAD_MAIN);
+	if (session_do_ongoing_changes(session, JDAW_THREAD_MAIN) > 0) {
+            main_win->needs_redraw = true;
+        }
+	if (session_flush_val_changes(session, JDAW_THREAD_MAIN) > 0) {
+            main_win->needs_redraw = true;
+        }
+	if (session_flush_callbacks(session, JDAW_THREAD_MAIN) > 0) {
+            main_win->needs_redraw = true;
+        }
 	if (main_win->needs_redraw) {
 	    set_clipref_at_cursor();
 	}
+        bool redrawn = main_win->needs_redraw;
 	project_draw();
 
 
@@ -623,8 +640,9 @@ void loop_project_main()
 
     end_frame:
 
-	if (!session->playback.playing && !session->midi_io.monitoring && frames_since_event >= IDLE_AFTER_N_FRAMES) {
-	    SDL_Delay(100);
+	if ((!redrawn && frames_since_event >= IDLE_AFTER_N_FRAMES) || !main_win->focused) {
+            fprintf(stderr, "IDLE\n");
+	    SDL_Delay(200);
 	} else {
 	    SDL_Delay(1);
 	}

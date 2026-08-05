@@ -26,7 +26,10 @@
 #define JDAW_STATUS_H
 #define MAX_STATUS_STRLEN 255
 
-void status_frame();
+#include <stdbool.h>
+
+/* returns true if redraw required */
+bool status_frame();
 void status_set_statstr(const char *fmt, ...);
 /* Thread-safe */
 void status_set_errstr(const char *fmt, ...);

@@ -70,7 +70,7 @@ static JDAW_THREAD_LOCAL enum jdaw_thread deferred_threads[256];
 
 static int session_queue_callback_internal(Session *session, Endpoint *ep, EndptCb cb, enum jdaw_thread thread, bool allow_defer);
 
-void session_flush_val_changes(Session *session, enum jdaw_thread thread)
+int session_flush_val_changes(Session *session, enum jdaw_thread thread)
 {
     Timeline *tl = ACTIVE_TL;
     int32_t tl_now = timeline_get_play_pos_now(tl);
@@ -78,7 +78,8 @@ void session_flush_val_changes(Session *session, enum jdaw_thread thread)
     /* if (session->queued_ops.num_queued_val_changes[thread] > 0) { */
     /* 	fprintf(stderr, "Flush %d val changes on thread %s\n", session->queued_ops.num_queued_val_changes[thread], get_current_thread_name()); */
     /* } */
-    for (int i=0; i<session->queued_ops.num_queued_val_changes[thread]; i++) {
+    int num = session->queued_ops.num_queued_val_changes[thread];
+    for (int i=0; i<num; i++) {
 	/* if (i==0)     fprintf(stderr, "FLUSHING THREAD %s\n", get_thread_name()); */
 	struct queued_val_change *qvc = &session->queued_ops.queued_val_changes[thread][i];
 	Endpoint *ep = qvc->ep;	
@@ -102,6 +103,7 @@ void session_flush_val_changes(Session *session, enum jdaw_thread thread)
 	}
     }
     num_deferred = 0;
+    return num;
 }
 
 /*
@@ -159,7 +161,7 @@ int session_queue_callback(Session *session, Endpoint *ep, EndptCb cb, enum jdaw
     return session_queue_callback_internal(session, ep, cb, thread, true);
 }
 
-void session_flush_callbacks(Session *session, enum jdaw_thread thread)
+int session_flush_callbacks(Session *session, enum jdaw_thread thread)
 {
     int ret;
     if ((ret=pthread_mutex_lock(&session->queued_ops.queued_callback_lock)) != 0) {
@@ -178,6 +180,7 @@ void session_flush_callbacks(Session *session, enum jdaw_thread thread)
     }
     session->queued_ops.num_queued_callbacks[thread] = 0;
     pthread_mutex_unlock(&session->queued_ops.queued_callback_lock);
+    return num;
 }
 
 int session_add_ongoing_change(Session *session, Endpoint *ep, enum jdaw_thread thread)
@@ -194,9 +197,10 @@ int session_add_ongoing_change(Session *session, Endpoint *ep, enum jdaw_thread 
     pthread_mutex_unlock(&session->queued_ops.ongoing_changes_lock);
     return 0;
 }
-void session_do_ongoing_changes(Session *session, enum jdaw_thread thread)
+int session_do_ongoing_changes(Session *session, enum jdaw_thread thread)
 {
     pthread_mutex_lock(&session->queued_ops.ongoing_changes_lock);
+    int num = session->queued_ops.num_ongoing_changes[thread];
     for (int i=0; i<session->queued_ops.num_ongoing_changes[thread]; i++) {
 	Endpoint *ep = session->queued_ops.ongoing_changes[thread][i];
 	if (ep->do_auto_incr) {
@@ -204,13 +208,14 @@ void session_do_ongoing_changes(Session *session, enum jdaw_thread thread)
 	}
     }
     pthread_mutex_unlock(&session->queued_ops.ongoing_changes_lock);
+    return num;
 }
 
 /*
   For now: keyup or mousebuttonup by default flush all ongoing changes (e.g. from holding key or dragging mouse)
   called in project_loop.c
  */
-void session_flush_ongoing_changes(Session *session, enum jdaw_thread thread)
+int session_flush_ongoing_changes(Session *session, enum jdaw_thread thread)
 {
     /* fprintf(stderr, "(%s) Flushing %d changed...\n", get_thread_name(thread), *current_num); */
     /* fprintf(stderr, "(%s) unlocking!\n", get_thread_name(thread)); */
@@ -222,6 +227,8 @@ void session_flush_ongoing_changes(Session *session, enum jdaw_thread thread)
 	Endpoint *ep = session->queued_ops.ongoing_changes[thread][i];
 	endpoint_stop_continuous_change(ep);
     }
+    int num_done = *current_num;
     *current_num = 0;
     pthread_mutex_unlock(&session->queued_ops.ongoing_changes_lock);
+    return num_done;
 }

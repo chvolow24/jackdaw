@@ -23,12 +23,14 @@ extern Window *main_win;
 
 static const char *queued_errstr = NULL;
 
-void status_frame()
+bool status_frame()
 {
+    fprintf(stderr, "Status frame\n");
+    bool needs_redraw = false;
     Session *session = session_get();
     if (session->status_bar.stat_timer > 0) {
 	session->status_bar.stat_timer--;
-	return;
+	return needs_redraw;
     }
     pthread_mutex_unlock(&session->status_bar.errstr_lock);
     if (queued_errstr) {
@@ -45,6 +47,7 @@ void status_frame()
 	(*alpha)--;
 	/* The alpha decrement appears to NEED to come after reset drawable.
 	   This makes no sense. */
+        needs_redraw = true;
     } else {
         session->status_bar.draw_err = false;
     }
@@ -55,9 +58,11 @@ void status_frame()
     } else if (*alpha > 0) {
 	txt_reset_drawable(session->status_bar.call->text);
 	(*alpha)--;
+        needs_redraw = true;
     } else {
         session->status_bar.draw_call = false;
     }
+    return needs_redraw;
 }
 
 

@@ -460,7 +460,7 @@ void fill_quadrant_complement(SDL_Renderer *rend, int xinit, int yinit, int r, c
 
 #define MAX_WF_FRAME_DRAW_TIME 0.02
 /* static double FRAME_WF_DRAW_TIME = 0.0; */
-static bool internal_tl_needs_redraw = false;
+/* static bool internal_tl_needs_redraw = false; */
 
 /* void condpr(ClipRef *cr, const char *fmt, ...) */
 /* { */
@@ -605,10 +605,10 @@ static int timeline_draw(Timeline *tl)
     Session *session = session_get();
     /* Only redraw the timeline if necessary */
     
-    if (!main_win->needs_redraw && !session->playback.recording && !main_win->txt_editing && !(main_win->i_state & I_STATE_MOUSE_L)) {
-	/* fprintf(stderr, "SKIP!\n"); */
-	return 0;
-    }
+    /* if (!main_win->needs_redraw && !session->playback.recording && !main_win->txt_editing && !(main_win->i_state & I_STATE_MOUSE_L)) { */
+    /*     /\* fprintf(stderr, "SKIP!\n"); *\/ */
+    /*     return 0; */
+    /* } */
     /* fprintf(stderr, "TL DRAW\n"); */
     /* fprintf(stderr, "Tl redraw? %d\n", tl->needs_redraw); */
     /* static int i=0; */
@@ -828,12 +828,12 @@ static int timeline_draw(Timeline *tl)
     /* SDL_SetRenderDrawColor(main_win->rend, 255, 0, 0, 10); */
     /* SDL_RenderFillRect(main_win->rend, &tl->track_area->rect); */
     /* layout_draw(main_win, tl->track_area); */
-    if (internal_tl_needs_redraw) {
-	main_win->needs_redraw = true;
-	internal_tl_needs_redraw = false;
-    } else {
-	main_win->needs_redraw = false;
-    }
+    /* if (internal_tl_needs_redraw) { */
+    /*     main_win->needs_redraw = true; */
+    /*     internal_tl_needs_redraw = false; */
+    /* } else { */
+    /*     main_win->needs_redraw = false; */
+    /* } */
     /* SDL_SetRenderDrawColor(main_win->rend, 255, 255, 0, 255); */
     return 1;
 }
@@ -889,9 +889,12 @@ void status_bar_draw()
     }
 }
 
-
+static int i = 0;
 void project_draw()
 {
+    fprintf(stderr, "(%d) Needs redraw %d\n", i, main_win->needs_redraw);
+    if (!main_win->needs_redraw) return;
+    main_win->needs_redraw = false;
     Session *session = session_get();
     window_start_draw(main_win, NULL);
     Timeline *tl = ACTIVE_TL;

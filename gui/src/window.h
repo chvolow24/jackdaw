@@ -73,6 +73,7 @@ typedef struct window {
 
     SDL_Event *current_event;
     bool needs_redraw;
+    bool focused;
 
 } Window;
 

@@ -333,6 +333,7 @@ void timeline_move_play_position(Timeline *tl, int32_t move_by_sframes)
 {
     RESTRICT_NOT_DSP("timeline_move_play_position");
     /* RESTRICT_NOT_MAIN("timeline_move_play_position"); */
+    main_win->needs_redraw = true;
     Session *session = session_get();
     
     int64_t new_pos = (int64_t)tl->play_pos_sframes + move_by_sframes;

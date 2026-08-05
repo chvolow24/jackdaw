@@ -149,7 +149,7 @@ int prompt_user(const char *header, const char *description, int num_options, co
     }
     modal->x = saved_modal_x;
     modal_destroy(modal);
-    ACTIVE_TL->needs_redraw = true;
+    main_win->needs_redraw = true;
     main_win->i_state = 0;
     return prompt_user_sel;
 }

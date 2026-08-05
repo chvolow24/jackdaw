@@ -72,6 +72,7 @@ typedef struct window {
     uint8_t num_deferred_draw_ops;
 
     SDL_Event *current_event;
+    bool needs_redraw;
 
 } Window;
 
@@ -121,7 +122,7 @@ void window_defer_draw(Window *win, void (*draw_op)(void *), void *obj);
 void window_set_layout(Window *win, Layout *layout);
 
 /* Window *window_init(int w, int h, const char *name, const char *font_path); */
-void window_pop_menu(Window *win);
+int window_pop_menu(Window *win);
 void window_add_menu(Window *win, Menu *menu);
 
 Menu *window_top_menu(Window *win);

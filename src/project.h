@@ -382,7 +382,6 @@ typedef struct timeline {
     /* int sample_frames_per_pixel; */
     /* int display_v_offset; */
 
-    bool needs_redraw;
     bool needs_reset; /* trigger reset from another thread */
 
     /* API */
@@ -533,8 +532,12 @@ void timeline_play_speed_adj(double dim);
 void timeline_scroll_playhead(double dim);
 
 void timeline_reset_loop_play_lemniscate(Timeline *tl);
+
+/* For dot_jdaw only; otherwise use timeline_minimize_track_or_tracks() */
 bool track_minimize(Track *t);
-void timeline_minimize_track_or_tracks(Timeline *tl);
+
+/* void timeline_minimize_track_or_tracks(Timeline *tl); */
+void timeline_minimize_track_or_tracks(Timeline *tl, Track *track_optional);
 
 /* Last click track above selected track */
 ClickTrack *timeline_governing_click_track(Timeline *tl);

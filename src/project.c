@@ -307,7 +307,7 @@ retry3:
 	}
 	/* exit(1); */
     }
-    new_tl->needs_redraw = true;
+    main_win->needs_redraw = true;
     proj->timelines[proj->num_timelines] = new_tl;
     proj->num_timelines++;
 
@@ -656,7 +656,7 @@ void timeline_rectify_track_indices(Timeline *tl)
     /* fprintf(stderr, "->tt selector: %d\n", tl->click_track_selector); */
     memcpy(tl->tracks, track_stack, sizeof(Track *) * tl->num_tracks);
     memcpy(tl->click_tracks, click_track_stack, sizeof(ClickTrack *) * tl->num_click_tracks);
-    tl->needs_redraw = true;
+    main_win->needs_redraw = true;
 }
 
 Track *timeline_selected_track(Timeline *tl)
@@ -678,7 +678,7 @@ void timeline_select_track(Track *track)
     tl->track_selector = track->tl_rank;
     tl->layout_selector = track->layout->index;
     tl->click_track_selector = -1;
-    tl->needs_redraw = true;
+    main_win->needs_redraw = true;
 }
 
 ClickTrack *timeline_selected_click_track(Timeline *tl)
@@ -1285,7 +1285,7 @@ void timeline_reset_loop_play_lemniscate(Timeline *tl)
     session->gui.loop_play_lemniscate->layout->rect.w = out_x - in_x;
     layout_set_values_from_rect(session->gui.loop_play_lemniscate->layout);
     textbox_reset(session->gui.loop_play_lemniscate);
-    tl->needs_redraw = true;
+    main_win->needs_redraw = true;
     
 }
 
@@ -1301,7 +1301,7 @@ void timeline_reset_full(Timeline *tl)
 	timeline_reset_loop_play_lemniscate(tl);
     }
 
-    tl->needs_redraw = true;
+    main_win->needs_redraw = true;
 
 }
 
@@ -1316,7 +1316,7 @@ void timeline_reset(Timeline *tl, bool rescaled)
 	timeline_reset_loop_play_lemniscate(tl);
     }
 
-    tl->needs_redraw = true;
+    main_win->needs_redraw = true;
 }
 
 void track_increment_vol(Track *track)
@@ -1380,7 +1380,7 @@ bool track_mute(Track *track)
     } else {
 	textbox_set_background_color(track->tb_mute_button, &colors.mute_solo_grey);
     }
-    track->tl->needs_redraw = true;
+    main_win->needs_redraw = true;
     return track->muted;
 }
 
@@ -1401,7 +1401,7 @@ bool track_solo(Track *track)
 	if (piano_roll_solo_button) textbox_set_background_color(piano_roll_solo_button, &colors.mute_solo_grey);
 
     }
-    track->tl->needs_redraw = true;
+    main_win->needs_redraw = true;
     return track->solo;
 }
 
@@ -1550,7 +1550,7 @@ void track_or_tracks_solo(Timeline *tl, Track *opt_track)
     }
 	    
 
-    tl->needs_redraw = true;
+    main_win->needs_redraw = true;
 }
 
 
@@ -1600,7 +1600,7 @@ void track_or_tracks_mute(Timeline *tl)
 	    }
 	}
     }
-    tl->needs_redraw = true;
+    main_win->needs_redraw = true;
 
     if (num_muted > 0) {
 	Track **undo_packet = calloc(num_muted, sizeof(Track *));
@@ -1649,7 +1649,6 @@ void track_set_out_builtin_synth(Track *track)
 
 static void track_set_midi_out_onclick(void *arg_v)
 {
-    Session *session = session_get();
     struct midi_out_arg *arg = arg_v;
     Track *track = arg->track;
     track->midi_out_type = arg->type;
@@ -1662,9 +1661,6 @@ static void track_set_midi_out_onclick(void *arg_v)
 	track->midi_out = arg->obj;
     }
     timeline_check_set_midi_monitoring();
-    window_pop_menu(main_win);
-    Timeline *tl = ACTIVE_TL;
-    tl->needs_redraw = true;
 }
 
 void track_set_input_to(Track *track, enum track_in_type type, void *obj)
@@ -1701,8 +1697,7 @@ static void track_set_in_onclick(void *void_arg)
 {
     struct track_in_arg *arg = (struct track_in_arg *)void_arg;
     track_set_input_to(arg->track, arg->type, arg->obj);
-    arg->track->tl->needs_redraw = true;
-    window_pop_menu(main_win);
+    main_win->needs_redraw = true;
 }
 
 void track_set_midi_out(Track *track)
@@ -2245,7 +2240,7 @@ void timeline_switch(uint8_t new_tl_index)
     /* session->gui.audio_rect = &(layout_get_child_by_name_recursive(new->track_area->parent, "audio_rect")->rect); */
     /* session->gui.ruler_rect = &(layout_get_child_by_name_recursive(new->track_area->parent, "ruler")->rect); */
     
-    new->needs_redraw = true;
+    main_win->needs_redraw = true;
     project_reset_tl_label(new->proj);
 }
 
@@ -2292,7 +2287,7 @@ static void track_move_automation(Automation *a, int direction, bool from_undo)
 {
     TEST_FN_CALL(automation_index, a);
     Track *track = a->track;
-    track->tl->needs_redraw = true;
+    main_win->needs_redraw = true;
     TEST_FN_CALL(track_automation_order, track);
     int new_pos = a->index + direction;
     if (new_pos >= 0 && new_pos < track->num_automations) {
@@ -2387,7 +2382,7 @@ static void check_freeze_click_track(Timeline * tl)
 	tl->layout_selector = -1;
 	tl->click_track_selector = 0;
 	tl->track_selector = -1;
-	tl->needs_redraw = true;
+	main_win->needs_redraw = true;
     }
 }
 
@@ -2401,7 +2396,7 @@ bool check_unfreeze_click_track(Timeline *tl)
 	ct->layout->y = cached_frozen_ct_y;
 	tl->click_track_frozen = false;
 	layout_reset(tl->track_area);
-	tl->needs_redraw = true;
+	main_win->needs_redraw = true;
 	tl->layout_selector = 0;
 	tl->click_track_selector = 0;
 	tl->track_selector = -1;
@@ -2438,7 +2433,7 @@ void timeline_move_track_or_automation(Timeline *tl, int direction)
 	timeline_refocus_click_track(tl, tt, direction > 0);
     }
     timeline_reset(tl, false);
-    tl->needs_redraw = true;
+    main_win->needs_redraw = true;
 }
 
 void project_set_chunk_size(uint16_t new_chunk_size)
@@ -2574,8 +2569,7 @@ void timeline_scroll_playhead(double dim)
 
 void project_active_tl_redraw(Project *proj)
 {
-    Session *session = session_get();
-    ACTIVE_TL->needs_redraw = true;
+    main_win->needs_redraw = true;
 }
 
 bool track_minimize(Track *t)
@@ -2598,8 +2592,12 @@ bool track_minimize(Track *t)
     return t->minimized;
 }
 
-void timeline_minimize_track_or_tracks(Timeline *tl)
+void timeline_minimize_track_or_tracks(Timeline *tl, Track *track_optional)
 {
+    if (track_optional) {
+        track_minimize(track_optional);
+        goto rectify;
+    }
     bool some_active = false;
     bool to_min = false;
     bool from_min = false;
@@ -2625,6 +2623,7 @@ void timeline_minimize_track_or_tracks(Timeline *tl)
 	    }
 	}
     }
+rectify:
     timeline_rectify_track_area(tl);
     timeline_reset(tl, false);
 }

@@ -114,7 +114,7 @@ NEW_EVENT_FN(undo_redo_set_segment_params, "undo/redo edit click segment")
     click_segment_set_config(s, -1, cpy->cfg.bpm, cpy->cfg.num_beats, cpy->cfg.beat_len_atoms, ebb);
     click_segment_destroy_copy(cpy);
     self->obj2 = redo_cpy;
-    s->track->tl->needs_redraw = true;
+    main_win->needs_redraw = true;
 }
 
 
@@ -133,7 +133,7 @@ static int time_sig_submit_button_action(void *self, void *s_v)
     click_segment_set_config(s, -1, tempo, atoi(tt->num_beats_str), subdivs, tt->end_bound_behavior);
     TabView *tv = main_win->active_tabview;
     tabview_close(tv);
-    tt->tl->needs_redraw = true;
+    main_win->needs_redraw = true;
 
     Value ebb = {.int_v = tt->end_bound_behavior};
     user_event_push(
@@ -231,7 +231,6 @@ void metronome_buf_menu_item_onclick(void *target)
 	textbox_size_to_fit(data->button_to_reset->tb, 6, 2);
 	textbox_reset_full(data->button_to_reset->tb);
     }
-    window_pop_menu(main_win);
 }
 
 static int metronome_buf_button_action(void *self_v, void *target_v)
@@ -645,5 +644,5 @@ void timeline_click_track_edit(Timeline *tl)
     click_track_populate_settings_tabview(tt, tv);
 
     tabview_activate(tv, tt, tt->name);
-    tl->needs_redraw = true;    
+    main_win->needs_redraw = true;    
 }

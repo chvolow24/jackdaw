@@ -30,8 +30,7 @@ void track_slider_cb(Endpoint *ep)
     if (ep->display_label) {
 	label_reset(s->label, val);
     }
-    Timeline *tl = (Timeline *)ep->xarg2;
-    tl->needs_redraw = true;
+    main_win->needs_redraw = true;
 }
 
 

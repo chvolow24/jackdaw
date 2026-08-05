@@ -251,12 +251,11 @@ void mouse_triage_motion_modal()
 
 bool mouse_triage_click_menu(uint8_t button)
 {
-    Session *session = session_get();
     if (main_win->num_menus == 0) return false;
     Menu *top_menu = main_win->menus[main_win->num_menus -1];
     if (top_menu) {
 	if (!menu_triage_mouse(top_menu, &main_win->mousep, true)) {
-	    ACTIVE_TL->needs_redraw = true;
+	    main_win->needs_redraw = true;
 	}
     }
     return true;
@@ -264,12 +263,11 @@ bool mouse_triage_click_menu(uint8_t button)
 
 bool mouse_triage_click_modal(uint8_t button)
 {
-    Session *session = session_get();
     if (main_win->num_modals == 0) return false;
     Modal *top_modal = main_win->modals[main_win->num_modals -1];
     if (top_modal) {
 	if (!modal_triage_mouse(top_modal, &main_win->mousep, true))
-	    ACTIVE_TL->needs_redraw = true;
+	    main_win->needs_redraw = true;
     }
     return true;
 }

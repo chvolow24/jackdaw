@@ -1156,13 +1156,13 @@ static void synth_open_form(DirNav *dn, DirPath *dp)
     /* } */
 /* pop_modal_and_exit: */
     window_pop_modal(main_win);
-    tl->needs_redraw = true;
+    main_win->needs_redraw = true;
     Track *track = timeline_selected_track(tl);
     if (track) {
 	if (!main_win->active_tabview) {
 	    TabView *tv = synth_tabview_create(track);
 	    tabview_activate(tv, track, track->name);
-	    tl->needs_redraw = true;
+	    main_win->needs_redraw = true;
 	    timeline_check_set_midi_monitoring();
 	    tabview_select_tab(tv, 4);
 	}
@@ -1247,7 +1247,7 @@ static int synth_save_form(void *mod_v, void *target)
 	ret = -1;
     }
     window_pop_modal(main_win);
-    tl->needs_redraw = true;
+    main_win->needs_redraw = true;
     return ret;
 
 }

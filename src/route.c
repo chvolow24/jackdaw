@@ -367,7 +367,7 @@ AudioRoute *track_add_audio_route(Track *track, Track *dst, float init_amp)
     track_reset_proc_order(track);
     timeline_resort_tracks_proc_order(track->tl);
 
-    track->tl->needs_redraw = true;
+    main_win->needs_redraw = true;
 
     user_event_push(
 	undo_add_audio_route,

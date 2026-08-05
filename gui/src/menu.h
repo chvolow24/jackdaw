@@ -82,6 +82,7 @@ void menu_draw(Menu *menu);
 bool menu_triage_mouse(Menu *menu, SDL_Point *mousep, bool click);
 Layout *menu_scroll(Menu *menu, SDL_Point mousep, int x, int y, bool dynamic);
 
+void menu_enter(Menu *m);
 void menu_next(Menu *m);
 void menu_prev(Menu *m);
 void menu_left(Menu *m);

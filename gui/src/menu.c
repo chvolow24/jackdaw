@@ -256,6 +256,10 @@ MenuColumn *menu_column_add(Menu *menu, const char *label)
 
 MenuSection *menu_section_add(MenuColumn *col, const char *label)
 {
+    if (col->num_sections > 0) {
+        MenuSection *prev_sctn = col->sections[col->num_sections - 1];
+        layout_size_to_fit_children_v(prev_sctn->layout, true, MENU_STD_SECTION_PAD);
+    }
     MenuSection *sctn = malloc(sizeof(MenuSection));
     sctn->num_items = 0;
     sctn->sel_item = 255;
@@ -270,9 +274,15 @@ MenuSection *menu_section_add(MenuColumn *col, const char *label)
     snprintf(sctn_name, 8, "sctn_%02d", col->num_sections);
     sctn_name[7] = '\0';
     layout_set_name(sctn->layout, sctn_name);
+    if (col->num_sections != 0) {
+        Layout *section_pad = layout_add_child(sctn->layout);
+        section_pad->w.type = SCALE;
+        section_pad->w.value = 1.0;
+        section_pad->h.value = MENU_STD_SECTION_PAD;
+    }
     col->sections[col->num_sections] = sctn;
     col->num_sections++;
-    col->layout->h.value += MENU_STD_SECTION_PAD;
+    /* col->layout->h.value += MENU_STD_SECTION_PAD; */
     return sctn;
 }
 
@@ -370,8 +380,8 @@ MenuItem *menu_item_add(
     sctn->layout->w.type = SCALE;
 
     /* Reset layout before sizing to fit (reset sizes children) */
-    layout_force_reset(col->container);
-    layout_size_to_fit_children_v(sctn->layout, true, MENU_STD_ITEM_V_SPACING);
+    layout_force_reset(col->container); 
+    layout_size_to_fit_children_v(sctn->layout, true, 0.0);
     if (w_logical > col->layout->w.value) {
 	col->layout->w.value = w_logical;
 	col->container->w.value = w_logical;
@@ -455,10 +465,15 @@ bool menu_triage_mouse(Menu *menu, SDL_Point *mousep, bool click)
 		    menu->sel_col = c;
 		    col->sel_sctn = s;
 		    sctn->sel_item = i;
+                    int num_menus = menu->window->num_menus;
 		    if (click && item->onclick) {
 			item->onclick(item->target);
-			/* window_pop_menu(main_win); */
+                        if (menu->window->num_menus == num_menus) {
+                            while (window_pop_menu(menu->window)) {}
+                        }
+
 		    }
+                    /* No new window was added by this function */
 		    
 		    /* textbox_set_background_color(item->tb, &menu_std_clr_highlight); */
 		    return true;
@@ -581,6 +596,30 @@ static void menu_rectify_scroll_horizontal(Menu *m, int direction)
     if (reset) layout_reset(m->layout);
 }
 
+extern void user_menu_nav_choose_item(void *nullarg);
+
+void menu_enter(Menu *m) {
+    if (m->sel_col < m->num_columns) {
+	MenuColumn *col = m->columns[m->sel_col];
+	if (col->sel_sctn < col->num_sections) {
+	    MenuSection *sctn = col->sections[col->sel_sctn];
+	    if (sctn->sel_item < sctn->num_items) {
+		MenuItem *item = sctn->items[sctn->sel_item];
+                int num_menus_before = m->window->num_menus;
+		if (item->onclick != user_menu_nav_choose_item) {
+		    item->onclick(item->target);
+		    /* window_pop_menu(main_win); */
+		}
+                Window *window = m->window;
+                if (window->num_menus == num_menus_before) {
+                    int num = 0;
+                    while ((num = window_pop_menu(window))) {}
+                }
+	    }
+	}
+    }
+}
+
 void menu_next(Menu *m)
 {
     if (m->sel_col == 255) {
@@ -695,7 +734,8 @@ void menu_draw(Menu *menu)
 	    if (j > 0) {
 		SDL_SetRenderDrawColor(menu->window->rend, sdl_color_expand(menu_std_clr_sctn_div));
 		SDL_Rect *sctnrect = &sctn->layout->rect;
-		int y = sctnrect->y - itemh_pixels / 2;
+		/* int y = sctnrect->y - itemh_pixels / 2; */
+                int y = sctnrect->y;
 		SDL_RenderDrawLine(menu->window->rend, sctnrect->x, y, sctnrect->x + sctnrect->w, y);
 	    }
 

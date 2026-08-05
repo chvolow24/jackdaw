@@ -1054,7 +1054,7 @@ ClickTrack *timeline_add_click_track(Timeline *tl)
     t->layout = lt;
     layout_size_to_fit_children_v(click_tracks_area, true, 0);
     layout_reset(tl->track_area);
-    tl->needs_redraw = true;
+    main_win->needs_redraw = true;
 
     layout_force_reset(lt);
 
@@ -1136,7 +1136,7 @@ ClickTrack *timeline_add_click_track(Timeline *tl)
     tl->click_tracks[tl->num_click_tracks] = t;
     t->index = tl->num_click_tracks;
     tl->num_click_tracks++;
-    snprintf(t->name, MAX_NAMELENGTH, "Click track %d\n", t->index + 1);
+    snprintf(t->name, MAX_NAMELENGTH, "Click track %d", t->index + 1);
 
     timeline_rectify_track_indices(tl);
     timeline_rectify_track_area(tl);
@@ -1205,8 +1205,7 @@ static int set_tempo_submit_form(void *mod_v, void *target)
 	}
     }
     window_pop_modal(main_win);
-    Session *session = session_get();
-    ACTIVE_TL->needs_redraw = true;
+    main_win->needs_redraw = true;
     return 0;
 }
 
@@ -1288,7 +1287,7 @@ void timeline_click_track_set_tempo_at_cursor(Timeline *tl)
 
     modal_reset(mod);
     modal_move_onto(mod);
-    tl->needs_redraw = true;
+    main_win->needs_redraw = true;
  }
 
 static void click_track_delete(ClickTrack *tt, bool from_undo);
@@ -1375,21 +1374,14 @@ ClickSegment *click_track_cut_at(ClickTrack *tt, int32_t at)
 }
 
 NEW_EVENT_FN(undo_cut_click_track, "undo cut click track")
-    ClickTrack *tt = (ClickTrack *)obj1;
     ClickSegment *s = (ClickSegment *)obj2;
-    /* int32_t at = val1.int32_v; */
-    /* s = click_track_get_segment_at_pos(tt, at); */
     simple_click_segment_remove(s);
-    tt->tl->needs_redraw = true;
+    main_win->needs_redraw = true;
 }
 
 NEW_EVENT_FN(redo_cut_click_track, "redo cut click track")
-    ClickTrack *tt = (ClickTrack *)obj1;
-    /* int32_t at = val1.int32_v; */
     simple_click_segment_reinsert(obj2, val2.int32_v);
-    tt->tl->needs_redraw = true;
-    /* ClickSegment *s = click_track_cut_at(tt, at); */
-    /* self->obj2 = (void *)s; */
+    main_win->needs_redraw = true;
 }
 
 NEW_EVENT_FN(dispose_forward_cut_click_track, "")
@@ -1407,7 +1399,7 @@ void timeline_cut_click_track_at_cursor(Timeline *tl)
 	status_set_errstr("Error: cannot cut at existing segment boundary");
 	return;
     }
-    tl->needs_redraw = true;
+    main_win->needs_redraw = true;
     Value cut_pos = {.int32_v = tl->play_pos_sframes};
     Value new_seg_duration = {.int32_v = s->next ? s->next->start_pos - s->start_pos : -1};
     user_event_push(
@@ -1428,7 +1420,7 @@ void timeline_increment_click_at_cursor(Timeline *tl, int inc_by)
     uint8_t subdiv_lens[s->cfg.num_beats];
     memcpy(subdiv_lens, s->cfg.beat_len_atoms, s->cfg.num_beats * sizeof(uint8_t));
     click_segment_set_config(s, s->num_measures, new_tempo, s->cfg.num_beats, subdiv_lens, tt->end_bound_behavior);
-    tl->needs_redraw = true;
+    main_win->needs_redraw = true;
 }
 
 void click_track_get_prox_beats(ClickTrack *ct, int32_t pos, BeatProminence bp, int32_t *prev_pos_dst, int32_t *next_pos_dst)
@@ -1893,18 +1885,9 @@ void click_track_mute_unmute(ClickTrack *t)
     } else {
 	textbox_set_background_color(t->metronome_button, &colors.play_green);
     }
-    t->tl->needs_redraw = true;
+    main_win->needs_redraw = true;
 }
 
-/* void track_increment_vol(Track *track) */
-/* { */
-/*     track->vol += TRACK_VOL_STEP; */
-/*     if (track->vol > track->vol_ctrl->max.float_v) { */
-/* 	track->vol = track->vol_ctrl->max.float_v; */
-/*     } */
-/*     slider_edit_made(track->vol_ctrl); */
-/*     slider_reset(track->vol_ctrl); */
-/* } */
 
 void click_track_increment_vol(ClickTrack *tt)
 {

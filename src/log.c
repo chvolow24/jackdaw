@@ -135,6 +135,7 @@ void log_print_current_thread()
 static int line_cmp(const void *v1, const void *v2)
 {
     /* 1994-04-25 10:03:21.2222 */
+    return 0;
     const int ts_fmt_len = 25;
     const char *str1 = *(char **)v1;
     const char *str2 = *(char **)v2;

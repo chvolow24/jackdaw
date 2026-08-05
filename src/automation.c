@@ -118,7 +118,7 @@ void automation_remove(Automation *a)
     if (a->removed) return;
     a->removed = true;
     Track *track = a->track;
-    track->tl->needs_redraw = true;
+    main_win->needs_redraw = true;
     bool displace = false;
     bool some_read = false;
     for (uint16_t i=0; i<track->num_automations; i++) {
@@ -164,7 +164,7 @@ void automation_reinsert(Automation *a)
     a->removed = false;
     /* a->deleted = false; */
     Track *track = a->track;
-    track->tl->needs_redraw = true;
+    main_win->needs_redraw = true;
     for (int16_t i=track->num_automations; i>=0; i--) {
 	if (i < track->num_automations) {
 	    /* fprintf(stderr, "incr index, moving %d->%d\n", i, i+1); */
@@ -780,7 +780,7 @@ static void keyframe_move(Keyframe *k, int32_t new_pos, Value new_value)
     }
     keyframe_set_y_prop(a, k - a->keyframes);
     k->draw_x = timeline_get_draw_x(a->track->tl, new_pos);
-    a->track->tl->needs_redraw = true;
+    main_win->needs_redraw = true;
 }
 
 static inline bool kf_in_range(Automation *a, Keyframe *k, uint16_t start, uint16_t end)
@@ -863,7 +863,7 @@ Keyframe *automation_insert_keyframe_at(
     int32_t pos,
     Value val)
 {
-    a->track->tl->needs_redraw = true;
+    main_win->needs_redraw = true;
     if (a->num_keyframes + 1 >= a->keyframe_arrlen) {
 	keyframe_arr_resize(a);
     }
@@ -1084,7 +1084,7 @@ static void keyframe_remove(Keyframe *k)
 {
     if (k == k->automation->keyframes) return; /* Don't remove last keyframe */
     Automation *a = k->automation;
-    a->track->tl->needs_redraw= true;
+    main_win->needs_redraw= true;
     uint16_t pos = k - a->keyframes;
     uint16_t num = a->num_keyframes - pos;
     int ret = pthread_mutex_lock(&a->lock);
@@ -1174,39 +1174,13 @@ static bool automation_get_kf_range(Automation *a, int32_t start_pos, int32_t en
 
 static void automation_remove_kf_range(Automation *a, uint16_t remove_start_i, uint16_t remove_end_i)
 {
-    a->track->tl->needs_redraw = true;
-    /* uint16_t current_i = automation_check_get_cache(a, start_pos) - a->keyframes; */
-    /* uint16_t remove_start_i; */
-    /* if ((remove_start_i = current_i + 1) < a->num_keyframes && a->keyframes[remove_start_i].pos < end_pos) { */
-    /* 	uint16_t remove_start_i = current_i + 1; */
-    /* 	uint16_t remove_end_i = remove_start_i; */
-    /* 	while (1) { */
-    /* 	    if (remove_end_i > a->num_keyframes) break; */
-    /* 	    if (a->keyframes[remove_end_i].pos > end_pos) { */
-    /* 		break; */
-    /* 	    } */
-    /* 	    remove_end_i++; */
-    /* 	} */
-    /* uint16_t remove_start_i, remove_end_i; */
-    /* if (!automation_get_kf_range(a, start_pos, end_pos, &remove_start_i, &remove_end_i)) return; */
+    main_win->needs_redraw = true;
 
     /* Do not allow removal of all keyframes */
     if (remove_start_i == 0 && remove_end_i == a->num_keyframes) {
 	remove_start_i++;
     }
     pthread_mutex_lock(&a->lock);
-    /* fprintf(stderr, "\n\n"); */
-    /* if (remove_start_i > 0) { */
-    /* 	fprintf(stderr, "\t(-1) %d\n", a->keyframes[remove_start_i - 1].pos); */
-    /* } */
-    /* fprintf(stderr, "\t(--) %d\n", start_pos); */
-    /* for (uint32_t i=remove_start_i; i<remove_end_i; i++) { */
-    /* 	fprintf(stderr, "\t(%d) %d\n", i - remove_start_i, a->keyframes[i].pos); */
-    /* } */
-    /* fprintf(stderr, "\t(--) %d\n", end_pos); */
-    /* if (remove_end_i < a->num_keyframes - 1) { */
-	/* fprintf(stderr, "\t(++1) %d\n", a->keyframes[remove_end_i].pos); */
-    /* } */
     int32_t remove_count = remove_end_i - remove_start_i;
     int32_t move_count = a->num_keyframes - remove_end_i;
     if (remove_count > 0) {
@@ -1593,7 +1567,7 @@ static void keyframe_move_coords(Keyframe *k, int x, int y)
 
 NEW_EVENT_FN(undo_redo_move_keyframe, "undo/redo move keyframe")
     Automation *a = (Automation *)obj1;
-    a->track->tl->needs_redraw = true;
+    main_win->needs_redraw = true;
     uint16_t index = *((uint16_t *)obj2);
     Keyframe *k = a->keyframes + index;
     keyframe_move(k, val1.int32_v, val2);
@@ -2217,13 +2191,13 @@ bool automation_handle_delete(Automation *a)
 	keyframe_delete(tl->dragging_keyframe);
 	tl->dragging_keyframe = NULL;
 	status_cat_callstr(" selected keyframe");
-	tl->needs_redraw = true;
+	main_win->needs_redraw = true;
 	return true;
     }
     if (tl->in_mark_sframes < tl->out_mark_sframes) {
 	automation_delete_keyframe_range(a, tl->in_mark_sframes, tl->out_mark_sframes);
 	status_cat_callstr(" keyframe in->out");
-	tl->needs_redraw = true;
+	main_win->needs_redraw = true;
 	return true;
     }
     return false;

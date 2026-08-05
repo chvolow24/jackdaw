@@ -14,7 +14,6 @@
 #include "geometry.h"
 #include "input.h"
 #include "page.h"
-#include "project.h"
 #include "layout.h"
 #include "layout_xml.h"
 #include "log.h"
@@ -855,7 +854,6 @@ static inline bool label_overflows(TabView *tv, uint8_t index)
 /* Check for visual overflow and add ellipsis tabs if necessary */
 void tabview_reset(TabView *tv, uint8_t leftmost_index)
 {
-    Session *session = session_get();
     /* fprintf(stderr, "\nParent layout w: %d; this w: %d\n", tv->layout->parent->rect.w, tv->layout->rect.w); */
     /* layout_reset(tv->layout); */
     /* fprintf(stderr, "Parent layout w: %d; this w: %d\n", tv->layout->parent->rect.w, tv->layout->rect.w); */
@@ -915,7 +913,7 @@ void tabview_reset(TabView *tv, uint8_t leftmost_index)
 
     Page *page = tv->tabs[tv->current_tab];
     page_reset(page);
-    ACTIVE_TL->needs_redraw = true;
+    main_win->needs_redraw = true;
 }
 
 bool tabview_mouse_click(TabView *tv)
@@ -1304,7 +1302,6 @@ void tabview_previous_tab(TabView *tv)
 
 void tabview_swap_adjacent_tabs(TabView *tv, int current, int new, bool apply_swapfn)
 {
-    Session *session = session_get();
     Textbox *displaced_label = tv->labels[new];
     Textbox *current_label = tv->labels[current];
     layout_swap_children(displaced_label->layout, current_label->layout);
@@ -1315,7 +1312,7 @@ void tabview_swap_adjacent_tabs(TabView *tv, int current, int new, bool apply_sw
     tv->labels[current] = displaced_label;
     tv->tabs[current] = displaced_page;
     layout_reset(tv->layout);
-    ACTIVE_TL->needs_redraw = true;
+    main_win->needs_redraw = true;
 
     if (apply_swapfn && tv->swap_fn) {
 	tv->swap_fn(tv->swap_fn_target, current, new);

@@ -17,19 +17,41 @@ void breakfn()
 {
 }
 #ifdef JDAW_BACKTRACE_AVAILABLE
-void print_backtrace()
+int get_backtrace(char ***symbols_dst)
 {
     const int max = 32;
     void **results = malloc(max * sizeof(void *));
     int len = backtrace(results, max);
     char **symbols = backtrace_symbols(results, len);
+    *symbols_dst = symbols;
+    return len;
+
+}
+void print_backtrace()
+{
+    char **symbols = NULL;
+    int len = get_backtrace(&symbols);
     for (int i=0; i<len; i++) {
 	fprintf(stderr, "%s\n",symbols[i]);
     }
     free(symbols);
 }
+void snprint_backtrace(char *restrict dst, size_t size)
+{
+    char **symbols = NULL;
+    int len = get_backtrace(&symbols);
+    int written = 0;
+    for (int i=0; i<len; i++) {
+	written += snprintf(dst, size - written, "%s\n",symbols[i]);
+    }
+    free(symbols);
+}
+
+
 #else
 void print_backtrace() {}
+void snprint_backtrace() {}
+char **get_backtrace() {}
 #endif
 
 

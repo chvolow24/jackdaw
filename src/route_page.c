@@ -365,7 +365,7 @@ void route_page_open(Track *track, bool select_outs_tab)
     if (select_outs_tab) {
 	tabview_select_tab(tv, 1);
     }
-    track->tl->needs_redraw = true;    
+    main_win->needs_redraw = true;    
 }
 
 

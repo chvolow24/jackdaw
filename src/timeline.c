@@ -324,12 +324,7 @@ void timeline_set_play_position(Timeline *tl, int32_t abs_pos_sframes, bool move
 
 
     timeline_flush_unclosed_midi_notes();
-    /* timeline_reset(tl, false); */
-    tl->needs_redraw = true;
-    /* if (restart_playback) { */
-    /* 	transport_start_playback(); */
-    /* 	session->playback.play_speed = playspeed; */
-    /* } */
+    main_win->needs_redraw = true;
 }
 
 
@@ -370,7 +365,7 @@ void timeline_move_play_position(Timeline *tl, int32_t move_by_sframes)
 	timeview_scroll_sframes(&tl->timeview, move_by_sframes);
 	tl->needs_reset = true;
     }
-    tl->needs_redraw = true;
+    main_win->needs_redraw = true;
 }
 
 

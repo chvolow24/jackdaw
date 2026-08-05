@@ -544,7 +544,7 @@ static int add_jlily_modalfn(void *mod_v, void *target)
 
     clipref_reset(cr, true);
 pop_modal_and_exit:
-    tl->needs_redraw = true;
+    main_win->needs_redraw = true;
     window_pop_modal(main_win);
     return 0;
 

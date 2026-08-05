@@ -654,7 +654,7 @@ void effect_delete(Effect *e, bool from_undo)
 	if (ec->num_effects > 0) {
 	    effect_chain_open_tabview(ec);
 	} else {
-	    ec->proj->timelines[ec->proj->active_tl_index]->needs_redraw = true;
+	    main_win->needs_redraw = true;
 	}
 	/* if (strncmp(ec->obj_name, "Synth", 5) == 0) { */
 	/* } */

@@ -738,12 +738,7 @@ static void select_out_onclick(void *arg)
 	transport_stop_playback();
 	timeline_play_speed_set(0.0);
     }
-    /* audioconn_close(session->audio_io.playback_conn); */
     session_set_out_conn(session, session->audio_io.playback_conns[index], false);
-    window_pop_menu(main_win);
-    Timeline *tl = ACTIVE_TL;
-    tl->needs_redraw = true;
-    /* window_pop_mode(main_win); */
 }
 
 void session_set_default_out(void *nullarg)

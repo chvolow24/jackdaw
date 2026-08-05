@@ -27,6 +27,7 @@
 #include "assets.h"
 #include "clipref.h"
 #include "consts.h"
+#include "context_menu.h"
 #include "dsp_utils.h"
 #include "function_lookup.h"
 #include "init_panels.h"
@@ -114,6 +115,7 @@ static void init()
     init_SDL();
     get_native_byte_order();
     input_init();
+    context_menu_init();
     mqwert_init();
     pd_jackdaw_shm_init();
     midi_io_init();

@@ -145,7 +145,7 @@ void mqwert_activate()
     }
     status_set_sticky_alert_str("QWERTY Piano active; ESC to exit");
     panel_page_refocus(session->gui.panels, "QWERTY piano", 1);
-    ACTIVE_TL->needs_redraw = true;
+    main_win->needs_redraw = true;
 }
 
 void mqwert_deactivate()

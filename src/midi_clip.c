@@ -1315,7 +1315,7 @@ NEW_EVENT_FN(undo_quantize_notes, "undo quantize notes")
 	note->quantize_info = info[i].old_info;
     }
     midi_clip_resort_notes(mclip);
-    cr->track->tl->needs_redraw = true;
+    main_win->needs_redraw = true;
 }
 
 NEW_EVENT_FN(redo_quantize_notes, "redo quantize notes")
@@ -1329,7 +1329,7 @@ NEW_EVENT_FN(redo_quantize_notes, "redo quantize notes")
 	note_apply_quantize_amt(cr, note);
     }
     midi_clip_resort_notes(mclip);
-    cr->track->tl->needs_redraw = true;
+    main_win->needs_redraw = true;
 
 }
 
@@ -1520,8 +1520,7 @@ static int quantize_form_submit(void *modal_v, void *stashed_obj)
 	break;
     }
     window_pop_modal(main_win);
-    Session *session = session_get();
-    ACTIVE_TL->needs_redraw = true;
+    main_win->needs_redraw = true;
     return 0;    
 }
 
@@ -1542,7 +1541,7 @@ static int quantize_amt_form_submit(void *modal_v, void *stashed_obj)
 	break;
     }
     window_pop_modal(main_win);
-    ACTIVE_TL->needs_redraw = true;
+    main_win->needs_redraw = true;
     return 0;
     
 }
@@ -1654,7 +1653,7 @@ void midi_clipref_quantize(ClipRef *cr)
     window_push_modal(main_win, mod);
     modal_reset(mod);
     modal_move_onto(mod);
-    ACTIVE_TL->needs_redraw = true;
+    main_win->needs_redraw = true;
 }
 
 void midi_clipref_adj_quantize_amt(ClipRef *cr)
@@ -1682,7 +1681,7 @@ void midi_clipref_adj_quantize_amt(ClipRef *cr)
     window_push_modal(main_win, mod);
     modal_reset(mod);
     modal_move_onto(mod);
-    ACTIVE_TL->needs_redraw = true;
+    main_win->needs_redraw = true;
 
 }
 

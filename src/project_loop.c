@@ -84,7 +84,6 @@ void user_tl_track_selector_down(void *nullarg);
 
 void handle_window_events(SDL_Event e, Window *win)
 {
-    Session *session = session_get();
     if (e.window.event == SDL_WINDOWEVENT_RESIZED || e.window.event == SDL_WINDOWEVENT_MAXIMIZED) {
         int w, h;
         if (e.window.event == SDL_WINDOWEVENT_MAXIMIZED) {
@@ -93,9 +92,9 @@ void handle_window_events(SDL_Event e, Window *win)
             w = e.window.data1;
             h = e.window.data2;
         }
-        ACTIVE_TL->needs_redraw = true;
+        main_win->needs_redraw = true;
         window_resize_passive(main_win, w, h);
-        ACTIVE_TL->needs_redraw = true;
+        main_win->needs_redraw = true;
     } else if (e.window.event == SDL_WINDOWEVENT_DISPLAY_CHANGED) {
         int rw = 0, rh = 0, ww = 0, wh = 0;
         SDL_GetWindowSize(main_win->win, &ww, &wh);
@@ -211,6 +210,7 @@ void loop_project_main()
                     for (int i=0; i<num_ctxs; i++) {
                         fprintf(stderr, "%d: %s (%p) %s\n", i, context_type_name(arr[i].type), arr[i].obj, arr[i].name);
                     }
+                    context_menu_create(num_ctxs);
                 }
                     break;
 		case SDL_SCANCODE_LGUI:
@@ -263,6 +263,7 @@ void loop_project_main()
 				input_fn->bound_button->return_color);
 
 			}
+                        main_win->needs_redraw = true;
 			/* timeline_reset(ACTIVE_TL); */
 		    }
 		    break;
@@ -313,7 +314,7 @@ void loop_project_main()
 		break;
 	    case SDL_MOUSEWHEEL: {
 		Timeline *tl = ACTIVE_TL;
-		tl->needs_redraw = true;
+		main_win->needs_redraw = true;
 		if (session->dragged_component.component) {
 		    draggable_handle_scroll(&session->dragged_component, e.wheel.x, e.wheel.y);
 		    break;
@@ -396,6 +397,7 @@ void loop_project_main()
 		    main_win->i_state |= I_STATE_MOUSE_R;
 		}
 		mouse_triage_click(e);
+                main_win->needs_redraw = true;
 		break;
 	    case SDL_MOUSEBUTTONUP:
 		scrolling_lt = NULL;
@@ -413,6 +415,7 @@ void loop_project_main()
 		if (session->piano_roll) {
 		    piano_roll_mouse_up(main_win->mousep);
 		}
+                main_win->needs_redraw = true;
 		break;
 	    case SDL_FINGERUP:
 		fingersdown = SDL_GetNumTouchFingers(-1);
@@ -422,6 +425,7 @@ void loop_project_main()
 		    }
 		    scrub_block = false;
 		}
+                main_win->needs_redraw = true;
 		break;
 	    case SDL_FINGERDOWN:
 	        fingersdown = SDL_GetNumTouchFingers(-1);
@@ -429,6 +433,7 @@ void loop_project_main()
 		    layout_halt_scroll(scrolling_lt);
 		    scrolling_lt = NULL;
 		}
+                main_win->needs_redraw = true;
 		break;
 	    case SDL_DROPFILE: {
 		Timeline *tl = ACTIVE_TL;
@@ -444,6 +449,7 @@ void loop_project_main()
 		timeline_set_play_position(tl, pos, false);
 		io_open_file(e.drop.file, IO_FILE_TYPE_UNDETERMINED, timeline_selected_track(ACTIVE_TL), pos);
 		SDL_free(e.drop.file);
+                main_win->needs_redraw = true;
 	    }
 		break;		
 	    default:
@@ -461,7 +467,6 @@ void loop_project_main()
             if (EVENT_MUTATES_STATE(e.type)) {
                 session_check_reset_window_title();
             }
-		
 	} /* End event handling */
 
 
@@ -521,7 +526,7 @@ void loop_project_main()
 	    session->drag_color_pulse_phase++;
 	    session->drag_color_pulse_phase %= DRAG_COLOR_PULSE_PHASE_MAX;
 	    session->drag_color_pulse_prop = (sin(TAU * (double)session->drag_color_pulse_phase / DRAG_COLOR_PULSE_PHASE_MAX) + 1.0) / 2.0;
-	    tl->needs_redraw = true;
+	    main_win->needs_redraw = true;
 	}
 
 	if (session->playhead_scroll.playhead_do_incr) {
@@ -565,7 +570,7 @@ void loop_project_main()
 	session_do_ongoing_changes(session, JDAW_THREAD_MAIN);
 	session_flush_val_changes(session, JDAW_THREAD_MAIN);
 	session_flush_callbacks(session, JDAW_THREAD_MAIN);
-	if (tl->needs_redraw) {
+	if (main_win->needs_redraw) {
 	    set_clipref_at_cursor();
 	}
 	project_draw();

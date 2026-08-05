@@ -49,6 +49,8 @@ static double dur_proc = 0.0;
 static double dur_wait = 0.0;
 
 
+extern Window *main_win;
+
 #ifdef TESTBUILD
 void toggle_transport_logging()
 {
@@ -345,7 +347,7 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 		session->source_mode.src_play_pos_sframes = clip->len_sframes - 1;
 	    }
 	}
-	tl->needs_redraw = true;
+	main_win->needs_redraw = true;
     } else if (session->playback.playing) {
 	/* timer_start(); */
 	struct dsp_chunk_info *chunk_info = tl->dsp_chunks_info + tl->dsp_chunks_info_read_i;
@@ -1194,7 +1196,7 @@ void transport_stop_recording()
     Textbox *record_button = ((Button *)el->component)->tb;
     textbox_set_background_color(record_button, &colors.quickref_button_blue );
 
-    tl->needs_redraw = true;
+    main_win->needs_redraw = true;
 }
 
 void transport_set_mark(Timeline *tl, bool in)
@@ -1214,7 +1216,7 @@ void transport_set_mark(Timeline *tl, bool in)
 	    session->source_mode.src_out_sframes = session->source_mode.src_play_pos_sframes;
 	}
     }
-    tl->needs_redraw = true;
+    main_win->needs_redraw = true;
 }
 
 void transport_set_mark_to(Timeline *tl, int32_t pos, bool in)

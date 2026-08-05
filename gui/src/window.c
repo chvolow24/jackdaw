@@ -413,8 +413,14 @@ void window_destroy(Window *win)
 }
 
 #ifndef LAYOUT_BUILD
-void window_pop_menu(Window *win)
+int window_pop_menu(Window *win)
 {
+    log_tmp(LOG_DEBUG, "Window pop menu\n");
+    if (win->num_modes == 0) {
+        log_tmp(LOG_FATAL, "Window num modes == 0\n");
+        error_exit("Window num modes == 0");
+    }
+
     if (win->num_menus > 0) {
 	menu_destroy(win->menus[win->num_menus - 1]);
 	win->num_menus--;
@@ -423,6 +429,7 @@ void window_pop_menu(Window *win)
 	/* window_pop_mode(win); */
 	window_extract_mode(win, MODE_MENU_NAV);
     }
+    return win->num_menus;
 }
 #endif
 
@@ -489,10 +496,6 @@ static InputMode window_pop_mode(Window *win)
 	win->num_modes--;
 	#ifndef LAYOUT_BUILD
 	log_tmp(LOG_DEBUG, "Pop mode %s at %d\n", input_mode_str(win->modes[win->num_modes]), win->num_modes);
-	if (win->num_modes == 0) {
-	    log_tmp(LOG_FATAL, "Window num modes == 0\n");
-	    error_exit("Window num modes == 0");
-	}
 	#endif
 	return win->modes[win->num_modes];
     }
@@ -577,17 +580,16 @@ void window_clear_higher_modes(Window *win, InputMode called_from_mode)
 #endif
 
 #ifndef LAYOUT_BUILD
+extern Window *main_win;
 #include "page.h"
 void window_push_modal(Window *win, Modal *modal)
 {
-    Session *session = session_get();
     while (win->num_modals > 0) {
 	window_pop_modal(win);
     }
     
     #ifndef LAYOUT_BUILD
-    Timeline *tl = ACTIVE_TL;
-    tl->needs_redraw = true;
+    main_win->needs_redraw = true;
     #endif
     
     /* if (win->active_tabview) { */

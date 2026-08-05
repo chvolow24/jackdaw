@@ -604,7 +604,8 @@ static int timeline_draw(Timeline *tl)
     /* FRAME_WF_DRAW_TIME = 0.0; */
     Session *session = session_get();
     /* Only redraw the timeline if necessary */
-    if (!tl->needs_redraw && !session->playback.recording && !main_win->txt_editing && !(main_win->i_state & I_STATE_MOUSE_L)) {
+    
+    if (!main_win->needs_redraw && !session->playback.recording && !main_win->txt_editing && !(main_win->i_state & I_STATE_MOUSE_L)) {
 	/* fprintf(stderr, "SKIP!\n"); */
 	return 0;
     }
@@ -828,10 +829,10 @@ static int timeline_draw(Timeline *tl)
     /* SDL_RenderFillRect(main_win->rend, &tl->track_area->rect); */
     /* layout_draw(main_win, tl->track_area); */
     if (internal_tl_needs_redraw) {
-	tl->needs_redraw = true;
+	main_win->needs_redraw = true;
 	internal_tl_needs_redraw = false;
     } else {
-	tl->needs_redraw = false;
+	main_win->needs_redraw = false;
     }
     /* SDL_SetRenderDrawColor(main_win->rend, 255, 255, 0, 255); */
     return 1;

@@ -16,7 +16,6 @@
 
 #define PANEL_H_SPACING 10
 #define PANEL_LABEL_PAD 6
-/* #define PANEL_LABEL_DIVIDER_PAD (8 * pa->win->dpi_scale_factor) */
 
 extern struct colors colors;
 
@@ -44,11 +43,8 @@ Panel *panel_area_add_panel(PanelArea *pa)
     panel_lt->x.value = PANEL_H_SPACING;
     panel_lt->w.value = 200;
 
-    /* panel_lt->h.value = 200; */
     p->layout = panel_lt;
     Layout *selector_lt = layout_add_child(panel_lt);
-    /* selector_lt->w.value = 200; */
-    /* selector_lt->h.value = 200; */
     layout_set_default_dims(selector_lt);
     layout_reset(selector_lt);
     p->selector = textbox_create_from_str(NULL, selector_lt, pa->win->mathematical_font, 12, pa->win);
@@ -215,26 +211,13 @@ struct pa_click_target {
 void panel_selector_onclick(void *arg_v)
 {
     struct pa_click_target *targ = (struct pa_click_target *)arg_v;
-    /* Panel *swap_panel = NULL; */
-    /* int swap_panel_i = -1; */
-    /* for (uint8_t i=0; i<targ->pa->num_panels; i++) { */
-    /* 	if (targ->pa->panels[i]->current_page == targ->page_i) { */
-    /* 	    swap_panel_i = i; */
-    /* 	} */
-    /* } */
-    /* if (swap_panel_i >= 0) { */
-    /* 	panel_select_page(targ->pa, swap_panel_i, targ->pa->panels[targ->panel_i]->current_page); */
-    /* } */
-    /* panel_select_page(targ->pa, targ->panel_i, targ->page_i); */
     panel_insert_page(targ->pa, targ->panel_i, targ->page_i);
-    window_pop_menu(targ->pa->win);
 }
 
 bool panel_area_mouse_click(PanelArea *pa)
 {
     for (uint8_t i=0; i<pa->num_panels; i++) {
 	Panel *p = pa->panels[i];
-	/* fprintf(stdout, "TEST panel %d\n", i); */
 	if (SDL_PointInRect(&pa->win->mousep, &p->layout->rect)) {
 	    if (SDL_PointInRect(&pa->win->mousep, &p->selector->layout->rect)) {
 		Menu *menu = menu_create_at_point(pa->win->mousep.x, pa->win->mousep.y);
@@ -246,7 +229,6 @@ bool panel_area_mouse_click(PanelArea *pa)
 		    target->panel_i = i;
 		    target->page_i = j;
 		    target->pa = pa;
-		    /* fprintf(stdout, "Conn index: %d\n", conn->index); */
 		    MenuItem *item = menu_item_add(
 			sc,
 			page->title,
@@ -256,7 +238,6 @@ bool panel_area_mouse_click(PanelArea *pa)
 		    item->free_target_on_destroy = true;
 		}
 		menu_add_header(menu,"", "\n\n'n' to select next item; 'p' to select previous item.");
-		/* menu_reset_layout(menu); */
 		window_add_menu(pa->win, menu);
 	    } else {
 		Page *page = pa->pages[p->current_page];

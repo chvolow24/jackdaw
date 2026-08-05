@@ -4,7 +4,6 @@
 #include "dsp_utils.h"
 #include "label.h"
 #include "layout.h"
-#include "session.h"
 #include "value.h"
 
 extern Window *main_win;
@@ -86,12 +85,10 @@ static void animation_frame_op(void *arg1, void *arg2)
 }
 static void animation_end_op(void *arg1, void *arg2)
 {
-    Session *session = session_get();
     Label *l = (Label *)arg1;
     if (l->countdown_timer <= 0) {
 	l->animation = NULL;
-	Timeline *tl = ACTIVE_TL;
-	tl->needs_redraw = true;
+	main_win->needs_redraw = true;
     } else {
 	l->animation->label = NULL;
 	l->animation = session_queue_animation(

@@ -21,6 +21,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <string.h>
 
 #ifdef TESTBUILD 
     #define TEST_FN_DEF(name, body, ...) \
@@ -48,6 +49,8 @@ void breakfn();
 #endif
 
 void print_backtrace();
+void snprint_backtrace(char *restrict dst, size_t size);
+int get_backtrace(char ***symbols_dst);
 
 TEST_FN_DECL(chaotic_user, bool *run_tests, uint64_t max_num_frames);
 

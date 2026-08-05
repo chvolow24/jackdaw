@@ -13,6 +13,7 @@
 #include "tempo.h"
 #include "type_serialize.h"
 
+extern Window *main_win;
 
 /* Spec at https://drive.google.com/file/d/1t4jcCCKoi5HMi7YJ6skvZfKcefLhhOgU/view?u */
 
@@ -787,7 +788,7 @@ int midi_file_open(const char *filepath, bool automatically_add_tracks)//, MIDIC
 		}
 	    }
 	}
-	tl->needs_redraw = true;
+	main_win->needs_redraw = true;
     }
     session->proj.active_midi_clip_index += num_clips;
     free(v_device);

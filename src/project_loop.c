@@ -163,6 +163,7 @@ void loop_project_main()
 		break;
 	    case SDL_MOUSEMOTION: {
 		window_set_mouse_point(main_win, e.motion.x, e.motion.y);
+                main_win->needs_redraw = true; 
 		if (session->dragged_component.component) {
 		    draggable_mouse_motion(&session->dragged_component, main_win);
 		    break;
@@ -209,13 +210,14 @@ void loop_project_main()
 		temp_scrolling_lt = NULL;
 		switch (e.key.keysym.scancode) {
                 case SDL_SCANCODE_6: {
-                    Ctx *arr = NULL;
-                    int num_ctxs = context_at_cursor(&arr);
-                    fprintf(stderr, "\n");
-                    for (int i=0; i<num_ctxs; i++) {
-                        fprintf(stderr, "%d: %s (%p) %s\n", i, context_type_name(arr[i].type), arr[i].obj, arr[i].name);
-                    }
-                    context_menu_create(num_ctxs);
+                    context_at_cursor_create_menu();
+                    /* Ctx *arr = NULL; */
+                    /* int num_ctxs = context_at_cursor(&arr); */
+                    /* fprintf(stderr, "\n"); */
+                    /* for (int i=0; i<num_ctxs; i++) { */
+                    /*     fprintf(stderr, "%d: %s (%p) %s\n", i, context_type_name(arr[i].type), arr[i].obj, arr[i].name); */
+                    /* } */
+                    /* context_menu_create(num_ctxs); */
                 }
                     break;
 		case SDL_SCANCODE_LGUI:
@@ -398,10 +400,11 @@ void loop_project_main()
 		temp_scrolling_lt = NULL;
 		if (e.button.button == SDL_BUTTON_LEFT) {
 		    main_win->i_state |= I_STATE_MOUSE_L;
+                    mouse_triage_click(e);
 		} else if (e.button.button == SDL_BUTTON_RIGHT) {
 		    main_win->i_state |= I_STATE_MOUSE_R;
+                    context_at_point_create_menu(main_win->mousep);
 		}
-		mouse_triage_click(e);
                 main_win->needs_redraw = true;
 		break;
 	    case SDL_MOUSEBUTTONUP:
@@ -641,7 +644,6 @@ void loop_project_main()
     end_frame:
 
 	if ((!redrawn && frames_since_event >= IDLE_AFTER_N_FRAMES) || !main_win->focused) {
-            fprintf(stderr, "IDLE\n");
 	    SDL_Delay(200);
 	} else {
 	    SDL_Delay(1);

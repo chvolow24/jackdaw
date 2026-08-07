@@ -1104,24 +1104,39 @@ void user_tl_set_mark_in(void *tl_opt)
 	0, 0, false, false);
 }
 
-void user_tl_goto_mark_out(void *nullarg)
+void user_tl_goto_mark_out(void *tl_opt)
 {
-    Session *session = session_get();
-    Timeline *tl = ACTIVE_TL;
+    Timeline *tl;
+    if (tl_opt) {
+        tl = tl_opt;
+    } else {
+        Session *session = session_get();
+        tl = ACTIVE_TL;
+    }
     transport_goto_mark(tl, false);
 }
 
-void user_tl_goto_mark_in(void *nullarg)
+void user_tl_goto_mark_in(void *tl_opt)
 {
-    Session *session = session_get();
-    Timeline *tl = ACTIVE_TL;
+    Timeline *tl;
+    if (tl_opt) {
+        tl = tl_opt;
+    } else {
+        Session *session = session_get();
+        tl = ACTIVE_TL;
+    }
     transport_goto_mark(tl, true);
 }
 
-void user_tl_goto_zero(void *nullarg)
+void user_tl_goto_zero(void *tl_opt)
 {
-    Session *session = session_get();
-    Timeline *tl = ACTIVE_TL;
+    Timeline *tl;
+    if (tl_opt) {
+        tl = tl_opt;
+    } else {
+        Session *session = session_get();
+        tl = ACTIVE_TL;
+    }
     timeline_set_play_position(tl, 0, true);
     tl->timeview.offset_left_sframes = 0;
     timeline_reset(tl, false);
@@ -1270,10 +1285,15 @@ static NEW_EVENT_FN(add_track_dispose_forward, "")
     track_destroy(track, false);
 }
 
-void user_tl_add_track(void *nullarg)
+void user_tl_add_track(void *tl_opt)
 {
-    Session *session = session_get();
-    Timeline *tl = ACTIVE_TL;
+    Timeline *tl;
+    if (tl_opt) {
+        tl = tl_opt;
+    } else {
+        Session *session = session_get();
+        tl = ACTIVE_TL;
+    }
     Track *track = timeline_add_track(tl, tl->layout_selector + 1);
     if (!track) return;
     timeline_select_track(track);
@@ -1705,9 +1725,14 @@ void user_tl_track_rename(void *nullarg)
     /* fprintf(stdout, "DONE track edit\n"); */
 }
 
-void user_tl_rename_clip_at_cursor(void *nullarg)
+void user_tl_rename_clip_at_cursor(void *cr_opt)
 {
-    ClipRef *cr = clipref_at_cursor();
+    ClipRef *cr;
+    if (cr_opt) {
+        cr = cr_opt;
+    } else {
+        cr = clipref_at_cursor();
+    }
     if (cr) {
 	clipref_rename(cr);
 	main_win->needs_redraw = true;
@@ -1715,13 +1740,19 @@ void user_tl_rename_clip_at_cursor(void *nullarg)
 }
 
 
-void user_tl_track_set_in(void *nullarg)
+void user_tl_track_set_in(void *track_opt)
 {
-    Session *session = session_get();
-    Timeline *tl = ACTIVE_TL;
-    Track *track = timeline_selected_track(tl);
-    if (!track) {
-	return;
+    Track *track;
+    if (track_opt) {
+        track = track_opt;
+    } else {        
+        Session *session = session_get();
+        Timeline *tl = ACTIVE_TL;
+        track = timeline_selected_track(tl);
+        if (!track) {
+            return;
+        }
+
     }
     track_set_input(track);
 }
@@ -1753,13 +1784,19 @@ static NEW_EVENT_FN(dispose_track_delete, "")
     track_destroy(track, false);
 }
 
-void user_tl_track_delete(void *nullarg)
+void user_tl_track_delete(void *track_opt)
 {
-    Session *session = session_get();
     TABVIEW_BLOCK(delete track);
+    Session *session = session_get();
     if (session->playback.recording) transport_stop_recording();
     Timeline *tl = ACTIVE_TL;
-    Track *track = timeline_selected_track(tl);
+    Track *track;
+    if (track_opt) {
+        track = track_opt;
+    } else {
+        track = timeline_selected_track(tl);
+    }
+
     if (track) {
 	if (TRACK_AUTO_SELECTED(track)) {
 	    Automation *a = track->automations[track->selected_automation];
@@ -1949,24 +1986,26 @@ void user_tl_clip_gain_down(void *nullarg)
 }
 
 
-void user_tl_track_add_effect(void *nullarg)
+void user_tl_track_add_effect(void *track_opt)
 {
     Session *session = session_get();
     TABVIEW_BLOCK(add automation);
     Timeline *tl = ACTIVE_TL;
-    Track *track = timeline_selected_track(tl);
+    Track *track;
+    if (track_opt) {
+        track = track_opt;
+    } else {
+        track = timeline_selected_track(tl);
+    }
     if (track) {
 	effect_add(&track->effect_chain, track->name);
-	/* track_add_new_effect(track); */
-	/* track_add_new_automation(track); */
-	/* track_automations_show_all(track); */
     } else {
 	status_set_errstr(NO_TRACK_ERRSTR);
     }
 }
 
 
-void user_tl_track_open_settings(void *nullarg)
+void user_tl_track_open_settings(void *track_opt)
 {
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
@@ -1975,7 +2014,13 @@ void user_tl_track_open_settings(void *nullarg)
 	main_win->needs_redraw = true;
 	return;
     }
-    Track *track = timeline_selected_track(tl);
+    
+    Track *track;
+    if (track_opt) {
+        track = track_opt;
+    } else {
+        track = timeline_selected_track(tl);
+    }
 
     if (track) {
 	if (track->effect_chain.num_effects == 0) {

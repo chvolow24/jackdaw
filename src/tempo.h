@@ -177,7 +177,9 @@ void click_track_get_prox_beats(ClickTrack *ct, int32_t pos, BeatProminence bp, 
 /* void timeline_goto_prox_beat(Timeline *tl, int direction, BeatProminence bp); */
 void timeline_click_track_set_tempo_at_cursor(Timeline *tl);
 void timeline_click_track_edit(Timeline *tl);
+void click_track_edit(ClickTrack *ct);
 bool timeline_click_track_delete(Timeline *tl);
+void click_track_delete(ClickTrack *ct);
 
 ClickTrack *click_track_active_at_cursor(Timeline *tl);
 ClickSegment *click_segment_active_at_cursor(Timeline *tl);

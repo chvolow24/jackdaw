@@ -99,6 +99,8 @@ struct session_gui {
     SDL_Texture *right_arrow_texture;
 
     char window_title[MAX_WINDOW_TITLE_LEN];
+
+    Layout *focus_lt; /* Used by context_menu.c */
 };
 
 struct playhead_scroll {

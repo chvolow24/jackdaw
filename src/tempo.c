@@ -1208,8 +1208,8 @@ static int set_tempo_submit_form(void *mod_v, void *target)
     main_win->needs_redraw = true;
     return 0;
 }
-
 #define TEMPO_STRLEN 8
+
 void timeline_click_track_set_tempo_at_cursor(Timeline *tl)
 {
     ClickTrack *tt = timeline_selected_click_track(tl);
@@ -1290,7 +1290,7 @@ void timeline_click_track_set_tempo_at_cursor(Timeline *tl)
     main_win->needs_redraw = true;
  }
 
-static void click_track_delete(ClickTrack *tt, bool from_undo);
+static void click_track_delete_internal(ClickTrack *tt, bool from_undo);
 
 NEW_EVENT_FN(undo_delete_click_track, "undo delete tempo track")
     ClickTrack *tt = (ClickTrack *)obj1;
@@ -1299,7 +1299,7 @@ NEW_EVENT_FN(undo_delete_click_track, "undo delete tempo track")
 
 NEW_EVENT_FN(redo_delete_click_track, "redo delete tempo track")
     ClickTrack *tt = (ClickTrack *)obj1;
-    click_track_delete(tt, true);
+    click_track_delete_internal(tt, true);
 }
 
 NEW_EVENT_FN(dispose_delete_click_track, "")
@@ -1307,7 +1307,7 @@ NEW_EVENT_FN(dispose_delete_click_track, "")
     click_track_destroy(tt);
 }
 
-static void click_track_delete(ClickTrack *tt, bool from_undo)
+static void click_track_delete_internal(ClickTrack *tt, bool from_undo)
 {
     click_track_remove(tt);
     Value nullval = {.int_v = 0};
@@ -1323,15 +1323,22 @@ static void click_track_delete(ClickTrack *tt, bool from_undo)
     }
 }
 
+void click_track_delete(ClickTrack *ct)
+{
+    Timeline *tl = ct->tl;
+    if (ct == tl->click_tracks[0] && tl->click_track_frozen) {
+	check_unfreeze_click_track(tl);
+    }
+    click_track_delete_internal(ct, false);
+    timeline_reset(tl, false);
+
+}
+
 bool timeline_click_track_delete(Timeline *tl)
 {
     ClickTrack *tt = timeline_selected_click_track(tl);
     if (!tt) return false;
-    if (tt == tl->click_tracks[0] && tl->click_track_frozen) {
-	check_unfreeze_click_track(tl);
-    }
-    click_track_delete(tt, false);
-    timeline_reset(tl, false);
+    click_track_delete(tt);
     return true;
 }
 

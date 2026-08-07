@@ -634,15 +634,21 @@ void click_track_populate_settings_tabview(ClickTrack *tt, TabView *tv)
     click_track_populate_settings_internal(s, tv, true);
 }
 
+void click_track_edit(ClickTrack *ct)
+{
+
+    Session *session = session_get();
+    TabView *tv = tabview_create("Click track sectings", session->gui.layout, main_win);
+    click_track_populate_settings_tabview(ct, tv);
+
+    tabview_activate(tv, ct, ct->name);
+    main_win->needs_redraw = true;    
+
+}
+
 void timeline_click_track_edit(Timeline *tl)
 {
-    Session *session = session_get();
     ClickTrack *tt = timeline_selected_click_track(tl);
     if (!tt) return;
-
-    TabView *tv = tabview_create("Click track settings", session->gui.layout, main_win);
-    click_track_populate_settings_tabview(tt, tv);
-
-    tabview_activate(tv, tt, tt->name);
-    main_win->needs_redraw = true;    
+    click_track_edit(tt);
 }

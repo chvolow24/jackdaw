@@ -285,6 +285,23 @@ UserFn *input_get_fn_by_id(char *id, InputMode im)
     return NULL;
 }
 
+UserFn *input_get_fn_by_fnptr(void (*fnptr)(void *))
+{
+    if (!fnptr) return NULL;
+    for (int i=0; i<NUM_INPUT_MODES; i++) {
+        Mode *mode = MODES[i];
+        for (uint8_t s=0; s<mode->num_subcats; s++) {
+            ModeSubcat *sc = mode->subcats[s];
+            for (uint8_t f=0; f<sc->num_fns; f++) {
+                UserFn *fn = sc->fns[f];
+                if (fn->do_fn == fnptr) return fn;
+            }
+        }
+    }
+    return NULL;
+
+}
+
 void input_bind_fn(UserFn *fn, uint16_t i_state, SDL_Keycode keycode, InputMode mode)
 {
     int hash = input_hash(i_state, keycode);

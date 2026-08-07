@@ -2678,3 +2678,45 @@ cleanup_and_return:
     return num_stemfiles;
 }
 
+SDL_Point timeline_cursor_point(Timeline *tl)
+{
+    Layout *lt = timeline_selected_layout(tl);
+    int x = timeview_get_draw_x(&tl->timeview, tl->play_pos_sframes);
+    return (SDL_Point){x, lt->rect.y + lt->rect.h / 2};
+    
+}
+
+Track *timeline_track_at_point(Timeline *tl, SDL_Point point)
+{
+    for (int i=0; i<tl->num_tracks; i++) {
+        Track *track = tl->tracks[i];
+        if (SDL_PointInRect(&point, &track->layout->rect)) {
+            return track;
+        }
+    }
+    return NULL;
+}
+
+ClickTrack *timeline_click_track_at_point(Timeline *tl, SDL_Point point)
+{
+    for (int i=0; i<tl->num_click_tracks; i++) {
+        ClickTrack *ct = tl->click_tracks[i];
+        if (SDL_PointInRect(&point, &ct->layout->rect)) {
+            return ct;
+        }
+    }
+    return NULL;
+}
+
+ClipRef *track_clipref_at_point(Track *track, SDL_Point point)
+{
+    for (int i=0; i<track->num_clips; i++) {
+        ClipRef *cr = track->clips[i];
+        if (SDL_PointInRect(&point, &track->layout->rect)) {
+            return cr;
+        }
+    }
+    return NULL;
+}
+
+

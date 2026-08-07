@@ -889,10 +889,8 @@ void status_bar_draw()
     }
 }
 
-static int i = 0;
 void project_draw()
 {
-    fprintf(stderr, "(%d) Needs redraw %d\n", i, main_win->needs_redraw);
     if (!main_win->needs_redraw) return;
     main_win->needs_redraw = false;
     Session *session = session_get();
@@ -925,6 +923,25 @@ void project_draw()
 	tabview_draw(main_win->active_tabview);
     }
 
+    if (session->gui.focus_lt) {
+        int top_y = session->gui.focus_lt->rect.y;
+        int btm_y = top_y + session->gui.focus_lt->rect.h;
+        int left_x = session->gui.focus_lt->rect.x;
+        int right_x = left_x + session->gui.focus_lt->rect.w;
+        int h = session->gui.focus_lt->rect.h;
+
+        SDL_Rect top = {0, 0, main_win->w_pix, top_y};
+        SDL_Rect bottom = {0, btm_y, main_win->w_pix, main_win->h_pix - btm_y};
+        SDL_Rect left = {0, top_y, left_x, h};
+        SDL_Rect right = {right_x, top_y, main_win->w_pix - right_x, h};
+        SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 50);
+        SDL_RenderFillRect(main_win->rend, &top);
+        SDL_RenderFillRect(main_win->rend, &bottom);
+        SDL_RenderFillRect(main_win->rend, &left);
+        SDL_RenderFillRect(main_win->rend, &right);
+
+    }
+    
     status_bar_draw();
     
     window_draw_modals(main_win);

@@ -124,6 +124,7 @@ void window_set_layout(Window *win, Layout *layout);
 
 /* Window *window_init(int w, int h, const char *name, const char *font_path); */
 int window_pop_menu(Window *win);
+void window_clear_menus(Window *win);
 void window_add_menu(Window *win, Menu *menu);
 
 Menu *window_top_menu(Window *win);

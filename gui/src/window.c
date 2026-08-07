@@ -431,7 +431,14 @@ int window_pop_menu(Window *win)
 	/* window_pop_mode(win); */
 	window_extract_mode(win, MODE_MENU_NAV);
     }
+    Session *session = session_get();
+    if (session->gui.focus_lt) session->gui.focus_lt = NULL;
     return win->num_menus;
+}
+
+void window_clear_menus(Window *win)
+{
+    while (window_pop_menu(win)) {}
 }
 #endif
 

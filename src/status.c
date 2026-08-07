@@ -25,7 +25,6 @@ static const char *queued_errstr = NULL;
 
 bool status_frame()
 {
-    fprintf(stderr, "Status frame\n");
     bool needs_redraw = false;
     Session *session = session_get();
     if (session->status_bar.stat_timer > 0) {

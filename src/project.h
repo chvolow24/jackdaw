@@ -556,4 +556,12 @@ void midi_monitor_clear();
    files */
 int load_stems_dir(const char *path, char ***paths_dst);
 
+/* Get the x,y coordinates of the (center of the) cursor */
+SDL_Point timeline_cursor_point(Timeline *tl);
+
+Track *timeline_track_at_point(Timeline *tl, SDL_Point point);
+ClickTrack *timeline_click_track_at_point(Timeline *tl, SDL_Point point);
+ClipRef *track_clipref_at_point(Track *track, SDL_Point point);
+
+
 #endif

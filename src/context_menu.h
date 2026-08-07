@@ -20,6 +20,7 @@ typedef struct ctx {
     CtxType type;
     void *obj;
     const char *name;
+    Layout *layout;
 } Ctx;
 
 typedef struct CtxFn {
@@ -40,7 +41,9 @@ const char *context_type_name(CtxType t);
 
 
 void context_menu_init();
-Menu *context_menu_create(int num_ctxs);
+
+void context_at_point_create_menu(SDL_Point point);
+void context_at_cursor_create_menu();
 
 
 #endif

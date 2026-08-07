@@ -466,10 +466,11 @@ bool menu_triage_mouse(Menu *menu, SDL_Point *mousep, bool click)
 		    col->sel_sctn = s;
 		    sctn->sel_item = i;
                     int num_menus = menu->window->num_menus;
+                    Window *window = menu->window;
 		    if (click && item->onclick) {
 			item->onclick(item->target);
-                        if (menu->window->num_menus == num_menus) {
-                            while (window_pop_menu(menu->window)) {}
+                        if (window->num_menus == num_menus) {
+                            while (window_pop_menu(window)) {}
                         }
 
 		    }
@@ -599,6 +600,7 @@ static void menu_rectify_scroll_horizontal(Menu *m, int direction)
 extern void user_menu_nav_choose_item(void *nullarg);
 
 void menu_enter(Menu *m) {
+    Window *window = m->window;
     if (m->sel_col < m->num_columns) {
 	MenuColumn *col = m->columns[m->sel_col];
 	if (col->sel_sctn < col->num_sections) {
@@ -610,7 +612,6 @@ void menu_enter(Menu *m) {
 		    item->onclick(item->target);
 		    /* window_pop_menu(main_win); */
 		}
-                Window *window = m->window;
                 if (window->num_menus == num_menus_before) {
                     int num = 0;
                     while ((num = window_pop_menu(window))) {}

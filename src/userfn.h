@@ -2,6 +2,7 @@
 #define JDAW_GUI_USERFN_H
 
 void user_global_menu(void *nullarg);
+void user_global_context_menu_at_cursor(void *nullarg);
 void user_global_escape(void *nullarg);
 void user_global_quit(void *nullarg);
 void user_global_undo(void *nullarg);

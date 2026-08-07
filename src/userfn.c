@@ -6,6 +6,7 @@
 #include "autocompletion.h"
 #include "clipref.h"
 #include "consts.h"
+#include "context_menu.h"
 #include "dir.h"
 #include "endpoint.h"
 #include "function_lookup.h"
@@ -83,6 +84,11 @@ void user_global_menu(void *nullarg)
     }
     Menu *new = input_create_master_menu();
     window_add_menu(main_win, new);
+}
+
+void user_global_context_menu_at_cursor(void *nullarg)
+{
+    context_at_cursor_create_menu();
 }
 
 static int quit_yes_action(void *self, void *xarg)

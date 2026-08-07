@@ -22,6 +22,7 @@
 ---
 - global:
   - C-m		: menu
+  - A-m         : context_menu_at_cursor
   - C-h		: menu
   - <esc>	: escape
   - C-q		: quit

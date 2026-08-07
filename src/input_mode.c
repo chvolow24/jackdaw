@@ -167,9 +167,16 @@ static void mode_load_global()
     UserFn *fn;
     fn = create_user_fn(
 	"menu",
-	"Summon menu",
+	"Main menu",
 	user_global_menu);
     mode_subcat_add_fn(mc, fn);
+
+    fn = create_user_fn(
+	"context_menu_at_cursor",
+	"Context menu at cursor",
+	user_global_context_menu_at_cursor);
+    mode_subcat_add_fn(mc, fn);
+
 
     fn = create_user_fn(
 	"escape",

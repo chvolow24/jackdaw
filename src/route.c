@@ -17,19 +17,6 @@ extern Window *main_win;
 extern struct colors colors;
 
 TEST_FN_DECL(timeline_track_array_integrity, Timeline *tl);
-/* static bool audio_route_has_cycle(Track *src, Track *dst) */
-/* { */
-/*     for (int i=0; i<dst->num_routes; i++) { */
-/* 	if (dst->routes[i].dst == src) { */
-/* 	    return true; */
-/* 	} */
-/* 	if (audio_route_has_cycle(dst, dst->routes[i].dst)) { */
-/* 	    return true; */
-/* 	} */
-/*     } */
-/*     return false; */
-/* } */
-
 
 static int track_proc_order_cmp(const void *a, const void *b)
 {
@@ -41,31 +28,9 @@ static int track_proc_order_cmp(const void *a, const void *b)
 void timeline_resort_tracks_proc_order(Timeline *tl)
 {
     qsort(tl->tracks_proc_order, tl->num_tracks, sizeof(Track *), track_proc_order_cmp);
-    /* for (int i=0; i<tl->num_tracks; i++) { */
-    /* 	fprintf(stderr, "%d) %s (%d)\n", i, tl->tracks_proc_order[i]->name, tl->tracks_proc_order[i]->proc_order); */
-    /* } */
     TEST_FN_CALL(timeline_track_array_integrity, tl);
 }
 
-/* Return -1 if cycle detected */
-/* static int longest_distance_to_out(Track *og_src, Track *src, Track *dst, int running) */
-/* { */
-/*     if (dst == og_src) return -1; */
-    
-/*     /\* Check for cycles and compute distance to out *\/ */
-/*     int max_child_dist = running + 1; */
-/*     for (int i=0; i<dst->num_routes; i++) { */
-/* 	if (dst->routes[i]->dst == dst) { */
-/* 	    return -2; */
-/* 	} */
-/* 	int child_dist = longest_distance_to_out(og_src, dst, dst->routes[i]->dst, running + 1); */
-/* 	if (child_dist == -1) return -1; */
-/* 	if (child_dist > max_child_dist) { */
-/* 	    max_child_dist = child_dist; */
-/* 	} */
-/*     } */
-/*     return max_child_dist; */
-/* } */
 
 static void track_reset_proc_order(Track *track)
 {

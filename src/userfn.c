@@ -1015,37 +1015,18 @@ void user_tl_move_left(void *nullarg)
 {
     Session *session = session_get();
     timeline_scroll_horiz(ACTIVE_TL, TL_DEFAULT_XSCROLL * -1);
-    /* PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_left"); */
-    /* Button *btn = (Button *)el->component; */
-    /* button_press_color_change( */
-    /* 	btn, */
-    /* 	&colors.quickref_button_pressed, */
-    /* 	&colors.quickref_button_blue); */
 }
 
 void user_tl_zoom_in(void *nullarg)
 {
     Session *session = session_get();
     timeline_rescale(ACTIVE_TL, 1.2, false);
-    /* PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_zoom_in"); */
-    /* Button *btn = (Button *)el->component; */
-    /* button_press_color_change( */
-    /* 	btn, */
-    /* 	&colors.quickref_button_pressed, */
-    /* 	&colors.quickref_button_blue); */
 }
 
 void user_tl_zoom_out(void *nullarg)
 {
     Session *session = session_get();
     timeline_rescale(ACTIVE_TL, 0.8, false);
-
-    /* PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_zoom_out"); */
-    /* Button *btn = (Button *)el->component; */
-    /* button_press_color_change( */
-    /* 	btn, */
-    /* 	&colors.quickref_button_pressed, */
-    /* 	&colors.quickref_button_blue); */
 }
 
 static NEW_EVENT_FN(undo_redo_set_mark, "undo/redo set mark")
@@ -1416,34 +1397,6 @@ void user_tl_track_activate_all(void *nullarg)
 	deactivate_all_tracks(tl);
     }
 }
-
-/* static void timeline_rectify_selectors(Timeline *tl) */
-/* { */
-/*     int click_track_index = -1; */
-/*     int track_index = -1; */
-/*     bool click_track_selected = false; */
-/*     for (int i=0; i<tl->track_area->num_children; i++) { */
-/* 	Layout *child = tl->track_area->children[i]; */
-/* 	if (strcmp(child->name, "click_track") == 0) { */
-/* 	    click_track_index++; */
-/* 	    click_track_selected = true; */
-/* 	} else { */
-/* 	    track_index++; */
-/* 	    click_track_selected = false; */
-/* 	} */
-/* 	if (tl->layout_selector == i) { */
-/* 	    if (click_track_selected) { */
-/* 		tl->click_track_selector = click_track_index; */
-/* 		tl->track_selector = -1; */
-/* 	    } else { */
-/* 		tl->track_selector = track_index; */
-/* 		tl->click_track_selector = -1; */
-/* 	    } */
-/* 	} */
-/*     } */
-/*     fprintf(stderr, "SELECTED TRACK: %p; TEMPO TRACK: %p\n", timeline_selected_track(tl), timeline_selected_click_track(tl)); */
-/*     fprintf(stderr, "Track selector: %d; tempo track: %d\n", tl->track_selector, tl->click_track_selector); */
-/* } */
 
 void user_tl_track_selector_up(void *nullarg)
 {
@@ -2042,7 +1995,7 @@ void user_tl_track_open_settings(void *track_opt)
     }
 }
 
-void user_tl_track_open_synth(void *nullarg)
+void user_tl_track_open_synth(void *track_opt)
 {
     if (main_win->active_tabview) {
 	bool early_exit = false;
@@ -2052,9 +2005,14 @@ void user_tl_track_open_synth(void *nullarg)
 	tabview_close(main_win->active_tabview);
 	if (early_exit)	return;
     }
-    Session *session = session_get();
-    Timeline *tl = ACTIVE_TL;
-    Track *track = timeline_selected_track(tl);
+    Track *track;
+    if (track_opt) {
+        track = track_opt; 
+    } else {
+        Session *session = session_get();
+        Timeline *tl = ACTIVE_TL;
+        track = timeline_selected_track(tl);
+    }
     if (track) {
 	TabView *tv = synth_tabview_create(track);
 	tabview_activate(tv, track, track->name);
@@ -2067,12 +2025,17 @@ void user_tl_track_open_synth(void *nullarg)
 
 
 
-void user_tl_track_add_automation(void *nullarg)
+void user_tl_track_add_automation(void *track_opt)
 {
-    Session *session = session_get();
     TABVIEW_BLOCK(add automation);
-    Timeline *tl = ACTIVE_TL;
-    Track *track = timeline_selected_track(tl);
+    Track *track;
+    if (track_opt) {
+        track = track_opt;
+    } else {
+        Session *session = session_get();
+        Timeline *tl = ACTIVE_TL;
+        track = timeline_selected_track(tl);
+    }
     if (track) {
 	track_add_new_automation(track);
 	track_automations_show_all(track);
@@ -2081,11 +2044,16 @@ void user_tl_track_add_automation(void *nullarg)
     }
 }
 
-void user_tl_track_show_hide_automations(void *nullarg)
+void user_tl_track_show_hide_automations(void *track_opt)
 {
-    Session *session = session_get();
-    Timeline *tl = ACTIVE_TL;
-    Track *track = timeline_selected_track(tl);
+    Track *track;
+    if (track_opt) {
+        track = track_opt;
+    } else {
+        Session *session = session_get();
+        Timeline *tl = ACTIVE_TL;
+        track = timeline_selected_track(tl);
+    }
     if (!track) {
 	status_set_errstr(NO_TRACK_ERRSTR);
 	return;
@@ -2863,32 +2831,52 @@ void user_tl_delete_generic(void *nullarg)
 }
 
 
-void user_tl_audio_routes_out_open_page(void *nullarg)
+void user_tl_audio_routes_out_open_page(void *track_opt)
 {
-    Session *session = session_get();
-    Track *track = timeline_selected_track(ACTIVE_TL);
+    Track *track;
+    if (track_opt) {
+        track = track_opt;
+    } else {
+        Session *session = session_get();
+        track = timeline_selected_track(ACTIVE_TL);
+    }
     if (track) 
 	route_page_open(track, true);
 }
-void user_tl_audio_routes_in_open_page(void *nullarg)
+void user_tl_audio_routes_in_open_page(void *track_opt)
 {
-    Session *session = session_get();
-    Track *track = timeline_selected_track(ACTIVE_TL);
+    Track *track;
+    if (track_opt) {
+        track = track_opt;
+    } else {
+        Session *session = session_get();
+        track = timeline_selected_track(ACTIVE_TL);
+    }
     if (track) 
 	route_page_open(track, false);
 }
-void user_tl_audio_route_out_quick_add(void *nullarg)
+void user_tl_audio_route_out_quick_add(void *track_opt)
 {
-    Session *session = session_get();
-    Track *track = timeline_selected_track(ACTIVE_TL);
+    Track *track;
+    if (track_opt) {
+        track = track_opt;
+    } else {
+        Session *session = session_get();
+        track = timeline_selected_track(ACTIVE_TL);
+    }
     if (track) 
 	route_quick_add(track, false);
 
 }
-void user_tl_audio_route_in_quick_add(void *nullarg)
+void user_tl_audio_route_in_quick_add(void *track_opt)
 {
-    Session *session = session_get();
-    Track *track = timeline_selected_track(ACTIVE_TL);
+    Track *track;
+    if (track_opt) {
+        track = track_opt;
+    } else {
+        Session *session = session_get();
+        track = timeline_selected_track(ACTIVE_TL);
+    }
     if (track) 
 	route_quick_add(track, true);
 }

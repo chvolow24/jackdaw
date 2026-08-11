@@ -32,8 +32,13 @@ int context_at_point(Ctx **list_dst, SDL_Point point)
     if (!tl) {
         return 0;
     }
+    contexts[num_ctxs] = (Ctx){CTX_PROJECT, tl->proj, tl->proj->name, NULL};
+    num_ctxs++;
+    contexts[num_ctxs] = (Ctx){CTX_TIMELINE_NAV, tl, tl->name, NULL};
+    num_ctxs++;
     contexts[num_ctxs] = (Ctx){CTX_TIMELINE, tl, tl->name, NULL};
     num_ctxs++;
+
 
     Track *track = timeline_track_at_point(tl, point);
     ClickTrack *ct = NULL;
@@ -73,6 +78,10 @@ int context_at_cursor(Ctx **list_dst)
     if (!tl) {
         return 0;
     }
+    contexts[num_ctxs] = (Ctx){CTX_PROJECT, tl->proj, tl->proj->name, NULL};
+    num_ctxs++;
+    contexts[num_ctxs] = (Ctx){CTX_TIMELINE_NAV, tl, tl->name, NULL};
+    num_ctxs++;
     contexts[num_ctxs] = (Ctx){CTX_TIMELINE, tl, tl->name, NULL};
     num_ctxs++;
 
@@ -121,6 +130,8 @@ const char *context_type_name(CtxType t)
         return "Automation";
     case CTX_TIMELINE:
         return "Timeline";
+    case CTX_TIMELINE_NAV:
+        return "Navigation";
     case CTX_PROJECT:
         return "Project";
     case NUM_CTX_TYPES:
@@ -172,6 +183,134 @@ static void ctx_automation_delete(void *a_v)
 void context_menu_init()
 {
 
+    /* Project */
+
+    context_menu_add_fn(
+        CTX_PROJECT,
+        "Save as",
+        user_global_save_as,
+        input_get_fn_by_fnptr(user_global_save_as));
+
+    context_menu_add_fn(
+        CTX_PROJECT,
+        "Save",
+        user_global_save_project,
+        input_get_fn_by_fnptr(user_global_save_project));
+
+
+    context_menu_add_fn(
+        CTX_PROJECT,
+        "Export audio",
+        user_tl_write_mixdown_to_wav,
+        input_get_fn_by_fnptr(user_tl_write_mixdown_to_wav));
+
+
+
+    /* Timeline navigation */
+
+    context_menu_add_fn(
+        CTX_TIMELINE_NAV,
+        "Zoom in",
+        user_tl_zoom_in,
+        input_get_fn_by_fnptr(user_tl_zoom_in));
+    
+    context_menu_add_fn(
+        CTX_TIMELINE_NAV,
+        "Zoom out",
+        user_tl_zoom_out,
+        input_get_fn_by_fnptr(user_tl_zoom_out));
+
+    context_menu_add_fn(
+        CTX_TIMELINE_NAV,
+        "Move view right",
+        user_tl_move_right,
+        input_get_fn_by_fnptr(user_tl_move_right));
+
+    context_menu_add_fn(
+        CTX_TIMELINE_NAV,
+        "Move view left",
+        user_tl_move_left,
+        input_get_fn_by_fnptr(user_tl_move_left));
+
+    context_menu_add_fn(
+        CTX_TIMELINE_NAV,
+        "Select previous track (cursor up)",
+        user_tl_track_selector_up,
+        input_get_fn_by_fnptr(user_tl_track_selector_up));
+
+    context_menu_add_fn(
+        CTX_TIMELINE_NAV,
+        "Select next track (cursor down)",
+        user_tl_track_selector_down,
+        input_get_fn_by_fnptr(user_tl_track_selector_down));
+
+    context_menu_add_fn(
+        CTX_TIMELINE_NAV,
+        "Go to mark in",
+        user_tl_goto_mark_in,
+        input_get_fn_by_fnptr(user_tl_goto_mark_in));
+    
+    context_menu_add_fn(
+        CTX_TIMELINE_NAV,
+        "Go to mark out",
+        user_tl_goto_mark_out,
+        input_get_fn_by_fnptr(user_tl_goto_mark_out));
+    
+    context_menu_add_fn(
+        CTX_TIMELINE_NAV,
+        "Go to t=0",
+        user_tl_goto_zero,
+        input_get_fn_by_fnptr(user_tl_goto_zero));
+
+    context_menu_add_fn(
+        CTX_TIMELINE_NAV,
+        "Go to next clip boundary on sel track",
+        user_tl_goto_next_clip_boundary,
+        input_get_fn_by_fnptr(user_tl_goto_next_clip_boundary));
+
+    context_menu_add_fn(
+        CTX_TIMELINE_NAV,
+        "Go to previous clip boundary on sel track",
+        user_tl_goto_previous_clip_boundary,
+        input_get_fn_by_fnptr(user_tl_goto_previous_clip_boundary));
+
+    context_menu_add_fn(
+        CTX_TIMELINE_NAV,
+        "Go to next measure",
+        user_tl_goto_next_measure,
+        input_get_fn_by_fnptr(user_tl_goto_next_measure));
+
+    context_menu_add_fn(
+        CTX_TIMELINE_NAV,
+        "Go to next beat",
+        user_tl_goto_next_beat,
+        input_get_fn_by_fnptr(user_tl_goto_next_beat));
+
+    context_menu_add_fn(
+        CTX_TIMELINE_NAV,
+        "Go to next beat subdivision",
+        user_tl_goto_next_subdiv,
+        input_get_fn_by_fnptr(user_tl_goto_next_subdiv));
+
+    context_menu_add_fn(
+        CTX_TIMELINE_NAV,
+        "Go to prev measure",
+        user_tl_goto_prev_measure,
+        input_get_fn_by_fnptr(user_tl_goto_prev_measure));
+
+    context_menu_add_fn(
+        CTX_TIMELINE_NAV,
+        "Go to prev beat",
+        user_tl_goto_prev_beat,
+        input_get_fn_by_fnptr(user_tl_goto_prev_beat));
+
+    context_menu_add_fn(
+        CTX_TIMELINE_NAV,
+        "Go to prev beat subdivision",
+        user_tl_goto_prev_subdiv,
+        input_get_fn_by_fnptr(user_tl_goto_prev_subdiv));
+
+
     /* Timeline */
     
     context_menu_add_fn(
@@ -185,6 +324,14 @@ void context_menu_init()
         "Set mark out",
         user_tl_set_mark_out,
         input_get_fn_by_fnptr(user_tl_set_mark_out));
+    
+    context_menu_add_fn(
+        CTX_TIMELINE,
+        "Toggle loop playback",
+        user_tl_toggle_loop_playback,
+        input_get_fn_by_fnptr(user_tl_toggle_loop_playback));
+
+
 
     /* Track */
     
@@ -211,6 +358,53 @@ void context_menu_init()
         "Open effects",
         user_tl_track_open_settings,
         input_get_fn_by_fnptr(user_tl_track_open_settings));
+
+    context_menu_add_fn(
+        CTX_TRACK,
+        "Open synth",
+        user_tl_track_open_synth,
+        input_get_fn_by_fnptr(user_tl_track_open_synth));
+
+    context_menu_add_fn(
+        CTX_TRACK,
+        "Add automation",
+        user_tl_track_add_automation,
+        input_get_fn_by_fnptr(user_tl_track_add_automation));
+
+    context_menu_add_fn(
+        CTX_TRACK,
+        "Hide / show automations",
+        user_tl_track_show_hide_automations,
+        input_get_fn_by_fnptr(user_tl_track_show_hide_automations));
+
+    context_menu_add_fn(
+        CTX_TRACK,
+        "Audio routes out",
+        user_tl_audio_routes_out_open_page,
+        input_get_fn_by_fnptr(user_tl_audio_routes_out_open_page));
+
+    context_menu_add_fn(
+        CTX_TRACK,
+        "Audio routes in",
+        user_tl_audio_routes_in_open_page,
+        input_get_fn_by_fnptr(user_tl_audio_routes_in_open_page));
+
+    context_menu_add_fn(
+        CTX_TRACK,
+        "Quick add audio route out",
+        user_tl_audio_route_out_quick_add,
+        input_get_fn_by_fnptr(user_tl_audio_route_out_quick_add));
+
+    context_menu_add_fn(
+        CTX_TRACK,
+        "Quick add audio route in",
+        user_tl_audio_route_in_quick_add,
+        input_get_fn_by_fnptr(user_tl_audio_route_in_quick_add));
+    
+
+
+
+
 
 
     /* Automation */
@@ -253,7 +447,7 @@ static SDL_Point saved_point = {0};
 static void create_menu_from_isol_ctx(void *ctx_v)
 {
     Ctx *c = ctx_v;
-    Menu *menu = menu_create_at_point(saved_point.x, saved_point.y);
+    Menu *menu = menu_create_at_point(saved_point.x + 16, saved_point.y + 8);
     MenuColumn *col = menu_column_add(menu, context_type_name(c->type));
     MenuSection *sctn = menu_section_add(col, c->name);
 
@@ -274,6 +468,8 @@ static void create_menu_from_isol_ctx(void *ctx_v)
 Menu *context_menu_create(int num_ctxs, SDL_Point at)
 {
     if (num_ctxs == 0) return NULL;
+    at.y -= 32;
+    at.x += 8;
     saved_point = at;
     /* Layout *layout = layout_add_child(main_win->layout); */
     /* layout_set_default_dims(layout); */

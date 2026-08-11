@@ -11,6 +11,7 @@ typedef enum ctx_type {
     CTX_CLICK_TRACK,
     CTX_AUTOMATION,
     CTX_TIMELINE,
+    CTX_TIMELINE_NAV,
     CTX_PROJECT,
     NUM_CTX_TYPES
 } CtxType;

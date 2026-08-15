@@ -1573,7 +1573,6 @@ static const char *beat_prominence_radio_options[] = {
 /* Creates modal for options; top-level interface */
 void midi_clipref_quantize(ClipRef *cr)
 {
-    Session *session = session_get();    
     Layout *mod_lt = layout_add_child(main_win->layout);
     layout_set_default_dims(mod_lt);
     Modal *mod = modal_create(mod_lt);
@@ -1663,7 +1662,6 @@ void midi_clipref_adj_quantize_amt(ClipRef *cr)
 	return;
     }
 
-    Session *session = session_get();    
     Layout *mod_lt = layout_add_child(main_win->layout);
     layout_set_default_dims(mod_lt);
     Modal *mod = modal_create(mod_lt);

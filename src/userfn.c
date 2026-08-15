@@ -2356,9 +2356,14 @@ void user_tl_edit_clip_at_cursor(void *nullarg)
     }
 }
 
-void user_tl_quantize_notes(void *nullarg)
+void user_tl_quantize_notes(void *cr_opt)
 {
-    ClipRef *cr = clipref_at_cursor();
+    ClipRef *cr = NULL;
+    if (cr_opt) {
+        cr = cr_opt;
+    } else {
+        cr = clipref_at_cursor();
+    }
     if (cr) {
 	midi_clipref_quantize(cr);
     } else {
@@ -2376,7 +2381,7 @@ void user_tl_adj_quantize_amt(void *nullarg)
     }
 }
 
-void user_tl_load_clip_at_cursor_to_src(void *nullarg)
+void user_tl_load_clip_at_cursor_to_src(void *cr_opt)
 {
     Session *session = session_get();
     if (session->source_mode.source_mode) {
@@ -2387,7 +2392,12 @@ void user_tl_load_clip_at_cursor_to_src(void *nullarg)
 	return;
     }
     /* Timeline *tl = ACTIVE_TL; */
-    ClipRef *cr = clipref_at_cursor();
+    ClipRef *cr = NULL;
+    if (cr_opt) {
+        cr = cr_opt;
+    } else {
+        cr = clipref_at_cursor();
+    }
     if (!cr) return;
     void *clip = NULL;
     bool clip_recording = false;

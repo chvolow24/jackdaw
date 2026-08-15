@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "context_menu.h"
+#include "input.h"
 #include "log.h"
 #include "menu.h"
 #include "project.h"
@@ -47,15 +48,13 @@ int context_at_point(Ctx **list_dst, SDL_Point point)
         num_ctxs++;
         ClipRef *cr = track_clipref_at_point(track, point);
         if (cr) {
-            CtxType cr_type = cr->type == CLIP_AUDIO ? CTX_CLIPREF_AUDIO : CLIP_MIDI ? CTX_CLIPREF_MIDI : CTX_CLIPREF_AUDIO;
+            CtxType cr_type = cr->type == CLIP_AUDIO ? CTX_AUDIO : CLIP_MIDI ? CTX_MIDI : CTX_AUDIO;
             contexts[num_ctxs] = (Ctx){cr_type, cr, cr->name, cr->layout};
             num_ctxs++;
+            contexts[num_ctxs] = (Ctx){CTX_CLIPREF, cr, cr->name, cr->layout};
+            num_ctxs++;
+
         }
-        /* if (TRACK_AUTO_SELECTED(track)) { */
-        /*     Automation *a = track->automations[track->selected_automation]; */
-        /*     contexts[num_ctxs] = (Ctx){CTX_AUTOMATION, a, a->name}; */
-        /*     num_ctxs++; */
-        /* } */
     } else if ((ct = timeline_click_track_at_point(tl, point))) {
         contexts[num_ctxs] = (Ctx){CTX_CLICK_TRACK, ct, ct->name, ct->layout};
         num_ctxs++;
@@ -92,9 +91,12 @@ int context_at_cursor(Ctx **list_dst)
         num_ctxs++;
         ClipRef *cr = clipref_at_cursor();
         if (cr) {
-            CtxType cr_type = cr->type == CLIP_AUDIO ? CTX_CLIPREF_AUDIO : CLIP_MIDI ? CTX_CLIPREF_MIDI : CTX_CLIPREF_AUDIO;
+            CtxType cr_type = cr->type == CLIP_AUDIO ? CTX_AUDIO : CLIP_MIDI ? CTX_MIDI : CTX_AUDIO;
             contexts[num_ctxs] = (Ctx){cr_type, cr, cr->name, cr->layout};
             num_ctxs++;
+            contexts[num_ctxs] = (Ctx){CTX_CLIPREF, cr, cr->name, cr->layout};
+            num_ctxs++;
+
         }
         if (TRACK_AUTO_SELECTED(track)) {
             Automation *a = track->automations[track->selected_automation];
@@ -116,10 +118,12 @@ int context_at_cursor(Ctx **list_dst)
 const char *context_type_name(CtxType t)
 {
     switch(t) {
-    case CTX_CLIPREF_AUDIO:
-        return "Audio clip";
-    case CTX_CLIPREF_MIDI:
-        return "MIDI clip";
+    case CTX_CLIPREF:
+        return "Clip";
+    case CTX_AUDIO:
+        return "Audio";
+    case CTX_MIDI:
+        return "MIDI";
     case CTX_TRACK:
         return "Track";
     case CTX_CLICK_SEGMENT:
@@ -165,6 +169,7 @@ static void ctx_clipref_grab(void *cr_v)
     timeline_clipref_grab(cr_v, CLIPREF_EDGE_NONE);
 }
 
+
 static void ctx_click_track_delete(void *ct_v)
 {
     click_track_delete(ct_v);
@@ -203,7 +208,6 @@ void context_menu_init()
         "Export audio",
         user_tl_write_mixdown_to_wav,
         input_get_fn_by_fnptr(user_tl_write_mixdown_to_wav));
-
 
 
     /* Timeline navigation */
@@ -429,12 +433,38 @@ void context_menu_init()
         ctx_click_track_edit,
         input_get_fn_by_fnptr(user_tl_track_open_settings));
 
+    /* ClipRef */
 
     context_menu_add_fn(
-        CTX_CLIPREF_AUDIO,
+        CTX_CLIPREF,
         "Grab / ungrab",
         ctx_clipref_grab,
         NULL);
+
+    context_menu_add_fn(
+        CTX_CLIPREF,
+        "Rename",
+        user_tl_rename_clip_at_cursor,
+        input_get_fn_by_fnptr(user_tl_rename_clip_at_cursor));
+
+    /* Audio clip */
+    
+    context_menu_add_fn(
+        CTX_AUDIO,
+        "Load audio to source area",
+        user_tl_load_clip_at_cursor_to_src,
+        input_get_fn_by_fnptr(user_tl_load_clip_at_cursor_to_src));
+
+    /* MIDI clip */
+    
+    context_menu_add_fn(
+        CTX_MIDI,
+        "Quantize clip",
+        user_tl_quantize_notes,
+        input_get_fn_by_fnptr(user_tl_quantize_notes));
+
+
+
 
     
 

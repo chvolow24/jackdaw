@@ -2712,7 +2712,7 @@ ClipRef *track_clipref_at_point(Track *track, SDL_Point point)
 {
     for (int i=0; i<track->num_clips; i++) {
         ClipRef *cr = track->clips[i];
-        if (SDL_PointInRect(&point, &track->layout->rect)) {
+        if (SDL_PointInRect(&point, &cr->layout->rect)) {
             return cr;
         }
     }

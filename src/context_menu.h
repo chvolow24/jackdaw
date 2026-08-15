@@ -1,11 +1,12 @@
 #ifndef JDAW_CONTEXT_MENU_H
 #define JDAW_CONTEXT_MENU_H
 
-#include "input.h"
+#include "layout.h"
 
 typedef enum ctx_type {
-    CTX_CLIPREF_AUDIO,
-    CTX_CLIPREF_MIDI,
+    CTX_CLIPREF,
+    CTX_AUDIO,
+    CTX_MIDI,
     CTX_TRACK,
     CTX_CLICK_SEGMENT,
     CTX_CLICK_TRACK,

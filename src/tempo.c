@@ -1225,7 +1225,7 @@ void timeline_click_track_set_tempo_at_cursor(Timeline *tl)
     layout_set_default_dims(mod_lt);
     Modal *mod = modal_create(mod_lt);
     static char tempo_str[TEMPO_STRLEN];
-    snprintf(tempo_str, TEMPO_STRLEN, "%f", s->cfg.bpm);
+    snprintf(tempo_str, TEMPO_STRLEN, "%.2f", s->cfg.bpm);
     modal_add_header(mod, "Set tempo:", &colors.light_grey, 4);
     ModalEl *el = modal_add_textentry(
 	mod,

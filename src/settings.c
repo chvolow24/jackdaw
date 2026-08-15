@@ -11,11 +11,9 @@
 #include <pthread.h>
 #include "assets.h"
 #include "color.h"
-#include "dir.h"
 #include "eq.h"
 #include "layout.h"
 #include "menu.h"
-#include "modal.h"
 #include "page.h"
 #include "project.h"
 #include "session.h"
@@ -433,7 +431,7 @@ static void click_track_populate_settings_internal(ClickSegment *s, TabView *tv,
 
 
     /* Add tempo */
-    snprintf(tt->tempo_str, BPM_STRLEN, "%f", s->cfg.bpm);
+    snprintf(tt->tempo_str, BPM_STRLEN, "%.2f", s->cfg.bpm);
     p.textentry_p.font = main_win->mono_bold_font;
     p.textentry_p.text_size = 14;
     p.textentry_p.value_handle = tt->tempo_str;

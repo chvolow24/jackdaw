@@ -562,6 +562,7 @@ SDL_Point timeline_cursor_point(Timeline *tl);
 Track *timeline_track_at_point(Timeline *tl, SDL_Point point);
 ClickTrack *timeline_click_track_at_point(Timeline *tl, SDL_Point point);
 ClipRef *track_clipref_at_point(Track *track, SDL_Point point);
+Automation *track_automation_at_point(Track *track, SDL_Point point);
 
 
 #endif

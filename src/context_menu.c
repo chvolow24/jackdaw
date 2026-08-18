@@ -44,6 +44,11 @@ int context_at_point(Ctx **list_dst, SDL_Point point)
     Track *track = timeline_track_at_point(tl, point);
     ClickTrack *ct = NULL;
     if (track) {
+        Automation *a = track_automation_at_point(track, point);
+        if (a) {
+            contexts[num_ctxs] = (Ctx){CTX_AUTOMATION, a, a->name, a->layout};
+            num_ctxs++;
+        }
         contexts[num_ctxs] = (Ctx){CTX_TRACK, track, track->name, track->layout};
         num_ctxs++;
         ClipRef *cr = track_clipref_at_point(track, point);

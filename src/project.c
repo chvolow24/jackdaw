@@ -2719,4 +2719,15 @@ ClipRef *track_clipref_at_point(Track *track, SDL_Point point)
     return NULL;
 }
 
+Automation *track_automation_at_point(Track *track, SDL_Point point)
+{
+    for (int i=0; i<track->num_automations; i++) {
+        Automation *a = track->automations[i];
+        if (SDL_PointInRect(&point, &track->layout->rect)) {
+            return a;
+        }
+    }
+    return NULL;
+}
+
 

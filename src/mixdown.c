@@ -189,7 +189,11 @@ static float get_track_mixdown_chunk(Track *track, float *restrict L, float *res
 		    if (pos_in_clip_sframes > 0 && pos_in_clip_sframes < cr_len - 1) { /* Truncate last sample to allow for interpolation */
 			float sample;
 			double clip_index_f = pos_in_clip_sframes + (double)cr->start_in_clip;
-			if (fabs(step) != 1.0f) {
+                        if ((int)clip_index_f >= clip->len_sframes) {
+                            chunk_i++;
+                            continue;
+                        } 
+ 			if (fabs(step) != 1.0f) {
 			    int index_left = (int)floor(clip_index_f);
 			    double diff_left = clip_index_f - (double)index_left;
 			    double diff = clip_buf[index_left + 1] - clip_buf[index_left];

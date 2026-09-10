@@ -169,12 +169,6 @@ static void context_menu_add_fn(CtxType type, const char *name, void (*fn)(void 
     l->num++;
 }
 
-static void ctx_clipref_grab(void *cr_v)
-{
-    timeline_clipref_grab(cr_v, CLIPREF_EDGE_NONE);
-}
-
-
 static void ctx_click_track_delete(void *ct_v)
 {
     click_track_delete(ct_v);
@@ -409,12 +403,6 @@ void context_menu_init()
         "Quick add audio route in",
         user_tl_audio_route_in_quick_add,
         input_get_fn_by_fnptr(user_tl_audio_route_in_quick_add));
-    
-
-
-
-
-
 
     /* Automation */
     
@@ -443,14 +431,34 @@ void context_menu_init()
     context_menu_add_fn(
         CTX_CLIPREF,
         "Grab / ungrab",
-        ctx_clipref_grab,
-        NULL);
+        user_tl_clipref_grab_ungrab,
+        input_get_fn_by_fnptr(user_tl_clipref_grab_ungrab));
+
+    context_menu_add_fn(
+        CTX_CLIPREF,
+        "Grab left edge",
+        user_tl_clipref_grab_left_edge,
+        input_get_fn_by_fnptr(user_tl_clipref_grab_left_edge));
+
+    context_menu_add_fn(
+        CTX_CLIPREF,
+        "Grab right edge",
+        user_tl_clipref_grab_right_edge,
+        input_get_fn_by_fnptr(user_tl_clipref_grab_right_edge));
 
     context_menu_add_fn(
         CTX_CLIPREF,
         "Rename",
         user_tl_rename_clip_at_cursor,
         input_get_fn_by_fnptr(user_tl_rename_clip_at_cursor));
+
+    context_menu_add_fn(
+        CTX_CLIPREF,
+        "Copy",
+        user_tl_copy_grabbed_clips,
+        input_get_fn_by_fnptr(user_tl_copy_grabbed_clips));
+
+    
 
     /* Audio clip */
     

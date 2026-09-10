@@ -1469,7 +1469,7 @@ static NEW_EVENT_FN(undo_redo_tracks_solo, "undo/redo solo track")
 
 
 
-void track_or_tracks_solo(Timeline *tl, Track *opt_track)
+void track_or_tracks_solo(Timeline *tl, Track *track_opt)
 {
 
     Track *tracks_to_solo[MAX_TRACKS];
@@ -1488,7 +1488,7 @@ void track_or_tracks_solo(Timeline *tl, Track *opt_track)
 	}
 	if (track->active) {
 	    has_active_track = true;
-	    if (!opt_track && !track->solo) {
+	    if (!track_opt && !track->solo) {
 		has_active_track = true;
 		all_solo = false;
 		track_solo(track);
@@ -1498,8 +1498,8 @@ void track_or_tracks_solo(Timeline *tl, Track *opt_track)
 	    }
 	}
     }
-    if (!has_active_track || opt_track) {
-	track = opt_track ? opt_track : timeline_selected_track(tl);
+    if (!has_active_track || track_opt) {
+	track = track_opt ? track_opt : timeline_selected_track(tl);
 	if (!track) {
 	    status_set_errstr("No track selected to solo");
 	    return;
@@ -1555,50 +1555,58 @@ void track_or_tracks_solo(Timeline *tl, Track *opt_track)
 
 
 
-void track_or_tracks_mute(Timeline *tl)
+void track_or_tracks_mute(Timeline *tl, Track *track_opt)
 {
     Track *muted_tracks[MAX_TRACKS];
     uint8_t num_muted = 0;
+
+    if (track_opt) {
+        Track *track = track_opt;
+        track_mute(track);        
+        muted_tracks[0] = track_opt;
+        num_muted = 1;
+    } else {
     
-    /* if (tl->num_tracks == 0) return; */
-    bool has_active_track = false;
-    bool all_muted = true;
-    Track *track;
-    for (uint8_t i=0; i<tl->num_tracks; i++) {
-	track = tl->tracks[i];
-	if (track->active) {
-	    has_active_track = true;
-	    if (!track->muted) {
-		has_active_track = true;
-		all_muted = false;
-		track_mute(track);
-		muted_tracks[num_muted] = track;
-		num_muted++;
-	    }
-	}
-    }
-    if (!has_active_track) {
-	track = timeline_selected_track(tl);
-	if (!track) {
-	    ClickTrack *tt = timeline_selected_click_track(tl);
-	    if (tt) {
-		click_track_mute_unmute(tt);
-	    }
-	    return;
-	}
-	track_mute(track);
-	muted_tracks[num_muted] = track;
-	num_muted++;
-    } else if (all_muted) {
-	num_muted = 0;
-	for (uint8_t i=0; i<tl->num_tracks; i++) {
-	    track = tl->tracks[i];
-	    if (track->active) {
-		track_mute(track); /* unmute */
-		muted_tracks[num_muted] = track;
-		num_muted++;
-	    }
-	}
+        /* if (tl->num_tracks == 0) return; */
+        bool has_active_track = false;
+        bool all_muted = true;
+        Track *track;
+        for (uint8_t i=0; i<tl->num_tracks; i++) {
+            track = tl->tracks[i];
+            if (track->active) {
+                has_active_track = true;
+                if (!track->muted) {
+                    has_active_track = true;
+                    all_muted = false;
+                    track_mute(track);
+                    muted_tracks[num_muted] = track;
+                    num_muted++;
+                }
+            }
+        }
+        if (!has_active_track) {
+            track = timeline_selected_track(tl);
+            if (!track) {
+                ClickTrack *tt = timeline_selected_click_track(tl);
+                if (tt) {
+                    click_track_mute_unmute(tt);
+                }
+                return;
+            }
+            track_mute(track);
+            muted_tracks[num_muted] = track;
+            num_muted++;
+        } else if (all_muted) {
+            num_muted = 0;
+            for (uint8_t i=0; i<tl->num_tracks; i++) {
+                track = tl->tracks[i];
+                if (track->active) {
+                    track_mute(track); /* unmute */
+                    muted_tracks[num_muted] = track;
+                    num_muted++;
+                }
+            }
+        }
     }
     main_win->needs_redraw = true;
 

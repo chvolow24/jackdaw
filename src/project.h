@@ -484,8 +484,8 @@ void track_delete(Track *track);
 void track_undelete(Track *track);
 void track_destroy(Track *track, bool displace);
 
-void track_or_tracks_solo(Timeline *tl, Track *opt_track);
-void track_or_tracks_mute(Timeline *tl);
+void track_or_tracks_solo(Timeline *tl, Track *track_opt);
+void track_or_tracks_mute(Timeline *tl, Track *track_opt);
 
 bool check_unfreeze_click_track(Timeline *tl);
 

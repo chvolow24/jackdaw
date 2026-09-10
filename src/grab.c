@@ -199,7 +199,7 @@ void timeline_ungrab_all_cliprefs(Timeline *tl)
 */
 
 /* Main entrypoint from userfn.c -- triggered by 'g' key */
-void timeline_grab_ungrab(Timeline *tl)
+void timeline_grab_ungrab(Timeline *tl, ClipRef *cr_opt)
 {
     if (tl->num_tracks == 0) return;
     
@@ -212,21 +212,27 @@ void timeline_grab_ungrab(Timeline *tl)
     
     bool clip_grabbed = false;
     bool had_active_track = false;
-    
-    for (int i=0; i<tl->num_tracks; i++) {
-	track = tl->tracks[i];
-	if (track->active) {
-	    had_active_track = true;
-	    cr = clipref_at_cursor_in_track(track);
-	    if (cr && !cr->grabbed) {
-		clips_to_grab[num_clips] = cr;
-		num_clips++;
-		clip_grabbed = true;
-	    }
-	}
+
+    if (cr_opt && !cr_opt->grabbed) {
+        clips_to_grab[0] = cr_opt;
+        clip_grabbed = true;
+        num_clips++;
+    } else  {
+        for (int i=0; i<tl->num_tracks; i++) {
+            track = tl->tracks[i];
+            if (track->active) {
+                had_active_track = true;
+                cr = clipref_at_cursor_in_track(track);
+                if (cr && !cr->grabbed) {
+                    clips_to_grab[num_clips] = cr;
+                    num_clips++;
+                    clip_grabbed = true;
+                }
+            }
+        }
     }
     track = timeline_selected_track(tl);
-    if (!had_active_track && track) {
+    if (!had_active_track && track && !cr_opt) {
 	track = timeline_selected_track(tl);
 	cr = clipref_at_cursor_in_track(track);
 	if (cr && !cr->grabbed) {
@@ -264,7 +270,7 @@ void timeline_grab_ungrab(Timeline *tl)
 
 void timeline_grab_and_drag(Timeline *tl)
 {
-    timeline_grab_ungrab(tl);
+    timeline_grab_ungrab(tl, NULL);
     if (tl->num_grabbed_clips > 0 && !session_get()->dragging) {
 	user_tl_toggle_drag(NULL);
     } else if (tl->num_grabbed_clips == 0 && session_get()->dragging) {
@@ -273,9 +279,9 @@ void timeline_grab_and_drag(Timeline *tl)
 }
 
 /* Grab left edge of clip at cursor */
-void timeline_grab_left_edge(Timeline *tl)
+void timeline_grab_left_edge(Timeline *tl, ClipRef *cr_opt)
 {
-    ClipRef *cr = clipref_at_cursor();
+    ClipRef *cr = cr_opt ? cr_opt : clipref_at_cursor();
     if (!cr) return;
     timeline_set_play_position(cr->track->tl, cr->tl_pos, false);
     timeline_clipref_grab(cr, CLIPREF_EDGE_LEFT);
@@ -287,9 +293,9 @@ void timeline_grab_left_edge(Timeline *tl)
 }
 
 /* Grab right edge of clip at cursor */
-void timeline_grab_right_edge(Timeline *tl)
+void timeline_grab_right_edge(Timeline *tl, ClipRef *cr_opt)
 {
-    ClipRef *cr = clipref_at_cursor();
+    ClipRef *cr = cr_opt ? cr_opt : clipref_at_cursor();
     if (!cr) return;
     timeline_set_play_position(cr->track->tl, cr->tl_pos + clipref_len(cr), false);
     timeline_clipref_grab(cr, CLIPREF_EDGE_RIGHT);

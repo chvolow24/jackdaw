@@ -1785,17 +1785,17 @@ void user_tl_track_delete(void *track_opt)
     }
 }
 
-void user_tl_mute(void *nullarg)
+void user_tl_mute(void *track_opt)
 {
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
-    track_or_tracks_mute(tl);
+    track_or_tracks_mute(tl, track_opt);
 }
-void user_tl_solo(void *nullarg)
+void user_tl_solo(void *track_opt)
 {
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
-    track_or_tracks_solo(tl, NULL);
+    track_or_tracks_solo(tl, track_opt);
     /* tl->needs_redraw = true; */
 }
 
@@ -2142,10 +2142,10 @@ void user_tl_click_track_set_tempo(void *nullarg)
     timeline_click_track_set_tempo_at_cursor(ACTIVE_TL);
 }
 
-void user_tl_clipref_grab_ungrab(void *nullarg)
+void user_tl_clipref_grab_ungrab(void *cr_opt)
 {
     Session *session = session_get();
-    timeline_grab_ungrab(ACTIVE_TL);
+    timeline_grab_ungrab(ACTIVE_TL, cr_opt);
 }
 
 void user_tl_clipref_grab_and_drag(void *nullarg)
@@ -2154,17 +2154,17 @@ void user_tl_clipref_grab_and_drag(void *nullarg)
     timeline_grab_and_drag(ACTIVE_TL);
 }
 
-void user_tl_clipref_grab_left_edge(void *nullarg)
+void user_tl_clipref_grab_left_edge(void *cr_opt)
 {
     Session *session = session_get();
-    timeline_grab_left_edge(ACTIVE_TL);
+    timeline_grab_left_edge(ACTIVE_TL, cr_opt);
     /* timeline_grab_ungrab(ACTIVE_TL, CLIPREF_EDGE_LEFT); */
 }
 
-void user_tl_clipref_grab_right_edge(void *nullarg)
+void user_tl_clipref_grab_right_edge(void *cr_opt)
 {
     Session *session = session_get();
-    timeline_grab_right_edge(ACTIVE_TL);
+    timeline_grab_right_edge(ACTIVE_TL, cr_opt);
     /* timeline_grab_ungrab(ACTIVE_TL, CLIPREF_EDGE_RIGHT); */
 }
 
@@ -2197,7 +2197,7 @@ void user_tl_grab_marked_range_right_edge(void *nullarg)
 
 
 
-void user_tl_copy_grabbed_clips(void *nullarg)
+void user_tl_copy_grabbed_clips(void *cr_opt)
 {
     Session *session = session_get();
     if (session->piano_roll) {
@@ -2205,8 +2205,13 @@ void user_tl_copy_grabbed_clips(void *nullarg)
 	return;
     }
     Timeline *tl = ACTIVE_TL;
-    memcpy(tl->clipboard, tl->grabbed_clips, sizeof(ClipRef *) * tl->num_grabbed_clips);
-    tl->num_clips_in_clipboard = tl->num_grabbed_clips;
+    if (cr_opt) {
+        tl->clipboard[0] = cr_opt;
+        tl->num_clips_in_clipboard = 1;        
+    } else {
+        memcpy(tl->clipboard, tl->grabbed_clips, sizeof(ClipRef *) * tl->num_grabbed_clips);
+        tl->num_clips_in_clipboard = tl->num_grabbed_clips;
+    }
 }
 
 NEW_EVENT_FN(undo_paste_grabbed_clips, "undo paste grabbed clips")

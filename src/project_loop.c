@@ -209,17 +209,17 @@ void loop_project_main()
 		scrolling_lt = NULL;
 		temp_scrolling_lt = NULL;
 		switch (e.key.keysym.scancode) {
-                case SDL_SCANCODE_6: {
-                    context_at_cursor_create_menu();
-                    /* Ctx *arr = NULL; */
-                    /* int num_ctxs = context_at_cursor(&arr); */
-                    /* fprintf(stderr, "\n"); */
-                    /* for (int i=0; i<num_ctxs; i++) { */
-                    /*     fprintf(stderr, "%d: %s (%p) %s\n", i, context_type_name(arr[i].type), arr[i].obj, arr[i].name); */
-                    /* } */
-                    /* context_menu_create(num_ctxs); */
-                }
-                    break;
+                /* case SDL_SCANCODE_6: { */
+                /*     context_at_cursor_create_menu(); */
+                /*     /\* Ctx *arr = NULL; *\/ */
+                /*     /\* int num_ctxs = context_at_cursor(&arr); *\/ */
+                /*     /\* fprintf(stderr, "\n"); *\/ */
+                /*     /\* for (int i=0; i<num_ctxs; i++) { *\/ */
+                /*     /\*     fprintf(stderr, "%d: %s (%p) %s\n", i, context_type_name(arr[i].type), arr[i].obj, arr[i].name); *\/ */
+                /*     /\* } *\/ */
+                /*     /\* context_menu_create(num_ctxs); *\/ */
+                /* } */
+                /*     break; */
 		case SDL_SCANCODE_LGUI:
 		case SDL_SCANCODE_RGUI:
 		case SDL_SCANCODE_LCTRL:

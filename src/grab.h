@@ -40,16 +40,16 @@ typedef struct clip_ref ClipRef;
 
 /* Main entrypoint from userfn.c -- triggered by 'g' key */
 /* void timeline_grab_ungrab(Timeline *tl); */
-void timeline_grab_ungrab(Timeline *tl);
+void timeline_grab_ungrab(Timeline *tl, ClipRef *cr_opt);
 
 /* Same as 'timeline_grab_ungrab', but will start dragging if clips are dragged, and stop otherwise */
 void timeline_grab_and_drag(Timeline *tl);
 
 /* Grab left edge of clip at cursor */
-void timeline_grab_left_edge(Timeline *tl);
+void timeline_grab_left_edge(Timeline *tl, ClipRef *cr_opt);
 
 /* Grab right edge of clip at cursor */
-void timeline_grab_right_edge(Timeline *tl);
+void timeline_grab_right_edge(Timeline *tl, ClipRef *cr_opt);
 
 /* Ungrab the edge if grabbed, and grab the clip */
 void timeline_grab_no_edge(Timeline *tl);

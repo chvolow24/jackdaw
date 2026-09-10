@@ -87,6 +87,7 @@ void status_set_errstr(const char *fmt, ...)
     textbox_reset_full(session->status_bar.error);
     session->status_bar.err_timer = ERR_TIMER_MAX;
     session->status_bar.error->text->color.a = 255;
+    session->status_bar.draw_err = true;
 }
 
 void status_set_alertstr(const char *fmt, ...)

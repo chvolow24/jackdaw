@@ -120,7 +120,7 @@ else
 FFMPEG_BUILD_TARGET := 
 endif
 
-SPSC_LFQUEUE_BUILD_TARGET := $(SPSC_LFQUEUE_BUNDLED_PATH)/spsc_lfqueue.h
+SPSC_LFQUEUE_BUILD_TARGET := $(SPSC_LFQUEUE_BUNDLED_PATH)/.git
 
 ###############################################################
 
@@ -227,11 +227,11 @@ $(error "SDL_ttf was not found on your system.")
 endif
 endif
 
-DEP_BUILD_TARGETS := $(SDL2_BUILD_TARGET) $(SDL2_TTF_BUILD_TARGET) $(PORTMIDI_BUILD_TARGET) $(FFMPEG_BUILD_TARGET) $(SPSC_LFQUEUE_BUILD_TARGET)
+DEP_BUILD_TARGETS := $(SDL2_BUILD_TARGET) $(SDL2_TTF_BUILD_TARGET) $(PORTMIDI_BUILD_TARGET) $(FFMPEG_BUILD_TARGET)
 
 # 'deps-ready' adds to compiler directives using module .pc files
 .PHONY: deps-ready
-deps-ready: $(DEP_BUILD_TARGETS)
+deps-ready: $(DEP_BUILD_TARGETS) $(SPSC_BUILD_TARGET)
 	$(eval PKG_CFLAGS := $(PKG_CFLAGS))
 	$(eval PKG_LINK_FLAGS := $(PKG_LINK_FLAGS))
 

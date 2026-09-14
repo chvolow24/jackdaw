@@ -227,7 +227,7 @@ $(error "SDL_ttf was not found on your system.")
 endif
 endif
 
-DEP_BUILD_TARGETS := $(SDL2_BUILD_TARGET) $(SDL2_TTF_BUILD_TARGET) $(PORTMIDI_BUILD_TARGET) $(FFMPEG_BUILD_TARGET) $(SPSC_LFQUEUE_TARGET)
+DEP_BUILD_TARGETS := $(SDL2_BUILD_TARGET) $(SDL2_TTF_BUILD_TARGET) $(PORTMIDI_BUILD_TARGET) $(FFMPEG_BUILD_TARGET) $(SPSC_LFQUEUE_BUILD_TARGET)
 
 # 'deps-ready' adds to compiler directives using module .pc files
 .PHONY: deps-ready

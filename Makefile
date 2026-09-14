@@ -231,7 +231,7 @@ DEP_BUILD_TARGETS := $(SDL2_BUILD_TARGET) $(SDL2_TTF_BUILD_TARGET) $(PORTMIDI_BU
 
 # 'deps-ready' adds to compiler directives using module .pc files
 .PHONY: deps-ready
-deps-ready: $(DEP_BUILD_TARGETS) $(SPSC_BUILD_TARGET)
+deps-ready: $(DEP_BUILD_TARGETS) $(SPSC_LFQUEUE_BUILD_TARGET)
 	$(eval PKG_CFLAGS := $(PKG_CFLAGS))
 	$(eval PKG_LINK_FLAGS := $(PKG_LINK_FLAGS))
 

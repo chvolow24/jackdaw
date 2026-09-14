@@ -28,14 +28,13 @@
 #include "automation.h"
 #include "components.h"
 #include "effect.h"
-#include "eq.h"
 #include "endpoint.h"
 #include "grab.h"
 #include "midi_clip.h"
 #include "route.h"
 #include "tempo.h"
 #include "timeview.h"
-#include "saturation.h"
+#include "spsc_lfqueue.h"
 #include "synth.h"
 #include "textbox.h"
 
@@ -326,7 +325,9 @@ typedef struct timeline {
     int dsp_chunks_info_read_i;
     int dsp_chunks_info_write_i;
     
-    
+    LFQueue monitoring_instrument_L;
+    LFQueue monitoring_instrument_R;
+        
     Track *tracks[MAX_TRACKS];
     Track *tracks_proc_order[MAX_TRACKS];
     

@@ -15,6 +15,7 @@
     * Playback and recording
  *****************************************************************************************************************/
 
+#include <stdatomic.h>
 #include <string.h>
 #include <sys/errno.h>
 #include "porttime.h"
@@ -29,6 +30,7 @@
 #include "midi_clip.h"
 #include "midi_io.h"
 #include "midi_qwerty.h"
+#include "spsc_lfqueue.h"
 #include "user_event.h"
 #include "mixdown.h"
 #include "piano_roll.h"
@@ -41,6 +43,8 @@
 
 #define JDAW_TRANSPORT_LOG_ALL
 #define JDAW_TRANSPORT_PRINT_ALL
+
+#define INSTRUMENT_MONITOR_WAIT_LOOP_USECONDS 1000
 
 #define TRANSPORT_PERFORMANCE_LOG_TICKS_PER 10
 static bool transport_performance_logging = false;
@@ -298,28 +302,26 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 
     /* transport_log("playback callback, cleared buffer..\n"); */
     /* Check for monitor synth and add buf to chunk_L and chunk_R */
-    MIDIDevice *d = session->midi_io.monitor_device;
-    Synth *s = session->midi_io.monitor_synth;
-    if (d && s) {
-	midi_device_read(d);
-	float playspeed = session->playback.play_speed;
-	if (session->piano_roll) {
-	    piano_roll_feed_midi(d->buffer, d->num_unconsumed_events);
-	}
-	synth_feed_midi(s, d->buffer, d->num_unconsumed_events, 0, true);
-	if (d->current_clip && d->current_clip->recording) {
-	    midi_device_output_chunk_to_clip(d, 1);
-	    d->current_clip->len_sframes += len_sframes;
-	}
-	d->num_unconsumed_events = 0;
-	if (fabs(playspeed) < 1e-6 || !session->playback.playing) playspeed = 1.0f;
+    if (session->midi_io.monitoring) {
+        float monitor_L[len_sframes];
+        float monitor_R[len_sframes];
+        memset(monitor_L, 0, len_sframes * sizeof(float));
+        memset(monitor_R, 0, len_sframes * sizeof(float));
+        int lret = lfqueue_try_dequeue(&tl->monitoring_instrument_L, monitor_L, len_sframes);
+        int rret = lfqueue_try_dequeue(&tl->monitoring_instrument_R, monitor_R, len_sframes);
 
-	/* Allocate half of chunk time to synth */
-	double alloced_msec = 0.25 * 1000.0 * session->proj.chunk_size_sframes / session->proj.sample_rate;
-	synth_add_buf(s, chunk_L, chunk_R, len_sframes, playspeed, true, alloced_msec); /* TL Pos ignored */
-	/* synth_add_buf(s, chunk_R, 1, len_sframes, playspeed, true, alloced_msec); /\* TL Pos ignored *\/ */
+        if (lret == LFQUEUE_SUCCESS) {
+            float_buf_add(chunk_L, monitor_L, len_sframes);
+            /* fprintf(stderr, "\nBYTES\n"); */
+            /* for (int i=0; i<16; i++) { */
+            /*     fprintf(stderr, "%d, ", ((uint8_t *)monitor_L)[i]); */
+            /* } */
+            /* fprintf(stderr, "\n"); */
+        }
+        if (rret == LFQUEUE_SUCCESS) {
+            float_buf_add(chunk_R, monitor_R, len_sframes);
+        }
     }
-
     /* Check for queued bufs and add to chunk_L and chunk_R */
     loc_queued_bufs_add(chunk_L, chunk_R, len_sframes);
 
@@ -1291,4 +1293,91 @@ void transport_recording_update_cliprects()
 	    clipref_reset(cr, false);
 	}
     }
+}
+
+static _Atomic bool cancel_monitoring = false;
+
+void *instrument_monitor_threadfn(void *arg)
+{
+    set_thread_id(JDAW_THREAD_INSTRUMENT);
+    Session *session = session_get();
+    int len_sframes = session->proj.chunk_size_sframes;;
+    MIDIDevice *d = session->midi_io.monitor_device;
+    Synth *s = session->midi_io.monitor_synth;
+    Timeline *tl = ACTIVE_TL;
+    if (!d || !s) return NULL;
+
+    while (!atomic_load_explicit(&cancel_monitoring, memory_order_relaxed)) {
+        midi_device_read(d);
+        float playspeed = session->playback.play_speed;
+        if (session->piano_roll) {
+            piano_roll_feed_midi(d->buffer, d->num_unconsumed_events);
+        }
+        synth_feed_midi(s, d->buffer, d->num_unconsumed_events, 0, true);
+        if (d->current_clip && d->current_clip->recording) {
+            midi_device_output_chunk_to_clip(d, 1);
+            d->current_clip->len_sframes += len_sframes;
+        }
+        d->num_unconsumed_events = 0;
+        if (fabs(playspeed) < 1e-6 || !session->playback.playing) playspeed = 1.0f;
+
+        float L[len_sframes];
+        float R[len_sframes];
+        memset(L, 0, len_sframes * sizeof(float));
+        memset(R, 0, len_sframes * sizeof(float));
+        synth_add_buf(s, L, R, len_sframes, playspeed, false, 0); /* TL Pos ignored */
+        lfqueue_wait_enqueue(
+            &tl->monitoring_instrument_L,
+            L,
+            len_sframes,
+            INSTRUMENT_MONITOR_WAIT_LOOP_USECONDS,
+            &cancel_monitoring);
+        lfqueue_wait_enqueue(
+            &tl->monitoring_instrument_R,
+            R,
+            len_sframes,
+            INSTRUMENT_MONITOR_WAIT_LOOP_USECONDS,
+            &cancel_monitoring);
+
+    }
+    fprintf(stderr, "EXITTT\n");
+    return NULL;
+}
+
+void transport_start_instrument_monitor()
+{
+    Session *session = session_get();
+    static pthread_t monitor_thread;
+    atomic_store_explicit(&cancel_monitoring, false, memory_order_relaxed);
+
+    pthread_attr_t attr;
+    int sched_policy = SCHED_RR;
+    int ret;
+    if ((ret = pthread_attr_init(&attr)) != 0) {
+	fprintf(stderr, "pthread_attr_init: %s\n", strerror(ret));
+    }
+    if ((ret = pthread_attr_setschedpolicy(&attr, sched_policy)) != 0) {
+	fprintf(stderr, "pthread_attr_setschedpolicy: %s\n", strerror(ret));
+    }
+    int priority_max = sched_get_priority_max(sched_policy);
+    if (priority_max < 0) {
+	perror("sched_get_priority_max");
+	exit(1);
+    }    
+    struct sched_param instrument_sched;
+    instrument_sched.sched_priority = priority_max;
+    if ((ret = pthread_attr_setschedparam(&attr, &instrument_sched)) != 0) {
+	fprintf(stderr, "pthread_attr_setschedparam: %s\n", strerror(ret));
+    }
+
+    pthread_create(&monitor_thread, &attr, instrument_monitor_threadfn, NULL);
+    usleep(1000);
+    audioconn_start_playback(session->audio_io.playback_conn);
+}
+
+void transport_stop_instrument_monitor()
+{
+    atomic_store_explicit(&cancel_monitoring, true, memory_order_relaxed);
+    fprintf(stderr, "SET the thing to true\n");
+    audioconn_stop_playback(session_get()->audio_io.playback_conn);
 }

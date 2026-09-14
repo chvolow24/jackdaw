@@ -79,6 +79,7 @@ SDL2_BUNDLED_PATH := $(CURDIR)/SDL
 SDL2_TTF_BUNDLED_PATH := $(CURDIR)/SDL_ttf
 PORTMIDI_BUNDLED_PATH := $(CURDIR)/portmidi
 FFMPEG_BUNDLED_PATH := $(CURDIR)/FFmpeg
+SPSC_LFQUEUE_BUNDLED_PATH := $(CURDIR)/spsc_lfqueue
 
 PKG_CONFIG_PATH := $(shell echo $(PKG_CONFIG_PATH))
 
@@ -118,6 +119,9 @@ FFMPEG_BUILD_TARGET := $(LIBAVCODEC_BUILD_TARGET) $(LIBAVFORMAT_BUILD_TARGET) $(
 else
 FFMPEG_BUILD_TARGET := 
 endif
+
+SPSC_LFQUEUE_BUILD_TARGET := $(SPSC_LFQUEUE_BUNDLED_PATH)/spsc_lfqueue.h
+
 ###############################################################
 
 
@@ -207,6 +211,8 @@ $(FFMPEG_BUILD_TARGET):
 	make install >>../ffmpeg_build.log 2>&1
 	@echo "...FFmpeg build complete"
 
+$(SPSC_LFQUEUE_BUILD_TARGET):
+	git submodule update --init spsc_lfqueue
 
 ##############################################################
 
@@ -221,7 +227,7 @@ $(error "SDL_ttf was not found on your system.")
 endif
 endif
 
-DEP_BUILD_TARGETS := $(SDL2_BUILD_TARGET) $(SDL2_TTF_BUILD_TARGET) $(PORTMIDI_BUILD_TARGET) $(FFMPEG_BUILD_TARGET)
+DEP_BUILD_TARGETS := $(SDL2_BUILD_TARGET) $(SDL2_TTF_BUILD_TARGET) $(PORTMIDI_BUILD_TARGET) $(FFMPEG_BUILD_TARGET) $(SPSC_LFQUEUE_TARGET)
 
 # 'deps-ready' adds to compiler directives using module .pc files
 .PHONY: deps-ready
@@ -260,6 +266,8 @@ deps-ready: $(DEP_BUILD_TARGETS)
 	$(eval PKG_LINK_FLAGS += $(if $(filter 1,$(HAVE_SYSTEM_FFMPEG)),\
 		$(shell $(PKGCONF) $(FFMPEG_PKG_NAME) --libs),\
 		$(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) $(PKGCONF) --static $(FFMPEG_PKG_NAME) --libs)))
+# spsc_lfqueue
+	$(eval PKG_CFLAGS += -I$(SPSC_LFQUEUE_BUNDLED_PATH))
 
 
 # Build summary
@@ -315,7 +323,7 @@ endif
 
 CFLAGS = $(PKG_CFLAGS) -Wall -Wno-unused-command-line-argument -I$(SRC_DIR) -I$(GUI_SRC_DIR) \
 	-DJACKDAW_VERSION=\"$(JACKDAW_VERSION)\" \
-	-DINSTALL_DIR="\"$(PWD)\""
+	-DINSTALL_DIR="\"$(PWD)\"" \
 
 ifeq ($(UNAME_S),Darwin)
 CFLAGS += -DJDAW_MACOS_BUILD

@@ -12,3 +12,6 @@
 [submodule "FFmpeg"]
 	path = FFmpeg
 	url = https://github.com/FFmpeg/FFmpeg.git
+[submodule "spsc_lfqueue"]
+	path = spsc_lfqueue
+	url = git@github.com:chvolow24/spsc_lfqueue.git

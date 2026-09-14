@@ -114,6 +114,8 @@ Session *session_create()
 	fprintf(stderr, "Error initializing queued audio buf mutex: %s\n", strerror(err));
 	exit(1);
     }
+
+    /* lfqueue_init(&session->playback.monitoring_instrument_L, session->proj. */
     
     endpoint_init(
 	&session->playback.play_speed_ep,

@@ -1307,6 +1307,19 @@ void *instrument_monitor_threadfn(void *arg)
     Timeline *tl = ACTIVE_TL;
     if (!d || !s) return NULL;
 
+    float L[len_sframes];
+    float R[len_sframes];
+    memset(L, 0, sizeof(L));
+    memset(R, 0, sizeof(R));
+    while (lfqueue_try_enqueue(
+        &tl->monitoring_instrument_L,
+        L,
+        len_sframes) == LFQUEUE_SUCCESS) {};
+    while (lfqueue_try_enqueue(
+        &tl->monitoring_instrument_R,
+        R,
+        len_sframes) == LFQUEUE_SUCCESS) {};
+
     while (!atomic_load_explicit(&cancel_monitoring, memory_order_relaxed)) {
         midi_device_read(d);
         float playspeed = session->playback.play_speed;
@@ -1338,9 +1351,10 @@ void *instrument_monitor_threadfn(void *arg)
             len_sframes,
             INSTRUMENT_MONITOR_WAIT_LOOP_USECONDS,
             &cancel_monitoring);
-
+        session_do_ongoing_changes(session, JDAW_THREAD_INSTRUMENT);
+        session_flush_val_changes(session, JDAW_THREAD_INSTRUMENT);
+        session_flush_callbacks(session, JDAW_THREAD_INSTRUMENT);
     }
-    fprintf(stderr, "EXITTT\n");
     return NULL;
 }
 
@@ -1378,6 +1392,5 @@ void transport_start_instrument_monitor()
 void transport_stop_instrument_monitor()
 {
     atomic_store_explicit(&cancel_monitoring, true, memory_order_relaxed);
-    fprintf(stderr, "SET the thing to true\n");
-    audioconn_stop_playback(session_get()->audio_io.playback_conn);
+    /* audioconn_stop_playback(session_get()->audio_io.playback_conn); */
 }

@@ -44,7 +44,7 @@
 #define JDAW_TRANSPORT_LOG_ALL
 #define JDAW_TRANSPORT_PRINT_ALL
 
-#define INSTRUMENT_MONITOR_WAIT_LOOP_USECONDS 1000
+#define INSTRUMENT_MONITOR_WAIT_LOOP_USECONDS 100
 
 #define TRANSPORT_PERFORMANCE_LOG_TICKS_PER 10
 static bool transport_performance_logging = false;
@@ -307,7 +307,6 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     if (session->midi_io.monitoring) {
         int ret = lfqueue_wait_dequeue(&tl->monitoring_instrument, monitor_LR, len_sframes * 2, 10, 100, NULL);
         if (ret == LFQUEUE_SUCCESS) has_monitor = true;
-        fprintf(stderr, "LFQueue status: %s\n", lfqueue_get_errstr(ret));
     }
     /* Check for queued bufs and add to chunk_L and chunk_R */
     loc_queued_bufs_add(chunk_L, chunk_R, len_sframes);
@@ -1291,6 +1290,11 @@ static _Atomic bool cancel_monitoring = false;
 void *instrument_monitor_threadfn(void *arg)
 {
     set_thread_id(JDAW_THREAD_INSTRUMENT);
+
+    struct sched_param sched;
+    int policy;
+    pthread_getschedparam(pthread_self(), &policy, &sched);
+    fprintf(stderr, "ACTUAL PRI: %d policy %s\n", sched.sched_priority, policy == SCHED_RR ? "RR" : policy == SCHED_FIFO ? "FIFO" : "other");
     Session *session = session_get();
     int len_sframes = session->proj.chunk_size_sframes;;
     MIDIDevice *d = session->midi_io.monitor_device;
@@ -1351,7 +1355,6 @@ void *instrument_monitor_threadfn(void *arg)
         /*     INSTRUMENT_MONITOR_WAIT_LOOP_USECONDS, */
         /*     0, */
         /*     &cancel_monitoring); */
-        fprintf(stderr, "Done enqueue\n");
         session_do_ongoing_changes(session, JDAW_THREAD_INSTRUMENT);
         session_flush_val_changes(session, JDAW_THREAD_INSTRUMENT);
         session_flush_callbacks(session, JDAW_THREAD_INSTRUMENT);
@@ -1367,7 +1370,7 @@ void transport_start_instrument_monitor()
     atomic_store_explicit(&cancel_monitoring, false, memory_order_relaxed);
 
     pthread_attr_t attr;
-    int sched_policy = SCHED_RR;
+    int sched_policy = SCHED_FIFO;
     int ret;
     if ((ret = pthread_attr_init(&attr)) != 0) {
 	fprintf(stderr, "pthread_attr_init: %s\n", strerror(ret));
@@ -1375,18 +1378,25 @@ void transport_start_instrument_monitor()
     if ((ret = pthread_attr_setschedpolicy(&attr, sched_policy)) != 0) {
 	fprintf(stderr, "pthread_attr_setschedpolicy: %s\n", strerror(ret));
     }
-    int priority_max = sched_get_priority_max(sched_policy);
-    if (priority_max < 0) {
-	perror("sched_get_priority_max");
-	exit(1);
-    }    
+    /* int priority_max = sched_get_priority_max(sched_policy); */
+    /* if (priority_max < 0) { */
+    /*     perror("sched_get_priority_max"); */
+    /*     exit(1); */
+    /* }     */
     struct sched_param instrument_sched;
-    instrument_sched.sched_priority = priority_max;
+    instrument_sched.sched_priority = 80;
     if ((ret = pthread_attr_setschedparam(&attr, &instrument_sched)) != 0) {
 	fprintf(stderr, "pthread_attr_setschedparam: %s\n", strerror(ret));
     }
 
-    pthread_create(&monitor_thread, &attr, instrument_monitor_threadfn, NULL);
+    if ((ret = pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED)) != 0) {
+        fprintf(stderr, "pthread_attr_setinheritsched: %s\n", strerror(ret));
+    }
+    if ((ret = pthread_create(&monitor_thread, &attr, instrument_monitor_threadfn, NULL)) != 0) {
+        fprintf(stderr, "pthread_create: %s\n", strerror(ret));
+        exit(1);
+    }
+    pthread_attr_destroy(&attr);
     usleep(1000);
     audioconn_start_playback(session->audio_io.playback_conn);
 }

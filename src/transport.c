@@ -1378,13 +1378,19 @@ void transport_start_instrument_monitor()
     if ((ret = pthread_attr_setschedpolicy(&attr, sched_policy)) != 0) {
 	fprintf(stderr, "pthread_attr_setschedpolicy: %s\n", strerror(ret));
     }
-    /* int priority_max = sched_get_priority_max(sched_policy); */
-    /* if (priority_max < 0) { */
-    /*     perror("sched_get_priority_max"); */
-    /*     exit(1); */
-    /* }     */
+    int priority_max = sched_get_priority_max(sched_policy);
+    if (priority_max < 0) {
+        perror("sched_get_priority_max");
+    }
+    int priority_min = sched_get_priority_min(sched_policy);
+    if (priority_min < 0) {
+        perror("sched_get_priority_max");
+    }
+    int priority = priority_min + (priority_max - priority_min) * 0.8;
+    fprintf(stderr, "PRI range: %d, %d == %d\n", priority_min, priority_max, priority);
     struct sched_param instrument_sched;
-    instrument_sched.sched_priority = 80;
+    
+    instrument_sched.sched_priority = priority;
     if ((ret = pthread_attr_setschedparam(&attr, &instrument_sched)) != 0) {
 	fprintf(stderr, "pthread_attr_setschedparam: %s\n", strerror(ret));
     }
@@ -1393,8 +1399,11 @@ void transport_start_instrument_monitor()
         fprintf(stderr, "pthread_attr_setinheritsched: %s\n", strerror(ret));
     }
     if ((ret = pthread_create(&monitor_thread, &attr, instrument_monitor_threadfn, NULL)) != 0) {
-        fprintf(stderr, "pthread_create: %s\n", strerror(ret));
-        exit(1);
+        log_tmp(LOG_WARNING, "pthread_create failed to create instrument monitor thread with sched pri %d: %s\n", priority, strerror(ret));        
+        if ((ret = pthread_create(&monitor_thread, NULL, instrument_monitor_threadfn, NULL)) != 0) {
+            fprintf(stderr, "pthread_create fallback failed to create instrument monitor: %s\n", strerror(ret));
+            exit(1);
+        }
     }
     pthread_attr_destroy(&attr);
     usleep(1000);

@@ -1399,7 +1399,7 @@ void transport_start_instrument_monitor()
         fprintf(stderr, "pthread_attr_setinheritsched: %s\n", strerror(ret));
     }
     if ((ret = pthread_create(&monitor_thread, &attr, instrument_monitor_threadfn, NULL)) != 0) {
-        log_tmp(LOG_WARNING, "pthread_create failed to create instrument monitor thread with sched pri %d: %s\n", priority, strerror(ret));        
+        log_tmp(LOG_WARN, "pthread_create failed to create instrument monitor thread with sched pri %d: %s\n", priority, strerror(ret));        
         if ((ret = pthread_create(&monitor_thread, NULL, instrument_monitor_threadfn, NULL)) != 0) {
             fprintf(stderr, "pthread_create fallback failed to create instrument monitor: %s\n", strerror(ret));
             exit(1);

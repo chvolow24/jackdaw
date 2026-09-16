@@ -1581,7 +1581,7 @@ static void synth_voice_add_buf(SynthVoice *v, float *restrict L, float *restric
 	memcpy(R, osc_buf[1], len * sizeof(float));	
     } else {
 	float_buf_add(L, osc_buf[0], len);
-	float_buf_add(R, osc_buf[0], len);
+	float_buf_add(R, osc_buf[1], len);
     }
 }
 
@@ -2168,7 +2168,7 @@ void synth_add_buf(Synth *s, float *restrict L, float *restrict R, int32_t len, 
     bool thread_exists[SYNTH_NUM_VOICES] = {0};
     int active_voices = 0;
     bool synth_parallelism =
-	!on_thread(JDAW_THREAD_PLAYBACK)
+	!on_thread(JDAW_THREAD_INSTRUMENT)
 	&& synth_parallelism_allowed;
     if (synth_parallelism) {
 	for (int i=0; i<SYNTH_NUM_VOICES; i++) {

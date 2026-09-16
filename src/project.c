@@ -253,8 +253,7 @@ uint8_t project_add_timeline(Project *proj, char *name)
     new_tl->buf_L = calloc(1, sizeof(float) * proj->fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS);
     new_tl->buf_R = calloc(1, sizeof(float) * proj->fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS);
 
-    lfqueue_init(&new_tl->monitoring_instrument_L, sizeof(float), 17 * proj->chunk_size_sframes);
-    lfqueue_init(&new_tl->monitoring_instrument_R, sizeof(float), 17 * proj->chunk_size_sframes);
+    lfqueue_init(&new_tl->monitoring_instrument, sizeof(float), INSTRUMENT_LATENCY_CKS * proj->chunk_size_sframes * 2);
     
     new_tl->buf_write_pos = 0;
     new_tl->buf_read_pos = 0;
@@ -1907,7 +1906,6 @@ TEST_FN_DEF(timeline_track_array_integrity, {
 bool timeline_check_set_midi_monitoring()
 {
     log_tmp(LOG_DEBUG, "Checking/setting midi monitoring...\n");
-    transport_stop_instrument_monitor();
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     Track *track = timeline_selected_track(tl);
@@ -1967,14 +1965,18 @@ bool timeline_check_set_midi_monitoring()
 	    synth_close_all_notes(synth);
 	    api_node_set_owner(&track->synth->api_node, JDAW_THREAD_INSTRUMENT);
 	    pthread_mutex_unlock(&synth->audio_proc_lock);
+            fprintf(stderr, "Hit first start\n");
+            transport_start_instrument_monitor();
 	}
 	if (was_monitoring && old_synth && old_synth != synth) {
+            fprintf(stderr, "Hit second\n");
 	    pthread_mutex_lock(&old_synth->audio_proc_lock);
 	    synth_close_all_notes(old_synth);
 	    api_node_set_owner(&old_synth->api_node, JDAW_THREAD_DSP);
-	    pthread_mutex_unlock(&old_synth->audio_proc_lock);	    
+	    pthread_mutex_unlock(&old_synth->audio_proc_lock);
+            transport_stop_instrument_monitor();
+            transport_start_instrument_monitor();
 	}
-	transport_start_instrument_monitor();
 	/* audioconn_start_playback(session->audio_io.playback_conn); */
 	session->midi_io.monitoring = true;
 	if (!was_monitoring) {

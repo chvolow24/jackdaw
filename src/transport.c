@@ -302,25 +302,12 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 
     /* transport_log("playback callback, cleared buffer..\n"); */
     /* Check for monitor synth and add buf to chunk_L and chunk_R */
+    float monitor_LR[len_sframes * 2];
+    bool has_monitor = false;
     if (session->midi_io.monitoring) {
-        float monitor_L[len_sframes];
-        float monitor_R[len_sframes];
-        memset(monitor_L, 0, len_sframes * sizeof(float));
-        memset(monitor_R, 0, len_sframes * sizeof(float));
-        int lret = lfqueue_try_dequeue(&tl->monitoring_instrument_L, monitor_L, len_sframes);
-        int rret = lfqueue_try_dequeue(&tl->monitoring_instrument_R, monitor_R, len_sframes);
-
-        if (lret == LFQUEUE_SUCCESS) {
-            float_buf_add(chunk_L, monitor_L, len_sframes);
-            /* fprintf(stderr, "\nBYTES\n"); */
-            /* for (int i=0; i<16; i++) { */
-            /*     fprintf(stderr, "%d, ", ((uint8_t *)monitor_L)[i]); */
-            /* } */
-            /* fprintf(stderr, "\n"); */
-        }
-        if (rret == LFQUEUE_SUCCESS) {
-            float_buf_add(chunk_R, monitor_R, len_sframes);
-        }
+        int ret = lfqueue_wait_dequeue(&tl->monitoring_instrument, monitor_LR, len_sframes * 2, 10, 100, NULL);
+        if (ret == LFQUEUE_SUCCESS) has_monitor = true;
+        fprintf(stderr, "LFQueue status: %s\n", lfqueue_get_errstr(ret));
     }
     /* Check for queued bufs and add to chunk_L and chunk_R */
     loc_queued_bufs_add(chunk_L, chunk_R, len_sframes);
@@ -332,6 +319,10 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     {
 	float val_L = chunk_L[i/2];
 	float val_R = chunk_R[i/2];
+        if (has_monitor) {
+            val_L += monitor_LR[i];
+            val_R += monitor_LR[i + 1];
+        }
 	envelope_follower_sample(&session->proj.output_L_ef, val_L);
 	envelope_follower_sample(&session->proj.output_R_ef, val_R);
 	stream_fmt[i] = (int16_t)(clip_float_sample(val_L) * INT16_MAX);
@@ -1307,20 +1298,23 @@ void *instrument_monitor_threadfn(void *arg)
     Timeline *tl = ACTIVE_TL;
     if (!d || !s) return NULL;
 
-    float L[len_sframes];
-    float R[len_sframes];
-    memset(L, 0, sizeof(L));
-    memset(R, 0, sizeof(R));
+    float LR[len_sframes * 2];
+    memset(LR, 0, sizeof(LR));
+    
     while (lfqueue_try_enqueue(
-        &tl->monitoring_instrument_L,
-        L,
-        len_sframes) == LFQUEUE_SUCCESS) {};
-    while (lfqueue_try_enqueue(
-        &tl->monitoring_instrument_R,
-        R,
-        len_sframes) == LFQUEUE_SUCCESS) {};
+        &tl->monitoring_instrument,
+        LR,
+        len_sframes * 2) == LFQUEUE_SUCCESS) {fprintf(stderr, "ENQUUE L SILENCE\n");};
+    /* while (lfqueue_try_enqueue( */
+    /*     &tl->monitoring_instrument_R, */
+    /*     R, */
+    /*     len_sframes) == LFQUEUE_SUCCESS) {fprintf(stderr, "ENQUUE R SILENCE\n");}; */
 
+    /* clock_t c; */
+    fprintf(stderr, "ENTERING!\n");
     while (!atomic_load_explicit(&cancel_monitoring, memory_order_relaxed)) {
+        /* fprintf(stderr, "last iter time: %ld\n", clock() - c); */
+        /* c = clock(); */
         midi_device_read(d);
         float playspeed = session->playback.play_speed;
         if (session->piano_roll) {
@@ -1339,21 +1333,29 @@ void *instrument_monitor_threadfn(void *arg)
         memset(L, 0, len_sframes * sizeof(float));
         memset(R, 0, len_sframes * sizeof(float));
         synth_add_buf(s, L, R, len_sframes, playspeed, false, 0); /* TL Pos ignored */
+        for (int i=0; i<len_sframes * 2; i+=2) {
+            LR[i] = L[i / 2];
+            LR[i+1] = R[i / 2];
+        }
         lfqueue_wait_enqueue(
-            &tl->monitoring_instrument_L,
-            L,
-            len_sframes,
+            &tl->monitoring_instrument,
+            LR,
+            len_sframes * 2,
             INSTRUMENT_MONITOR_WAIT_LOOP_USECONDS,
+            0,
             &cancel_monitoring);
-        lfqueue_wait_enqueue(
-            &tl->monitoring_instrument_R,
-            R,
-            len_sframes,
-            INSTRUMENT_MONITOR_WAIT_LOOP_USECONDS,
-            &cancel_monitoring);
+        /* lfqueue_wait_enqueue( */
+        /*     &tl->monitoring_instrument_R, */
+        /*     R, */
+        /*     len_sframes, */
+        /*     INSTRUMENT_MONITOR_WAIT_LOOP_USECONDS, */
+        /*     0, */
+        /*     &cancel_monitoring); */
+        fprintf(stderr, "Done enqueue\n");
         session_do_ongoing_changes(session, JDAW_THREAD_INSTRUMENT);
         session_flush_val_changes(session, JDAW_THREAD_INSTRUMENT);
         session_flush_callbacks(session, JDAW_THREAD_INSTRUMENT);
+        /* fprintf(stderr, "Done ongoing and val changes\n"); */
     }
     return NULL;
 }
@@ -1391,6 +1393,7 @@ void transport_start_instrument_monitor()
 
 void transport_stop_instrument_monitor()
 {
+    fprintf(stderr, "Stop monitoring\n");
     atomic_store_explicit(&cancel_monitoring, true, memory_order_relaxed);
     /* audioconn_stop_playback(session_get()->audio_io.playback_conn); */
 }

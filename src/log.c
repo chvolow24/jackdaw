@@ -3,6 +3,7 @@
 #include "tmp.h"
 #include <pthread.h>
 #include <stdarg.h>
+#include <stdatomic.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -146,7 +147,57 @@ static int line_cmp(const void *v1, const void *v2)
     return strncmp(str1, str2, ts_fmt_len);
 }
 
-/* Merges all thread logs and prints in order */
+/* Merges all thread logs and prints errors in order */
+void log_print_errors()
+{
+    int lines_cap = 512;
+    int num_lines = 0;
+    char **lines = malloc(lines_cap * sizeof(char *));
+    /* FILE *logfiles[NUM_JDAW_THREADS]; */
+    /* bool more_lines[NUM_JDAW_THREADS]; */
+    /* char *line_queued[NUM_JDAW_THREADS]; */
+    int num_warnings = 0;
+    int num_errors = 0;
+
+    for (int i=0; i<NUM_JDAW_THREADS; i++) {
+	/* fflush(logfile[i]); */
+	FILE *readfile = fopen(logfile_path[i], "r");
+	while (1) {
+	    char *line = NULL;
+	    size_t linecap = 0;
+	    ssize_t linelen;
+
+	    linelen = getline(&line, &linecap, readfile);
+	    if (linelen <= 0) break;
+            if (strncmp(line, "(E", 2) == 0) {
+                num_errors++;
+            } else if (strncmp(line, "(W", 2) == 0) {
+                num_warnings++;
+            } else {
+                free(line);
+                continue;
+            }
+	    lines[num_lines] = line;
+	    num_lines++;
+	    if (num_lines == lines_cap) {
+		lines_cap *= 2;
+		lines = realloc(lines, lines_cap * sizeof(char *));
+	    }
+	}
+	fclose(readfile);
+    }
+
+    qsort(lines, num_lines, sizeof(char *), line_cmp);
+
+    for (int i=0; i<num_lines; i++) {
+	fprintf(stdout, "%s", lines[i]);
+	free(lines[i]);
+    }
+    fprintf(stderr, "%d errors, %d warnings.\n", num_errors, num_warnings);
+    fprintf(stderr, "For a full execution log, run './jackdaw log'\n");
+    free(lines);
+}
+
 void log_printall()
 {
     int lines_cap = 512;
@@ -163,7 +214,6 @@ void log_printall()
 	    char *line = NULL;
 	    size_t linecap = 0;
 	    ssize_t linelen;
-
 	    linelen = getline(&line, &linecap, readfile);
 	    if (linelen <= 0) break;
 	    lines[num_lines] = line;

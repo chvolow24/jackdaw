@@ -126,6 +126,7 @@ static void init()
 static void quit()
 {
     Session *session = session_get();
+    log_print_errors();
     if (main_win->txt_editing) txt_stop_editing(main_win->txt_editing);
     api_quit();
     CANCEL_THREADS = true;

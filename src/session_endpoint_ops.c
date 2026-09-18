@@ -238,12 +238,24 @@ int session_flush_ongoing_changes(Session *session, enum jdaw_thread thread)
 #define MAX_CALLBACKS_PER_QUEUE 128
 /* ^ TEMPORARY ^ */
 
-void session_queue_callback_v2(enum jdaw_thread thread)
+
+void session_enqueue_callback(enum jdaw_thread for_thread, struct queued_cb cb)
+{
+    Session *session = session_get();
+    enum jdaw_thread writer = current_thread();
+    LFQueue *q = &session->queued_ops.queued_callbacks_v2[for_thread][writer];
+    int ret = lfqueue_try_enqueue(q, &cb, 1);
+    if (ret != LFQUEUE_SUCCESS) {
+        log_tmp(LOG_ERROR, "Error enqueueing ep callback on \"%s\": %s\n", cb.ep->local_id, lfqueue_get_errstr(ret));
+    }
+}
+
+void session_dequeue_callback_v2(enum jdaw_thread thread)
 {
     
     Session *session = session_get();
     LFQueue *arr = session->queued_ops.queued_callbacks_v2[thread];
-    EndptCb cbs[MAX_CALLBACKS_PER_QUEUE * NUM_EP_WRITER_THREADS] = {0};
+    struct queued_cb cbs[MAX_CALLBACKS_PER_QUEUE * NUM_EP_WRITER_THREADS] = {0};
     int num_cbs = 0;
     for (enum jdaw_thread t=0; t<NUM_EP_WRITER_THREADS; t++) {
         LFQueue *queue = arr + t;
@@ -251,6 +263,24 @@ void session_queue_callback_v2(enum jdaw_thread thread)
             num_cbs++;
         }
     }
+    
     /* Work backwards to dedupe */
+    int num_seen = 0;
+    struct queued_cb seen[num_cbs];
+    for (int i=num_cbs - 1; i>=0; i--) {
+        struct queued_cb cb = cbs[i];
+        bool dupe = false;;
+        for (int j=0; j<num_seen; j++) {
+            if (cb.ep == seen[j].ep) {
+                dupe = true;
+                break;
+            }
+        }
+        if (!dupe) {
+            cb.cb(cb.ep);
+            seen[num_seen] = cb;
+            num_seen++;
+        }
+    }
     
 }

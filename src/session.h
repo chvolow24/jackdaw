@@ -140,6 +140,11 @@ struct status_bar {
 
 #define MAX_QUEUED_BUFS 64
 
+struct queued_cb {
+    EndptCb cb;
+    Endpoint *ep;
+};
+
 struct queued_ops {
     
     /* Endpoint-related */

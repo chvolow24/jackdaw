@@ -120,6 +120,18 @@ Session *session_create()
 	exit(1);
     }
 
+    for (enum jdaw_thread t=0; t<NUM_JDAW_THREADS; t++) {
+        for (enum jdaw_thread w=0; w<NUM_EP_WRITER_THREADS; w++) {
+            int ret = lfqueue_init(
+                &session->queued_ops.queued_callbacks_v2[t][w],
+                sizeof(struct queued_cb),
+                MAX_ENDPOINT_CALLBACKS);
+            if (ret <= 0) {
+                log_tmp(LOG_ERROR, "Error initializing endpoint callback lfqueue\n");
+            }
+        }
+    }
+
     /* for (int i=0;  */
     /* lfqueue_init(&session->playback.monitoring_instrument_L, session->proj. */
     
@@ -295,6 +307,13 @@ void session_destroy()
     session_destroy_metronomes(session);
     session_loading_screen_deinit();
     session_deinit_midi(session);
+
+    for (enum jdaw_thread t=0; t<NUM_JDAW_THREADS; t++) {
+        for (enum jdaw_thread w=0; w<NUM_EP_WRITER_THREADS; w++) {
+            lfqueue_deinit(&session->queued_ops.queued_callbacks_v2[t][w]);
+        }
+    }
+
 
 
     /* user_event_history_clear(&session->history); */

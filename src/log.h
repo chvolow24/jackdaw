@@ -18,6 +18,7 @@ void log_tmp(enum log_level level, char *fmt, ...);
 void log_tmp_v(enum log_level level, const char *fmt, va_list ap);
 void log_print_current_thread();
 void log_printall();
+void log_print_errors();
 void log_init();
 void log_quit();
 

@@ -232,3 +232,9 @@ int session_flush_ongoing_changes(Session *session, enum jdaw_thread thread)
     pthread_mutex_unlock(&session->queued_ops.ongoing_changes_lock);
     return num_done;
 }
+
+
+void session_queue_callback_v2(EndptCb cb, Endpoint *ep, enum jdaw_thread thread)
+{
+
+}

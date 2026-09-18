@@ -62,10 +62,11 @@
 #define MAX_ENDPOINT_CALLBACKS 4
 
 typedef struct endpoint Endpoint;
+
 typedef void (*EndptCb)(Endpoint *);
 
 /* /\* Callbacks are stored with their designated thread of execution *\/ */
-/* struct endpt_cb { */
+/* struct endpt_cb_thread { */
 /*     EndptCb fn; */
 /*     enum jdaw_thread thread; */
 /* }; */
@@ -93,6 +94,9 @@ typedef struct endpoint {
     EndptCb proj_callback; /* Main thread -- update project state outside target parameter */
     EndptCb gui_callback; /* Main thread -- update GUI state */
     EndptCb dsp_callback; /* DSP thread */
+
+    _Atomic EndptCb registered_callbacks[NUM_JDAW_THREADS][MAX_ENDPOINT_CALLBACKS];
+    _Atomic int num_registered_callbacks[NUM_JDAW_THREADS];
 
     bool display_label; /* Set in endpoint write based on "undoable" -- used in gui cbs */
     

@@ -331,6 +331,33 @@ void panel_page_refocus(PanelArea *pa, const char *page_title, uint8_t refocus_p
     }
 }
 
+void panel_page_unfocus(PanelArea *pa, const char *page_title)
+{
+    int swap_panel_index = -1;
+    for (uint8_t i=0; i<pa->num_panels; i++) {
+	Page *test = pa->pages[pa->panels[i]->current_page];
+	if (strcmp(test->title, page_title) == 0) {
+	    swap_panel_index = i;
+	}
+    }
+    if (swap_panel_index < 0) return;
+    
+    bool page_index_seen[pa->num_pages];
+    memset(page_index_seen, 0, sizeof(page_index_seen));
+    for (int i=0; i<pa->num_panels; i++) {
+        page_index_seen[pa->panels[i]->current_page] = true;
+    }
+    int first_unused_page = pa->num_panels;;
+    for (int i=0; i<pa->num_panels; i++) {
+        if (!page_index_seen[i]) {
+            first_unused_page = i;
+            break;
+        }
+    }
+    panel_select_page(pa, swap_panel_index, first_unused_page);
+    /* panel_insert_page(pa, swap_panel_index, first_unused_page); */
+}
+
 
 /* WHEN panel selecting,
  - remove page layout from parent;

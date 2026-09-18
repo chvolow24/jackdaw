@@ -81,6 +81,7 @@ PORTMIDI_BUNDLED_PATH := $(CURDIR)/portmidi
 FFMPEG_BUNDLED_PATH := $(CURDIR)/FFmpeg
 SPSC_LFQUEUE_BUNDLED_PATH := $(CURDIR)/spsc_lfqueue
 
+
 PKG_CONFIG_PATH := $(shell echo $(PKG_CONFIG_PATH))
 
 ###############################################################
@@ -119,8 +120,6 @@ FFMPEG_BUILD_TARGET := $(LIBAVCODEC_BUILD_TARGET) $(LIBAVFORMAT_BUILD_TARGET) $(
 else
 FFMPEG_BUILD_TARGET := 
 endif
-
-SPSC_LFQUEUE_BUILD_TARGET := $(SPSC_LFQUEUE_BUNDLED_PATH)/.git
 
 ###############################################################
 
@@ -211,9 +210,6 @@ $(FFMPEG_BUILD_TARGET):
 	make install >>../ffmpeg_build.log 2>&1
 	@echo "...FFmpeg build complete"
 
-$(SPSC_LFQUEUE_BUILD_TARGET):
-	git submodule update --init spsc_lfqueue
-
 ##############################################################
 
 # USE_EXTERNAL_SDLS forces the use of system packages; error if unavailable
@@ -229,9 +225,13 @@ endif
 
 DEP_BUILD_TARGETS := $(SDL2_BUILD_TARGET) $(SDL2_TTF_BUILD_TARGET) $(PORTMIDI_BUILD_TARGET) $(FFMPEG_BUILD_TARGET)
 
+.PHONY: spsc_lfqueue
+spsc_lfqueue:
+	@git submodule update --init --recursive spsc_lfqueue
+
 # 'deps-ready' adds to compiler directives using module .pc files
 .PHONY: deps-ready
-deps-ready: $(DEP_BUILD_TARGETS) $(SPSC_LFQUEUE_BUILD_TARGET)
+deps-ready: $(DEP_BUILD_TARGETS) spsc_lfqueue
 	$(eval PKG_CFLAGS := $(PKG_CFLAGS))
 	$(eval PKG_LINK_FLAGS := $(PKG_LINK_FLAGS))
 

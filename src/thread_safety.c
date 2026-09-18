@@ -19,6 +19,7 @@ static pthread_t PLAYBACK_THREAD_ID = 0;
 static pthread_t INSTRUMENT_THREAD_ID = 0;
 
 static JDAW_THREAD_LOCAL pthread_t CURRENT_THREAD_ID = 0;
+static JDAW_THREAD_LOCAL enum jdaw_thread CURRENT_THREAD_INDEX = -1;
 
 void set_thread_id(enum jdaw_thread index)
 {
@@ -41,6 +42,7 @@ void set_thread_id(enum jdaw_thread index)
 	    break;
 	}
 	CURRENT_THREAD_ID = self;
+        CURRENT_THREAD_INDEX = index;
 	log_tmp(LOG_DEBUG, "Set thread id for %s: %p\n", get_thread_name(index), self);
     }
 }
@@ -125,27 +127,26 @@ const char *get_current_thread_name()
 
 bool on_thread(enum jdaw_thread thread_index)
 {
-    pthread_t id = pthread_self();
-    if (thread_index == JDAW_THREAD_MAIN && id == MAIN_THREAD_ID)
-	return true;
-    else if (thread_index == JDAW_THREAD_DSP && id == DSP_THREAD_ID)
-	return true;
-    else
-	return false;
+    return CURRENT_THREAD_INDEX == thread_index;
 }
 
 enum jdaw_thread current_thread()
 {
-    pthread_t id = pthread_self();
-    if (id == MAIN_THREAD_ID) {
-	return JDAW_THREAD_MAIN;
-    } else if (id == DSP_THREAD_ID) {
-	return JDAW_THREAD_DSP;
-    } else if (id == PLAYBACK_THREAD_ID) {
-	return JDAW_THREAD_PLAYBACK;
-    } else if (id == INSTRUMENT_THREAD_ID) {
-        return JDAW_THREAD_INSTRUMENT;
-    } else {
-	return NUM_JDAW_THREADS;
+    if (CURRENT_THREAD_INDEX < 0) {
+        log_tmp(LOG_WARN, "Current thread index not set (id %ld)\n", CURRENT_THREAD_ID);
+        if (CURRENT_THREAD_ID == MAIN_THREAD_ID) {
+            CURRENT_THREAD_INDEX = JDAW_THREAD_MAIN;
+        } else if (CURRENT_THREAD_ID == DSP_THREAD_ID) {
+            CURRENT_THREAD_INDEX = JDAW_THREAD_DSP;
+        } else if (CURRENT_THREAD_ID == PLAYBACK_THREAD_ID) {
+            CURRENT_THREAD_INDEX = JDAW_THREAD_PLAYBACK;
+        } else if (CURRENT_THREAD_ID == INSTRUMENT_THREAD_ID) {
+            CURRENT_THREAD_INDEX = JDAW_THREAD_INSTRUMENT;
+        } else {
+            log_tmp(LOG_ERROR, "Current thread index not found (id %ld)\n", CURRENT_THREAD_ID);
+            CURRENT_THREAD_INDEX = -1;
+        }
     }
+    return CURRENT_THREAD_INDEX;
+    /* pthread_t id = CURRENT_THREAD_ID; */
 }

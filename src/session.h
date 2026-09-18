@@ -192,6 +192,9 @@ struct playback {
     bool lock_view_to_playhead;
     float output_vol;
     Endpoint output_vol_ep;
+
+    float instrument_monitor_latency_raw;
+    Endpoint instrument_monitor_latency_ep;
 };
 
 /* struct audio_settings { */

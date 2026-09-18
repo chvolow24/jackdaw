@@ -28,6 +28,7 @@
 #include "endpoint_callbacks.h"
 #include "error.h"
 #include "input.h"
+#include "instrument_monitor.h"
 #include "io.h"
 #include "layout.h"
 #include "layout_xml.h"
@@ -1966,7 +1967,7 @@ bool timeline_check_set_midi_monitoring()
 	    api_node_set_owner(&track->synth->api_node, JDAW_THREAD_INSTRUMENT);
 	    pthread_mutex_unlock(&synth->audio_proc_lock);
             fprintf(stderr, "Hit first start\n");
-            transport_start_instrument_monitor();
+            instrument_monitor_start();
 	}
 	if (was_monitoring && old_synth && old_synth != synth) {
             fprintf(stderr, "Hit second\n");
@@ -1974,8 +1975,8 @@ bool timeline_check_set_midi_monitoring()
 	    synth_close_all_notes(old_synth);
 	    api_node_set_owner(&old_synth->api_node, JDAW_THREAD_DSP);
 	    pthread_mutex_unlock(&old_synth->audio_proc_lock);
-            transport_stop_instrument_monitor();
-            transport_start_instrument_monitor();
+            instrument_monitor_stop();
+            instrument_monitor_start();
 	}
 	/* audioconn_start_playback(session->audio_io.playback_conn); */
 	session->midi_io.monitoring = true;
@@ -2003,7 +2004,7 @@ bool timeline_check_set_midi_monitoring()
 	/* fprintf(stderr, "NO Monitor\n"); */
 	if (was_monitoring) {
 	    panel_page_refocus(session->gui.panels, "MIDI monitoring", 1);
-            transport_stop_instrument_monitor();
+            instrument_monitor_stop();
 	}
 
 	return false;

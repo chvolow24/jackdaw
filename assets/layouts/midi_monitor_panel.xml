@@ -1,7 +1,7 @@
 <Layout name="midi_monitor_panel" type="NORMAL">
   <x>REL 0</x>
   <y>REL 0</y>
-  <w>ABS 139</w>
+  <w>ABS 170</w>
   <h>SCALE 1.000000</h>
   <children>
     <Layout name="monitoring_label" type="NORMAL">
@@ -23,25 +23,49 @@
     <Layout name="input" type="NORMAL">
       <x>REL 5</x>
       <y>STACK 10</y>
-      <w>REVREL 10</w>
-      <h>REL 20</h>
+      <w>REVREL 5</w>
+      <h>REL 18</h>
       <children>
       </children>
     </Layout>
     <Layout name="arrow" type="NORMAL">
       <x>REL 5</x>
-      <y>STACK 5</y>
+      <y>STACK 3</y>
       <w>REL 10</w>
-      <h>REL 20</h>
+      <h>REL 18</h>
       <children>
       </children>
     </Layout>
     <Layout name="output" type="NORMAL">
       <x>STACK 5</x>
-      <y>REL 54</y>
-      <w>REVREL 10</w>
-      <h>REL 20</h>
+      <y>REL 50</y>
+      <w>REVREL 5</w>
+      <h>REL 18</h>
       <children>
+      </children>
+    </Layout>
+    <Layout name="latency_row" type="NORMAL">
+      <x>REL 5</x>
+      <y>STACK 3</y>
+      <w>PAD 5</w>
+      <h>REL 18</h>
+      <children>
+        <Layout name="latency_label" type="NORMAL">
+          <x>REL 0</x>
+          <y>REL 0</y>
+          <w>REL 60</w>
+          <h>SCALE 1.000000</h>
+          <children>
+          </children>
+        </Layout>
+        <Layout name="latency_slider" type="NORMAL">
+          <x>STACK 0</x>
+          <y>REL 0</y>
+          <w>REVREL 0</w>
+          <h>SCALE 1.000000</h>
+          <children>
+          </children>
+        </Layout>
       </children>
     </Layout>
   </children>

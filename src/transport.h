@@ -37,7 +37,4 @@ void transport_recording_update_cliprects();
 void create_clip_buffers(Clip *clip, uint32_t len_sframes);
 void copy_pd_buf_to_clip(Clip *clip);
 
-void transport_start_instrument_monitor();
-void transport_stop_instrument_monitor();
-
 #endif

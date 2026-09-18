@@ -42,6 +42,11 @@ static void session_init_hamburger(Session *session);
 static void session_init_status_bar(Session *session);
 static void session_init_source_mode(Session *session);
 
+/* static void instrument_latency_callback(Endpoint *ep) */
+/* { */
+/*     ep-> */
+/* } */
+
 Session *session_create()
 {
     session = calloc(1, sizeof(Session));
@@ -144,6 +149,17 @@ Session *session_create()
     endpoint_set_label_fn(&session->playback.output_vol_ep, label_amp_to_dbstr);
     api_endpoint_register(&session->playback.output_vol_ep, &session->server.api_root);
     session_init_status_bar(session);
+
+    endpoint_init(
+        &session->playback.instrument_monitor_latency_ep,
+        &session->playback.instrument_monitor_latency_raw,
+        JDAW_FLOAT,
+        "instrument_monitor_latency",
+        "Instrument monitor latency",
+        JDAW_THREAD_INSTRUMENT,
+        page_el_gui_cb, NULL, NULL,
+        NULL, NULL, NULL, NULL);
+    endpoint_set_allowed_range(&session->playback.instrument_monitor_latency_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 1.0f});
 
 	
     

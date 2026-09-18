@@ -1173,14 +1173,16 @@ static void session_init_midi_monitor_panel(Page *page, Session *session)
 {
     PageElParams p = {0};
     layout_force_reset(page->layout);
-    p.textbox_p.font = main_win->mono_font;
-    p.textbox_p.text_size = 14;
+    p.textbox_p.font = main_win->std_font;
+    p.textbox_p.text_size = 12;
     p.textbox_p.set_str = "Active:";
     p.textbox_p.win = main_win;
     PageEl *el = page_add_el(page, EL_TEXTBOX, p, "", "monitoring_label");
     /* textbox_set_align(el->component, CENTER); */
     p.textbox_p.set_str = "→";
     el = page_add_el(page, EL_TEXTBOX, p, "", "arrow");
+    p.textbox_p.set_str = "Latency:";
+    page_add_el(page, EL_TEXTBOX, p, "", "latency_label");
 
     p.slight_p.value = &session->midi_io.monitoring;
     p.slight_p.val_size = sizeof(bool);
@@ -1201,6 +1203,11 @@ static void session_init_midi_monitor_panel(Page *page, Session *session)
     el = page_add_el(page, EL_TEXTBOX, p, "midi_monitor_out_name", "output");
     textbox_set_border(el->component, &colors.grey, 1, 5);
     textbox_style(el->component, CENTER, true, NULL, &colors.light_grey);
+
+    page_el_params_slider_from_ep(&p, &session->playback.instrument_monitor_latency_ep);
+    p.slider_p.style = SLIDER_TICK;
+    p.slider_p.orientation = SLIDER_HORIZONTAL;
+    page_add_el(page, EL_SLIDER, p, NULL, "latency_slider");
 }
 
 void session_init_panels(Session *session)

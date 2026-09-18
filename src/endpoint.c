@@ -97,6 +97,26 @@ void endpoint_set_label_fn(Endpoint *ep, LabelStrFn fn)
     ep->label_fn = fn;
 }
 
+void endpoint_register_callback(
+    Endpoint *ep,
+    enum jdaw_thread thread,
+    EndptCb cb)
+{
+    MAIN_THREAD_ONLY(endpoint_register_callback);
+    int num = atomic_load_explicit(&ep->num_registered_callbacks[thread], memory_order_relaxed);
+    if (num >= MAX_ENDPOINT_CALLBACKS) {
+        log_tmp(LOG_ERROR, "Max endpoint callbacks registered for %s\n", ep->local_id);
+        return;
+    }
+    atomic_store_explicit(&ep->registered_callbacks[thread][num], cb, memory_order_relaxed);
+    atomic_compare_exchange_strong_explicit(
+        &ep->num_registered_callbacks[thread],
+        &num,
+        num + 1,
+        memory_order_relaxed, memory_order_relaxed);
+}
+
+
 /* int enpoint_add_callback(Endpoint *ep, EndptCb fn, enum jdaw_thread thread) */
 /* { */
 /*     if (ep->num_callbacks == MAX_ENDPOINT_CALLBACKS) { */
@@ -153,6 +173,7 @@ int endpoint_write(
     bool undoable)
 {
     enum jdaw_thread owner = endpoint_get_owner(ep);
+    enum jdaw_thread exec_thread = current_thread();
     /* fprintf(stderr, "OK Write endpoint %s, on thread %s, owner %s\n", ep->local_id, get_current_thread_name(), get_thread_name(owner)); */
     ep->overwrite_val = endpoint_safe_read(ep, NULL);
     Session *session = session_get();
@@ -214,6 +235,19 @@ int endpoint_write(
 	async_change_will_occur = true;
 	ret += EP_WRITE_OTHER_THREAD;
 	/* } */
+    }
+
+    /* Callbacks v2 */
+    for (enum jdaw_thread t=0; t<NUM_JDAW_THREADS; t++) {
+        int num = atomic_load_explicit(&ep->num_registered_callbacks[owner], memory_order_relaxed);
+        for (int i=0; i<num; i++) {
+            EndptCb cb = atomic_load_explicit(&ep->registered_callbacks[owner][i], memory_order_relaxed);
+            if (t == owner && on_thread(owner)) {
+                cb(ep);
+            } else {
+                
+            }
+        }
     }
 
     /* Callbacks */

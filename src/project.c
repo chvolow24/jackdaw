@@ -1966,11 +1966,9 @@ bool timeline_check_set_midi_monitoring()
 	    synth_close_all_notes(synth);
 	    api_node_set_owner(&track->synth->api_node, JDAW_THREAD_INSTRUMENT);
 	    pthread_mutex_unlock(&synth->audio_proc_lock);
-            fprintf(stderr, "Hit first start\n");
             instrument_monitor_start();
 	}
 	if (was_monitoring && old_synth && old_synth != synth) {
-            fprintf(stderr, "Hit second\n");
 	    pthread_mutex_lock(&old_synth->audio_proc_lock);
 	    synth_close_all_notes(old_synth);
 	    api_node_set_owner(&old_synth->api_node, JDAW_THREAD_DSP);

@@ -250,7 +250,7 @@ void session_enqueue_callback(enum jdaw_thread for_thread, struct queued_cb cb)
     }
 }
 
-void session_dequeue_callback_v2(enum jdaw_thread thread)
+void session_run_thread_callbacks(enum jdaw_thread thread)
 {
     
     Session *session = session_get();

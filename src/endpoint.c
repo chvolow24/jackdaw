@@ -172,7 +172,6 @@ int endpoint_write(
     bool run_dsp_cb,
     bool undoable)
 {
-    fprintf(stderr, "EP WRITE from %s\n", get_current_thread_name());
     enum jdaw_thread owner = endpoint_get_owner(ep);
     /* fprintf(stderr, "OK Write endpoint %s, on thread %s, owner %s\n", ep->local_id, get_current_thread_name(), get_thread_name(owner)); */
     ep->overwrite_val = endpoint_safe_read(ep, NULL);
@@ -241,11 +240,13 @@ int endpoint_write(
     for (enum jdaw_thread t=0; t<NUM_JDAW_THREADS; t++) {
         int num = atomic_load_explicit(&ep->num_registered_callbacks[owner], memory_order_relaxed);
         for (int i=0; i<num; i++) {
+            fprintf(stderr, "There's %d callbacks on thread %s\n", num, get_current_thread_name());
             EndptCb cb = atomic_load_explicit(&ep->registered_callbacks[owner][i], memory_order_relaxed);
             if (t == owner && on_thread(owner)) {
                 cb(ep);
             } else {
-                
+                struct queued_cb cbs = (struct queued_cb){cb, ep};
+                session_enqueue_callback(t, cbs);
             }
         }
     }

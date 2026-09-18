@@ -47,6 +47,11 @@ static void session_init_source_mode(Session *session);
 /*     ep-> */
 /* } */
 
+static void TEST_CALLBACK(Endpoint *ep)
+{
+    fprintf(stderr, "OK we're on thread %s, ep %s\n", get_current_thread_name(), ep->local_id);
+}
+
 Session *session_create()
 {
     session = calloc(1, sizeof(Session));
@@ -173,6 +178,11 @@ Session *session_create()
         page_el_gui_cb, NULL, NULL,
         NULL, NULL, NULL, NULL);
     endpoint_set_allowed_range(&session->playback.instrument_monitor_latency_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 1.0f});
+    endpoint_register_callback(
+        &session->playback.instrument_monitor_latency_ep,
+        JDAW_THREAD_INSTRUMENT,
+        TEST_CALLBACK);
+        
 
 	
     

@@ -189,4 +189,10 @@ void endpoint_bind_automation(Endpoint *ep, Automation *a);
 void endpoint_set_label_fn(Endpoint *ep, LabelStrFn fn);
 void api_node_set_owner(APINode *node, enum jdaw_thread thread);
 
+/* Callbacks v2 */
+void endpoint_register_callback(
+    Endpoint *ep,
+    enum jdaw_thread thread,
+    EndptCb cb);
+
 #endif

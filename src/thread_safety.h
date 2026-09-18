@@ -29,10 +29,14 @@
 enum jdaw_thread {
     JDAW_THREAD_MAIN,
     JDAW_THREAD_DSP,
+    JDAW_THREAD_API_SERVER,
+    /* Above threads can call endpoint_write; below cannot */
     JDAW_THREAD_PLAYBACK,
     JDAW_THREAD_INSTRUMENT,
     NUM_JDAW_THREADS
 };
+
+#define NUM_EP_WRITER_THREADS (JDAW_THREAD_PLAYBACK)
 
 /* extern pthread_t MAIN_THREAD_ID; */
 /* extern pthread_t DSP_THREAD_ID; */

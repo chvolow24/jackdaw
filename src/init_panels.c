@@ -1207,7 +1207,7 @@ static void session_init_midi_monitor_panel(Page *page, Session *session)
     page_el_params_slider_from_ep(&p, &session->playback.instrument_monitor_latency_ep);
     p.slider_p.style = SLIDER_TICK;
     p.slider_p.orientation = SLIDER_HORIZONTAL;
-    page_add_el(page, EL_SLIDER, p, NULL, "latency_slider");
+    page_add_el(page, EL_SLIDER, p, "latency_slider", "latency_slider");
 }
 
 void session_init_panels(Session *session)

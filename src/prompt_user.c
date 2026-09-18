@@ -26,7 +26,6 @@ void handle_window_events(SDL_Event e, Window *win);
 int prompt_user(const char *header, const char *description, int num_options, const char **option_titles, int cancel_index)
 {
 
-    Session *session = session_get();
     Layout *layout = layout_add_child(main_win->layout);
     layout_set_default_dims(layout);
     Modal *modal = modal_create(layout);

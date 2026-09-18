@@ -164,6 +164,10 @@ struct queued_ops {
     QueuedBuf queued_audio_bufs[MAX_QUEUED_BUFS];
     int num_queued_audio_bufs;
     pthread_mutex_t queued_audio_buf_lock;
+
+    /* Endpoint queues v2 */
+    /* First index is destination (reader); second index is writer */
+    LFQueue queued_callbacks_v2[NUM_JDAW_THREADS][NUM_EP_WRITER_THREADS];
 };
 
 struct source_mode {    

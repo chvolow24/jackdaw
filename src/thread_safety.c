@@ -13,35 +13,30 @@
 #include "log.h"
 #include "thread_safety.h"
 
-static pthread_t MAIN_THREAD_ID = 0;
-static pthread_t DSP_THREAD_ID = 0;
-static pthread_t PLAYBACK_THREAD_ID = 0;
-static pthread_t INSTRUMENT_THREAD_ID = 0;
+
+static pthread_t THREAD_IDS[NUM_JDAW_THREADS];
+/* static pthread_t MAIN_THREAD_ID = 0; */
+/* static pthread_t DSP_THREAD_ID = 0; */
+/* static pthread_t PLAYBACK_THREAD_ID = 0; */
+/* static pthread_t INSTRUMENT_THREAD_ID = 0; */
 
 static JDAW_THREAD_LOCAL pthread_t CURRENT_THREAD_ID = 0;
 static JDAW_THREAD_LOCAL enum jdaw_thread CURRENT_THREAD_INDEX = -1;
+
+static const char *thread_names[NUM_JDAW_THREADS] = {
+    "main",
+    "dsp",
+    "server",
+    "playback",
+    "instrument",
+};
 
 void set_thread_id(enum jdaw_thread index)
 {
     pthread_t self = pthread_self();
     if (CURRENT_THREAD_ID != self) {
-	switch(index) {
-	case JDAW_THREAD_MAIN:
-	    MAIN_THREAD_ID = self;
-	    break;
-	case JDAW_THREAD_DSP:
-	    DSP_THREAD_ID = self;
-	    break;
-	case JDAW_THREAD_PLAYBACK:
-	    PLAYBACK_THREAD_ID = self;
-            break;
-        case JDAW_THREAD_INSTRUMENT:
-            INSTRUMENT_THREAD_ID = self;
-            break;
-	default:
-	    break;
-	}
 	CURRENT_THREAD_ID = self;
+        THREAD_IDS[index] = self;
         CURRENT_THREAD_INDEX = index;
 	log_tmp(LOG_DEBUG, "Set thread id for %s: %p\n", get_thread_name(index), self);
     }
@@ -49,81 +44,20 @@ void set_thread_id(enum jdaw_thread index)
 
 pthread_t *get_thread_addr(enum jdaw_thread index)
 {
-    switch(index) {
-    case JDAW_THREAD_MAIN:
-	return &MAIN_THREAD_ID;
-    case JDAW_THREAD_DSP:
-	return &DSP_THREAD_ID;
-    case JDAW_THREAD_PLAYBACK:
-	return &PLAYBACK_THREAD_ID;
-    case JDAW_THREAD_INSTRUMENT:
-	return &INSTRUMENT_THREAD_ID;
-
-    default:
-	return NULL;
-    }
+    return &THREAD_IDS[index];
 }
 
 const char *get_thread_name(enum jdaw_thread thread)
 {
-    switch (thread) {
-    case JDAW_THREAD_MAIN:
-	return "main";
-    case JDAW_THREAD_DSP:
-	return "dsp";	
-    case JDAW_THREAD_PLAYBACK:
-	return "playback";
-    case JDAW_THREAD_INSTRUMENT:
-        return "instrument";
-    default:
-	return "other";
-    }
+    if (thread < NUM_JDAW_THREADS)
+        return thread_names[thread];
+    else return "other";
 }
 
 const char *get_current_thread_name()
 {
-    if (CURRENT_THREAD_ID == PLAYBACK_THREAD_ID) {
-	return "playback";
-    }
-    if (CURRENT_THREAD_ID == DSP_THREAD_ID) {
-	return "dsp";
-    }
-    if (CURRENT_THREAD_ID == MAIN_THREAD_ID) {
-	return "main";
-    }
-    if (CURRENT_THREAD_ID == INSTRUMENT_THREAD_ID) {
-        return "instrument";
-    }
-
-    return "other";
-    /* Session *session = session_get(); */
-    /* pthread_t id = pthread_self(); */
-    /* if (id == session->main_thread) { */
-    /* 	return "main"; */
-    /* } else if (id == session->dsp_thread) { */
-    /* 	return "dsp"; */
-    /* } else if (id == session->playback_thread) { */
-    /* 	return "playback"; */
-    /* } else { */
-    /* 	return "other"; */
-    /* } */
+    return get_thread_name(CURRENT_THREAD_INDEX);
 }
-
-/* bool current_thread_main() */
-/* { */
-/*     if (pthread_self() == MAIN_THREAD_ID) { */
-/* 	return true; */
-/*     } */
-/*     return false; */
-/* } */
-
-/* bool current_thread_dsp() */
-/* { */
-/*     if (pthread_self() == DSP_THREAD_ID) { */
-/* 	return true; */
-/*     } */
-/*     return false; */
-/* } */
 
 bool on_thread(enum jdaw_thread thread_index)
 {
@@ -134,15 +68,15 @@ enum jdaw_thread current_thread()
 {
     if (CURRENT_THREAD_INDEX < 0) {
         log_tmp(LOG_WARN, "Current thread index not set (id %ld)\n", CURRENT_THREAD_ID);
-        if (CURRENT_THREAD_ID == MAIN_THREAD_ID) {
-            CURRENT_THREAD_INDEX = JDAW_THREAD_MAIN;
-        } else if (CURRENT_THREAD_ID == DSP_THREAD_ID) {
-            CURRENT_THREAD_INDEX = JDAW_THREAD_DSP;
-        } else if (CURRENT_THREAD_ID == PLAYBACK_THREAD_ID) {
-            CURRENT_THREAD_INDEX = JDAW_THREAD_PLAYBACK;
-        } else if (CURRENT_THREAD_ID == INSTRUMENT_THREAD_ID) {
-            CURRENT_THREAD_INDEX = JDAW_THREAD_INSTRUMENT;
-        } else {
+        bool set = false;
+        for (enum jdaw_thread t=0; t<NUM_JDAW_THREADS; t++) {
+            if (CURRENT_THREAD_ID == THREAD_IDS[t]) {
+                CURRENT_THREAD_INDEX = t;
+                set = true;
+                break;
+            }
+        }
+        if (!set) {
             log_tmp(LOG_ERROR, "Current thread index not found (id %ld)\n", CURRENT_THREAD_ID);
             CURRENT_THREAD_INDEX = -1;
         }

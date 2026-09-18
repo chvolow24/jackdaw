@@ -234,7 +234,23 @@ int session_flush_ongoing_changes(Session *session, enum jdaw_thread thread)
 }
 
 
-void session_queue_callback_v2(EndptCb cb, Endpoint *ep, enum jdaw_thread thread)
-{
+/* v TEMPORARY v */
+#define MAX_CALLBACKS_PER_QUEUE 128
+/* ^ TEMPORARY ^ */
 
+void session_queue_callback_v2(enum jdaw_thread thread)
+{
+    
+    Session *session = session_get();
+    LFQueue *arr = session->queued_ops.queued_callbacks_v2[thread];
+    EndptCb cbs[MAX_CALLBACKS_PER_QUEUE * NUM_EP_WRITER_THREADS] = {0};
+    int num_cbs = 0;
+    for (enum jdaw_thread t=0; t<NUM_EP_WRITER_THREADS; t++) {
+        LFQueue *queue = arr + t;
+        while (lfqueue_try_dequeue(queue, cbs + num_cbs, 1) == LFQUEUE_SUCCESS) {
+            num_cbs++;
+        }
+    }
+    /* Work backwards to dedupe */
+    
 }

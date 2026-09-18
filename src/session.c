@@ -120,6 +120,7 @@ Session *session_create()
 	exit(1);
     }
 
+    /* for (int i=0;  */
     /* lfqueue_init(&session->playback.monitoring_instrument_L, session->proj. */
     
     endpoint_init(

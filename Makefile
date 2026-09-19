@@ -360,7 +360,8 @@ endif
 
 # Main target
 $(EXEC): $(OBJS) $(GUI_OBJS) | deps-ready
-	$(CC) -o $@  $(filter-out deps-ready %_target,$^) $(CFLAGS) $(CFLAGS_JDAW_ONLY) $(DEP_BUILD_TARGETS) $(PKG_LINK_FLAGS) $(LDFLAGS)
+	@echo "Linking..."
+	@$(CC) -o $@  $(filter-out deps-ready %_target,$^) $(CFLAGS) $(CFLAGS_JDAW_ONLY) $(DEP_BUILD_TARGETS) $(PKG_LINK_FLAGS) $(LDFLAGS)
 	@echo $(BUILD_SUMMARY)
 
 .PHONY: debug
@@ -376,10 +377,12 @@ $(GUI_BUILD_DIR):
 	mkdir -p $(GUI_BUILD_DIR)
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR) deps-ready
-	$(CC) $(CFLAGS) $(PKG_CFLAGS) $(DEPFLAGS) -c $< -o $@
+	@echo "\t$<..."
+	@$(CC) $(CFLAGS) $(PKG_CFLAGS) $(DEPFLAGS) -c $< -o $@
 
 $(GUI_BUILD_DIR)/%.o: $(GUI_SRC_DIR)/%.c | $(GUI_BUILD_DIR) deps-ready
-	$(CC) $(CFLAGS) $(PKG_CFLAGS) $(DEPFLAGS) -c $< -o $@
+	@echo "\t$<..."
+	@$(CC) $(CFLAGS) $(PKG_CFLAGS) $(DEPFLAGS) -c $< -o $@
 
 -include ${DEPS}
 -include ${GUI_DEPS}

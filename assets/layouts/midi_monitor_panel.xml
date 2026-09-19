@@ -46,7 +46,7 @@
     </Layout>
     <Layout name="latency_row" type="NORMAL">
       <x>REL 5</x>
-      <y>STACK 3</y>
+      <y>STACK 5</y>
       <w>PAD 5</w>
       <h>REL 18</h>
       <children>

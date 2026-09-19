@@ -137,15 +137,3 @@ void instrument_monitor_stop()
     thread_set_inactive(JDAW_THREAD_INSTRUMENT);
     /* audioconn_stop_playback(session_get()->audio_io.playback_conn); */
 }
-
-void instrument_monitor_set_latency()
-{
-    instrument_monitor_stop();
-    transport_stop_playback();
-    audioconn_stop_playback(session_get()->audio_io.playback_conn);
-
-    /* Critical region */
-
-
-  
-}

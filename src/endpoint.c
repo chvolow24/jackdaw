@@ -244,8 +244,16 @@ int endpoint_write(
             if (t == owner && on_thread(owner)) {
                 cb(ep);
             } else {
-                struct queued_cb cbs = (struct queued_cb){cb, ep};
-                session_enqueue_callback(t, cbs);
+                /* Callbacks fall back to main IFF:
+                   - current write is on main
+                   - destination thread is not active
+                */
+                if (on_thread(JDAW_THREAD_MAIN) && !thread_is_active(t)) {
+                    cb(ep);
+                } else {
+                    struct queued_cb cbs = (struct queued_cb){cb, ep};
+                    session_enqueue_callback(t, cbs);
+                }
             }
         }
     }

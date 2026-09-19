@@ -42,14 +42,44 @@ static void session_init_hamburger(Session *session);
 static void session_init_status_bar(Session *session);
 static void session_init_source_mode(Session *session);
 
-/* static void instrument_latency_callback(Endpoint *ep) */
-/* { */
-/*     ep-> */
-/* } */
+void latency_from_raw(float raw,int *x_lfqueue_len, float *x_ms) {
+    int chunk_len = session->proj_initialized ?
+        session->proj.chunk_size_sframes :
+        DEFAULT_AUDIO_CHUNK_LEN_SFRAMES;
+    int sample_rate = session_get_sample_rate();
+    
+    float ms_approx = INSTRUMENT_MIN_LATENCY_MS +
+        (INSTRUMENT_MAX_LATENCY_MS - INSTRUMENT_MIN_LATENCY_MS)
+        * powf(raw, INSTRUMENT_LATENCY_CURVATURE);
+    float chunk_ms = 1000.0f * ((float)chunk_len / sample_rate);
+    float chunks_approx = ms_approx / chunk_ms;
+    float chunks_actual = round(chunks_approx);
+    float ms_actual = chunks_actual * chunk_ms;
+    /* fprintf(stderr, "\nMS approx: %f\nChunk ms: %f\nchunks_approx: %f\nchunks_actual: %f\nms_actual %f\n", */
+    /*         ms_approx, chunk_ms, chunks_approx, chunks_actual, ms_actual); */
+    if (x_ms)
+        *x_ms = ms_actual;
+    if (x_lfqueue_len)
+        *x_lfqueue_len = 2 * chunks_actual * chunk_len;
+}
 
-static void TEST_CALLBACK(Endpoint *ep)
+static void instrument_monitor_latency_labelfn(char *dst, size_t dstsize, Value val, ValType t)
 {
-    fprintf(stderr, "OK we're on thread %s, ep %s\n", get_current_thread_name(), ep->local_id);
+    float f = val.float_v;
+    float ms;
+    latency_from_raw(f, NULL, &ms);
+    label_msec(dst, dstsize, (Value){.float_v = ms}, JDAW_FLOAT);
+}
+    
+
+static void instrument_monitor_latency_cb(Endpoint *ep)
+{
+    float raw = ep->current_write_val.float_v;
+    int lfqueue_len;
+    float ms;
+    latency_from_raw(raw, &lfqueue_len, &ms);
+    Session *session = session_get();
+    lfqueue_set_len(&ACTIVE_TL->monitoring_instrument, lfqueue_len);
 }
 
 Session *session_create()
@@ -175,17 +205,19 @@ Session *session_create()
         "instrument_monitor_latency",
         "Instrument monitor latency",
         JDAW_THREAD_INSTRUMENT,
-        page_el_gui_cb, NULL, NULL,
+        component_gui_cb, NULL, NULL,
         NULL, NULL, NULL, NULL);
-    endpoint_set_allowed_range(&session->playback.instrument_monitor_latency_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 1.0f});
+    endpoint_set_allowed_range(
+        &session->playback.instrument_monitor_latency_ep,
+        (Value){.float_v = 0.0f},
+        (Value){.float_v = 1.0f});
     endpoint_register_callback(
         &session->playback.instrument_monitor_latency_ep,
         JDAW_THREAD_INSTRUMENT,
-        TEST_CALLBACK);
-        
-
-	
-    
+        instrument_monitor_latency_cb);
+    endpoint_set_label_fn(
+        &session->playback.instrument_monitor_latency_ep,
+        instrument_monitor_latency_labelfn);
     return session;
 }
 

@@ -249,7 +249,6 @@ void session_enqueue_callback(enum jdaw_thread for_thread, struct queued_cb cb)
     if (ret != LFQUEUE_SUCCESS) {
         log_tmp(LOG_ERROR, "Error enqueueing ep callback on \"%s\": %s\n", cb.ep->local_id, lfqueue_get_errstr(ret));
     }
-    fprintf(stderr, "Enqueue: %s\n", lfqueue_get_errstr(ret));
 }
 
 void session_run_thread_callbacks(enum jdaw_thread thread)
@@ -262,7 +261,6 @@ void session_run_thread_callbacks(enum jdaw_thread thread)
     for (enum jdaw_thread t=0; t<NUM_EP_WRITER_THREADS; t++) {
         LFQueue *queue = arr + t;
         while (lfqueue_try_dequeue(queue, cbs + num_cbs, 1) == LFQUEUE_SUCCESS) {
-            fprintf(stderr, "Dequeue: success\n");
             num_cbs++;
         }
     }

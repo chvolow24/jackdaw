@@ -114,6 +114,7 @@ SDL_Color track_colors[NUM_TRACK_COLORS] = {
     /* {109, 189, 13, 255}, /\* leaf *\/ */
     {103, 176, 14, 255}
 };
+void latency_from_raw(float raw,int *x_lfqueue_len, float *x_ms);
 
 uint8_t project_add_timeline(Project *proj, char *name)
 {
@@ -254,7 +255,9 @@ uint8_t project_add_timeline(Project *proj, char *name)
     new_tl->buf_L = calloc(1, sizeof(float) * proj->fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS);
     new_tl->buf_R = calloc(1, sizeof(float) * proj->fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS);
 
-    lfqueue_init(&new_tl->monitoring_instrument, sizeof(float), INSTRUMENT_LATENCY_CKS * proj->chunk_size_sframes * 2);
+    int lfqueue_len;
+    latency_from_raw(1.0, &lfqueue_len, NULL);
+    lfqueue_init(&new_tl->monitoring_instrument, sizeof(float), lfqueue_len);
     
     new_tl->buf_write_pos = 0;
     new_tl->buf_read_pos = 0;

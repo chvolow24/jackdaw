@@ -15,13 +15,12 @@
 
 
 static pthread_t THREAD_IDS[NUM_JDAW_THREADS];
-/* static pthread_t MAIN_THREAD_ID = 0; */
-/* static pthread_t DSP_THREAD_ID = 0; */
-/* static pthread_t PLAYBACK_THREAD_ID = 0; */
-/* static pthread_t INSTRUMENT_THREAD_ID = 0; */
 
 static JDAW_THREAD_LOCAL pthread_t CURRENT_THREAD_ID = 0;
 static JDAW_THREAD_LOCAL enum jdaw_thread CURRENT_THREAD_INDEX = -1;
+
+/* Access on main thread only */
+static int thread_active[NUM_JDAW_THREADS];
 
 static const char *thread_names[NUM_JDAW_THREADS] = {
     "main",
@@ -84,3 +83,24 @@ enum jdaw_thread current_thread()
     return CURRENT_THREAD_INDEX;
     /* pthread_t id = CURRENT_THREAD_ID; */
 }
+
+
+void thread_set_active(enum jdaw_thread thread)
+{
+    MAIN_THREAD_ONLY(jdaw_thread_set_active);
+    thread_active[thread] = true;
+}
+
+void thread_set_inactive(enum jdaw_thread thread)
+{
+    MAIN_THREAD_ONLY(jdaw_thread_set_active);
+    thread_active[thread] = false;
+}
+
+bool thread_is_active(enum jdaw_thread thread)
+{
+    MAIN_THREAD_ONLY(jdaw_thread_set_active);
+    return thread_active[thread];
+}
+
+

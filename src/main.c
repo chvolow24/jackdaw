@@ -112,6 +112,7 @@ static void input_init()
 static void init()
 {
     set_thread_id(JDAW_THREAD_MAIN);
+    thread_set_active(JDAW_THREAD_MAIN);
     log_init();
     init_SDL();
     get_native_byte_order();
@@ -147,6 +148,7 @@ static void quit()
     midi_io_deinit();
     SDL_Quit();
     log_quit();
+    thread_set_inactive(JDAW_THREAD_MAIN);
 }
 
 void loop_project_main();

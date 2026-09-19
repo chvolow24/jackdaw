@@ -238,9 +238,8 @@ int endpoint_write(
 
     /* Callbacks v2 */
     for (enum jdaw_thread t=0; t<NUM_JDAW_THREADS; t++) {
-        int num = atomic_load_explicit(&ep->num_registered_callbacks[owner], memory_order_relaxed);
+        int num = atomic_load_explicit(&ep->num_registered_callbacks[t], memory_order_relaxed);
         for (int i=0; i<num; i++) {
-            fprintf(stderr, "There's %d callbacks on thread %s\n", num, get_current_thread_name());
             EndptCb cb = atomic_load_explicit(&ep->registered_callbacks[owner][i], memory_order_relaxed);
             if (t == owner && on_thread(owner)) {
                 cb(ep);

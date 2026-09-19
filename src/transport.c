@@ -396,7 +396,7 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     /* } */
 }
 
-static volatile bool cancel_dsp_thread = false;
+static _Atomic bool cancel_dsp_thread = false;
 
 static void *transport_dsp_thread_fn(void *arg)
 {
@@ -419,8 +419,7 @@ static void *transport_dsp_thread_fn(void *arg)
 	tl->dsp_chunks_info_write_i = 0;
     }
     
-    cancel_dsp_thread = false;
-    while (!cancel_dsp_thread) {
+    while (!atomic_load_explicit(&cancel_dsp_thread, memory_order_relaxed)) {
 	/* transport_log("Loop iter\n"); */
 	/* Performance timer */
 	struct timespec tspec_start;
@@ -627,6 +626,8 @@ void transport_start_playback()
 	    fprintf(stderr, "pthread_attr_setstacksize: %s\n", strerror(ret));
 	}
     }
+    thread_set_active(JDAW_THREAD_DSP);
+    atomic_store_explicit(&cancel_dsp_thread, false, memory_order_relaxed);
     if ((ret = pthread_create(get_thread_addr(JDAW_THREAD_DSP), &attr, transport_dsp_thread_fn, (void *)tl)) != 0) {
 	fprintf(stderr, "pthread_create: %s\n", strerror(ret));
     }
@@ -690,7 +691,7 @@ void transport_stop_playback()
     /* 	} */
     /* } */
 
-    cancel_dsp_thread = true;
+    atomic_store_explicit(&cancel_dsp_thread, true, memory_order_relaxed);
     /* pthread_cancel(*get_thread_addr(JDAW_THREAD_DSP)); */
     
     /* Unblock DSP thread */
@@ -701,6 +702,8 @@ void transport_stop_playback()
 
     /* Wait for DSP thread to exit */
     sem_wait(tl->unpause_sem);
+    pthread_join(*get_thread_addr(JDAW_THREAD_DSP), NULL);
+    thread_set_inactive(JDAW_THREAD_DSP);
 
     /* Exhaust all sems */
     while (sem_trywait(tl->unpause_sem) == 0) {};

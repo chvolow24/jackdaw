@@ -114,4 +114,9 @@ enum jdaw_thread current_thread();
 const char *get_current_thread_name();
 const char *get_thread_name(enum jdaw_thread thread);
 bool on_thread(enum jdaw_thread thread_index);
+
+void thread_set_active(enum jdaw_thread thread);
+void thread_set_inactive(enum jdaw_thread thread);
+bool thread_is_active(enum jdaw_thread thread);
+
 #endif

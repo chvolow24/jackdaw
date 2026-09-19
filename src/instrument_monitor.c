@@ -82,7 +82,6 @@ static void *instrument_monitor_threadfn(void *arg)
     return NULL;
 }
 
-static pthread_t monitor_thread;
 void instrument_monitor_start()
 {
     Session *session = session_get();
@@ -117,9 +116,10 @@ void instrument_monitor_start()
     if ((ret = pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED)) != 0) {
         fprintf(stderr, "pthread_attr_setinheritsched: %s\n", strerror(ret));
     }
-    if ((ret = pthread_create(&monitor_thread, &attr, instrument_monitor_threadfn, NULL)) != 0) {
+    thread_set_active(JDAW_THREAD_INSTRUMENT);
+    if ((ret = pthread_create(get_thread_addr(JDAW_THREAD_INSTRUMENT), &attr, instrument_monitor_threadfn, NULL)) != 0) {
         log_tmp(LOG_WARN, "pthread_create failed to create instrument monitor thread with sched pri %d: %s\n", priority, strerror(ret));        
-        if ((ret = pthread_create(&monitor_thread, NULL, instrument_monitor_threadfn, NULL)) != 0) {
+        if ((ret = pthread_create(get_thread_addr(JDAW_THREAD_INSTRUMENT), NULL, instrument_monitor_threadfn, NULL)) != 0) {
             fprintf(stderr, "pthread_create fallback failed to create instrument monitor: %s\n", strerror(ret));
             exit(1);
         }
@@ -133,7 +133,8 @@ void instrument_monitor_stop()
 {
     fprintf(stderr, "Stop monitoring\n");
     atomic_store_explicit(&cancel_monitoring, true, memory_order_relaxed);
-    pthread_join(monitor_thread, NULL);
+    pthread_join(*get_thread_addr(JDAW_THREAD_INSTRUMENT), NULL);
+    thread_set_inactive(JDAW_THREAD_INSTRUMENT);
     /* audioconn_stop_playback(session_get()->audio_io.playback_conn); */
 }
 

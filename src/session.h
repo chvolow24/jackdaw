@@ -202,6 +202,7 @@ struct playback {
     float output_vol;
     Endpoint output_vol_ep;
 
+    LFQueue instrument_monitor_lfqueue;
     float instrument_monitor_latency_raw;
     Endpoint instrument_monitor_latency_ep;
 };

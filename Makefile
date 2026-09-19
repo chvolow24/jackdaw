@@ -377,11 +377,11 @@ $(GUI_BUILD_DIR):
 	mkdir -p $(GUI_BUILD_DIR)
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR) deps-ready
-	@echo "\t$<..."
+	@echo "\t- $<"
 	@$(CC) $(CFLAGS) $(PKG_CFLAGS) $(DEPFLAGS) -c $< -o $@
 
 $(GUI_BUILD_DIR)/%.o: $(GUI_SRC_DIR)/%.c | $(GUI_BUILD_DIR) deps-ready
-	@echo "\t$<..."
+	@echo "\t- $<"
 	@$(CC) $(CFLAGS) $(PKG_CFLAGS) $(DEPFLAGS) -c $< -o $@
 
 -include ${DEPS}

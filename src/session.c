@@ -63,12 +63,18 @@ void latency_from_raw(float raw,int *x_lfqueue_len, float *x_ms) {
         *x_lfqueue_len = 2 * chunks_actual * chunk_len;
 }
 
+static float latency_raw_from_ms(float ms)
+{
+    float curved = (ms - INSTRUMENT_MIN_LATENCY_MS) / (INSTRUMENT_MAX_LATENCY_MS - INSTRUMENT_MIN_LATENCY_MS);
+    return powf(curved, 1.0f / INSTRUMENT_LATENCY_CURVATURE);
+}
+
 static void instrument_monitor_latency_labelfn(char *dst, size_t dstsize, Value val, ValType t)
 {
     float f = val.float_v;
     float ms;
     latency_from_raw(f, NULL, &ms);
-    label_msec(dst, dstsize, (Value){.float_v = ms}, JDAW_FLOAT);
+    label_msec(dst, dstsize, (Value){.float_v = ms}, t);
 }
     
 
@@ -79,7 +85,7 @@ static void instrument_monitor_latency_cb(Endpoint *ep)
     float ms;
     latency_from_raw(raw, &lfqueue_len, &ms);
     Session *session = session_get();
-    lfqueue_set_len(&ACTIVE_TL->monitoring_instrument, lfqueue_len);
+    lfqueue_set_len(&session->playback.instrument_monitor_lfqueue, lfqueue_len);
 }
 
 Session *session_create()
@@ -198,26 +204,34 @@ Session *session_create()
     api_endpoint_register(&session->playback.output_vol_ep, &session->server.api_root);
     session_init_status_bar(session);
 
+    int lfqueue_len;
+    latency_from_raw(1.0, &lfqueue_len, NULL);
+    lfqueue_init(&session->playback.instrument_monitor_lfqueue, sizeof(float), lfqueue_len);
+
     endpoint_init(
         &session->playback.instrument_monitor_latency_ep,
         &session->playback.instrument_monitor_latency_raw,
         JDAW_FLOAT,
         "instrument_monitor_latency",
         "Instrument monitor latency",
-        JDAW_THREAD_INSTRUMENT,
+        JDAW_THREAD_MAIN,
         component_gui_cb, NULL, NULL,
         NULL, NULL, NULL, NULL);
     endpoint_set_allowed_range(
         &session->playback.instrument_monitor_latency_ep,
         (Value){.float_v = 0.0f},
         (Value){.float_v = 1.0f});
+    endpoint_set_default_value(
+        &session->playback.instrument_monitor_latency_ep,
+        (Value){.float_v = latency_raw_from_ms(INSTRUMENT_LATENCY_DEFAULT_MS)});
     endpoint_register_callback(
         &session->playback.instrument_monitor_latency_ep,
-        JDAW_THREAD_INSTRUMENT,
+        JDAW_THREAD_MAIN,
         instrument_monitor_latency_cb);
     endpoint_set_label_fn(
         &session->playback.instrument_monitor_latency_ep,
         instrument_monitor_latency_labelfn);
+    endpoint_write_default(&session->playback.instrument_monitor_latency_ep);
     return session;
 }
 

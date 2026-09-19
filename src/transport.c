@@ -303,7 +303,7 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     float monitor_LR[len_sframes * 2];
     bool has_monitor = false;
     if (session->midi_io.monitoring) {
-        int ret = lfqueue_wait_dequeue(&tl->monitoring_instrument, monitor_LR, len_sframes * 2, 10, 100, NULL);
+        int ret = lfqueue_wait_dequeue(&session->playback.instrument_monitor_lfqueue, monitor_LR, len_sframes * 2, 10, 100, NULL);
         if (ret == LFQUEUE_SUCCESS) has_monitor = true;
     }
     /* Check for queued bufs and add to chunk_L and chunk_R */

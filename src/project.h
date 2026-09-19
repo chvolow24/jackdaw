@@ -324,8 +324,6 @@ typedef struct timeline {
     struct dsp_chunk_info *dsp_chunks_info;
     int dsp_chunks_info_read_i;
     int dsp_chunks_info_write_i;
-    
-    LFQueue monitoring_instrument;
         
     Track *tracks[MAX_TRACKS];
     Track *tracks_proc_order[MAX_TRACKS];

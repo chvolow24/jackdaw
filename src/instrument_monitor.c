@@ -29,9 +29,9 @@ static void *instrument_monitor_threadfn(void *arg)
     memset(LR, 0, sizeof(LR));
     
     while (lfqueue_try_enqueue(
-        &tl->monitoring_instrument,
-        LR,
-        len_sframes * 2) == LFQUEUE_SUCCESS) {};
+               &session->playback.instrument_monitor_lfqueue,
+               LR,
+               len_sframes * 2) == LFQUEUE_SUCCESS) {};
     fprintf(stderr, "ENTERING!\n");
     while (!atomic_load_explicit(&cancel_monitoring, memory_order_relaxed)) {
 
@@ -61,7 +61,7 @@ static void *instrument_monitor_threadfn(void *arg)
             LR[i+1] = R[i / 2];
         }
         lfqueue_wait_enqueue(
-            &tl->monitoring_instrument,
+            &session->playback.instrument_monitor_lfqueue,
             LR,
             len_sframes * 2,
             INSTRUMENT_MONITOR_WAIT_LOOP_USECONDS,

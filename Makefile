@@ -328,7 +328,7 @@ else
 LDFLAGS = -lpthread -lm -ldl -lrt -lasound
 endif
 
-CFLAGS = $(PKG_CFLAGS) -Wall -std=c11 -Wno-unused-command-line-argument -I$(SRC_DIR) -I$(GUI_SRC_DIR) \
+CFLAGS = $(PKG_CFLAGS) -Wall -Wno-unused-command-line-argument -I$(SRC_DIR) -I$(GUI_SRC_DIR) \
 	-DJACKDAW_VERSION=\"$(JACKDAW_VERSION)\" \
 	-DINSTALL_DIR="\"$(PWD)\"" \
 

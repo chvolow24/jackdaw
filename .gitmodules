@@ -15,3 +15,6 @@
 [submodule "spsc_lfqueue"]
 	path = spsc_lfqueue
 	url = git@github.com:chvolow24/spsc_lfqueue.git
+[submodule "shared_value"]
+	path = shared_value
+	url = git@github.com:chvolow24/shared_value

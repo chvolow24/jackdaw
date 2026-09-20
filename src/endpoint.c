@@ -29,7 +29,7 @@ typedef struct project Project;
 
 int endpoint_init(
     Endpoint *ep,
-    void *val,
+    void *thread_local_val,
     ValType t,
     const char *local_id,
     const char *display_name,
@@ -40,7 +40,8 @@ int endpoint_init(
     void *xarg1, void *xarg2,
     void *xarg3, void *xarg4)
 {
-    ep->val = val;
+    shared_value_init(&ep->sv);
+    ep->thread_local_val = thread_local_val;
     ep->val_type = t;
     ep->local_id = local_id;
     ep->display_name = display_name;
@@ -59,16 +60,6 @@ int endpoint_init(
     ep->automatable = true;
     jdaw_val_set_min(&ep->min, t);
     jdaw_val_set_max(&ep->max, t);
-
-    int err;
-    if ((err = pthread_mutex_init(&ep->val_lock, NULL)) != 0) {
-	fprintf(stderr, "Error initializing ep val mutex: %s\n", strerror(err));
-	exit(1);
-    }
-    if ((err = pthread_mutex_init(&ep->owner_lock, NULL)) != 0) {
-	fprintf(stderr, "Error initializing ep owner mutex: %s\n", strerror(err));
-	exit(1);
-    }
     return 0;
 }
 
@@ -160,6 +151,12 @@ NEW_EVENT_FN(undo_redo_endpoint_write, "")
 
 #define EP_ERRSTR_LEN 32
 
+static void set_thread_local_val_cb(Endpoint *ep)
+{
+    Value new_val = shared_value_read(&ep->sv);
+    jdaw_val_set_ptr(ep->thread_local_val, ep->val_type, new_val);    
+}
+
 /* Return value is one of:
    0: value written synchronously
    1: value change scheduled other thread
@@ -177,7 +174,9 @@ int endpoint_write(
 {
     enum jdaw_thread owner = endpoint_get_owner(ep);
     /* fprintf(stderr, "OK Write endpoint %s, on thread %s, owner %s\n", ep->local_id, get_current_thread_name(), get_thread_name(owner)); */
-    ep->overwrite_val = endpoint_safe_read(ep, NULL);
+    /* ep->overwrite_val = endpoint_safe_read(ep, NULL); */
+    Value old_val = endpoint_read(ep, NULL);
+    shared_value_write(&ep->sv, new_val);
     Session *session = session_get();
     int ret = 0;
     bool range_violation = false;
@@ -201,42 +200,36 @@ int endpoint_write(
 	index += jdaw_val_to_str(errstr, EP_ERRSTR_LEN, ep->min, ep->val_type, 2);
 	index += snprintf(errstr + index, EP_ERRSTR_LEN - index, " <= %s <= ", ep->local_id);
 	index += jdaw_val_to_str(errstr + index, EP_ERRSTR_LEN - index, ep->max, ep->val_type, 2);
-	/* fprintf(stderr, "Writing range violation from %s, ep %s: \"%s\"\n", get_thread_name(), ep->local_id, errstr); */
-	/* char rv[32] = {0}; */
-	/* jdaw_val_to_str(rv, 32, range_violation_write_val, ep->val_type, 5); */
-	/* fprintf(stderr, "\t->%s\n", rv); */
-	/* breakfn(); */
 	status_set_errstr(errstr);
     }
-    bool val_changed = !jdaw_val_equal(ep->last_write_val, new_val, ep->val_type);
-    /* fprintf(stderr, "\tval changed? %d\n", val_changed); */
-    if (!val_changed && ep->write_has_occurred) return EP_WRITE_NO_CHANGE;
-    if (!ep->write_has_occurred) {
-	ep->last_write_val = endpoint_safe_read(ep, NULL);
+    bool val_changed = !jdaw_val_equal(old_val, new_val, ep->val_type);
+    bool write_has_occurred = false;
+    if (!val_changed &&
+        (write_has_occurred = atomic_load_explicit(&ep->write_has_occurred, memory_order_relaxed))) {
+        return EP_WRITE_NO_CHANGE;
     }
-    ep->current_write_val = new_val;
-    bool async_change_will_occur = false;
-    /* Value change */
+    
+    bool async_change_will_occur = false;    
     ep->display_label = undoable || ep->changing; /* heuristic, ok */
-    /* fprintf(stderr, "Owner? %s.. on owner? %d. Audio conn open? %d\n", get_thread_name(owner), on_thread(owner), session->audio_io.playback_conn->playing); */
     if (
 	on_thread(owner)
-	|| (owner == JDAW_THREAD_DSP && !session->playback.playing)
-	|| (owner == JDAW_THREAD_PLAYBACK && !session->audio_io.playback_conn->playing)) {
-
-	pthread_mutex_lock(&ep->val_lock);
-	jdaw_val_set_ptr(ep->val, ep->val_type, new_val);
+	|| (on_thread(JDAW_THREAD_MAIN) && !thread_is_active(owner))) {
+        
+        /* Set thread local proxy for plan reads on owner thread */
+	jdaw_val_set_ptr(ep->thread_local_val, ep->val_type, new_val);
 	if (ep->automation && ep->automation->write) {
 	    Timeline *tl = ACTIVE_TL;
 	    int32_t tl_now = timeline_get_play_pos_now(tl);
 	    automation_endpoint_write(ep, new_val, tl_now);
 	}
-	pthread_mutex_unlock(&ep->val_lock);
     } else {
-	session_queue_val_change(session, ep, new_val, run_gui_cb);
+        struct queued_cb cb;
+        cb.cb = set_thread_local_val_cb;
+        cb.ep = ep;
+        session_enqueue_callback(owner, cb);
+	/* session_queue_val_change(session, ep, new_val, run_gui_cb); */
 	async_change_will_occur = true;
 	ret += EP_WRITE_OTHER_THREAD;
-	/* } */
     }
 
     /* Callbacks v2 */
@@ -244,64 +237,61 @@ int endpoint_write(
         int num = atomic_load_explicit(&ep->num_registered_callbacks[t], memory_order_relaxed);
         for (int i=0; i<num; i++) {
             EndptCb cb = atomic_load_explicit(&ep->registered_callbacks[t][i], memory_order_relaxed);
-            if (t == owner && on_thread(owner)) {
+            if (on_thread(t)) {
+                cb(ep);
+            } else if (on_thread(JDAW_THREAD_MAIN) && !thread_is_active(t)) {
+                /* Callbacks fall back to main if:
+                   - current write is on main and
+                   - destination thread is not active;
+                */
                 cb(ep);
             } else {
-                /* Callbacks fall back to main IFF:
-                   - current write is on main
-                   - destination thread is not active
-                */
-                if (on_thread(JDAW_THREAD_MAIN) && !thread_is_active(t)) {
-                    cb(ep);
-                } else {
-                    struct queued_cb cbs = (struct queued_cb){cb, ep};
-                    fprintf(stderr, "ENQUEUEING %p, %p\n", cb, ep);
-                    session_enqueue_callback(t, cbs);
-                }
+                struct queued_cb cbs = (struct queued_cb){cb, ep};
+                session_enqueue_callback(t, cbs);
             }
         }
     }
 
     /* Callbacks */
-    bool on_main = on_thread(JDAW_THREAD_MAIN);
-    if (run_dsp_cb && ep->dsp_callback) {
-	if (on_thread(JDAW_THREAD_DSP)) {
-	    ep->dsp_callback(ep);
-	} else {
-	    if (session->playback.playing || session->audio_io.playback_conn->playing) {
-		/* If ep owner assigned to playback thread, run DSP callbacks on that thread */
-		enum jdaw_thread dst_thread = owner == JDAW_THREAD_PLAYBACK ? JDAW_THREAD_PLAYBACK : JDAW_THREAD_DSP;
-		if (dst_thread == JDAW_THREAD_DSP && !session->playback.playing && session->audio_io.playback_conn->playing) {
-		    dst_thread = JDAW_THREAD_PLAYBACK;
-		}
-		int ret = session_queue_callback(session, ep, ep->dsp_callback, dst_thread);
-		if (ret == 3) {
-		    log_tmp(LOG_ERROR, "Error: call to queue callback for ep \"%s\" could not be deferred.\n", ep->local_id);
-		}
-		async_change_will_occur = true;
-	    /* } else if (session->midi_io.monitor_synth && owner == JDAW_THREAD_PLAYBACK) { */
-	    /* 	session_queue_callback(session, ep, ep->dsp_callback, JDAW_THREAD_PLAYBACK); */
-	    /* 	async_change_will_occur = true; */
-	    } else {
-		ep->dsp_callback(ep);
-	    }
-	}	
-    }
-    if (run_proj_cb && ep->proj_callback) {
-	if (on_main)
-	    ep->proj_callback(ep);
-	else {
-	    session_queue_callback(session, ep, ep->proj_callback, JDAW_THREAD_MAIN);
-	}
-    }
+    /* bool on_main = on_thread(JDAW_THREAD_MAIN); */
+    /* if (run_dsp_cb && ep->dsp_callback) { */
+    /*     if (on_thread(JDAW_THREAD_DSP)) { */
+    /*         ep->dsp_callback(ep); */
+    /*     } else { */
+    /*         if (session->playback.playing || session->audio_io.playback_conn->playing) { */
+    /*     	/\* If ep owner assigned to playback thread, run DSP callbacks on that thread *\/ */
+    /*     	enum jdaw_thread dst_thread = owner == JDAW_THREAD_PLAYBACK ? JDAW_THREAD_PLAYBACK : JDAW_THREAD_DSP; */
+    /*     	if (dst_thread == JDAW_THREAD_DSP && !session->playback.playing && session->audio_io.playback_conn->playing) { */
+    /*     	    dst_thread = JDAW_THREAD_PLAYBACK; */
+    /*     	} */
+    /*     	int ret = session_queue_callback(session, ep, ep->dsp_callback, dst_thread); */
+    /*     	if (ret == 3) { */
+    /*     	    log_tmp(LOG_ERROR, "Error: call to queue callback for ep \"%s\" could not be deferred.\n", ep->local_id); */
+    /*     	} */
+    /*     	async_change_will_occur = true; */
+    /*         /\* } else if (session->midi_io.monitor_synth && owner == JDAW_THREAD_PLAYBACK) { *\/ */
+    /*         /\* 	session_queue_callback(session, ep, ep->dsp_callback, JDAW_THREAD_PLAYBACK); *\/ */
+    /*         /\* 	async_change_will_occur = true; *\/ */
+    /*         } else { */
+    /*     	ep->dsp_callback(ep); */
+    /*         } */
+    /*     }	 */
+    /* } */
+    /* if (run_proj_cb && ep->proj_callback) { */
+    /*     if (on_main) */
+    /*         ep->proj_callback(ep); */
+    /*     else { */
+    /*         session_queue_callback(session, ep, ep->proj_callback, JDAW_THREAD_MAIN); */
+    /*     } */
+    /* } */
 
-    if (run_gui_cb && ep->gui_callback && !async_change_will_occur) {
-	if (on_main) {
-	    ep->gui_callback(ep);
-	} else {
-	    session_queue_callback(session, ep, ep->gui_callback, JDAW_THREAD_MAIN);
-	}
-    }
+    /* if (run_gui_cb && ep->gui_callback && !async_change_will_occur) { */
+    /*     if (on_main) { */
+    /*         ep->gui_callback(ep); */
+    /*     } else { */
+    /*         session_queue_callback(session, ep, ep->gui_callback, JDAW_THREAD_MAIN); */
+    /*     } */
+    /* } */
     
     /* if (run_gui_cb && ep->gui_callback) { */
     /* 	if (on_main) */
@@ -312,7 +302,7 @@ int endpoint_write(
     
     /* Undo */
     if (undoable && !ep->block_undo) {
-	if (!on_main) {
+	if (!on_thread(JDAW_THREAD_MAIN)) {
 	    fprintf(stderr, "UH OH can't push event fn on thread that is not main\n");
 	    return EP_WRITE_ERROR_UNDO;
 	}
@@ -329,55 +319,47 @@ int endpoint_write(
 		undo_redo_endpoint_write,
 		NULL, NULL,
 		(void *)ep, NULL,
-		ep->last_write_val, cb_matrix,
+	        old_val, cb_matrix,
 		new_val, cb_matrix,
 		0, 0, false, false);
 	/* } */
     }
-    ep->last_write_val = new_val;
-    ep->write_has_occurred = true;
+    /* ep->last_write_val = new_val; */
+    atomic_store_explicit(&ep->write_has_occurred, true, memory_order_relaxed);
     
     return ret;
 }
 
-Value endpoint_unsafe_read(Endpoint *ep, ValType *vt)
-{
-    if (vt) {
-	*vt = ep->val_type;
-    }
-    return jdaw_val_from_ptr(ep->val, ep->val_type);    
-}
+/* Value endpoint_unsafe_read(Endpoint *ep, ValType *vt) */
+/* { */
+/*     if (vt) { */
+/* 	*vt = ep->val_type; */
+/*     } */
+/*     if (ep->thread_local_ */
+/*     return jdaw_val_from_ptr(ep->val, ep->val_type);     */
+/* } */
 
-Value endpoint_safe_read(Endpoint *ep, ValType *vt)
+Value endpoint_read(Endpoint *ep, ValType *vt)
 {
+
     enum jdaw_thread owner = endpoint_get_owner(ep);
-    if (on_thread(owner)) {
+    if (on_thread(owner) && ep->thread_local_val) {
 	/* fprintf(stderr, "DIRECT read\n"); */
-	return endpoint_unsafe_read(ep, vt);
+	return jdaw_val_from_ptr(ep->thread_local_val, ep->val_type);
     } else {
-	/* fprintf(stderr, "INDIRECT read\n"); */
-	pthread_mutex_lock(&ep->val_lock);
-	Value ret = endpoint_unsafe_read(ep, vt);
-	pthread_mutex_unlock(&ep->val_lock);
-	return ret;
+	return shared_value_read(&ep->sv);
     }   
 }
 
 /* PROBLEM: there may be queued value change operations */
 void endpoint_set_owner(Endpoint *ep, enum jdaw_thread thread)
 {
-    pthread_mutex_lock(&ep->owner_lock);
-    ep->owner_thread = thread;
-    pthread_mutex_unlock(&ep->owner_lock);
+    atomic_store(&ep->owner_thread, thread);
 }
 
 enum jdaw_thread endpoint_get_owner(Endpoint *ep)
 {
-    enum jdaw_thread thread;
-    pthread_mutex_lock(&ep->owner_lock);
-    thread = ep->owner_thread;
-    pthread_mutex_unlock(&ep->owner_lock);
-    return thread;
+    atomic_load(&ep->owner_thread);
 }
 
 void endpoint_start_continuous_change(
@@ -389,7 +371,7 @@ void endpoint_start_continuous_change(
 {
     if (ep->changing) return;
     ep->changing = true;
-    ep->cached_val = endpoint_safe_read(ep, NULL);
+    ep->cached_val = endpoint_read(ep, NULL);
     /* ep->cached_owner = endpoint_get_owner(ep); */
     /* endpoint_set_owner(ep, thread); */
 
@@ -404,7 +386,7 @@ void endpoint_start_continuous_change(
 
 void endpoint_continuous_change_do_incr(Endpoint *ep)
 {
-    Value prev_val = jdaw_val_from_ptr(ep->val, ep->val_type);
+    Value prev_val = endpoint_read(ep, NULL);//jdaw_val_from_ptr(ep->val, ep->val_type);
     Value new_val = jdaw_val_add(prev_val, ep->incr, ep->val_type);
     endpoint_write(ep, new_val, true, true, true, false);
 }
@@ -418,7 +400,7 @@ void endpoint_stop_continuous_change(Endpoint *ep)
     /* if (run_proj_cb) callback_bitfield |= 0b010; */
     /* if (run_dsp_cb) callback_bitfield |= 0b100; */
     Value cb_matrix = {.uint8_v = callback_bitfield};
-    Value current_val = jdaw_val_from_ptr(ep->val, ep->val_type);
+    Value current_val = endpoint_read(ep, NULL);//jdaw_val_from_ptr(ep->val, ep->val_type);
     if (!ep->block_undo && !jdaw_val_equal(current_val, ep->cached_val, ep->val_type)) {
 	user_event_push(
 	    

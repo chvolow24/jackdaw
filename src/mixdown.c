@@ -64,7 +64,7 @@ static float get_track_mixdown_chunk(Track *track, float *restrict L, float *res
     for (int i=0; i<track->num_automations; i++) {
 	Automation *a = track->automations[i];
 	if (a->read && !a->write && a->endpoint) {
-	    Value val = automation_get_value(a, start_pos_sframes, step);	    
+	    Value val = automation_get_value(a, start_pos_sframes, step);
 	    endpoint_write(a->endpoint, val, true, true, true, false);
 	}
     }

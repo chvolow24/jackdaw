@@ -56,10 +56,12 @@
 
 #include "automation.h"
 #include "page_el_type.h"
+#include "shared_value_decl.h"
 #include "thread_safety.h"
 #include "value.h"
 
 #define MAX_ENDPOINT_CALLBACKS 4
+#define MAX_CBS_PER_QUEUE 128
 
 typedef struct endpoint Endpoint;
 
@@ -75,13 +77,14 @@ typedef void (*EndptCb)(Endpoint *);
 typedef struct api_node APINode;
 typedef struct api_hash_node APIHashNode;
 typedef struct endpoint {
-    
-    void *val;
+
+    SharedValue sv;
+    void *thread_local_val;
     ValType val_type;
-    Value current_write_val; /* Set at start of write operation */
-    Value last_write_val; /* Set at end of write operation */
-    Value overwrite_val; /* Set at start of write operation */
-    bool write_has_occurred;
+    /* Value current_write_val; /\* Set at start of write operation *\/ */
+    /* Value last_write_val; /\* Set at end of write operation *\/ */
+    /* Value overwrite_val; /\* Set at start of write operation *\/ */
+    _Atomic bool write_has_occurred;
     Value cached_val; /* For undo */
     bool restrict_range;
     Value min;
@@ -100,9 +103,9 @@ typedef struct endpoint {
 
     bool display_label; /* Set in endpoint write based on "undoable" -- used in gui cbs */
     
-    pthread_mutex_t val_lock;
-    pthread_mutex_t owner_lock;
-    enum jdaw_thread owner_thread;
+    /* pthread_mutex_t val_lock; */
+    /* pthread_mutex_t owner_lock; */
+    _Atomic enum jdaw_thread owner_thread;
     enum jdaw_thread cached_owner;
 
     const char *local_id;
@@ -168,8 +171,8 @@ int endpoint_write(
     bool undoable);
 
 /* int endpoint_read(Endpoint *ep, Value *dst_val, ValType *dst_vt); */
-Value endpoint_unsafe_read(Endpoint *ep, ValType *vt);
-Value endpoint_safe_read(Endpoint *ep, ValType *vt);
+/* Value endpoint_unsafe_read(Endpoint *ep, ValType *vt); */
+Value endpoint_read(Endpoint *ep, ValType *vt);
 
 void endpoint_set_owner(Endpoint *ep, enum jdaw_thread thread);
 enum jdaw_thread endpoint_get_owner(Endpoint *ep);

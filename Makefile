@@ -80,6 +80,7 @@ SDL2_TTF_BUNDLED_PATH := $(CURDIR)/SDL_ttf
 PORTMIDI_BUNDLED_PATH := $(CURDIR)/portmidi
 FFMPEG_BUNDLED_PATH := $(CURDIR)/FFmpeg
 SPSC_LFQUEUE_BUNDLED_PATH := $(CURDIR)/spsc_lfqueue
+SHARED_VALUE_BUNDLED_PATH := $(CURDIR)/shared_value
 
 
 PKG_CONFIG_PATH := $(shell echo $(PKG_CONFIG_PATH))
@@ -229,9 +230,13 @@ DEP_BUILD_TARGETS := $(SDL2_BUILD_TARGET) $(SDL2_TTF_BUILD_TARGET) $(PORTMIDI_BU
 spsc_lfqueue:
 	@git submodule update --init --recursive spsc_lfqueue
 
+.PHONY: shared_value
+shared_value:
+	git submodule update --init --recursive shared_value
+
 # 'deps-ready' adds to compiler directives using module .pc files
 .PHONY: deps-ready
-deps-ready: $(DEP_BUILD_TARGETS) spsc_lfqueue
+deps-ready: $(DEP_BUILD_TARGETS) spsc_lfqueue shared_value
 	$(eval PKG_CFLAGS := $(PKG_CFLAGS))
 	$(eval PKG_LINK_FLAGS := $(PKG_LINK_FLAGS))
 
@@ -269,6 +274,8 @@ deps-ready: $(DEP_BUILD_TARGETS) spsc_lfqueue
 # spsc_lfqueue
 	$(eval PKG_CFLAGS += -I$(SPSC_LFQUEUE_BUNDLED_PATH))
 
+# spsc_lfqueue
+	$(eval PKG_CFLAGS += -I$(SHARED_VALUE_BUNDLED_PATH))
 
 # Build summary
 	$(eval BUILD_SUMMARY := $(BUILD_SUMMARY))

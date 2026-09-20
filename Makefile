@@ -232,7 +232,7 @@ spsc_lfqueue:
 
 .PHONY: shared_value
 shared_value:
-	git submodule update --init --recursive shared_value
+	@git submodule update --init --recursive shared_value
 
 # 'deps-ready' adds to compiler directives using module .pc files
 .PHONY: deps-ready

@@ -22,7 +22,6 @@ static void *instrument_monitor_threadfn(void *arg)
     int len_sframes = session->proj.chunk_size_sframes;;
     MIDIDevice *d = session->midi_io.monitor_device;
     Synth *s = session->midi_io.monitor_synth;
-    Timeline *tl = ACTIVE_TL;
     if (!d || !s) return NULL;
 
     float LR[len_sframes * 2];

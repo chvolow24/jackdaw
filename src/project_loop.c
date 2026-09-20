@@ -137,6 +137,7 @@ void loop_project_main()
     
     main_win->current_event = &e;
     while (!(main_win->i_state & I_STATE_QUIT)) {
+        session_run_thread_callbacks(JDAW_THREAD_MAIN);
 	while (SDL_PollEvent(&e)) {            
 	    frames_since_event = 0;
 	    switch (e.type) {

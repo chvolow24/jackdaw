@@ -398,7 +398,7 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 
 static _Atomic bool cancel_dsp_thread = false;
 
-static void *transport_dsp_thread_fn(void *arg)
+static void *transport_dsp_threadfn(void *arg)
 {
     Session *session = session_get();
     set_thread_id(JDAW_THREAD_DSP);
@@ -430,6 +430,7 @@ static void *transport_dsp_thread_fn(void *arg)
 	    clock_gettime(CLOCK_REALTIME, &tspec_start);
 	}
 
+        session_run_thread_callbacks(JDAW_THREAD_DSP);
 	/* pthread_testcancel(); */
 	float play_speed = session->playback.play_speed;
 	/* tl->last_read_playspeed = play_speed; */
@@ -628,7 +629,7 @@ void transport_start_playback()
     }
     thread_set_active(JDAW_THREAD_DSP);
     atomic_store_explicit(&cancel_dsp_thread, false, memory_order_relaxed);
-    if ((ret = pthread_create(get_thread_addr(JDAW_THREAD_DSP), &attr, transport_dsp_thread_fn, (void *)tl)) != 0) {
+    if ((ret = pthread_create(get_thread_addr(JDAW_THREAD_DSP), &attr, transport_dsp_threadfn, (void *)tl)) != 0) {
 	fprintf(stderr, "pthread_create: %s\n", strerror(ret));
     }
 

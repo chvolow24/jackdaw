@@ -45,9 +45,12 @@ int endpoint_init(
     ep->local_id = local_id;
     ep->display_name = display_name;
     ep->owner_thread = owner_thread;
-    ep->gui_callback = gui_cb;
-    ep->proj_callback = proj_cb;
-    ep->dsp_callback = dsp_cb;
+    if (gui_cb) endpoint_register_callback(ep, JDAW_THREAD_MAIN, gui_cb);
+    if (proj_cb) endpoint_register_callback(ep, JDAW_THREAD_MAIN, proj_cb);
+    if (dsp_cb) endpoint_register_callback(ep, JDAW_THREAD_DSP, dsp_cb);
+    /* ep->gui_callback = gui_cb; */
+    /* ep->proj_callback = proj_cb; */
+    /* ep->dsp_callback = dsp_cb; */
     ep->xarg1 = xarg1;
     ep->xarg2 = xarg2;
     ep->xarg3 = xarg3;
@@ -240,7 +243,7 @@ int endpoint_write(
     for (enum jdaw_thread t=0; t<NUM_JDAW_THREADS; t++) {
         int num = atomic_load_explicit(&ep->num_registered_callbacks[t], memory_order_relaxed);
         for (int i=0; i<num; i++) {
-            EndptCb cb = atomic_load_explicit(&ep->registered_callbacks[owner][i], memory_order_relaxed);
+            EndptCb cb = atomic_load_explicit(&ep->registered_callbacks[t][i], memory_order_relaxed);
             if (t == owner && on_thread(owner)) {
                 cb(ep);
             } else {
@@ -252,6 +255,7 @@ int endpoint_write(
                     cb(ep);
                 } else {
                     struct queued_cb cbs = (struct queued_cb){cb, ep};
+                    fprintf(stderr, "ENQUEUEING %p, %p\n", cb, ep);
                     session_enqueue_callback(t, cbs);
                 }
             }

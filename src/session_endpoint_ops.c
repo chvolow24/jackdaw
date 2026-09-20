@@ -252,8 +252,7 @@ void session_enqueue_callback(enum jdaw_thread for_thread, struct queued_cb cb)
 }
 
 void session_run_thread_callbacks(enum jdaw_thread thread)
-{
-    
+{    
     Session *session = session_get();
     LFQueue *arr = session->queued_ops.queued_callbacks_v2[thread];
     struct queued_cb cbs[MAX_CALLBACKS_PER_QUEUE * NUM_EP_WRITER_THREADS] = {0};

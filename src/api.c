@@ -14,6 +14,7 @@
 #include "endpoint.h"
 #include "session.h"
 #include "string.h"
+#include "thread_safety.h"
 #include "type_serialize.h"
 #include "value.h"
 
@@ -454,6 +455,7 @@ void api_node_renamed(APINode *an)
 /* extern Project *proj; */
 static void *server_threadfn(void *arg)
 {
+    set_thread_id(JDAW_THREAD_API_SERVER);
     Session *session = session_get();
     int port = session->server.port;
     if ((session->server.sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
@@ -550,6 +552,7 @@ int api_start_server(int port)
     pthread_mutex_lock(&session->server.setup_lock);
     static pthread_t servthread;
     session->server.port = port;
+    thread_set_active(JDAW_THREAD_API_SERVER);
     pthread_create(&servthread, NULL, server_threadfn, NULL);
     pthread_mutex_lock(&session->server.setup_lock);
     if (!session->server.active) {
@@ -605,6 +608,7 @@ static void api_teardown_server()
     if (err != 0) {
 	fprintf(stderr, "Error in pthread join: %s\n", err == EINVAL ? "Value specified by rehad is not joinable" : err == ESRCH ? "No thread found" : err == EDEADLK ? "Deadlock detected, or value of thread specifies this (calling) thread" : "Unknown error");
     }
+    thread_set_inactive(JDAW_THREAD_API_SERVER);
     fprintf(stderr, "\t..done.\n");
     
 }

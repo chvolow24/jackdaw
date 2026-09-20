@@ -64,7 +64,7 @@ static LabelFnDef(vib_depth_labelfn)
 
 static void freq_dsp_cb(Endpoint *ep)
 {
-    double ctrl = ep->current_write_val.double_v;
+    double ctrl = endpoint_read(ep, NULL).double_v;
     Vibrato *vib = ep->xarg1;
     vib->freq_hz = vib_scale_freq(ctrl);
     mod_delay_set_freq(&vib->mdL, vib->freq_hz);
@@ -77,7 +77,7 @@ static void freq_dsp_cb(Endpoint *ep)
 
 static void depth_dsp_cb(Endpoint *ep)
 {
-    double depth_ctrl = ep->current_write_val.double_v;
+    double depth_ctrl = endpoint_read(ep, NULL).double_v;
     Vibrato *vib = ep->xarg1;
     /* vib->depth = pow(depth_ctrl, 4.0); */
     vib->depth = depth_from_ctrl_and_freq(depth_ctrl, vib->freq_hz);

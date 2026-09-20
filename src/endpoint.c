@@ -154,6 +154,8 @@ NEW_EVENT_FN(undo_redo_endpoint_write, "")
 static void set_thread_local_val_cb(Endpoint *ep)
 {
     Value new_val = shared_value_read(&ep->sv);
+    char dst[64];
+    jdaw_val_to_str(dst, 64, new_val, ep->val_type, 2);
     jdaw_val_set_ptr(ep->thread_local_val, ep->val_type, new_val);    
 }
 
@@ -174,9 +176,8 @@ int endpoint_write(
 {
     enum jdaw_thread owner = endpoint_get_owner(ep);
     /* fprintf(stderr, "OK Write endpoint %s, on thread %s, owner %s\n", ep->local_id, get_current_thread_name(), get_thread_name(owner)); */
-    /* ep->overwrite_val = endpoint_safe_read(ep, NULL); */
+    /* ep->overwrite_val = endpoint_read(ep, NULL); */
     Value old_val = endpoint_read(ep, NULL);
-    shared_value_write(&ep->sv, new_val);
     Session *session = session_get();
     int ret = 0;
     bool range_violation = false;
@@ -202,6 +203,7 @@ int endpoint_write(
 	index += jdaw_val_to_str(errstr + index, EP_ERRSTR_LEN - index, ep->max, ep->val_type, 2);
 	status_set_errstr(errstr);
     }
+    shared_value_write(&ep->sv, new_val);
     bool val_changed = !jdaw_val_equal(old_val, new_val, ep->val_type);
     bool write_has_occurred = false;
     if (!val_changed &&
@@ -209,8 +211,9 @@ int endpoint_write(
         return EP_WRITE_NO_CHANGE;
     }
     
-    bool async_change_will_occur = false;    
     ep->display_label = undoable || ep->changing; /* heuristic, ok */
+
+    bool async_thread_loc_val_change = false;
     if (
 	on_thread(owner)
 	|| (on_thread(JDAW_THREAD_MAIN) && !thread_is_active(owner))) {
@@ -223,12 +226,14 @@ int endpoint_write(
 	    automation_endpoint_write(ep, new_val, tl_now);
 	}
     } else {
+        async_thread_loc_val_change = true;
         struct queued_cb cb;
         cb.cb = set_thread_local_val_cb;
         cb.ep = ep;
+        char dst[64];
+        jdaw_val_to_str(dst, 64, new_val, ep->val_type, 2);
         session_enqueue_callback(owner, cb);
 	/* session_queue_val_change(session, ep, new_val, run_gui_cb); */
-	async_change_will_occur = true;
 	ret += EP_WRITE_OTHER_THREAD;
     }
 
@@ -237,7 +242,9 @@ int endpoint_write(
         int num = atomic_load_explicit(&ep->num_registered_callbacks[t], memory_order_relaxed);
         for (int i=0; i<num; i++) {
             EndptCb cb = atomic_load_explicit(&ep->registered_callbacks[t][i], memory_order_relaxed);
-            if (on_thread(t)) {
+            if (t == owner && async_thread_loc_val_change) {
+                goto enqueue;
+            } else if (on_thread(t)) {
                 cb(ep);
             } else if (on_thread(JDAW_THREAD_MAIN) && !thread_is_active(t)) {
                 /* Callbacks fall back to main if:
@@ -246,6 +253,8 @@ int endpoint_write(
                 */
                 cb(ep);
             } else {
+            enqueue:
+                (void)0;
                 struct queued_cb cbs = (struct queued_cb){cb, ep};
                 session_enqueue_callback(t, cbs);
             }
@@ -341,14 +350,14 @@ int endpoint_write(
 
 Value endpoint_read(Endpoint *ep, ValType *vt)
 {
-
+    if (vt) *vt = ep->val_type;
+    /* return shared_value_read(&ep->sv); */
     enum jdaw_thread owner = endpoint_get_owner(ep);
     if (on_thread(owner) && ep->thread_local_val) {
-	/* fprintf(stderr, "DIRECT read\n"); */
-	return jdaw_val_from_ptr(ep->thread_local_val, ep->val_type);
+        return jdaw_val_from_ptr(ep->thread_local_val, ep->val_type);
     } else {
-	return shared_value_read(&ep->sv);
-    }   
+        return shared_value_read(&ep->sv);
+    }
 }
 
 /* PROBLEM: there may be queued value change operations */
@@ -359,7 +368,7 @@ void endpoint_set_owner(Endpoint *ep, enum jdaw_thread thread)
 
 enum jdaw_thread endpoint_get_owner(Endpoint *ep)
 {
-    atomic_load(&ep->owner_thread);
+    return atomic_load(&ep->owner_thread);
 }
 
 void endpoint_start_continuous_change(

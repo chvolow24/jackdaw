@@ -36,20 +36,20 @@ static void synth_osc_vol_dsp_cb(Endpoint *ep)
 static void base_cutoff_dsp_cb(Endpoint *ep)
 {
     Synth *s = ep->xarg1;
-    Value cutoff = ep->current_write_val;
+    Value cutoff = endpoint_read(ep, NULL);
     s->base_cutoff = dsp_scale_freq(cutoff.float_v);
 }
 
 static void fixed_freq_dsp_cb(Endpoint *ep)
 {
     OscCfg *cfg = ep->xarg1;
-    float freq_unscaled = ep->current_write_val.float_v;
+    float freq_unscaled = endpoint_read(ep, NULL).float_v;
     cfg->fixed_freq = dsp_scale_freq(freq_unscaled);
 }
 
 /* static void num_voices_cb(Endpoint *ep) */
 /* { */
-/*     int num_voices = ep->current_write_val.int_v; */
+/*     int num_voices = endpoint_read(ep, NULL).int_v; */
 
 /*     Synth *synth = ep->xarg1; */
 /*     OscCfg *cfg = ep->xarg2; */
@@ -75,7 +75,7 @@ static void type_cb(Endpoint *ep)
     Synth *synth = ep->xarg1;
     OscCfg *cfg = ep->xarg2;
     int osc_i = cfg - synth->base_oscs;
-    int type_i = ep->current_write_val.int_v;   
+    int type_i = endpoint_read(ep, NULL).int_v;   
     while (osc_i < SYNTHVOICE_NUM_OSCS) {
 	for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 	    SynthVoice *v = synth->voices + i;
@@ -90,7 +90,7 @@ static void unison_stereo_spread_dsp_cb(Endpoint *ep)
     Synth *synth = ep->xarg1;
     OscCfg *cfg = ep->xarg2;
     int osc_i = cfg - synth->base_oscs + SYNTH_NUM_BASE_OSCS;
-    float max_offset = ep->current_write_val.float_v / 2.0;
+    float max_offset = endpoint_read(ep, NULL).float_v / 2.0;
     int unison_i = 0;
     int divisor = 1;
     while (osc_i < SYNTHVOICE_NUM_OSCS) {
@@ -130,7 +130,7 @@ static void detune_cents_dsp_cb(Endpoint *ep)
     Synth *synth = ep->xarg1;
     OscCfg *cfg = ep->xarg2;
     int osc_i = cfg - synth->base_oscs + SYNTH_NUM_BASE_OSCS;
-    float max_offset_cents = ep->current_write_val.float_v;
+    float max_offset_cents = endpoint_read(ep, NULL).float_v;
     /* float voice_offset = max_offset_cents / (1 + cfg->unison.num_voices) * 2; */
     
     int unison_i = 0;
@@ -217,9 +217,9 @@ static void tuning_cb(Endpoint *ep)
 {
     Synth *s = ep->xarg1;
     OscCfg *cfg = ep->xarg2;
-    int octave = endpoint_safe_read(&cfg->octave_ep, NULL).int_v;
-    int coarse = endpoint_safe_read(&cfg->tune_coarse_ep, NULL).int_v;
-    float fine = endpoint_safe_read(&cfg->tune_fine_ep, NULL).float_v;
+    int octave = endpoint_read(&cfg->octave_ep, NULL).int_v;
+    int coarse = endpoint_read(&cfg->tune_coarse_ep, NULL).int_v;
+    float fine = endpoint_read(&cfg->tune_fine_ep, NULL).float_v;
     float tune_cents = octave * 1200 + coarse * 100 + fine;
     /* fprintf(stderr, "TUNE CENTS: %f\n", tune_cents); */
     int osc_i = cfg - s->base_oscs;
@@ -239,7 +239,7 @@ static void fmod_target_dsp_cb(Endpoint *ep)
     OscCfg *cfg = ep->xarg1;
     Synth *synth = ep->xarg2;
     int self = cfg - synth->base_oscs;
-    int target = endpoint_safe_read(ep, NULL).int_v - 1;
+    int target = endpoint_read(ep, NULL).int_v - 1;
     if (self < 0 || self > 5) {
 	fprintf(stderr, "Error: osc cfg does not belong to listed synth (index %d)\n", self);
 	return;
@@ -274,7 +274,7 @@ static void amod_target_dsp_cb(Endpoint *ep)
     OscCfg *cfg = ep->xarg1;
     Synth *synth = ep->xarg2;
     int self = cfg - synth->base_oscs;
-    int target = endpoint_safe_read(ep, NULL).int_v - 1;
+    int target = endpoint_read(ep, NULL).int_v - 1;
     if (self < 0 || self > 5) {
 	fprintf(stderr, "Error: osc cfg does not belong to listed synth (index %d)\n", self);
 	return;
@@ -323,7 +323,7 @@ static void portamento_labelfn(char *dst, size_t dstsize, Value val, ValType typ
 static void portamento_len_dsp_cb(Endpoint *ep)
 {
     Synth *synth = ep->xarg1;
-    int unscaled = ep->current_write_val.int_v;
+    int unscaled = endpoint_read(ep, NULL).int_v;
     synth->portamento_len_msec = portamento_scale(unscaled);
 }
 

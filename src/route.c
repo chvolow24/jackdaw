@@ -204,7 +204,7 @@ NEW_EVENT_FN(dispose_forward_add_audio_route, "")
 static void rt_vol_dsp_cb(Endpoint *ep)
 {
     AudioRoute *r = ep->xarg3;
-    float new_ctrl_val = ep->current_write_val.float_v;
+    float new_ctrl_val = endpoint_read(ep, NULL).float_v;
     r->amp = pow(new_ctrl_val, VOL_EXP);
 }
 

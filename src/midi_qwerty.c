@@ -40,7 +40,7 @@ struct mqwert_state {
 };
 
 static struct mqwert_state state = {
-    false, 0, 0, 100, false, {0}, {0}, "+0", "+0", "100", "(none)", {0}
+    false, 0, 0, 100, false, {0}, {0}, "+0", "+0", "100", "(none)", {0}, 0.0f
 };
 
 void mqwert_activate();
@@ -48,7 +48,7 @@ void mqwert_deactivate();
 
 void mqwert_active_cb(Endpoint *ep)
 {
-    if (ep->current_write_val.bool_v) {
+    if (endpoint_read(ep, NULL).bool_v) {
 	mqwert_activate();
     } else {
 	mqwert_deactivate();

@@ -470,7 +470,7 @@ void modal_add_dropdown_from_ep(
 	args[i] = (void *)(long)i;
     }
     ModalEl *el = modal_add_dropdown(
-	modal, header, names, annots, args, num_items, ep->val, ep_dropdown_selfn);
+	modal, header, names, annots, args, num_items, ep->thread_local_val, ep_dropdown_selfn);
     ((Dropdown *)el->obj)->ep = ep;
     ep->bound_component_type = EL_DROPDOWN;
     ep->bound_component = el->obj;

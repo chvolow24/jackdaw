@@ -1817,17 +1817,17 @@ void user_tl_track_vol_up(void *nullarg)
 	Track *trk = tl->tracks[i];
 	if (trk->active) {
 	    has_active_track = true;
-	    endpoint_start_continuous_change(&trk->vol_ep, true, vol_incr, JDAW_THREAD_MAIN, endpoint_safe_read(&trk->vol_ep, NULL));
+	    endpoint_start_continuous_change(&trk->vol_ep, true, vol_incr, JDAW_THREAD_MAIN, endpoint_read(&trk->vol_ep, NULL));
 	}
     }
     if (!has_active_track) {
 	Track *trk = timeline_selected_track(tl);
 	if (trk) {
-	    endpoint_start_continuous_change(&trk->vol_ep, true, vol_incr, JDAW_THREAD_MAIN, endpoint_safe_read(&trk->vol_ep, NULL));
+	    endpoint_start_continuous_change(&trk->vol_ep, true, vol_incr, JDAW_THREAD_MAIN, endpoint_read(&trk->vol_ep, NULL));
 	} else {
 	    ClickTrack *tt = timeline_selected_click_track(tl);
 	    if (tt) {
-		endpoint_start_continuous_change(&tt->metronome.vol_ep, true, vol_incr, JDAW_THREAD_MAIN, endpoint_safe_read(&tt->metronome.vol_ep, NULL));
+		endpoint_start_continuous_change(&tt->metronome.vol_ep, true, vol_incr, JDAW_THREAD_MAIN, endpoint_read(&tt->metronome.vol_ep, NULL));
 	    }
 	}
 
@@ -1857,17 +1857,17 @@ void user_tl_track_vol_down(void *nullarg)
 	Track *trk = tl->tracks[i];
 	if (trk->active) {
 	    has_active_track = true;
-	    endpoint_start_continuous_change(&trk->vol_ep, true, vol_decr, JDAW_THREAD_MAIN, endpoint_safe_read(&trk->vol_ep, NULL));
+	    endpoint_start_continuous_change(&trk->vol_ep, true, vol_decr, JDAW_THREAD_MAIN, endpoint_read(&trk->vol_ep, NULL));
 	}
     }
     if (!has_active_track) {
 	Track *trk = timeline_selected_track(tl);
 	if (trk) {
-	    endpoint_start_continuous_change(&trk->vol_ep, true, vol_decr, JDAW_THREAD_MAIN, endpoint_safe_read(&trk->vol_ep, NULL));
+	    endpoint_start_continuous_change(&trk->vol_ep, true, vol_decr, JDAW_THREAD_MAIN, endpoint_read(&trk->vol_ep, NULL));
 	} else {
 	    ClickTrack *tt = timeline_selected_click_track(tl);
 	    if (tt) {
-		endpoint_start_continuous_change(&tt->metronome.vol_ep, true, vol_decr, JDAW_THREAD_MAIN, endpoint_safe_read(&tt->metronome.vol_ep, NULL));
+		endpoint_start_continuous_change(&tt->metronome.vol_ep, true, vol_decr, JDAW_THREAD_MAIN, endpoint_read(&tt->metronome.vol_ep, NULL));
 	    }
 	}
     }
@@ -1891,13 +1891,13 @@ void user_tl_track_pan_left(void *nullarg)
 	Track *trk = tl->tracks[i];
 	if (trk->active) {
 	    has_active_track = true;
-	    endpoint_start_continuous_change(&trk->pan_ep, true, pan_decr, JDAW_THREAD_MAIN, endpoint_safe_read(&trk->pan_ep, NULL));
+	    endpoint_start_continuous_change(&trk->pan_ep, true, pan_decr, JDAW_THREAD_MAIN, endpoint_read(&trk->pan_ep, NULL));
 	}
     }
     if (!has_active_track) {
 	Track *trk = timeline_selected_track(tl);
 	if (trk)
-	    endpoint_start_continuous_change(&trk->pan_ep, true, pan_decr, JDAW_THREAD_MAIN, endpoint_safe_read(&trk->pan_ep, NULL));
+	    endpoint_start_continuous_change(&trk->pan_ep, true, pan_decr, JDAW_THREAD_MAIN, endpoint_read(&trk->pan_ep, NULL));
     }
 }
 
@@ -1910,13 +1910,13 @@ void user_tl_track_pan_right(void *nullarg)
 	Track *trk = tl->tracks[i];
 	if (trk->active) {
 	    has_active_track = true;
-	    endpoint_start_continuous_change(&trk->pan_ep, true, pan_incr, JDAW_THREAD_MAIN, endpoint_safe_read(&trk->pan_ep, NULL));
+	    endpoint_start_continuous_change(&trk->pan_ep, true, pan_incr, JDAW_THREAD_MAIN, endpoint_read(&trk->pan_ep, NULL));
 	}
     }
     if (!has_active_track) {
 	Track *trk = timeline_selected_track(tl);
 	if (trk)
-	    endpoint_start_continuous_change(&trk->pan_ep, true, pan_incr, JDAW_THREAD_MAIN, endpoint_safe_read(&trk->pan_ep, NULL));
+	    endpoint_start_continuous_change(&trk->pan_ep, true, pan_incr, JDAW_THREAD_MAIN, endpoint_read(&trk->pan_ep, NULL));
     }
 
     /* Timeline *tl = ACTIVE_TL; */
@@ -1931,7 +1931,7 @@ void user_tl_clip_gain_up(void *nullarg)
 {
     ClipRef *cr = clipref_at_cursor();
     if (cr) {
-        endpoint_start_continuous_change(&cr->gain_ep, true, clip_gain_incr, JDAW_THREAD_MAIN, endpoint_safe_read(&cr->gain_ep, NULL));
+        endpoint_start_continuous_change(&cr->gain_ep, true, clip_gain_incr, JDAW_THREAD_MAIN, endpoint_read(&cr->gain_ep, NULL));
     }
 }
 
@@ -1940,7 +1940,7 @@ void user_tl_clip_gain_down(void *nullarg)
     ClipRef *cr = clipref_at_cursor();
     Value clip_gain_decr = jdaw_val_negate(clip_gain_incr, JDAW_FLOAT);
     if (cr) {
-        endpoint_start_continuous_change(&cr->gain_ep, true, clip_gain_decr, JDAW_THREAD_MAIN, endpoint_safe_read(&cr->gain_ep, NULL));
+        endpoint_start_continuous_change(&cr->gain_ep, true, clip_gain_decr, JDAW_THREAD_MAIN, endpoint_read(&cr->gain_ep, NULL));
     }
 }
 

@@ -55,7 +55,7 @@ SDL_Color EQ_CTRL_COLORS_LIGHT[] = {
 /* static void eq_filter_selection_gui_cb(Endpoint *ep) */
 /* { */
 /*     EQ *eq = ep->xarg1; */
-/*     int sel = endpoint_safe_read(ep, NULL).int_v; */
+/*     int sel = endpoint_read(ep, NULL).int_v; */
 /*     TabView *tv = main_win->active_tabview; */
 /*     if (!tv) return; */
 /*     Page *page = tv->tabs[tv->current_tab]; */

@@ -76,7 +76,7 @@ Slider *slider_create(
     label->rect.x = layout->rect.x + layout->rect.w;
     label->rect.y = layout->rect.y;
     layout_set_values_from_rect(label);
-    s->label = label_create(0, label, label_str_fn, ep->val, ep->val_type, main_win);
+    s->label = label_create(0, label, label_str_fn, ep->thread_local_val, ep->val_type, main_win);
     s->label->parent_obj_lt  = s->layout;
     s->drag_context = drag_context;
     /* if (create_label_fn) { */
@@ -201,7 +201,7 @@ void layout_write(FILE *f, Layout *lt, int indent);
 Value slider_reset(Slider *s)
 {
     Value range = jdaw_val_sub(s->max, s->min, s->ep->val_type);
-    Value slider_val = endpoint_safe_read(s->ep, NULL);
+    Value slider_val = endpoint_read(s->ep, NULL);
     Value filled = jdaw_val_sub(slider_val, s->min, s->ep->val_type);
     double filled_prop = jdaw_val_div_double(filled, range, s->ep->val_type);
     /* fprintf(stderr, "Filled prop? %f\n", filled_prop); */
@@ -372,7 +372,7 @@ void slider_nudge_right(Slider *slider)
     if (jdaw_val_is_zero(nudge_amt, slider->ep->val_type)) {
 	jdaw_val_set_default_incr(&nudge_amt, slider->ep->val_type);
     }
-    Value val = endpoint_safe_read(slider->ep, NULL);
+    Value val = endpoint_read(slider->ep, NULL);
     val = jdaw_val_add(val, nudge_amt, slider->ep->val_type);
     if (jdaw_val_less_than(slider->max, val, slider->ep->val_type)) {
 	val = slider->max;
@@ -389,7 +389,7 @@ void slider_nudge_left(Slider *slider)
     if (jdaw_val_is_zero(nudge_amt, slider->ep->val_type)) {
 	jdaw_val_set_default_incr(&nudge_amt, slider->ep->val_type);
     }	
-    Value val = endpoint_safe_read(slider->ep, NULL);
+    Value val = endpoint_read(slider->ep, NULL);
     val = jdaw_val_sub(val, nudge_amt, slider->ep->val_type);
     if (jdaw_val_less_than(slider->max, val, slider->ep->val_type)) {
 	val = slider->max;
@@ -646,7 +646,7 @@ Toggle *toggle_create_from_endpoint(Layout *lt, Endpoint *ep)
     /* layout_center_agnostic(outer, true, true); */
     Toggle *tgl = calloc(1, sizeof(Toggle));
     tgl->endpoint = ep;
-    tgl->value = ep->val;
+    tgl->value = ep->thread_local_val;
     tgl->layout = lt;
     return tgl;
 
@@ -699,7 +699,7 @@ void toggle_draw(Toggle *tgl)
 bool toggle_toggle(Toggle *toggle)
 {
     if (toggle->endpoint) {
-	bool current = endpoint_safe_read(toggle->endpoint, NULL).bool_v;
+	bool current = endpoint_read(toggle->endpoint, NULL).bool_v;
 	endpoint_write(toggle->endpoint, (Value){.bool_v = !current}, true, true, true, true);
 	return !current;
     } else {
@@ -790,7 +790,7 @@ void radio_grey_item(RadioButton *rb, int index)
 void radio_button_reset_from_endpoint(RadioButton *rb)
 {
     /* if (!rb->target) return; */
-    Value val = endpoint_safe_read(rb->ep, NULL);
+    Value val = endpoint_read(rb->ep, NULL);
     rb->selected_item = val.int_v;
     if (rb->selected_item > rb->num_items) {
 	log_tmp(LOG_WARN, "Error: unable to reset radio button from endpoint (sel %d, num %d)\n", rb->selected_item, rb->num_items);
@@ -920,7 +920,7 @@ SymbolRadio *symbol_radio_create(
 
 void symbol_radio_reset_from_endpoint(SymbolRadio *sr)
 {
-    Value val = endpoint_safe_read(sr->ep, NULL);
+    Value val = endpoint_read(sr->ep, NULL);
     sr->selected_item = val.int_v;
 }
 

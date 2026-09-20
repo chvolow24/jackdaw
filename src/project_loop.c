@@ -343,7 +343,7 @@ void loop_project_main()
 			} else if (!scrub_block) {
 			    play_speed_scroll_recency = 0;
 			    if (!session->playback.playing) transport_start_playback();
-			    Value old_speed = endpoint_safe_read(&session->playback.play_speed_ep, NULL);
+			    Value old_speed = endpoint_read(&session->playback.play_speed_ep, NULL);
 			    if (main_win->i_state & I_STATE_CMDCTRL) {
 				float new_speed = (old_speed.float_v + e.wheel.preciseX) / 2;
 				endpoint_write(&session->playback.play_speed_ep, (Value){.float_v = new_speed}, true, true, true, false);
@@ -512,7 +512,7 @@ void loop_project_main()
 	first_frame = false;
 	
 	if (!scrub_block && fingersdown > 0 && play_speed_scroll_recency > 4 && play_speed_scroll_recency < 20) {
-	    Value old_speed = endpoint_safe_read(&session->playback.play_speed_ep, NULL);
+	    Value old_speed = endpoint_read(&session->playback.play_speed_ep, NULL);
 	    float new_speed = old_speed.float_v / 3.0;
             endpoint_write(&session->playback.play_speed_ep, (Value){.float_v = new_speed}, true, true, true, false);
 	}	
@@ -630,7 +630,7 @@ void loop_project_main()
 		    Automation *a = track->automations[ai];
 		    if (a->write) {
 			int32_t frame_dur = session_get_sample_rate() * session->playback.play_speed / 30.0;
-			Value val = endpoint_safe_read(a->endpoint, NULL);
+			Value val = endpoint_read(a->endpoint, NULL);
 			automation_do_write(a, val, play_pos_adj, play_pos_adj + frame_dur, session->playback.play_speed);
 		    }
 		}

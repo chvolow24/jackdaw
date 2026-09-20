@@ -1695,7 +1695,7 @@ void page_add_dropdown_from_ep(
     p.dropdown_p.num_items = num_items;
     p.dropdown_p.header = header;
     p.dropdown_p.item_names = names;
-    p.dropdown_p.reset_from = ep->val;
+    p.dropdown_p.reset_from = ep->thread_local_val;
     p.dropdown_p.item_args = args;
     p.dropdown_p.selection_fn = ep_dropdown_selfn;
     p.dropdown_p.item_annotations = annots;

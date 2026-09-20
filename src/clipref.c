@@ -39,7 +39,7 @@ void clipref_gain_gui_cb(Endpoint *ep)
     clipref_reset(cr, false);
     main_win->needs_redraw = true;
     label_move(cr->gain_label, main_win->mousep.x, cr->layout->rect.y + cr->layout->rect.h / 2);
-    label_reset(cr->gain_label, ep->current_write_val);
+    label_reset(cr->gain_label, endpoint_read(ep, NULL));
 }
 
 void clipref_gain_dsp_cb(Endpoint *ep)
@@ -867,7 +867,7 @@ void clipref_gain_drag(ClipRef *cr, Window *win)
     if (win->i_state & I_STATE_CMDCTRL) {
 	new_gain = 1.0f;
     } else {
-	new_gain = endpoint_safe_read(&cr->gain_ep, NULL).float_v - (float)win->current_event->motion.yrel * CLIPREF_GAIN_ADJ_SCALAR;
+	new_gain = endpoint_read(&cr->gain_ep, NULL).float_v - (float)win->current_event->motion.yrel * CLIPREF_GAIN_ADJ_SCALAR;
     }
     endpoint_write(&cr->gain_ep, (Value){.float_v = new_gain}, true, true, true, false);
 }

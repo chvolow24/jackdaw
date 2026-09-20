@@ -79,7 +79,7 @@ static float get_track_mixdown_chunk(Track *track, float *restrict L, float *res
 	    vol_vals[i] = pow(vol_vals[i], VOL_EXP);
 	}
     } else {
-	/* Value vol_val = endpoint_safe_read(&track->vol_ep, NULL); */
+	/* Value vol_val = endpoint_read(&track->vol_ep, NULL); */
 	/* float vol_val = track-> */
 	for (int i=0; i<output_chunk_len_sframes; i++) {
 	    vol_vals[i] = pow(track->vol, VOL_EXP);
@@ -93,7 +93,7 @@ static float get_track_mixdown_chunk(Track *track, float *restrict L, float *res
 	make_pan_chunk(pan_vals[0], output_chunk_len_sframes, 0);
 	make_pan_chunk(pan_vals[1], output_chunk_len_sframes, 1);
     } else {
-	Value pan_val = endpoint_safe_read(&track->pan_ep, NULL);
+	Value pan_val = endpoint_read(&track->pan_ep, NULL);
 	float pan_scale[2] = {pan_val.float_v, pan_val.float_v};
 	pan_scale[0] = pan_scale[0] <= 0.5 ? 1.0 : (1.0f - pan_scale[0]) * 2;
 	pan_scale[1] = pan_scale[1] >= 0.5 ? 1.0 : pan_scale[1] * 2;    

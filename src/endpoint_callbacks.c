@@ -111,7 +111,7 @@ void page_el_gui_cb(Endpoint *ep)
 {
     Page **page_loc = ep->xarg3;
     /* char dststr[32]; */
-    /* jdaw_val_to_str(dststr, 32, ep->current_write_val, ep->val_type, 2); */
+    /* jdaw_val_to_str(dststr, 32, endpoint_read(ep, NULL), ep->val_type, 2); */
     /* fprintf(stderr, "PAGE EL cb %s\n", dststr); */
     if (!page_loc) {
 	fprintf(stderr, "Error: track settings callback: endpoint does not contain page loc in third xarg\n");
@@ -196,7 +196,7 @@ void click_segment_set_start_pos(ClickSegment *s, int32_t new_end_pos);
 void click_segment_bound_proj_cb(Endpoint *ep)
 {
     ClickSegment *s = ep->xarg1;
-    Value new_pos = endpoint_safe_read(ep, NULL);
+    Value new_pos = endpoint_read(ep, NULL);
     click_segment_set_start_pos(s, new_pos.int32_v);
 }
 

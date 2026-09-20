@@ -836,13 +836,15 @@ static void stash_all_object_positions(ClickSegment *seg, double len_prop)
 static void bpm_proj_cb(Endpoint *ep)
 {
     ClickSegment *s = ep->xarg1;
-    double len_prop = ep->last_write_val.float_v / ep->current_write_val.float_v;
+    /* TODO: fix this after endpoint refactor! */
+    double len_prop = 1.0;
+    /* double len_prop = ep->last_write_val.float_v / endpoint_read(ep, NULL).float_v; */
     stash_all_object_positions(s, len_prop);
-    click_segment_set_config(s, s->num_measures, ep->current_write_val.float_v, s->cfg.num_beats, s->cfg.beat_len_atoms, s->track->end_bound_behavior);
+    click_segment_set_config(s, s->num_measures, endpoint_read(ep, NULL).float_v, s->cfg.num_beats, s->cfg.beat_len_atoms, s->track->end_bound_behavior);
     if (session_get()->dragged_component.component == s) {
 	label_move(s->bpm_label, main_win->mousep.x, s->track->layout->rect.y - 20);
     }
-    label_reset(s->bpm_label, ep->current_write_val);
+    label_reset(s->bpm_label, endpoint_read(ep, NULL));
     reset_positions_from_stash();
 }
 
@@ -1806,7 +1808,7 @@ void click_track_mix_metronome(ClickTrack *ct, float *mixdown_buf, int32_t mixdo
 	if (!ctp.seg) break;
 
     }
-    float_buf_mult_const(ct->metronome_buf, endpoint_safe_read(&ct->metronome.vol_ep, NULL).float_v, ct->metronome_buf_len);
+    float_buf_mult_const(ct->metronome_buf, endpoint_read(&ct->metronome.vol_ep, NULL).float_v, ct->metronome_buf_len);
 add_metronome_buf:
     float_buf_add(mixdown_buf, ct->metronome_buf, mixdown_buf_len);
 }
@@ -2022,7 +2024,7 @@ bool click_track_triage_click(uint8_t button, ClickTrack *t)
 	original_bpm = dragging_pos.seg->cfg.bpm;
 	session->dragged_component.component = dragging_pos.seg;
 	session->dragged_component.type = DRAG_CLICK_TRACK_POS;
-	Value cur_val = endpoint_safe_read(&dragging_pos.seg->bpm_ep, NULL);
+	Value cur_val = endpoint_read(&dragging_pos.seg->bpm_ep, NULL);
 	endpoint_start_continuous_change(&dragging_pos.seg->bpm_ep, false, (Value){0}, JDAW_THREAD_MAIN, cur_val);
 	label_move(dragging_pos.seg->bpm_label, main_win->mousep.x, dragging_pos.seg->track->layout->rect.y - 20);
 	label_reset(dragging_pos.seg->bpm_label, cur_val);
@@ -2047,7 +2049,7 @@ bool click_track_triage_click(uint8_t button, ClickTrack *t)
 	if (final) {
 	    session->dragged_component.component = final;
 	    session->dragged_component.type = DRAG_CLICK_SEG_BOUND;
-	    Value current_val = endpoint_safe_read(&final->start_pos_ep, NULL);
+	    Value current_val = endpoint_read(&final->start_pos_ep, NULL);
 	    endpoint_start_continuous_change(&final->start_pos_ep, false, (Value)0, JDAW_THREAD_MAIN, current_val);
 	    return true;
 	}

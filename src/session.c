@@ -80,7 +80,7 @@ static void instrument_monitor_latency_labelfn(char *dst, size_t dstsize, Value 
 
 static void instrument_monitor_latency_cb(Endpoint *ep)
 {
-    float raw = ep->current_write_val.float_v;
+    float raw = endpoint_read(ep, NULL).float_v;
     int lfqueue_len;
     float ms;
     latency_from_raw(raw, &lfqueue_len, &ms);

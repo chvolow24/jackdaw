@@ -100,7 +100,7 @@ typedef struct automation {
     Value max;
     Value min;
     Value range;
-    void *target_val;
+    /* void *target_val; */
 
     Endpoint *endpoint;
     

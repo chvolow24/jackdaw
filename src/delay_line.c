@@ -21,7 +21,7 @@ void delay_line_len_dsp_cb(Endpoint *ep)
     Session *session = session_get();
     double sample_rate = session->proj_initialized ? session_get_sample_rate() : DEFAULT_SAMPLE_RATE;
     DelayLine *dl = (DelayLine *)ep->xarg1;
-    int16_t val_msec = endpoint_safe_read(ep, NULL).int16_v;
+    int16_t val_msec = endpoint_read(ep, NULL).int16_v;
     int32_t len_sframes = (int32_t)((double)val_msec * sample_rate / 1000.0);
     delay_line_set_params(dl, dl->amp, len_sframes);
     /* session_queue_callback(proj, ep, secondary_delay_line_gui_cb, JDAW_THREAD_MAIN); */

@@ -167,7 +167,7 @@ void schroeder_set_lop_delay_coeff(Schroeder *sch, float new)
 void decay_time_dsp_cb(Endpoint *ep)
 {
     Schroeder *sch = ep->xarg1;
-    float raw = ep->current_write_val.float_v;
+    float raw = endpoint_read(ep, NULL).float_v;
     /* sch->lop_delay_coeff = 0.5 + sqrt(raw) / 2; */
     sch->lop_delay_coeff_raw = 0.6 + 2 * sqrtf(raw) / 5;
     sch->lop_delay_coeff = powf(sch->lop_delay_coeff_raw, sqrtf(sch->delay_len_scalar));
@@ -178,7 +178,7 @@ void decay_time_dsp_cb(Endpoint *ep)
 void brightness_dsp_cb(Endpoint *ep)
 {
     Schroeder *sch = ep->xarg1;
-    float raw = ep->current_write_val.float_v;
+    float raw = endpoint_read(ep, NULL).float_v;
     /* float lop_coeff = expf(sqrtf(sch->delay_len_scalar) * logf(raw)); */
     /* fprintf(stderr, "Lop coeff %f (br %f)\n ", lop_coeff, raw); */
     schroeder_set_lop_coeff(sch, raw);
@@ -188,7 +188,7 @@ void brightness_dsp_cb(Endpoint *ep)
 void stereo_spread_dsp_cb(Endpoint *ep)
 {
     Schroeder *sch = ep->xarg1;
-    float raw = ep->current_write_val.float_v;
+    float raw = endpoint_read(ep, NULL).float_v;
     sch->panscale_syntonic = 0.5f + raw / 2;
     sch->panscale_dystonic = 0.5f - raw / 2;
 }
@@ -213,7 +213,7 @@ void delay_len_scalar_dsp_cb(Endpoint *ep)
 void predelay_dsp_cb(Endpoint *ep)
 {
     Schroeder *sch = ep->xarg1;
-    float raw = ep->current_write_val.float_v;
+    float raw = endpoint_read(ep, NULL).float_v;
     sch->predelay_index = 0;
     sch->predelay_len = (double)raw / 1000 * session_get_sample_rate();
 }

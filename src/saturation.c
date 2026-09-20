@@ -21,7 +21,7 @@ static void saturation_gain_cb(Endpoint *ep)
 static void saturation_type_cb(Endpoint *ep)
 {
     Saturation *s = (Saturation *)ep->xarg1;
-    int type_int = ep->current_write_val.int_v;
+    int type_int = endpoint_read(ep, NULL).int_v;
     saturation_set_type(s, (SaturationType)type_int);
 }
 

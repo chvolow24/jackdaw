@@ -12,7 +12,7 @@
 static void dsp_cb_attack(Endpoint *ep)
 {
     /* int msec_prev = ep->overwrite_val.int_v; */
-    int msec = endpoint_safe_read(ep, NULL).int_v;
+    int msec = endpoint_read(ep, NULL).int_v;
     /* int32_t samples_prev = (double)msec_prev * (double)session_get_sample_rate() / 1000.0; */
     int32_t samples = (double)msec * (double)session_get_sample_rate() / 1000.0;
     
@@ -24,7 +24,7 @@ static void dsp_cb_attack(Endpoint *ep)
 static void dsp_cb_decay(Endpoint *ep)
 {
     /* int msec_prev = ep->overwrite_val.int_v; */
-    int msec = endpoint_safe_read(ep, NULL).int_v;
+    int msec = endpoint_read(ep, NULL).int_v;
     /* int32_t samples_prev = msec_prev * session_get_sample_rate() / 1000; */
     int32_t samples = msec * session_get_sample_rate() / 1000;
     ADSRParams *p = ep->xarg1;
@@ -34,7 +34,7 @@ static void dsp_cb_decay(Endpoint *ep)
 
 static void dsp_cb_sustain(Endpoint *ep)
 {
-    float s = endpoint_safe_read(ep, NULL).float_v;
+    float s = endpoint_read(ep, NULL).float_v;
     ADSRParams *p = ep->xarg1;
     adsr_set_params(p, p->a, p->d, s, p->r, p->ramp_exp);
 }
@@ -43,7 +43,7 @@ static void dsp_cb_sustain(Endpoint *ep)
 static void dsp_cb_release(Endpoint *ep)
 {
     /* int msec_prev = ep->overwrite_val.int_v; */
-    int msec = endpoint_safe_read(ep, NULL).int_v;
+    int msec = endpoint_read(ep, NULL).int_v;
     int32_t samples = msec * session_get_sample_rate() / 1000;
     /* int32_t samples_prev = msec_prev * session_get_sample_rate() / 1000; */
     ADSRParams *p = ep->xarg1;

@@ -59,9 +59,9 @@ static void pitch_shifter_set_shift(PitchShifter *ps, double cents_broad, int se
 static void shift_cents_dsp_cb(Endpoint *ep)
 {
     PitchShifter *ps = ep->xarg1;
-    double cents_broad = ep->current_write_val.double_v;
-    int semitones = endpoint_safe_read(&ps->shift_semitones_ep, NULL).int_v;
-    double adttl_cents = endpoint_safe_read(&ps->shift_fine_ep, NULL).double_v;
+    double cents_broad = endpoint_read(ep, NULL).double_v;
+    int semitones = endpoint_read(&ps->shift_semitones_ep, NULL).int_v;
+    double adttl_cents = endpoint_read(&ps->shift_fine_ep, NULL).double_v;
 
     pitch_shifter_set_shift(ps, cents_broad, semitones, adttl_cents);
 }
@@ -69,9 +69,9 @@ static void shift_cents_dsp_cb(Endpoint *ep)
 static void shift_semitones_dsp_cb(Endpoint *ep)
 {
     PitchShifter *ps = ep->xarg1;
-    double cents_broad = endpoint_safe_read(&ps->shift_cents_ep, NULL).double_v;
-    int semitones = ep->current_write_val.int_v;
-    double adttl_cents = endpoint_safe_read(&ps->shift_fine_ep, NULL).double_v;
+    double cents_broad = endpoint_read(&ps->shift_cents_ep, NULL).double_v;
+    int semitones = endpoint_read(ep, NULL).int_v;
+    double adttl_cents = endpoint_read(&ps->shift_fine_ep, NULL).double_v;
     
     pitch_shifter_set_shift(ps, cents_broad, semitones, adttl_cents);
 }
@@ -79,16 +79,16 @@ static void shift_semitones_dsp_cb(Endpoint *ep)
 static void shift_fine_dsp_cb(Endpoint *ep)
 {
     PitchShifter *ps = ep->xarg1;
-    double cents_broad = endpoint_safe_read(&ps->shift_cents_ep, NULL).double_v;
-    int semitones = endpoint_safe_read(&ps->shift_semitones_ep, NULL).int_v;
-    double adttl_cents = ep->current_write_val.double_v;
+    double cents_broad = endpoint_read(&ps->shift_cents_ep, NULL).double_v;
+    int semitones = endpoint_read(&ps->shift_semitones_ep, NULL).int_v;
+    double adttl_cents = endpoint_read(ep, NULL).double_v;
     
     pitch_shifter_set_shift(ps, cents_broad, semitones, adttl_cents);
 }
 
 static void quality_dsp_cb(Endpoint *ep)
 {
-    pitch_shifter_set_quality(ep->xarg1, ep->current_write_val.double_v);
+    pitch_shifter_set_quality(ep->xarg1, endpoint_read(ep, NULL).double_v);
 }
 
 

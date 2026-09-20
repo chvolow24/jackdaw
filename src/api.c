@@ -677,7 +677,7 @@ void api_node_print_routes_with_values(APINode *node)
     for (int i=0; i<node->num_endpoints; i++) {
 	api_endpoint_get_route(node->endpoints[i], dst, dstlen);
 	ValType t;
-	jdaw_val_to_str(valdst, dstlen, endpoint_safe_read(node->endpoints[i], &t), t, 5);
+	jdaw_val_to_str(valdst, dstlen, endpoint_read(node->endpoints[i], &t), t, 5);
 	fprintf(stderr, "%s %s\n", dst, valdst);
     }
     for (int i=0; i<node->num_children; i++) {
@@ -724,7 +724,7 @@ static void api_node_serialize_recursive(FILE *f, APINode *root, APINode *node)
 	fprintf(f, "%s ", buf);
 	/* fwrite(buf, 1, strlen(buf), f); */
 	ValType t;
-	Value val = endpoint_safe_read(ep, &t);
+	Value val = endpoint_read(ep, &t);
 	jdaw_val_serialize(f, val, t);
 	fputc('\n', f);
     }

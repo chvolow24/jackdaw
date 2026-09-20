@@ -92,7 +92,7 @@ static double bandcut_IR(int x, int offset, double center_freq, double bandwidth
 static void filter_cutoff_dsp_cb(Endpoint *ep)
 {
     FIRFilter *f = (FIRFilter *)ep->xarg1;
-    double cutoff_ctrl = ep->current_write_val.double_v;
+    double cutoff_ctrl = endpoint_read(ep, NULL).double_v;
     double bandwidth_ctrl = f->bandwidth_ctrl;
     filter_set_params(f, f->type, cutoff_ctrl, bandwidth_ctrl);
 }
@@ -101,7 +101,7 @@ static void filter_bandwidth_dsp_cb(Endpoint *ep)
 {
     FIRFilter *f = (FIRFilter *)ep->xarg1;
     double cutoff_ctrl = f->cutoff_freq_ctrl;
-    double bandwidth_ctrl = ep->current_write_val.double_v;
+    double bandwidth_ctrl = endpoint_read(ep, NULL).double_v;
     filter_set_params(f, f->type, cutoff_ctrl, bandwidth_ctrl);    
 }
 
@@ -109,7 +109,7 @@ static void filter_bandwidth_dsp_cb(Endpoint *ep)
 static void filter_irlen_dsp_cb(Endpoint *ep)
 {
     FIRFilter *f = (FIRFilter *)ep->xarg1;
-    Value irlen_val = endpoint_safe_read(ep, NULL);
+    Value irlen_val = endpoint_read(ep, NULL);
     filter_set_impulse_response_len(f, irlen_val.uint16_v);
 }
 
@@ -117,7 +117,7 @@ static void filter_irlen_dsp_cb(Endpoint *ep)
 static void filter_type_dsp_cb(Endpoint *ep)
 {
     FIRFilter *f = (FIRFilter *)ep->xarg1;
-    Value val = endpoint_safe_read(ep, NULL);
+    Value val = endpoint_read(ep, NULL);
     FilterType t = (FilterType)val.int_v;
     filter_set_type(f, t);
     

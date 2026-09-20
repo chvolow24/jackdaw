@@ -278,7 +278,7 @@ Automation *track_add_automation_from_endpoint(Track *track, Endpoint *ep)
     else a->max = ep->max;
     /* a->max = ep->max; */
     a->range = jdaw_val_sub(ep->max, ep->min, ep->val_type);
-    a->target_val = ep->val;
+    /* a->target_val = ep->thread_local_val; */
     Value base_kf_val = ep->default_val;
     automation_insert_keyframe_at(a, 0, base_kf_val);
     endpoint_bind_automation(ep, a);

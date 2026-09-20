@@ -760,7 +760,7 @@ static int auto_dropdown_action(void *self, void *xarg)
 static void vol_dsp_cb(Endpoint *ep)
 {
     Track *track = ep->xarg3;
-    float new_ctrl_val = ep->current_write_val.float_v;
+    float new_ctrl_val = endpoint_read(ep, NULL).float_v;
     track->vol = pow(new_ctrl_val, VOL_EXP);
 }
 

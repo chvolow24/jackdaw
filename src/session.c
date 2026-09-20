@@ -166,16 +166,13 @@ Session *session_create()
             int ret = lfqueue_init(
                 &session->queued_ops.queued_callbacks_v2[t][w],
                 sizeof(struct queued_cb),
-                MAX_ENDPOINT_CALLBACKS);
+                MAX_CBS_PER_QUEUE);
             if (ret <= 0) {
                 log_tmp(LOG_ERROR, "Error initializing endpoint callback lfqueue\n");
             }
         }
     }
 
-    /* for (int i=0;  */
-    /* lfqueue_init(&session->playback.monitoring_instrument_L, session->proj. */
-    
     endpoint_init(
 	&session->playback.play_speed_ep,
 	&session->playback.play_speed,

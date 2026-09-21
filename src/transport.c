@@ -248,15 +248,15 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     set_thread_id(JDAW_THREAD_PLAYBACK);
 
     /* Take care of queued audio bufs */
-    int err;
-    if ((err = pthread_mutex_lock(&session->queued_ops.queued_audio_buf_lock)) != 0) {
-	fprintf(stderr, "Error locking queued audio buf lock (in playback cb): %s\n", strerror(err));
-    }
-    loc_queue_bufs(session->queued_ops.queued_audio_bufs, session->queued_ops.num_queued_audio_bufs);
-    session->queued_ops.num_queued_audio_bufs = 0;
-    if ((err = pthread_mutex_unlock(&session->queued_ops.queued_audio_buf_lock)) != 0) {
-	fprintf(stderr, "Error unlocking queued audio buf lock (in playback cb): %s\n", strerror(err));
-    }
+    /* int err; */
+    /* if ((err = pthread_mutex_lock(&session->queued_ops.queued_audio_buf_lock)) != 0) { */
+    /*     fprintf(stderr, "Error locking queued audio buf lock (in playback cb): %s\n", strerror(err)); */
+    /* } */
+    /* loc_queue_bufs(session->queued_ops.queued_audio_bufs, session->queued_ops.num_queued_audio_bufs); */
+    /* session->queued_ops.num_queued_audio_bufs = 0; */
+    /* if ((err = pthread_mutex_unlock(&session->queued_ops.queued_audio_buf_lock)) != 0) { */
+    /*     fprintf(stderr, "Error unlocking queued audio buf lock (in playback cb): %s\n", strerror(err)); */
+    /* } */
     if (!session->playback.playing && !session->midi_io.monitoring && queue_loc.num_queued == 0) {
 	memset(stream, '\0', len);
 	return;
@@ -281,20 +281,36 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 	    get_source_mode_chunk(chunk_L, chunk_R, len_sframes, session->source_mode.src_play_pos_sframes, session->source_mode.src_play_speed);
 	    /* get_source_mode_chunk(1, chunk_R, len_sframes, session->source_mode.src_play_pos_sframes, session->source_mode.src_play_speed); */
 	} else {
-	    int wait_count = 0;
-	    while (sem_trywait(tl->readable_chunks) != 0) {
-		wait_count++;
-		if (wait_count > 100) {
-		    transport_log("Playback callback early exit (can't wait on readable chunks)\n");
-		    return;
-		}
-	    }
-	    memcpy(chunk_L, tl->buf_L + tl->buf_read_pos, sizeof(float) * len_sframes);
-	    memcpy(chunk_R, tl->buf_R + tl->buf_read_pos, sizeof(float) * len_sframes);
-	    tl->buf_read_pos += len_sframes;
-	    if (tl->buf_read_pos >= proj->fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS) {
-		tl->buf_read_pos = 0;
-	    }
+            float interleaved[len_sframes * 2];
+            int ret = lfqueue_try_dequeue(
+                &session->playback.playback_lfqueue,
+                interleaved,
+                len_sframes * 2);
+            if (ret != LFQUEUE_SUCCESS) {
+                return;
+            }
+            
+
+	    /* int wait_count = 0; */
+	    /* while (sem_trywait(tl->readable_chunks) != 0) { */
+	    /*     wait_count++; */
+	    /*     if (wait_count > 100) { */
+	    /*         transport_log("Playback callback early exit (can't wait on readable chunks)\n"); */
+	    /*         return; */
+	    /*     } */
+	    /* } */
+            
+	    /* memcpy(chunk_L, tl->buf_L + tl->buf_read_pos, sizeof(float) * len_sframes); */
+	    /* memcpy(chunk_R, tl->buf_R + tl->buf_read_pos, sizeof(float) * len_sframes); */
+            for (int i=0; i<len_sframes * 2; i+=2) {
+                chunk_L[i/2] = interleaved[i];
+                chunk_R[i/2] = interleaved[i+1];
+            }
+            
+	    /* tl->buf_read_pos += len_sframes; */
+	    /* if (tl->buf_read_pos >= proj->fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS) { */
+	    /*     tl->buf_read_pos = 0; */
+	    /* } */
 	}
     }
 
@@ -355,7 +371,7 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 		tl->dsp_chunks_info_read_i = 0;
 	    }
 	}
-	sem_post(tl->writable_chunks);
+	/* sem_post(tl->writable_chunks); */
 	/* timer_stop_and_print("Did playback_things"); */
     }
     /* timer_start(); */
@@ -373,17 +389,17 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 	tl->read_pos_sframes = dev->channel_dsts[0].conn->request_playhead_pos;
 
 	/* "Read" the rest of the mixdown buffer so DSP restarts */
-	while (tl->buf_read_pos != saved_write_pos) {
-	    int semret = sem_trywait(tl->readable_chunks);
-	    if (semret != 0) {
-		error_exit("ERROR: unable to wait on readable chunks! sem_trywait: %s", strerror(errno));
-	    }
-	    tl->buf_read_pos += len_sframes;
-	    sem_post(tl->writable_chunks);
-	    if (tl->buf_read_pos >= proj->fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS) {
-		tl->buf_read_pos = 0;
-	    }
-	}
+	/* while (tl->buf_read_pos != saved_write_pos) { */
+	/*     int semret = sem_trywait(tl->readable_chunks); */
+	/*     if (semret != 0) { */
+	/* 	error_exit("ERROR: unable to wait on readable chunks! sem_trywait: %s", strerror(errno)); */
+	/*     } */
+	/*     tl->buf_read_pos += len_sframes; */
+	/*     sem_post(tl->writable_chunks); */
+	/*     if (tl->buf_read_pos >= proj->fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS) { */
+	/* 	tl->buf_read_pos = 0; */
+	/*     } */
+	/* } */
 
 	/* Reset the dsp chunks info indices */
 	tl->dsp_chunks_info_read_i = 0;
@@ -470,9 +486,9 @@ static void *transport_dsp_threadfn(void *arg)
 
 	/* Copy buffer */
 	
-	for (int i=0; i<N; i++) {
-	    sem_wait(tl->writable_chunks);
-	}
+	/* for (int i=0; i<N; i++) { */
+	/*     sem_wait(tl->writable_chunks); */
+	/* } */
 
 	if (transport_performance_logging) {
 	    clock_gettime(CLOCK_REALTIME, &tspec_end);
@@ -480,10 +496,23 @@ static void *transport_dsp_threadfn(void *arg)
 	    clock_gettime(CLOCK_REALTIME, &tspec_start);
 	}
 
-	memcpy(tl->buf_L + tl->buf_write_pos, buf_L, sizeof(float) * len);
-	memcpy(tl->buf_R + tl->buf_write_pos, buf_R, sizeof(float) * len);
-	memcpy(tl->proj->output_L, buf_L, sizeof(float) * len);
-	memcpy(tl->proj->output_R, buf_R, sizeof(float) * len);
+        float interleaved[len * 2];
+        for (int i=0; i<len * 2; i+=2) {
+            interleaved[i] = buf_L[i / 2];
+            interleaved[i + 1] = buf_R[i / 2];
+        }
+        lfqueue_wait_enqueue(
+            &session->playback.playback_lfqueue,
+            interleaved,
+            len * 2,
+            1000,
+            0,
+            &cancel_dsp_thread);
+
+	/* memcpy(tl->buf_L + tl->buf_write_pos, buf_L, sizeof(float) * len); */
+	/* memcpy(tl->buf_R + tl->buf_write_pos, buf_R, sizeof(float) * len); */
+	/* memcpy(tl->proj->output_L, buf_L, sizeof(float) * len); */
+	/* memcpy(tl->proj->output_R, buf_R, sizeof(float) * len); */
 
 	for (uint16_t i=tl->proj->active_clip_index; i<tl->proj->num_clips; i++) {
 	    Clip *clip = tl->proj->clips[i];
@@ -535,17 +564,17 @@ static void *transport_dsp_threadfn(void *arg)
 	    }
 	}
 	
-	for (int i=0; i<N; i++) {
-	    sem_post(tl->readable_chunks);
-	}
-	if (init) {
-	    sem_post(tl->unpause_sem);
-	    init = false;
-	}
+	/* for (int i=0; i<N; i++) { */
+	/*     sem_post(tl->readable_chunks); */
+	/* } */
+	/* if (init) { */
+	/*     sem_post(tl->unpause_sem); */
+	/*     init = false; */
+	/* } */
 	
-	session_do_ongoing_changes(session, JDAW_THREAD_DSP);
-	session_flush_val_changes(session, JDAW_THREAD_DSP);
-	session_flush_callbacks(session, JDAW_THREAD_DSP);
+	/* session_do_ongoing_changes(session, JDAW_THREAD_DSP); */
+	/* session_flush_val_changes(session, JDAW_THREAD_DSP); */
+	/* session_flush_callbacks(session, JDAW_THREAD_DSP); */
 
 	if (transport_performance_logging) {
 	    clock_gettime(CLOCK_REALTIME, &tspec_end);
@@ -567,7 +596,7 @@ static void *transport_dsp_threadfn(void *arg)
 	}
     }
     log_tmp(LOG_INFO, "DSP thread exit\n");
-    sem_post(tl->unpause_sem);
+    /* sem_post(tl->unpause_sem); */
 
     return NULL;
 }
@@ -633,7 +662,7 @@ void transport_start_playback()
 	fprintf(stderr, "pthread_create: %s\n", strerror(ret));
     }
 
-    sem_wait(tl->unpause_sem);
+    /* sem_wait(tl->unpause_sem); */
     if (audioconn_start_playback(session->audio_io.playback_conn) < 0) {
 	log_tmp(LOG_ERROR, "In start playback, audio connection could not be opened; stopping playback.\n");
 	transport_stop_playback();
@@ -696,26 +725,26 @@ void transport_stop_playback()
     /* pthread_cancel(*get_thread_addr(JDAW_THREAD_DSP)); */
     
     /* Unblock DSP thread */
-    for (int i=0; i<512; i++) {
-	sem_post(tl->writable_chunks);
-	sem_post(tl->readable_chunks);
-    }
+    /* for (int i=0; i<512; i++) { */
+    /*     sem_post(tl->writable_chunks); */
+    /*     sem_post(tl->readable_chunks); */
+    /* } */
 
     /* Wait for DSP thread to exit */
-    sem_wait(tl->unpause_sem);
+    /* sem_wait(tl->unpause_sem); */
     pthread_join(*get_thread_addr(JDAW_THREAD_DSP), NULL);
     thread_set_inactive(JDAW_THREAD_DSP);
 
     /* Exhaust all sems */
-    while (sem_trywait(tl->unpause_sem) == 0) {};
-    while (sem_trywait(tl->writable_chunks) == 0) {};
-    while (sem_trywait(tl->readable_chunks) == 0) {};
+    /* while (sem_trywait(tl->unpause_sem) == 0) {}; */
+    /* while (sem_trywait(tl->writable_chunks) == 0) {}; */
+    /* while (sem_trywait(tl->readable_chunks) == 0) {}; */
 
     /* Reset writeable chunks sem */
-    for (int i=0; i<session->proj.fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS / session->proj.chunk_size_sframes; i++) {
-	/* fprintf(stdout, "\t->reinitiailizing writable chunks\n"); */
-	sem_post(tl->writable_chunks);
-    }
+    /* for (int i=0; i<session->proj.fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS / session->proj.chunk_size_sframes; i++) { */
+    /*     /\* fprintf(stdout, "\t->reinitiailizing writable chunks\n"); *\/ */
+    /*     sem_post(tl->writable_chunks); */
+    /* } */
     tl->buf_read_pos = 0;
     tl->buf_write_pos = 0;
     tl->dsp_chunks_info_read_i = 0;

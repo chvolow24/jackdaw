@@ -205,6 +205,8 @@ struct playback {
     LFQueue instrument_monitor_lfqueue;
     float instrument_monitor_latency_raw;
     Endpoint instrument_monitor_latency_ep;
+
+    LFQueue playback_lfqueue;
 };
 
 /* struct audio_settings { */

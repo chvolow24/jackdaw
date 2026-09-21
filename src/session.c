@@ -204,6 +204,11 @@ Session *session_create()
     int lfqueue_len;
     latency_from_raw(1.0, &lfqueue_len, NULL);
     lfqueue_init(&session->playback.instrument_monitor_lfqueue, sizeof(float), lfqueue_len);
+    
+    lfqueue_len = session->proj_initialized ?
+        2 * session->proj.fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS
+        : 2 * DEFAULT_FOURIER_LEN_SFRAMES * RING_BUF_LEN_FFT_CHUNKS;
+    lfqueue_init(&session->playback.playback_lfqueue, sizeof(float), lfqueue_len);
 
     endpoint_init(
         &session->playback.instrument_monitor_latency_ep,
@@ -366,6 +371,7 @@ void session_destroy()
             lfqueue_deinit(&session->queued_ops.queued_callbacks_v2[t][w]);
         }
     }
+    lfqueue_deinit(&session->playback.playback_lfqueue);
 
 
 

@@ -21,6 +21,7 @@
 #include "log.h"
 #include "instrument_monitor.h"
 #include "session.h"
+#include "session_endpoint_ops.h"
 #include "timeline.h"
 #include "transport.h"
 #include "user_event.h"
@@ -145,18 +146,6 @@ Session *session_create()
 
     int err;
 
-    if ((err = pthread_mutex_init(&session->queued_ops.queued_val_changes_lock, NULL)) != 0) {
-	fprintf(stderr, "Error initializing queued val changes mutex: %s\n", strerror(err));
-	exit(1);
-    }
-    if ((err = pthread_mutex_init(&session->queued_ops.queued_callback_lock, NULL)) != 0) {
-	fprintf(stderr, "Error initializing queued callback mutex: %s\n", strerror(err));
-	exit(1);
-    }
-    if ((err = pthread_mutex_init(&session->queued_ops.ongoing_changes_lock, NULL)) != 0) {
-	fprintf(stderr, "Error initializing ongoing changes mutex: %s\n", strerror(err));
-	exit(1);
-    }
     if ((err = pthread_mutex_init(&session->queued_ops.queued_audio_buf_lock, NULL)) != 0) {
 	fprintf(stderr, "Error initializing queued audio buf mutex: %s\n", strerror(err));
 	exit(1);
@@ -487,8 +476,6 @@ unlock_and_exit:
     }
 
 }
-void session_flush_callbacks(Session *session, enum jdaw_thread thread);
-void session_flush_ongoing_changes(Session *session, enum jdaw_thread thread);
 
 #define check_queued_ops_lock(name) \
     if ((err = pthread_mutex_lock(&session->queued_ops.name))) {	\
@@ -519,9 +506,7 @@ void session_clear_all_queues()
 
     /* Clear ongoing changes */
     /* check_queued_ops_lock(ongoing_changes_lock); */
-    for (int i=0; i<NUM_JDAW_THREADS; i++) {
-	session_flush_ongoing_changes(session, i);
-    }
+    session_clear_all_ongoing_changes();
     /* check_queued_ops_unlock(ongoing_changes_lock); */
 
 

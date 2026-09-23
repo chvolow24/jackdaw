@@ -115,11 +115,15 @@ void thread_start(enum jdaw_thread thread, pthread_attr_t *attr, void *(*threadf
         log_tmp(LOG_WARN, "Call to activate an already-active thread (%s)\n", get_thread_name(thread));
         return;
     }
-    atomic_store_explicit(&thread_req_cancel[thread], true, memory_order_relaxed);
+    atomic_store_explicit(&thread_req_cancel[thread], false, memory_order_relaxed);
     thread_set_active(thread);
     int ret = pthread_create(&THREAD_IDS[thread], attr, threadfn, arg);
+    if (ret != 0 && attr) {
+        log_tmp(LOG_WARN, "pthread_create failed on %s thread with requested attributes: %s\n", get_thread_name(thread), strerror(ret));
+        ret = pthread_create(&THREAD_IDS[thread], attr, threadfn, arg);
+    }
     if (ret != 0) {
-        log_tmp(LOG_ERROR, "pthread_create: %s\n", strerror(ret));
+        log_tmp(LOG_ERROR, "pthread_create failed on %s thread: %s\n", get_thread_name(thread), strerror(ret));
     }
 }
 
@@ -135,4 +139,18 @@ void thread_cancel(enum jdaw_thread thread)
     thread_set_inactive(thread);
     /* Leftover callbacks queued on the thread can be executed on main */
     session_run_thread_callbacks(thread);    
+}
+
+/* Loop condition */
+bool thread_not_canceled()
+{
+    if (CURRENT_THREAD_INDEX < 0 || CURRENT_THREAD_INDEX >= NUM_JDAW_THREADS) {
+        log_tmp(LOG_ERROR, "Current thread index unset in thread_not_canceled\n");
+    }
+    return !atomic_load_explicit(&thread_req_cancel[CURRENT_THREAD_INDEX], memory_order_relaxed);
+}
+
+_Atomic bool *thread_get_cancellation_bool(enum jdaw_thread thread)
+{
+    return &thread_req_cancel[thread];
 }

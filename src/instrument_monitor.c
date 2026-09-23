@@ -4,10 +4,9 @@
 #include "session.h"
 #include "session_endpoint_ops.h"
 #include "spsc_lfqueue.h"
+#include "thread_safety.h"
 
 #define INSTRUMENT_MONITOR_WAIT_LOOP_USECONDS 100
-
-static _Atomic bool cancel_monitoring = false;
 
 static void *instrument_monitor_threadfn(void *arg)
 {
@@ -32,8 +31,8 @@ static void *instrument_monitor_threadfn(void *arg)
                LR,
                len_sframes * 2) == LFQUEUE_SUCCESS) {};
     fprintf(stderr, "ENTERING!\n");
-    while (!atomic_load_explicit(&cancel_monitoring, memory_order_relaxed)) {
-
+    while (thread_not_canceled()) {
+        session_do_ongoing_changes(JDAW_THREAD_INSTRUMENT);
         session_run_thread_callbacks(JDAW_THREAD_INSTRUMENT);
         /* fprintf(stderr, "last iter time: %ld\n", clock() - c); */
         /* c = clock(); */
@@ -65,18 +64,7 @@ static void *instrument_monitor_threadfn(void *arg)
             len_sframes * 2,
             INSTRUMENT_MONITOR_WAIT_LOOP_USECONDS,
             0,
-            &cancel_monitoring);
-        /* lfqueue_wait_enqueue( */
-        /*     &tl->monitoring_instrument_R, */
-        /*     R, */
-        /*     len_sframes, */
-        /*     INSTRUMENT_MONITOR_WAIT_LOOP_USECONDS, */
-        /*     0, */
-        /*     &cancel_monitoring); */
-        session_do_ongoing_changes(session, JDAW_THREAD_INSTRUMENT);
-        session_flush_val_changes(session, JDAW_THREAD_INSTRUMENT);
-        session_flush_callbacks(session, JDAW_THREAD_INSTRUMENT);
-        /* fprintf(stderr, "Done ongoing and val changes\n"); */
+            thread_get_cancellation_bool(current_thread()));
     }
     return NULL;
 }
@@ -84,7 +72,6 @@ static void *instrument_monitor_threadfn(void *arg)
 void instrument_monitor_start()
 {
     Session *session = session_get();
-    atomic_store_explicit(&cancel_monitoring, false, memory_order_relaxed);
 
     pthread_attr_t attr;
     int sched_policy = SCHED_FIFO;
@@ -115,26 +102,14 @@ void instrument_monitor_start()
     if ((ret = pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED)) != 0) {
         fprintf(stderr, "pthread_attr_setinheritsched: %s\n", strerror(ret));
     }
-    thread_set_active(JDAW_THREAD_INSTRUMENT);
-    if ((ret = pthread_create(get_thread_addr(JDAW_THREAD_INSTRUMENT), &attr, instrument_monitor_threadfn, NULL)) != 0) {
-        log_tmp(LOG_WARN, "pthread_create failed to create instrument monitor thread with sched pri %d: %s\n", priority, strerror(ret));        
-        if ((ret = pthread_create(get_thread_addr(JDAW_THREAD_INSTRUMENT), NULL, instrument_monitor_threadfn, NULL)) != 0) {
-            fprintf(stderr, "pthread_create fallback failed to create instrument monitor: %s\n", strerror(ret));
-            exit(1);
-        }
-    }
+
+    thread_start(JDAW_THREAD_INSTRUMENT, &attr, instrument_monitor_threadfn, NULL);
     pthread_attr_destroy(&attr);
-    usleep(1000);
     audioconn_start_playback(session->audio_io.playback_conn);
 }
 
 void instrument_monitor_stop()
 {
     fprintf(stderr, "Stop monitoring\n");
-    atomic_store_explicit(&cancel_monitoring, true, memory_order_relaxed);
-    if (thread_is_active(JDAW_THREAD_INSTRUMENT)) {
-        pthread_join(*get_thread_addr(JDAW_THREAD_INSTRUMENT), NULL);
-    }
-    thread_set_inactive(JDAW_THREAD_INSTRUMENT);
-    /* audioconn_stop_playback(session_get()->audio_io.playback_conn); */
+    thread_cancel(JDAW_THREAD_INSTRUMENT);
 }

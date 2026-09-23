@@ -392,8 +392,7 @@ void endpoint_start_continuous_change(
     ep->do_auto_incr = do_auto_incr;
     ep->incr = incr;
 
-    Session *session = session_get();
-    session_add_ongoing_change(session, ep, thread);
+    session_add_ongoing_change(ep, thread);
 }
 
 void endpoint_continuous_change_do_incr(Endpoint *ep)

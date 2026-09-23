@@ -313,9 +313,7 @@ void loop_project_main()
 		    }
 		    break;
 		default:
-		    session_flush_ongoing_changes(session, JDAW_THREAD_MAIN);
-		    session_flush_ongoing_changes(session, JDAW_THREAD_DSP);
-		    session_flush_ongoing_changes(session, JDAW_THREAD_PLAYBACK);
+                    session_clear_all_ongoing_changes();
 		    session->playhead_scroll.playhead_do_incr = false;
 		    break;
 		}
@@ -418,9 +416,7 @@ void loop_project_main()
 		} else if (e.button.button == SDL_BUTTON_RIGHT) {
 		    main_win->i_state &= ~I_STATE_MOUSE_R;
 		}
-		session_flush_ongoing_changes(session, JDAW_THREAD_MAIN);
-		session_flush_ongoing_changes(session, JDAW_THREAD_DSP);
-		session_flush_ongoing_changes(session, JDAW_THREAD_PLAYBACK);
+                session_clear_all_ongoing_changes();
 		if (session->piano_roll) {
 		    piano_roll_mouse_up(main_win->mousep);
 		}
@@ -581,13 +577,7 @@ void loop_project_main()
             main_win->needs_redraw = true;
         }
 
-	if (session_do_ongoing_changes(session, JDAW_THREAD_MAIN) > 0) {
-            main_win->needs_redraw = true;
-        }
-	if (session_flush_val_changes(session, JDAW_THREAD_MAIN) > 0) {
-            main_win->needs_redraw = true;
-        }
-	if (session_flush_callbacks(session, JDAW_THREAD_MAIN) > 0) {
+        if (session_do_ongoing_changes(JDAW_THREAD_MAIN) > 0) {
             main_win->needs_redraw = true;
         }
 	if (main_win->needs_redraw) {

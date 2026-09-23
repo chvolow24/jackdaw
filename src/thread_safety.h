@@ -115,8 +115,21 @@ const char *get_current_thread_name();
 const char *get_thread_name(enum jdaw_thread thread);
 bool on_thread(enum jdaw_thread thread_index);
 
+/* Main thread only */
 void thread_set_active(enum jdaw_thread thread);
+/* Main thread only */
 void thread_set_inactive(enum jdaw_thread thread);
+/* Main thread only */
 bool thread_is_active(enum jdaw_thread thread);
+
+
+/* Main thread only; entrypoint for all loop threads */
+void thread_start(enum jdaw_thread thread, pthread_attr_t *attr, void *(*threadfn)(void *), void *arg);
+/* Main thread only; exit point for all loop threads (includes join) */
+void thread_cancel(enum jdaw_thread thread);
+/* Loop condition in thread */
+bool thread_not_canceled();
+
+_Atomic bool *thread_get_cancellation_bool(enum jdaw_thread thread);
 
 #endif

@@ -289,19 +289,6 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
             if (ret != LFQUEUE_SUCCESS) {
                 return;
             }
-            
-
-	    /* int wait_count = 0; */
-	    /* while (sem_trywait(tl->readable_chunks) != 0) { */
-	    /*     wait_count++; */
-	    /*     if (wait_count > 100) { */
-	    /*         transport_log("Playback callback early exit (can't wait on readable chunks)\n"); */
-	    /*         return; */
-	    /*     } */
-	    /* } */
-            
-	    /* memcpy(chunk_L, tl->buf_L + tl->buf_read_pos, sizeof(float) * len_sframes); */
-	    /* memcpy(chunk_R, tl->buf_R + tl->buf_read_pos, sizeof(float) * len_sframes); */
             for (int i=0; i<len_sframes * 2; i+=2) {
                 chunk_L[i/2] = interleaved[i];
                 chunk_R[i/2] = interleaved[i+1];
@@ -376,9 +363,9 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     }
     /* timer_start(); */
     end_playhead_reset:
-    session_do_ongoing_changes(session, JDAW_THREAD_PLAYBACK);
-    session_flush_val_changes(session, JDAW_THREAD_PLAYBACK);
-    session_flush_callbacks(session, JDAW_THREAD_PLAYBACK);
+    /* session_do_ongoing_changes(session, JDAW_THREAD_PLAYBACK); */
+    /* session_flush_val_changes(session, JDAW_THREAD_PLAYBACK); */
+    /* session_flush_callbacks(session, JDAW_THREAD_PLAYBACK); */
     /* timer_stop_and_print("Did ongoing changes"); */
     /* transport_log("...done ongoing changes\n"); */
 
@@ -412,8 +399,6 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     /* } */
 }
 
-static _Atomic bool cancel_dsp_thread = false;
-
 static void *transport_dsp_threadfn(void *arg)
 {
     Session *session = session_get();
@@ -435,7 +420,7 @@ static void *transport_dsp_threadfn(void *arg)
 	tl->dsp_chunks_info_write_i = 0;
     }
     
-    while (!atomic_load_explicit(&cancel_dsp_thread, memory_order_relaxed)) {
+    while (thread_not_canceled()) {
 	/* transport_log("Loop iter\n"); */
 	/* Performance timer */
 	struct timespec tspec_start;
@@ -507,7 +492,7 @@ static void *transport_dsp_threadfn(void *arg)
             len * 2,
             1000,
             0,
-            &cancel_dsp_thread);
+            thread_get_cancellation_bool(current_thread()));
 
 	/* memcpy(tl->buf_L + tl->buf_write_pos, buf_L, sizeof(float) * len); */
 	/* memcpy(tl->buf_R + tl->buf_write_pos, buf_R, sizeof(float) * len); */
@@ -572,10 +557,8 @@ static void *transport_dsp_threadfn(void *arg)
 	/*     init = false; */
 	/* } */
 	
-	/* session_do_ongoing_changes(session, JDAW_THREAD_DSP); */
-	/* session_flush_val_changes(session, JDAW_THREAD_DSP); */
-	/* session_flush_callbacks(session, JDAW_THREAD_DSP); */
-
+	session_do_ongoing_changes(JDAW_THREAD_DSP);
+        
 	if (transport_performance_logging) {
 	    clock_gettime(CLOCK_REALTIME, &tspec_end);
 	    dur_proc += timespec_elapsed_ms(&tspec_start, &tspec_end);
@@ -656,11 +639,12 @@ void transport_start_playback()
 	    fprintf(stderr, "pthread_attr_setstacksize: %s\n", strerror(ret));
 	}
     }
-    thread_set_active(JDAW_THREAD_DSP);
-    atomic_store_explicit(&cancel_dsp_thread, false, memory_order_relaxed);
-    if ((ret = pthread_create(get_thread_addr(JDAW_THREAD_DSP), &attr, transport_dsp_threadfn, (void *)tl)) != 0) {
-	fprintf(stderr, "pthread_create: %s\n", strerror(ret));
-    }
+    thread_start(JDAW_THREAD_DSP, NULL, transport_dsp_threadfn, tl);
+    /* thread_set_active(JDAW_THREAD_DSP); */
+    /* atomic_store_explicit(&cancel_dsp_thread, false, memory_order_relaxed); */
+    /* if ((ret = pthread_create(get_thread_addr(JDAW_THREAD_DSP), &attr, transport_dsp_threadfn, (void *)tl)) != 0) { */
+    /*     fprintf(stderr, "pthread_create: %s\n", strerror(ret)); */
+    /* } */
 
     /* sem_wait(tl->unpause_sem); */
     if (audioconn_start_playback(session->audio_io.playback_conn) < 0) {
@@ -721,24 +705,7 @@ void transport_stop_playback()
     /* 	} */
     /* } */
 
-    atomic_store_explicit(&cancel_dsp_thread, true, memory_order_relaxed);
-    /* pthread_cancel(*get_thread_addr(JDAW_THREAD_DSP)); */
-    
-    /* Unblock DSP thread */
-    /* for (int i=0; i<512; i++) { */
-    /*     sem_post(tl->writable_chunks); */
-    /*     sem_post(tl->readable_chunks); */
-    /* } */
-
-    /* Wait for DSP thread to exit */
-    /* sem_wait(tl->unpause_sem); */
-    pthread_join(*get_thread_addr(JDAW_THREAD_DSP), NULL);
-    thread_set_inactive(JDAW_THREAD_DSP);
-
-    /* Exhaust all sems */
-    /* while (sem_trywait(tl->unpause_sem) == 0) {}; */
-    /* while (sem_trywait(tl->writable_chunks) == 0) {}; */
-    /* while (sem_trywait(tl->readable_chunks) == 0) {}; */
+    thread_cancel(JDAW_THREAD_DSP);
 
     /* Reset writeable chunks sem */
     /* for (int i=0; i<session->proj.fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS / session->proj.chunk_size_sframes; i++) { */
@@ -759,10 +726,6 @@ void transport_stop_playback()
     /* fprintf(stdout, "Cancelled!\n"); */
     session->source_mode.src_play_speed = 0.0f;
     /* session->playback.play_speed = 0.0f; */
-
-    session_do_ongoing_changes(session, JDAW_THREAD_DSP);
-    session_flush_val_changes(session, JDAW_THREAD_DSP);
-    session_flush_callbacks(session, JDAW_THREAD_DSP);
 
     
     PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_play");

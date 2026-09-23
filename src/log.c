@@ -85,6 +85,10 @@ void log_tmp(enum log_level level, char *fmt, ...)
     #endif
     va_list ap;
     va_start(ap, fmt);
+    
+    if (level <= LOG_WARN) {
+        vfprintf(stderr, fmt, ap);
+    }
 
     enum jdaw_thread thread = current_thread();
     if (thread < NUM_JDAW_THREADS && logfile[thread]) {

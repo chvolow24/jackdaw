@@ -147,19 +147,20 @@ struct queued_cb {
 
 struct queued_ops {
     
-    /* Endpoint-related */
-    struct queued_val_change queued_val_changes[NUM_JDAW_THREADS][MAX_QUEUED_OPS];
-    uint8_t num_queued_val_changes[NUM_JDAW_THREADS];
-    pthread_mutex_t queued_val_changes_lock;
+    /* /\* Endpoint-related *\/ */
+    /* struct queued_val_change queued_val_changes[NUM_JDAW_THREADS][MAX_QUEUED_OPS]; */
+    /* uint8_t num_queued_val_changes[NUM_JDAW_THREADS]; */
+    /* pthread_mutex_t queued_val_changes_lock; */
     
-    EndptCb queued_callbacks[NUM_JDAW_THREADS][MAX_QUEUED_OPS];
-    Endpoint *queued_callback_args[NUM_JDAW_THREADS][MAX_QUEUED_OPS];
-    uint8_t num_queued_callbacks[NUM_JDAW_THREADS];
-    pthread_mutex_t queued_callback_lock;
-
+    /* EndptCb queued_callbacks[NUM_JDAW_THREADS][MAX_QUEUED_OPS]; */
+    /* Endpoint *queued_callback_args[NUM_JDAW_THREADS][MAX_QUEUED_OPS]; */
+    /* uint8_t num_queued_callbacks[NUM_JDAW_THREADS]; */
+    /* pthread_mutex_t queued_callback_lock; */
+    
+    /* Main thread only */
     Endpoint *ongoing_changes[NUM_JDAW_THREADS][MAX_QUEUED_OPS];
-    uint8_t num_ongoing_changes[NUM_JDAW_THREADS];
-    pthread_mutex_t ongoing_changes_lock;
+    int num_ongoing_changes[NUM_JDAW_THREADS];
+    /* pthread_mutex_t ongoing_changes_lock; */
 
     /* /\* Piano roll *\/ */
     /* PmEvent piano_roll_queued_events[MAX_QUEUED_OPS]; */

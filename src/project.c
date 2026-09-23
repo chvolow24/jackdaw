@@ -808,7 +808,7 @@ Track *timeline_add_track_with_name(Timeline *tl, const char *track_name, int at
 	"vol",
 	"Vol",
 	JDAW_THREAD_DSP,
-	track_slider_cb, NULL, vol_dsp_cb,
+	component_gui_cb, NULL, vol_dsp_cb,
 	&track->vol_ctrl, track->tl, track, NULL);
     endpoint_set_allowed_range(
 	&track->vol_ep,
@@ -816,6 +816,7 @@ Track *timeline_add_track_with_name(Timeline *tl, const char *track_name, int at
 	(Value){.float_v=TRACK_VOL_MAX_PRE_EXP});
 
     endpoint_set_default_value(&track->vol_ep, (Value){.float_v = 1.0});
+    endpoint_write_default(&track->vol_ep);
     endpoint_set_label_fn(&track->vol_ep, label_amp_pre_exp_to_dbstr);
     api_endpoint_register(&track->vol_ep, &track->api_node);
 
@@ -826,8 +827,7 @@ Track *timeline_add_track_with_name(Timeline *tl, const char *track_name, int at
 	"pan",
 	"Pan",
 	JDAW_THREAD_DSP,
-	track_slider_cb,
-	NULL, NULL,
+	component_gui_cb, NULL, NULL,
 	&track->pan_ctrl, track->tl,
 	NULL, NULL);
     endpoint_set_allowed_range(
@@ -835,6 +835,7 @@ Track *timeline_add_track_with_name(Timeline *tl, const char *track_name, int at
 	(Value){.float_v = 0.0},
 	(Value){.float_v = 1.0});
     endpoint_set_default_value(&track->pan_ep, (Value){.float_v = 0.5});
+    endpoint_write_default(&track->pan_ep);
     endpoint_set_label_fn(&track->pan_ep, label_pan);
     api_endpoint_register(&track->pan_ep, &track->api_node);
 

@@ -132,7 +132,9 @@ void instrument_monitor_stop()
 {
     fprintf(stderr, "Stop monitoring\n");
     atomic_store_explicit(&cancel_monitoring, true, memory_order_relaxed);
-    pthread_join(*get_thread_addr(JDAW_THREAD_INSTRUMENT), NULL);
+    if (thread_is_active(JDAW_THREAD_INSTRUMENT)) {
+        pthread_join(*get_thread_addr(JDAW_THREAD_INSTRUMENT), NULL);
+    }
     thread_set_inactive(JDAW_THREAD_INSTRUMENT);
     /* audioconn_stop_playback(session_get()->audio_io.playback_conn); */
 }

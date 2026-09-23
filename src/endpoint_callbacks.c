@@ -10,6 +10,7 @@
 
 #include "endpoint_callbacks.h"
 #include "components.h"
+#include "dev.h"
 #include "modal.h"
 #include "page.h"
 #include "session_endpoint_ops.h"
@@ -23,91 +24,9 @@ void play_speed_gui_cb(Endpoint *ep)
     status_stat_playspeed();
 }
 
-void track_slider_cb(Endpoint *ep)
-{
-    Slider *s = *((Slider **)ep->xarg1);
-    Value val = slider_reset(s);
-    if (ep->display_label) {
-	label_reset(s->label, val);
-    }
-    main_win->needs_redraw = true;
-}
 
-
-
-/* static PageEl *track_settings_get_el(const char *id) */
-/* { */
-/*     TabView *tv = main_win->active_tabview; */
-/*     if (!tv) return NULL; */
-/*     PageEl *ret = NULL; */
-/*     for (int i=0; i<tv->num_tabs; i++) { */
-/* 	Page *tab = tv->tabs[i]; */
-/* 	if ((ret = page_get_el_by_id(tab, id))) { */
-/* 	    break; */
-/* 	} */
-/*     } */
-/*     return ret; */
-/* } */
-
-
-/* void filter_cutoff_gui_cb(Endpoint *ep) */
-/* { */
-/*     /\* PageEl *el = track_settings_get_el("track_settings_filter_cutoff_slider"); *\/ */
-/*     if (!el) return; */
-/*     Slider *s = (Slider *)el->component; */
-/*     Value val = slider_reset(s); */
-/*     label_reset(s->label, val); */
-/* } */
-
-
-/* void filter_bandwidth_gui_cb(Endpoint *ep) */
-/* { */
-/*     PageEl *el = track_settings_get_el("track_settings_filter_bandwidth_slider"); */
-/*     if (!el) return; */
-/*     Slider *s = (Slider *)el->component; */
-/*     Value val = slider_reset(s); */
-/*     label_reset(s->label, val); */
-/* } */
-
-/* /\* void settings_reset_freq_plot(struct freq_plot *fp,  *\/ */
-
-/* void filter_irlen_gui_cb(Endpoint *ep) */
-/* { */
-    
-/*     PageEl *el = track_settings_get_el("track_settings_filter_irlen_slider"); */
-/*     if (el) { */
-/* 	Slider *s = (Slider *)el->component; */
-/* 	Value val = slider_reset(s); */
-/* 	label_reset(s->label, val); */
-/*     } */
-/* } */
-
-/* void filter_type_gui_cb(Endpoint *ep) */
-/* { */
-/*     PageEl *el = track_settings_get_el("track_settings_filter_type_radio"); */
-/*     if (!el) return; */
-/*     radio_button_reset_from_endpoint((RadioButton *)el->component);    */
-    
-/* } */
-
-/* void saturation_gain_gui_cb(Endpoint *ep) */
-/* { */
-/*     PageEl *el = track_settings_get_el("track_settings_saturation_gain"); */
-/*     if (!el) return; */
-/*     Slider *s = (Slider *)el->component; */
-/*     Value val = slider_reset(s); */
-/*     label_reset(s->label, val); */
-
-    
-/* } */
-/* void saturation_type_gui_cb(Endpoint *ep) */
-/* { */
-/*     PageEl *el = track_settings_get_el("track_settings_saturation_type"); */
-/*     if (!el) return; */
-/*     radio_button_reset_from_endpoint((RadioButton *)el->component);    */
-/* } */
-
-void page_el_gui_cb(Endpoint *ep)
+/* Use component_gui_cb instead; component must be initialized w/ endpoint */
+DEPRECATED void page_el_gui_cb(Endpoint *ep)
 {
     Page **page_loc = ep->xarg3;
     /* char dststr[32]; */

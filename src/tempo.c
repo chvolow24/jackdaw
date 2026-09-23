@@ -1016,7 +1016,7 @@ ClickTrack *timeline_add_click_track(Timeline *tl)
 	"metro_vol",
 	"undo/redo adj metronome vol",
 	JDAW_THREAD_MAIN,
-	track_slider_cb, NULL, NULL,
+	component_gui_cb, NULL, NULL,
 	(void *)&t->metronome_vol_slider, (void *)tl, NULL, NULL);
     endpoint_set_allowed_range(
 	&t->metronome.vol_ep,

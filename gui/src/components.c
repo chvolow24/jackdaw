@@ -64,6 +64,10 @@ Slider *slider_create(
 {
     Slider *s = calloc(1, sizeof(Slider));
     s->ep = ep;
+    if (ep) {
+        ep->bound_component_type = EL_SLIDER;
+        ep->bound_component = s;
+    }
     s->min = min;
     s->max = max;
     /* s->create_label = create_label_fn; */

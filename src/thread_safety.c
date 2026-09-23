@@ -8,10 +8,13 @@
 
 *****************************************************************************************************************/
 
+#include <stdatomic.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "log.h"
 #include "thread_safety.h"
+#include "session_endpoint_ops.h"
 
 
 static pthread_t THREAD_IDS[NUM_JDAW_THREADS];
@@ -21,6 +24,7 @@ static JDAW_THREAD_LOCAL enum jdaw_thread CURRENT_THREAD_INDEX = -1;
 
 /* Access on main thread only */
 static int thread_active[NUM_JDAW_THREADS];
+static _Atomic bool thread_req_cancel[NUM_JDAW_THREADS];
 
 static const char *thread_names[NUM_JDAW_THREADS] = {
     "main",
@@ -104,3 +108,31 @@ bool thread_is_active(enum jdaw_thread thread)
 }
 
 
+void thread_start(enum jdaw_thread thread, pthread_attr_t *attr, void *(*threadfn)(void *), void *arg)
+{
+    MAIN_THREAD_ONLY(thread_start);
+    if (thread_is_active(thread)) {
+        log_tmp(LOG_WARN, "Call to activate an already-active thread (%s)\n", get_thread_name(thread));
+        return;
+    }
+    atomic_store_explicit(&thread_req_cancel[thread], true, memory_order_relaxed);
+    thread_set_active(thread);
+    int ret = pthread_create(&THREAD_IDS[thread], attr, threadfn, arg);
+    if (ret != 0) {
+        log_tmp(LOG_ERROR, "pthread_create: %s\n", strerror(ret));
+    }
+}
+
+void thread_cancel(enum jdaw_thread thread)
+{
+    MAIN_THREAD_ONLY(thread_cancel);
+    if (!thread_is_active(thread)) {
+        log_tmp(LOG_WARN, "Call to cancel an already-canceled thread (%s)\n", get_thread_name(thread));
+        return;
+    }
+    atomic_store_explicit(&thread_req_cancel[thread], true, memory_order_relaxed);
+    pthread_join(THREAD_IDS[thread], NULL);
+    thread_set_inactive(thread);
+    /* Leftover callbacks queued on the thread can be executed on main */
+    session_run_thread_callbacks(thread);    
+}

@@ -14,21 +14,11 @@
     * Prototypes of all endpoint callback functions
  *****************************************************************************************************************/
 
-
+#include "dev.h"
 #include "project.h"
 #include "endpoint.h"
 
 void play_speed_gui_cb(Endpoint *ep);
-void track_slider_cb(Endpoint *ep);
-
-/* void filter_cutoff_gui_cb(Endpoint *ep); */
-
-/* void filter_bandwidth_gui_cb(Endpoint *ep); */
-
-/* void filter_irlen_gui_cb(Endpoint *ep); */
-
-
-/* void filter_type_gui_cb(Endpoint *ep); */
 
 void delay_line_len_dsp_cb(Endpoint *ep);
 void delay_line_len_gui_cb(Endpoint *ep);
@@ -45,6 +35,6 @@ void click_segment_bound_gui_cb(Endpoint *ep);
 /* void saturation_type_gui_cb(Endpoint *ep); */
 
 /* DEPRECATED in favor of component_gui_cb */
-void page_el_gui_cb(Endpoint *ep);
+DEPRECATED void page_el_gui_cb(Endpoint *ep);
 
 void component_gui_cb(Endpoint *ep);

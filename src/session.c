@@ -19,6 +19,7 @@
 #include "layout.h"
 #include "layout_xml.h"
 #include "log.h"
+#include "instrument_monitor.h"
 #include "session.h"
 #include "timeline.h"
 #include "transport.h"
@@ -396,6 +397,10 @@ void session_set_proj(Session *session, Project *new_proj)
     if (session->audio_io.playback_conn->open) {
 	audioconn_close(session->audio_io.playback_conn);
 	reopen_playback_conn = true;
+    }
+
+    if (session->midi_io.monitoring) {
+        instrument_monitor_stop();
     }
 
     session_clear_all_queues();

@@ -42,6 +42,9 @@ int endpoint_init(
 {
     shared_value_init(&ep->sv);
     ep->thread_local_val = thread_local_val;
+    if (ep->thread_local_val) {
+        shared_value_write(&ep->sv, jdaw_val_from_ptr(thread_local_val, t));
+    }
     ep->val_type = t;
     ep->local_id = local_id;
     ep->display_name = display_name;

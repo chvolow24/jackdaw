@@ -482,7 +482,7 @@ Synth *synth_create(Track *track)
 	"vol",
 	"Volume",
 	JDAW_THREAD_DSP,
-	page_el_gui_cb, NULL, NULL,
+	component_gui_cb, NULL, NULL,
 	NULL, NULL, &s->osc_page, "master_amp_slider");
     endpoint_set_default_value(&s->vol_ep, (Value){.float_v = 1.0});
     endpoint_set_allowed_range(&s->vol_ep, (Value){.float_v = 0.0}, (Value){.float_v = 3.0});
@@ -495,7 +495,7 @@ Synth *synth_create(Track *track)
 	"pan",
 	"Pan",
 	JDAW_THREAD_DSP,
-	page_el_gui_cb, NULL, NULL,
+	component_gui_cb, NULL, NULL,
 	NULL, NULL, &s->osc_page, "master_pan_slider");
     endpoint_set_default_value(&s->pan_ep, (Value){.float_v = 0.5});
     endpoint_set_allowed_range(&s->pan_ep, (Value){.float_v = 0.0}, (Value){.float_v = 1.0});

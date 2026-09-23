@@ -499,44 +499,51 @@ static void effect_silence(Effect *e);
 
 float effect_chain_buf_apply(EffectChain *ec, float *restrict L, float *restrict R, int len, float input_amp)
 {
+    /* fprintf(stderr, "EC buf apply thread %s len %d\n", get_current_thread_name(), len); */
+    if (len == 64 && current_thread() == JDAW_THREAD_DSP) {
+        TESTBREAK;
+    }
     static float amp_epsilon = 1e-7f;
     float running_amp = input_amp;
-    if (len > ec->chunk_len_sframes) {
-	int index = 0;
-	while (index < len) {
-	    running_amp = effect_chain_buf_apply(ec, L + index, R + index, ec->chunk_len_sframes, running_amp);
-	    index += ec->chunk_len_sframes;
-	}
-	return running_amp;
-	
-    }
+    /* if (len > ec->chunk_len_sframes) { */
+    /*     int index = 0; */
+    /*     while (index < len) { */
+    /*         running_amp = effect_chain_buf_apply(ec, L + index, R + index, ec->chunk_len_sframes, running_amp); */
+    /*         index += ec->chunk_len_sframes; */
+    /*     } */
+    /*     return running_amp;	 */
+    /* } */
     pthread_mutex_lock(&ec->effect_chain_lock);
-    for (int i=0; i<ec->num_effects; i++) {
-	Effect *e = ec->effects[i];
-	bool running_amp_nonzero = fabs(running_amp) > amp_epsilon;
-	if (e->active && (e->operate_on_empty_buf || running_amp_nonzero)) {
-	    e->has_proc_state = true;
-	    if (!ec->mid_side_encoded && EFFECT_CH_MODE_DO_ENCODE(e->channel_mode)) {
-		mid_side_encode(L, R, len);
-		ec->mid_side_encoded = true;
-	    } else if (ec->mid_side_encoded && !EFFECT_CH_MODE_DO_ENCODE(e->channel_mode)) {
-		mid_side_decode(L, R, len);
-		ec->mid_side_encoded = false;
-	    }
-	    if (e->channel_mode == EFFECT_CH_MODE_L || e->channel_mode == EFFECT_CH_MODE_MID) {
-		running_amp = effect_buf_apply(e, L, NULL, len, running_amp);
-	    } else if (e->channel_mode == EFFECT_CH_MODE_R || e->channel_mode == EFFECT_CH_MODE_SIDE) {
-		running_amp = effect_buf_apply(e, NULL, R, len, running_amp);
-	    } else {
-		running_amp = effect_buf_apply(e, L, R, len, running_amp);
-	    }
-	} else if (e->active && !running_amp_nonzero && e->has_proc_state) {
-	    effect_silence(e);
-	}
-    }
-    if (ec->mid_side_encoded) {
-	mid_side_decode(L, R, len);
-	ec->mid_side_encoded = false;
+    int index = 0;
+    while (index < len) {
+        for (int i=0; i<ec->num_effects; i++) {
+            Effect *e = ec->effects[i];
+            bool running_amp_nonzero = fabs(running_amp) > amp_epsilon;
+            if (e->active && (e->operate_on_empty_buf || running_amp_nonzero)) {
+                e->has_proc_state = true;
+                if (!ec->mid_side_encoded && EFFECT_CH_MODE_DO_ENCODE(e->channel_mode)) {
+                    mid_side_encode(L + index, R + index, ec->chunk_len_sframes);
+                    ec->mid_side_encoded = true;
+                } else if (ec->mid_side_encoded && !EFFECT_CH_MODE_DO_ENCODE(e->channel_mode)) {
+                    mid_side_decode(L + index, R + index, ec->chunk_len_sframes);
+                    ec->mid_side_encoded = false;
+                }
+                if (e->channel_mode == EFFECT_CH_MODE_L || e->channel_mode == EFFECT_CH_MODE_MID) {
+                    running_amp = effect_buf_apply(e, L + index, NULL, ec->chunk_len_sframes, running_amp);
+                } else if (e->channel_mode == EFFECT_CH_MODE_R || e->channel_mode == EFFECT_CH_MODE_SIDE) {
+                    running_amp = effect_buf_apply(e, NULL, R + index, ec->chunk_len_sframes, running_amp);
+                } else {
+                    running_amp = effect_buf_apply(e, L + index, R + index, ec->chunk_len_sframes, running_amp);
+                }
+            } else if (e->active && !running_amp_nonzero && e->has_proc_state) {
+                effect_silence(e);
+            }
+        }
+        if (ec->mid_side_encoded) {
+            mid_side_decode(L + index, R + index, ec->chunk_len_sframes);
+            ec->mid_side_encoded = false;
+        }
+        index += ec->chunk_len_sframes;
     }
     pthread_mutex_unlock(&ec->effect_chain_lock);
     return running_amp;

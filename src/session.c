@@ -503,19 +503,7 @@ void session_clear_all_queues()
     session->queued_ops.num_queued_audio_bufs = 0;
     check_queued_ops_unlock(queued_audio_buf_lock);
 
-
-    /* Clear ongoing changes */
-    /* check_queued_ops_lock(ongoing_changes_lock); */
     session_clear_all_ongoing_changes();
-    /* check_queued_ops_unlock(ongoing_changes_lock); */
-
-
-    /* Clear callbacks */
-    /* check_queued_ops_lock(queued_callback_lock); */
-    for (int i=0; i<NUM_JDAW_THREADS; i++) {
-	session_flush_callbacks(session, i);
-    }
-    /* check_queued_ops_unlock(queued_callback_lock); */
 }
 
 bool session_proj_has_unsaved_changes()

@@ -122,6 +122,9 @@ typedef struct endpoint {
     void *xarg3;
     void *xarg4;
 
+    /* For callbacks v2: set gui cb to re-enqueue */
+    _Atomic EndptCb reenqueue_gui_cb;
+
     /* Continuous changes */
     bool do_auto_incr;
     Value incr;

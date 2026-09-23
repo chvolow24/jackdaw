@@ -106,10 +106,9 @@ void saturation_init(Saturation *s)
 /* } */
 
 
-static float saturation_buf_tanh(Saturation *s, float *restrict buf, int32_t len)
+static void saturation_buf_tanh(Saturation *s, float *restrict buf, int32_t len)
 {
     int symmetry_sign = s->symmetry < 0 ? -1 : 1;
-    float accum = 0.0f;
     float gain_comp = s->do_gain_comp ? s->gain_comp_val : 1.0f;
     for (int i=0; i<len; i++) {
 	int sign = buf[i] < 0 ? -1 : 1;
@@ -119,16 +118,13 @@ static float saturation_buf_tanh(Saturation *s, float *restrict buf, int32_t len
 	} else {
 	    buf[i] = tanhf(buf[i] * s->gain * (1.0 - fabs(s->symmetry))) * gain_comp;
 	}
-	accum += fabs(buf[i]);
     }
-    return accum;
 }
 
-static float saturation_buf_sin(Saturation *s, float *restrict buf, int32_t len)
+static void saturation_buf_sin(Saturation *s, float *restrict buf, int32_t len)
 {
     /* float fabs_symmetry = fabs(s->symmetry); */
     int symmetry_sign = s->symmetry < 0 ? -1 : 1;
-    float accum = 0.0f;
     float gain_comp = s->do_gain_comp ? s->gain_comp_val : 1.0f;
     for (int i=0; i<len; i++) {
 	int sign = buf[i] < 0 ? -1 : 1;
@@ -138,9 +134,7 @@ static float saturation_buf_sin(Saturation *s, float *restrict buf, int32_t len)
 	} else {
 	    buf[i] = sinf(buf[i] * s->gain * (1.0 - fabs(s->symmetry))) * gain_comp;
 	}
-	accum += fabs(buf[i]);
     }
-    return accum;
 }
 
 
@@ -171,11 +165,10 @@ static float saturation_buf_sin(Saturation *s, float *restrict buf, int32_t len)
 /*     /\* return 2.0 / (1 + exp(in * -2 * s->gain)) - 1; *\/ */
 /* } */
 
-static float saturation_buf_exponential(Saturation *s, float *restrict buf, int32_t len)
+static void saturation_buf_exponential(Saturation *s, float *restrict buf, int32_t len)
 {
     /* float fabs_symmetry = fabs(s->symmetry); */
     int symmetry_sign = s->symmetry < 0 ? -1 : 1;
-    float accum = 0.0f;
     float gain_comp = s->do_gain_comp ? s->gain_comp_val : 1.0f;
     for (int i=0; i<len; i++) {
 	int sign = buf[i] < 0 ? -1 : 1;
@@ -186,9 +179,7 @@ static float saturation_buf_exponential(Saturation *s, float *restrict buf, int3
 	} else {
 	    buf[i] = gain_comp * sign * (1.0f - expf(-1 * sign * s->gain * (1.0f - fabs(s->symmetry)) * buf[i]));
 	}
-	accum += fabs(buf[i]);
     }
-    return accum;
 }
 
 /* static double saturation_sample_exponential(Saturation *s, double in) */
@@ -234,7 +225,8 @@ void saturation_set_type(Saturation *s, SaturationType t)
 float saturation_buf_apply(void *saturation_v, float *restrict buf, int len, int channel_unused, float input_amp)
 {
     Saturation *s = saturation_v;
-    return s->buf_fn(s, buf, len);
+    s->buf_fn(s, buf, len);
+    return input_amp;
     /* if (!s->active) return input_amp; */
     /* float output_amp = 0.0f; */
     /* for (int i=0; i<len; i++) { */
@@ -246,6 +238,7 @@ float saturation_buf_apply(void *saturation_v, float *restrict buf, int len, int
 
 float saturation_buf_apply_stereo(void *saturation_v, float *restrict L, float *restrict R, int len, float input_amp)
 {
+    Saturation *s = saturation_v;
     if (L)
 	input_amp = saturation_buf_apply(saturation_v, L, len, 0, input_amp);
     if (R)

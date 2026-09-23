@@ -45,7 +45,7 @@ typedef struct saturation {
     Endpoint symmetry_ep;
     Endpoint gain_comp_ep;
     Endpoint type_ep;
-    float (*buf_fn)(Saturation *s, float *restrict in, int32_t len);
+    void (*buf_fn)(Saturation *s, float *restrict in, int32_t len);
     /* double (*sample_fn)(Saturation *s, double in); */
     Track *track;
 

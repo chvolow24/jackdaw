@@ -162,13 +162,16 @@ static void set_thread_local_val_cb(Endpoint *ep)
     jdaw_val_set_ptr(ep->thread_local_val, ep->val_type, new_val);    
 }
 
-/* Return value is one of:
-   0: value written synchronously
-   1: value change scheduled other thread
-   2: no change
-   +10: range violation
-   -1: ERROR: undo action can't be pushed on current thread
-*/
+static void reenqueue_gui_cb(Endpoint *ep)
+{
+    EndptCb cb = atomic_load_explicit(&ep->reenqueue_gui_cb, memory_order_relaxed);
+    struct queued_cb qcb;
+    qcb.ep = ep;
+    qcb.cb = cb;
+    session_enqueue_callback(JDAW_THREAD_MAIN, qcb);
+}
+
+
 int endpoint_write(
     Endpoint *ep,
     Value new_val,
@@ -240,13 +243,22 @@ int endpoint_write(
 	ret += EP_WRITE_OTHER_THREAD;
     }
 
-    /* Callbacks v2 */
-    for (enum jdaw_thread t=0; t<NUM_JDAW_THREADS; t++) {
+    /* Callbacks in reverse order
+       main runs last because it should reflect side effects
+       of other callbacks (GUI reflects correct state)
+     */
+    bool delay_gui_cb = false;
+    for (int t=NUM_JDAW_THREADS - 1; t>=0; t--) {
         int num = atomic_load_explicit(&ep->num_registered_callbacks[t], memory_order_relaxed);
+        if (num > 0 && t > 0) delay_gui_cb = true;
         for (int i=0; i<num; i++) {
             EndptCb cb = atomic_load_explicit(&ep->registered_callbacks[t][i], memory_order_relaxed);
-            if (t == owner && async_thread_loc_val_change) {
+            if (t == (int)owner && async_thread_loc_val_change) {
                 goto enqueue;
+            } else if (t == (int)JDAW_THREAD_MAIN && delay_gui_cb) {
+                atomic_store_explicit(&ep->reenqueue_gui_cb, cb, memory_order_relaxed);
+                struct queued_cb cbs = (struct queued_cb){reenqueue_gui_cb, ep};
+                session_enqueue_callback(owner, cbs);                
             } else if (on_thread(t)) {
                 cb(ep);
             } else if (on_thread(JDAW_THREAD_MAIN) && !thread_is_active(t)) {
@@ -263,54 +275,6 @@ int endpoint_write(
             }
         }
     }
-
-    /* Callbacks */
-    /* bool on_main = on_thread(JDAW_THREAD_MAIN); */
-    /* if (run_dsp_cb && ep->dsp_callback) { */
-    /*     if (on_thread(JDAW_THREAD_DSP)) { */
-    /*         ep->dsp_callback(ep); */
-    /*     } else { */
-    /*         if (session->playback.playing || session->audio_io.playback_conn->playing) { */
-    /*     	/\* If ep owner assigned to playback thread, run DSP callbacks on that thread *\/ */
-    /*     	enum jdaw_thread dst_thread = owner == JDAW_THREAD_PLAYBACK ? JDAW_THREAD_PLAYBACK : JDAW_THREAD_DSP; */
-    /*     	if (dst_thread == JDAW_THREAD_DSP && !session->playback.playing && session->audio_io.playback_conn->playing) { */
-    /*     	    dst_thread = JDAW_THREAD_PLAYBACK; */
-    /*     	} */
-    /*     	int ret = session_queue_callback(session, ep, ep->dsp_callback, dst_thread); */
-    /*     	if (ret == 3) { */
-    /*     	    log_tmp(LOG_ERROR, "Error: call to queue callback for ep \"%s\" could not be deferred.\n", ep->local_id); */
-    /*     	} */
-    /*     	async_change_will_occur = true; */
-    /*         /\* } else if (session->midi_io.monitor_synth && owner == JDAW_THREAD_PLAYBACK) { *\/ */
-    /*         /\* 	session_queue_callback(session, ep, ep->dsp_callback, JDAW_THREAD_PLAYBACK); *\/ */
-    /*         /\* 	async_change_will_occur = true; *\/ */
-    /*         } else { */
-    /*     	ep->dsp_callback(ep); */
-    /*         } */
-    /*     }	 */
-    /* } */
-    /* if (run_proj_cb && ep->proj_callback) { */
-    /*     if (on_main) */
-    /*         ep->proj_callback(ep); */
-    /*     else { */
-    /*         session_queue_callback(session, ep, ep->proj_callback, JDAW_THREAD_MAIN); */
-    /*     } */
-    /* } */
-
-    /* if (run_gui_cb && ep->gui_callback && !async_change_will_occur) { */
-    /*     if (on_main) { */
-    /*         ep->gui_callback(ep); */
-    /*     } else { */
-    /*         session_queue_callback(session, ep, ep->gui_callback, JDAW_THREAD_MAIN); */
-    /*     } */
-    /* } */
-    
-    /* if (run_gui_cb && ep->gui_callback) { */
-    /* 	if (on_main) */
-    /* 	    ep->gui_callback(ep); */
-    /* 	else */
-    /* 	    session_queue_callback(proj, ep, ep->gui_callback, JDAW_THREAD_MAIN); */
-    /* } */
     
     /* Undo */
     if (undoable && !ep->block_undo) {

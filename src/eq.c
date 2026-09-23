@@ -72,6 +72,7 @@ SDL_Color EQ_CTRL_COLORS_LIGHT[] = {
 
 static void eq_dsp_cb(Endpoint *ep)
 {
+    fprintf(stderr, "DSP cb\n");
     EQ *eq = ep->xarg1;
     EQFilterCtrl *ctrl = ep->xarg2;
 
@@ -104,6 +105,9 @@ static void eq_gui_cb(Endpoint *ep)
     EQFilterCtrl *ctrl = ep->xarg2;
     if (eq->fp) {
 	ctrl->x = logscale_x_abs(&eq->fp->x_axis, ctrl->freq_amp_raw[0] * eq->fp->x_axis.max_scaled);
+        ctrl->y = waveform_freq_plot_y_abs_from_amp(eq->fp, ctrl->freq_amp_raw[1], 0, true);
+        /* amp_raw = waveform_freq_plot_amp_from_y_abs(eq->fp, mousep.y, 0, true); */
+        /* ctrl->y = logscale */
 	/* ctrl->y = waveform_amp_from_ */
 	/* ctrl->x = waveform_freq_plot_x_abs_from_freq(eq->fp, ctrl->freq_amp_raw[0]); */
 	/* ctrl->y = waveform_freq_plot_y_abs_from_amp(eq->fp, ctrl->freq_amp_raw[1], 0, true); */

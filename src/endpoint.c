@@ -250,7 +250,6 @@ int endpoint_write(
     bool delay_gui_cb = false;
     for (int t=NUM_JDAW_THREADS - 1; t>=0; t--) {
         int num = atomic_load_explicit(&ep->num_registered_callbacks[t], memory_order_relaxed);
-        if (num > 0 && t > 0) delay_gui_cb = true;
         for (int i=0; i<num; i++) {
             EndptCb cb = atomic_load_explicit(&ep->registered_callbacks[t][i], memory_order_relaxed);
             if (t == (int)owner && async_thread_loc_val_change) {
@@ -258,7 +257,8 @@ int endpoint_write(
             } else if (t == (int)JDAW_THREAD_MAIN && delay_gui_cb) {
                 atomic_store_explicit(&ep->reenqueue_gui_cb, cb, memory_order_relaxed);
                 struct queued_cb cbs = (struct queued_cb){reenqueue_gui_cb, ep};
-                session_enqueue_callback(owner, cbs);                
+                session_enqueue_callback(owner, cbs);
+                goto enqueue;
             } else if (on_thread(t)) {
                 cb(ep);
             } else if (on_thread(JDAW_THREAD_MAIN) && !thread_is_active(t)) {
@@ -269,7 +269,7 @@ int endpoint_write(
                 cb(ep);
             } else {
             enqueue:
-                (void)0;
+                if (t > 0) delay_gui_cb = true;                
                 struct queued_cb cbs = (struct queued_cb){cb, ep};
                 session_enqueue_callback(t, cbs);
             }
@@ -277,7 +277,7 @@ int endpoint_write(
     }
     
     /* Undo */
-    if (undoable && !ep->block_undo) {
+    if (undoable && !ep->block_undo && !ep->changing) {
 	if (!on_thread(JDAW_THREAD_MAIN)) {
 	    fprintf(stderr, "UH OH can't push event fn on thread that is not main\n");
 	    return EP_WRITE_ERROR_UNDO;

@@ -112,7 +112,7 @@ NEW_EVENT_FN(undo_redo_set_segment_params, "undo/redo edit click segment")
     click_segment_set_config(s, -1, cpy->cfg.bpm, cpy->cfg.num_beats, cpy->cfg.beat_len_atoms, ebb);
     click_segment_destroy_copy(cpy);
     self->obj2 = redo_cpy;
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 }
 
 
@@ -131,7 +131,7 @@ static int time_sig_submit_button_action(void *self, void *s_v)
     click_segment_set_config(s, -1, tempo, atoi(tt->num_beats_str), subdivs, tt->end_bound_behavior);
     TabView *tv = main_win->active_tabview;
     tabview_close(tv);
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 
     Value ebb = {.int_v = tt->end_bound_behavior};
     user_event_push(
@@ -640,7 +640,7 @@ void click_track_edit(ClickTrack *ct)
     click_track_populate_settings_tabview(ct, tv);
 
     tabview_activate(tv, ct, ct->name);
-    main_win->needs_redraw = true;    
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);    
 
 }
 

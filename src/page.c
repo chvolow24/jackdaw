@@ -913,7 +913,7 @@ void tabview_reset(TabView *tv, uint8_t leftmost_index)
 
     Page *page = tv->tabs[tv->current_tab];
     page_reset(page);
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 }
 
 bool tabview_mouse_click(TabView *tv)
@@ -1312,7 +1312,7 @@ void tabview_swap_adjacent_tabs(TabView *tv, int current, int new, bool apply_sw
     tv->labels[current] = displaced_label;
     tv->tabs[current] = displaced_page;
     layout_reset(tv->layout);
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 
     if (apply_swapfn && tv->swap_fn) {
 	tv->swap_fn(tv->swap_fn_target, current, new);

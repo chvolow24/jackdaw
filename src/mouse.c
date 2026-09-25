@@ -255,7 +255,7 @@ bool mouse_triage_click_menu(uint8_t button)
     Menu *top_menu = main_win->menus[main_win->num_menus -1];
     if (top_menu) {
 	if (!menu_triage_mouse(top_menu, &main_win->mousep, true)) {
-	    main_win->needs_redraw = true;
+	    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 	}
     }
     return true;
@@ -267,7 +267,7 @@ bool mouse_triage_click_modal(uint8_t button)
     Modal *top_modal = main_win->modals[main_win->num_modals -1];
     if (top_modal) {
 	if (!modal_triage_mouse(top_modal, &main_win->mousep, true))
-	    main_win->needs_redraw = true;
+	    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
     }
     return true;
 }

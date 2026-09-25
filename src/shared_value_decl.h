@@ -5,5 +5,6 @@
 #include "value.h"
 
 SHARED_VALUE_TYPE_DECL_ONLY(SharedValue, shared_value, Value, 4);
+SHARED_VALUE_TYPE_DECL_ONLY(SharedFloat, shared_float, float, 4);
 
 #endif

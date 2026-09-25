@@ -289,7 +289,7 @@ void schroeder_init_freeverb(Schroeder *sch)
 	"decay_time",
 	"Decay time",
 	JDAW_THREAD_DSP,
-	page_el_gui_cb, NULL, decay_time_dsp_cb,
+	component_gui_cb, NULL, decay_time_dsp_cb,
 	sch, NULL, &sch->effect->page, "decay_time_slider");
     endpoint_set_allowed_range(&sch->decay_time_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 1.0f});
     endpoint_set_default_value(&sch->decay_time_ep, (Value){.float_v = 0.75f});
@@ -303,7 +303,7 @@ void schroeder_init_freeverb(Schroeder *sch)
 	"brightness",
 	"Brightness",
 	JDAW_THREAD_DSP,
-	page_el_gui_cb, NULL, brightness_dsp_cb,
+	component_gui_cb, NULL, brightness_dsp_cb,
 	sch, NULL, &sch->effect->page, "brightness_slider");
     endpoint_set_allowed_range(&sch->brightness_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 1.0f});
     endpoint_set_default_value(&sch->brightness_ep, (Value){.float_v = 0.40f});
@@ -317,7 +317,7 @@ void schroeder_init_freeverb(Schroeder *sch)
 	"stereo_spread",
 	"Stereo spread",
 	JDAW_THREAD_DSP,
-	page_el_gui_cb, NULL, stereo_spread_dsp_cb,
+	component_gui_cb, NULL, stereo_spread_dsp_cb,
 	sch, NULL, &sch->effect->page, "stereo_spread_slider");
     endpoint_set_allowed_range(&sch->stereo_spread_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 1.0f});
     endpoint_set_default_value(&sch->stereo_spread_ep, (Value){.float_v = 1.0f});
@@ -331,7 +331,7 @@ void schroeder_init_freeverb(Schroeder *sch)
 	"delay_len_scalar",
 	"Delay length scalar",
 	JDAW_THREAD_DSP,
-	page_el_gui_cb, NULL, delay_len_scalar_dsp_cb,
+	component_gui_cb, NULL, delay_len_scalar_dsp_cb,
 	sch, NULL, &sch->effect->page, "delay_len_scalar_slider");
     endpoint_set_allowed_range(&sch->delay_len_scalar_ep, (Value){.float_v = 0.01f}, (Value){.float_v = 1.0f});
     endpoint_set_default_value(&sch->delay_len_scalar_ep, (Value){.float_v = 1.0f});
@@ -347,7 +347,7 @@ void schroeder_init_freeverb(Schroeder *sch)
 	"predelay",
 	"Pre-delay",
 	JDAW_THREAD_DSP,
-	page_el_gui_cb, NULL, predelay_dsp_cb,
+	component_gui_cb, NULL, predelay_dsp_cb,
 	sch, NULL, &sch->effect->page, "predelay_slider");
     endpoint_set_allowed_range(&sch->predelay_ep, (Value){.float_v = 0.0f}, (Value){.float_v = (double)MAX_PREDELAY_SFRAMES / session_get_sample_rate() * 1000});
     endpoint_set_default_value(&sch->predelay_ep, (Value){.float_v = 0.0f});
@@ -362,7 +362,7 @@ void schroeder_init_freeverb(Schroeder *sch)
 	"early_reflections",
 	"Early reflections",
 	JDAW_THREAD_DSP,
-	page_el_gui_cb, NULL, NULL,
+	component_gui_cb, NULL, NULL,
 	NULL, NULL, &sch->effect->page, "er_tgl");
     endpoint_set_default_value(&sch->early_reflections_ep, (Value){.bool_v = false});
     api_endpoint_register(&sch->early_reflections_ep, &sch->effect->api_node);
@@ -375,7 +375,7 @@ void schroeder_init_freeverb(Schroeder *sch)
 	"wet",
 	"Wet",
 	JDAW_THREAD_DSP,
-	page_el_gui_cb, NULL, NULL,
+	component_gui_cb, NULL, NULL,
 	NULL, NULL, &sch->effect->page, "wet_slider");
     endpoint_set_allowed_range(&sch->wet_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 1.0f});
     endpoint_set_default_value(&sch->wet_ep, (Value){.float_v = 0.25f});

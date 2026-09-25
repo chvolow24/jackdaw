@@ -361,6 +361,8 @@ LT_EXEC := layout
 # Add cflags for debug or prod
 ifeq ($(MAKECMDGOALS),debug)
 	CFLAGS += -DTESTBUILD=1 -g -O0 -fsanitize=address
+else ifeq ($(MAKECMDGOALS),debug-thread)
+	CFLAGS += -DTESTBUILD=1 -g -O0 -fsanitize=thread
 else
 	CFLAGS += -O3 
 endif
@@ -373,6 +375,9 @@ $(EXEC): $(OBJS) $(GUI_OBJS) | deps-ready
 
 .PHONY: debug
 debug: $(EXEC)
+
+.PHONY: debug-thread
+debug-thread: $(EXEC)
 
 $(LT_EXEC): $(LT_OBJS) | deps-ready
 	$(CC) -o $@ $^ $(CFLAGS) $(CFLAGS_LT_ONLY) $(LDFLAGS) $(DEP_BUILD_TARGETS) $(PKG_LINK_FLAGS) $(LDFLAGS)

@@ -175,7 +175,7 @@ void session_animations_do_frame()
     /* pthread_mutex_lock(&proj->animation_lock); */
     Session *session = session_get();
     Animation *a = session->animations;
-    if (a) main_win->needs_redraw = true;
+    if (a) atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
     while (a) {
 	if (a->frame_op)
 	    a->frame_op(a->arg1, a->arg2);

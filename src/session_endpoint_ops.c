@@ -81,12 +81,14 @@ void session_enqueue_callback(enum jdaw_thread for_thread, struct queued_cb cb)
     LFQueue *q = &session->queued_ops.queued_callbacks_v2[for_thread][writer];
     int ret = lfqueue_try_enqueue(q, &cb, 1);
     if (ret != LFQUEUE_SUCCESS) {
-        log_tmp(LOG_WARN, "Error enqueueing ep \"%s\" cb on thread %s from %s: %s\n", cb.ep->local_id, get_thread_name(for_thread), get_current_thread_name(), lfqueue_get_errstr(ret));
+        TESTBREAK;
+        log_tmp(LOG_WARN, "Error enqueueing ep \"%s\" cb on thread %s from %s: %s\n", cb.ep ? cb.ep->local_id : "(no ep)", get_thread_name(for_thread), get_current_thread_name(), lfqueue_get_errstr(ret));
     }
 }
 
-void session_run_thread_callbacks(enum jdaw_thread thread)
+int session_run_thread_callbacks(enum jdaw_thread thread)
 {
+    /* if (thread == JDAW_THREAD_MAIN) fprintf(stderr, "Running callbacks on main thread\n"); */
     Session *session = session_get();
     LFQueue *arr = session->queued_ops.queued_callbacks_v2[thread];
     struct queued_cb cbs[MAX_CBS_PER_QUEUE * NUM_EP_WRITER_THREADS] = {0};
@@ -98,6 +100,7 @@ void session_run_thread_callbacks(enum jdaw_thread thread)
             num_cbs++;
         }
     }
+    if (thread == JDAW_THREAD_MAIN && num_cbs > 0) fprintf(stderr, "....found %d\n", num_cbs);
     /* Work backwards to dedupe */
     int num_seen = 0;
     struct queued_cb seen[num_cbs];
@@ -118,11 +121,12 @@ void session_run_thread_callbacks(enum jdaw_thread thread)
     /* After dedupe, run original order */
     for (int i=num_seen - 1; i>=0; i--) {
         seen[i].cb(seen[i].ep);
-    }    
+    }
+    return num_seen;
 }
 
 
-void session_flush_callbacks()
+void session_clear_all_queued_callbacks()
 {
     MAIN_THREAD_ONLY(session_flush_callbacks);
     for (enum jdaw_thread t=0; t<NUM_JDAW_THREADS; t++) {

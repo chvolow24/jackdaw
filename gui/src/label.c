@@ -88,7 +88,7 @@ static void animation_end_op(void *arg1, void *arg2)
     Label *l = (Label *)arg1;
     if (l->countdown_timer <= 0) {
 	l->animation = NULL;
-	main_win->needs_redraw = true;
+	atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
     } else {
 	l->animation->label = NULL;
 	l->animation = session_queue_animation(

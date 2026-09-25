@@ -788,7 +788,7 @@ int midi_file_open(const char *filepath, bool automatically_add_tracks)//, MIDIC
 		}
 	    }
 	}
-	main_win->needs_redraw = true;
+	atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
     }
     session->proj.active_midi_clip_index += num_clips;
     free(v_device);

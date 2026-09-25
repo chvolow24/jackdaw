@@ -61,7 +61,7 @@
 #include "value.h"
 
 #define MAX_ENDPOINT_CALLBACKS 4
-#define MAX_CBS_PER_QUEUE 128
+#define MAX_CBS_PER_QUEUE 512
 
 typedef struct endpoint Endpoint;
 
@@ -114,6 +114,7 @@ typedef struct endpoint {
     bool block_undo;
     /* const char *undo_str; */
 
+    /* Main thread only */
     PageElType bound_component_type;
     void *bound_component;
     

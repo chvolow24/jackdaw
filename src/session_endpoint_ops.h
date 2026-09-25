@@ -25,5 +25,7 @@ void session_clear_ongoing_changes(enum jdaw_thread thread);
 void session_clear_all_ongoing_changes();
 
 void session_enqueue_callback(enum jdaw_thread for_thread, struct queued_cb cb);
-void session_run_thread_callbacks(enum jdaw_thread thread);
-void session_flush_callbacks();
+/* Return number of writes */
+int session_run_thread_callbacks(enum jdaw_thread thread);
+/* Use when closing project */
+void session_clear_all_queued_callbacks();

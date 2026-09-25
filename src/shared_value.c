@@ -2,3 +2,4 @@
 #include "value.h"
 
 SHARED_VALUE_TYPE_IMPL(SharedValue, shared_value, Value, 4);
+SHARED_VALUE_TYPE_IMPL(SharedFloat, shared_float, float, 4);

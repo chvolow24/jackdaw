@@ -524,7 +524,7 @@ Synth *synth_create(Track *track)
 	"filter_active",
 	"Filter active",
 	JDAW_THREAD_DSP,
-	page_el_gui_cb, NULL, NULL,
+	component_gui_cb, NULL, NULL,
 	NULL, NULL, &s->filter_page, "filter_active_toggle");
     endpoint_set_default_value(&s->filter_active_ep, (Value){.bool_v = false});
     api_endpoint_register(&s->filter_active_ep, &s->filter_node);
@@ -537,7 +537,7 @@ Synth *synth_create(Track *track)
 	"base_cutoff",
 	"Base cutoff",
 	JDAW_THREAD_DSP,
-	page_el_gui_cb, NULL, base_cutoff_dsp_cb,
+	component_gui_cb, NULL, base_cutoff_dsp_cb,
 	s, NULL, &s->filter_page, "base_cutoff_slider");
     endpoint_set_default_value(&s->base_cutoff_ep, (Value){.float_v = 0.1f});
     endpoint_set_allowed_range(&s->base_cutoff_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 1.0f});
@@ -552,7 +552,7 @@ Synth *synth_create(Track *track)
 	"pitch_amt",
 	"Pitch amt",
 	JDAW_THREAD_DSP,
-	page_el_gui_cb, NULL, NULL,
+	component_gui_cb, NULL, NULL,
 	NULL, NULL, &s->filter_page, "pitch_amt_slider");
     endpoint_set_default_value(&s->pitch_amt_ep, (Value){.float_v = 5.0f});
     endpoint_set_allowed_range(&s->pitch_amt_ep, (Value){.float_v = 0.00}, (Value){.float_v = 50.0});
@@ -565,7 +565,7 @@ Synth *synth_create(Track *track)
 	"vel_amt",
 	"Vel amt",
 	JDAW_THREAD_DSP,
-	page_el_gui_cb, NULL, NULL,
+	component_gui_cb, NULL, NULL,
 	NULL, NULL, &s->filter_page, "vel_amt_slider");
     endpoint_set_default_value(&s->vel_amt_ep, (Value){.float_v = 0.75f});
     endpoint_set_allowed_range(&s->vel_amt_ep, (Value){.float_v = 0.00}, (Value){.float_v = 1.0});
@@ -578,7 +578,7 @@ Synth *synth_create(Track *track)
 	"env_amt",
 	"Pitch amt",
 	JDAW_THREAD_DSP,
-	page_el_gui_cb, NULL, NULL,
+	component_gui_cb, NULL, NULL,
 	NULL, NULL, &s->filter_page, "env_amt_slider");
     endpoint_set_default_value(&s->env_amt_ep, (Value){.float_v = 5.0f});
     endpoint_set_allowed_range(&s->env_amt_ep, (Value){.float_v = 0.00}, (Value){.float_v = 50.0});
@@ -592,7 +592,7 @@ Synth *synth_create(Track *track)
     /* 	"freq_scalar", */
     /* 	"Freq scalar", */
     /* 	JDAW_THREAD_DSP, */
-    /* 	page_el_gui_cb, NULL, NULL, */
+    /* 	component_gui_cb, NULL, NULL, */
     /* 	NULL, NULL, &s->filter_page, "freq_scalar_slider"); */
     /* endpoint_set_default_value(&s->freq_scalar_ep, (Value){.float_v = 20.0f}); */
     /* endpoint_set_allowed_range(&s->freq_scalar_ep, (Value){.float_v = 0.1}, (Value){.float_v = 100.0}); */
@@ -605,7 +605,7 @@ Synth *synth_create(Track *track)
 	"resonance",
 	"Resonance",
 	JDAW_THREAD_DSP,
-	page_el_gui_cb, NULL, NULL,
+	component_gui_cb, NULL, NULL,
 	NULL, NULL, &s->filter_page, "resonance_slider");
     endpoint_set_default_value(&s->resonance_ep, (Value){.float_v = 5.0f});
     endpoint_set_allowed_range(&s->resonance_ep, (Value){.float_v = 1.0f}, (Value){.float_v = 15.0f});
@@ -618,7 +618,7 @@ Synth *synth_create(Track *track)
 	"sync_phase",
 	"Sync phase",
 	JDAW_THREAD_DSP,
-	page_el_gui_cb, NULL, NULL,
+	component_gui_cb, NULL, NULL,
 	NULL, NULL, &s->osc_page, "sync_phase_toggle");
     endpoint_set_default_value(&s->sync_phase_ep, (Value){.bool_v = true});
     api_endpoint_register(&s->sync_phase_ep, &s->api_node);
@@ -630,7 +630,7 @@ Synth *synth_create(Track *track)
 	"noise_amt",
 	"Noise amount",
 	JDAW_THREAD_DSP,
-	page_el_gui_cb, NULL, NULL,
+	component_gui_cb, NULL, NULL,
 	NULL, NULL, &s->noise_page, "noise_amt_slider");
     endpoint_set_default_value(&s->noise_amt_ep, (Value){.float_v = 0.0f});
     endpoint_set_allowed_range(&s->noise_amt_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 2.0});
@@ -643,7 +643,7 @@ Synth *synth_create(Track *track)
 	"noise_apply_env",
 	"Apply noise envelope",
 	JDAW_THREAD_DSP,
-	page_el_gui_cb, NULL, NULL,
+	component_gui_cb, NULL, NULL,
 	NULL, NULL, &s->noise_page, "noise_apply_env_toggle");
     endpoint_set_default_value(&s->noise_apply_env_ep, (Value){.bool_v = false});
     api_endpoint_register(&s->noise_apply_env_ep, &s->noise_node);
@@ -657,7 +657,7 @@ Synth *synth_create(Track *track)
     /* 	"velocity_freq_scalar", */
     /* 	"Velocity freq scalar", */
     /* 	JDAW_THREAD_DSP, */
-    /* 	page_el_gui_cb, NULL, NULL, */
+    /* 	component_gui_cb, NULL, NULL, */
     /* 	NULL, NULL, &s->filter_page, "velocity_freq_scalar_slider"); */
     /* endpoint_set_default_value(&s->velocity_freq_scalar_ep, (Value){.float_v = 1.0}); */
     /* endpoint_set_allowed_range(&s->velocity_freq_scalar_ep, (Value){.float_v = 0.0}, (Value){.float_v = 1.0}); */
@@ -671,7 +671,7 @@ Synth *synth_create(Track *track)
 	"use_amp_env",
 	"Use amp env",
 	JDAW_THREAD_DSP,
-	page_el_gui_cb, NULL, NULL,
+	component_gui_cb, NULL, NULL,
 	NULL, NULL, &s->filter_page, "use_amp_env_toggle");
     endpoint_set_default_value(&s->use_amp_env_ep, (Value){.bool_v = true});
     api_endpoint_register(&s->use_amp_env_ep, &s->filter_node);
@@ -686,7 +686,7 @@ Synth *synth_create(Track *track)
 	"num_voices",
 	"Num voices",
 	JDAW_THREAD_DSP,
-	page_el_gui_cb, NULL, num_voices_dsp_cb,
+	component_gui_cb, NULL, num_voices_dsp_cb,
 	s, NULL, &s->polyphony_page, "num_voices_slider");
     endpoint_set_default_value(&s->num_voices_ep, (Value){.int_v = SYNTH_NUM_VOICES});
     endpoint_set_allowed_range(&s->num_voices_ep, (Value){.int_v = 2}, (Value){.int_v = SYNTH_NUM_VOICES});
@@ -700,7 +700,7 @@ Synth *synth_create(Track *track)
 	"allow_voice_stealing",
 	"Allow voice stealing",
 	JDAW_THREAD_DSP,
-	page_el_gui_cb, NULL, NULL,
+	component_gui_cb, NULL, NULL,
 	NULL, NULL, &s->polyphony_page, "allow_voice_stealing_toggle");
     endpoint_set_default_value(&s->allow_voice_stealing_ep, (Value){.bool_v = true});
     api_endpoint_register(&s->allow_voice_stealing_ep, &s->api_node);
@@ -713,7 +713,7 @@ Synth *synth_create(Track *track)
 	"poly_portamento_mode",
 	"Poly portamento mode",
 	JDAW_THREAD_DSP,
-	page_el_gui_cb, NULL, NULL,
+	component_gui_cb, NULL, NULL,
 	NULL, NULL, &s->polyphony_page, "poly_portamento_mode_toggle");
     endpoint_set_default_value(&s->poly_portamento_mode_ep, (Value){.bool_v=false});
     api_endpoint_register(&s->poly_portamento_mode_ep, &s->api_node);
@@ -727,7 +727,7 @@ Synth *synth_create(Track *track)
 	"mono_mode",
 	"Mono mode",
 	JDAW_THREAD_DSP,
-	page_el_gui_cb, NULL, NULL,
+	component_gui_cb, NULL, NULL,
 	NULL, NULL, &s->polyphony_page, "mono_mode_toggle");
     endpoint_set_default_value(&s->mono_mode_ep, (Value){.bool_v=false});
     api_endpoint_register(&s->mono_mode_ep, &s->api_node);
@@ -742,7 +742,7 @@ Synth *synth_create(Track *track)
 	JDAW_INT,
 	"portamento_len_msec", "Portamento len msec",
 	JDAW_THREAD_DSP,
-	page_el_gui_cb, NULL, portamento_len_dsp_cb,
+	component_gui_cb, NULL, portamento_len_dsp_cb,
 	s, NULL, &s->polyphony_page, "portamento_len_slider");
     endpoint_set_default_value(&s->portamento_len_msec_ep, (Value){.int_v = s->portamento_len_unscaled});
     endpoint_set_allowed_range(&s->portamento_len_msec_ep, (Value){.int_v = 0}, (Value){.int_v = portamento_unscale(8000)});
@@ -841,7 +841,7 @@ Synth *synth_create(Track *track)
 	    "active",
 	    "Active",
 	    JDAW_THREAD_DSP,
-	    page_el_gui_cb, NULL, NULL,
+	    component_gui_cb, NULL, NULL,
 	    NULL, NULL, &s->osc_page, cfg->active_id);
 	bool default_val = i==0 ? true : false;
 	endpoint_set_default_value(
@@ -870,7 +870,7 @@ Synth *synth_create(Track *track)
 	    "vol",
 	    "Vol",
 	    JDAW_THREAD_DSP,
-	    page_el_gui_cb, NULL, synth_osc_vol_dsp_cb,
+	    component_gui_cb, NULL, synth_osc_vol_dsp_cb,
 	    cfg, NULL, &s->osc_page, cfg->amp_id);
 	endpoint_set_default_value(&cfg->amp_ep, (Value){.float_v = 0.25f});
 	endpoint_set_allowed_range(&cfg->amp_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 2.0f});
@@ -883,7 +883,7 @@ Synth *synth_create(Track *track)
 	    "pan",
 	    "Pan",
 	    JDAW_THREAD_DSP,
-	    page_el_gui_cb, NULL, NULL,
+	    component_gui_cb, NULL, NULL,
 	    NULL, NULL, &s->osc_page, cfg->pan_id);
 	endpoint_set_default_value(&cfg->pan_ep, (Value){.float_v = 0.5f});
 	endpoint_set_allowed_range(&cfg->pan_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 1.0f});
@@ -896,7 +896,7 @@ Synth *synth_create(Track *track)
 	    "fix_freq",
 	    "Fix freq",
 	    JDAW_THREAD_DSP,
-	    page_el_gui_cb, NULL, NULL,
+	    component_gui_cb, NULL, NULL,
 	    NULL, NULL, &s->osc_page, cfg->fix_freq_id);
 	endpoint_set_default_value(&cfg->fix_freq_ep, (Value){.bool_v = false});
 	api_endpoint_register(&cfg->fix_freq_ep, &cfg->api_node);
@@ -908,7 +908,7 @@ Synth *synth_create(Track *track)
 	    "fixed_freq",
 	    "Fixed freq",
 	    JDAW_THREAD_DSP,
-	    page_el_gui_cb, NULL, fixed_freq_dsp_cb,
+	    component_gui_cb, NULL, fixed_freq_dsp_cb,
 	    cfg, NULL, &s->osc_page, cfg->fixed_freq_id);
 	endpoint_set_default_value(&cfg->fixed_freq_ep, (Value){.float_v = 0.1f});
 	endpoint_set_allowed_range(&cfg->fixed_freq_ep, (Value){.float_v = 0.0001f}, (Value){.float_v = 0.8f});
@@ -924,7 +924,7 @@ Synth *synth_create(Track *track)
 	    "octave",
 	    "Octave",
 	    JDAW_THREAD_DSP,
-	    page_el_gui_cb, NULL, tuning_cb,
+	    component_gui_cb, NULL, tuning_cb,
 	    s, cfg, &s->osc_page, cfg->octave_id);
 	endpoint_set_default_value(&cfg->octave_ep, (Value){.int_v = 0});
 	endpoint_set_allowed_range(&cfg->octave_ep, (Value){.int_v = -8}, (Value){.int_v = 8});
@@ -937,7 +937,7 @@ Synth *synth_create(Track *track)
 	    "tune_coarse",
 	    "Coarse tune",
 	    JDAW_THREAD_DSP,
-	    page_el_gui_cb, NULL, tuning_cb,
+	    component_gui_cb, NULL, tuning_cb,
 	    s, cfg, &s->osc_page, cfg->tune_coarse_id);
 	endpoint_set_default_value(&cfg->tune_coarse_ep, (Value){.int_v = 0});
 	endpoint_set_allowed_range(&cfg->tune_coarse_ep, (Value){.int_v = -11}, (Value){.int_v = 11});
@@ -950,7 +950,7 @@ Synth *synth_create(Track *track)
 	    "tune_fine",
 	    "Fine tune",
 	    JDAW_THREAD_DSP,
-	    page_el_gui_cb, NULL, tuning_cb,
+	    component_gui_cb, NULL, tuning_cb,
 	    s, cfg, &s->osc_page, cfg->tune_fine_id);
 	endpoint_set_default_value(&cfg->tune_fine_ep, (Value){.float_v = 0.0f});
 	endpoint_set_allowed_range(&cfg->tune_fine_ep, (Value){.float_v = -100.0f}, (Value){.float_v = 100.0f});
@@ -963,7 +963,7 @@ Synth *synth_create(Track *track)
 	    "unison_num_voices",
 	    "Num unison voices",
 	    JDAW_THREAD_DSP,
-	    page_el_gui_cb, NULL, NULL,
+	    component_gui_cb, NULL, NULL,
 	    s, cfg, &s->osc_page, cfg->unison.num_voices_id);
 	endpoint_set_allowed_range(&cfg->unison.num_voices_ep, (Value){.int_v = 0}, (Value){.int_v = SYNTH_MAX_UNISON_OSCS - 1});
 	api_endpoint_register(&cfg->unison.num_voices_ep, &cfg->api_node);
@@ -977,7 +977,7 @@ Synth *synth_create(Track *track)
 	    "unison_detune_cents",
 	    "Unison detune cents",
 	    JDAW_THREAD_DSP,
-	    page_el_gui_cb, NULL, detune_cents_dsp_cb,
+	    component_gui_cb, NULL, detune_cents_dsp_cb,
 	    s, cfg, &s->osc_page, cfg->unison.detune_cents_id);
 	endpoint_set_allowed_range(&cfg->unison.detune_cents_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 100.0f});
 	endpoint_set_default_value(&cfg->unison.detune_cents_ep, (Value){.float_v = 10.0f});
@@ -993,7 +993,7 @@ Synth *synth_create(Track *track)
 	    "unison_relative_amp",
 	    "Unison relative amp",
 	    JDAW_THREAD_DSP,
-	    page_el_gui_cb, NULL, NULL,
+	    component_gui_cb, NULL, NULL,
 	    NULL, NULL, &s->osc_page, cfg->unison.relative_amp_id);
 	endpoint_set_allowed_range(&cfg->unison.relative_amp_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 1.0f});
 	endpoint_set_default_value(&cfg->unison.relative_amp_ep, (Value){.float_v = 0.4f});
@@ -1007,7 +1007,7 @@ Synth *synth_create(Track *track)
 	    "unison_stereo_spread",
 	    "Unison stereo spread",
 	    JDAW_THREAD_DSP,
-	    page_el_gui_cb, NULL, unison_stereo_spread_dsp_cb,
+	    component_gui_cb, NULL, unison_stereo_spread_dsp_cb,
 	    s, cfg, &s->osc_page, cfg->unison.stereo_spread_id);
 	endpoint_set_allowed_range(&cfg->unison.stereo_spread_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 1.0f});
 	endpoint_set_default_value(&cfg->unison.stereo_spread_ep, (Value){.float_v = 0.4f});
@@ -1020,7 +1020,7 @@ Synth *synth_create(Track *track)
 	    "fmod_target",
 	    "Freq mod target",
 	    JDAW_THREAD_DSP,
-	    page_el_gui_cb, NULL, fmod_target_dsp_cb,
+	    component_gui_cb, NULL, fmod_target_dsp_cb,
 	    cfg, s, &s->osc_page, cfg->fmod_target_dropdown_id);
 	endpoint_set_allowed_range(&cfg->fmod_target_ep, (Value){.int_v=0}, (Value){.int_v=5});
 	cfg->fmod_target_ep.automatable = false;
@@ -1033,7 +1033,7 @@ Synth *synth_create(Track *track)
 	    "amod_target",
 	    "Amp mod target",
 	    JDAW_THREAD_DSP,
-	    page_el_gui_cb, NULL, amod_target_dsp_cb,
+	    component_gui_cb, NULL, amod_target_dsp_cb,
 	    cfg, s, &s->osc_page, cfg->amod_target_dropdown_id);
 	endpoint_set_allowed_range(&cfg->amod_target_ep, (Value){.int_v=0}, (Value){.int_v=5});
 	cfg->amod_target_ep.automatable = false;
@@ -1046,6 +1046,7 @@ Synth *synth_create(Track *track)
 	exit(1);
     }
 
+    fprintf(stderr, "SYNTH ec init...\n");
     effect_chain_init(&s->effect_chain, track->tl->proj, &s->api_node, "synth", track->tl->proj->chunk_size_sframes);
     s->effect_chain.api_node.do_not_serialize = true;
     s->effect_chain.api_node.do_not_automate = true;
@@ -2468,7 +2469,7 @@ NEW_EVENT_FN(dispose_read_synth_preset, "")
 
 /* Return 0 on success, negative on error */
 static int synth_read_preset_file_internal(const char *filepath, Synth *s, bool from_undo)
-{   
+{
     FILE *f = fopen(filepath, "r");
     if (!f) {
 	status_set_errstr("File does not exist or could not be opened.");

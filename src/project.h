@@ -299,8 +299,8 @@ struct grabbed_clip_info {
 typedef struct timeline {
     char name[MAX_NAMELENGTH];
     uint8_t index;
-    int32_t play_pos_sframes; /* Incremented in AUDIO DEVICE thread (small chunks) */
-    int32_t read_pos_sframes; /* Incremented in DSP thread (large chunks) */
+    _Atomic int32_t play_pos_sframes; /* Incremented in AUDIO DEVICE thread (small chunks) */
+    _Atomic int32_t read_pos_sframes; /* Incremented in DSP thread (large chunks) */
     /* float last_read_playspeed; */
     int32_t in_mark_sframes;
     int32_t out_mark_sframes;
@@ -311,13 +311,13 @@ typedef struct timeline {
     - writer calls sem_post for every chunk (chunk_size, e.g. 64) available
     - reader calls sem_wait for every chunk requested (in audio thread)
     */
-    float *buf_L;
-    float *buf_R;
-    uint32_t buf_read_pos;
-    uint32_t buf_write_pos;
-    sem_t *readable_chunks;
-    sem_t *writable_chunks;
-    sem_t *unpause_sem;
+    /* float *buf_L; */
+    /* float *buf_R; */
+    /* uint32_t buf_read_pos; */
+    /* uint32_t buf_write_pos; */
+    /* sem_t *readable_chunks; */
+    /* sem_t *writable_chunks; */
+    /* sem_t *unpause_sem; */
     /* dsp_chunks_info records information about buffered fourier-length
        chunks, which is used in the playback callback to reset the playhead
        position correctly */

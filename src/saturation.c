@@ -44,7 +44,7 @@ void saturation_init(Saturation *s)
 	"gain",
 	"Gain",
 	JDAW_THREAD_DSP,
-	page_el_gui_cb, NULL,
+	component_gui_cb, NULL,
 	saturation_gain_cb,
 	(void *)s, NULL, &s->effect->page, "track_settings_saturation_gain_slider");
     endpoint_set_allowed_range(&s->gain_ep, (Value){.double_v = 1.0}, (Value){.double_v = SATURATION_MAX_GAIN});
@@ -59,7 +59,7 @@ void saturation_init(Saturation *s)
 	"symmetry",
 	"Symmetry",
 	JDAW_THREAD_DSP,
-	page_el_gui_cb, NULL,
+	component_gui_cb, NULL,
 	saturation_gain_cb,
 	(void *)s, NULL, &s->effect->page, "track_settings_saturation_symmetry_slider");
     endpoint_set_allowed_range(&s->symmetry_ep, (Value){.double_v = -1.0}, (Value){.double_v = 1.0});
@@ -87,7 +87,7 @@ void saturation_init(Saturation *s)
 	"type",
 	"Type",
 	JDAW_THREAD_DSP,
-	page_el_gui_cb, NULL, saturation_type_cb,
+	component_gui_cb, NULL, saturation_type_cb,
 	(void *)s, NULL, &s->effect->page, "track_settings_saturation_type");
     endpoint_set_default_value(&s->type_ep, (Value){.int_v = 0});
     endpoint_set_allowed_range(&s->type_ep, (Value){.int_v = 0}, (Value){.int_v = 2});
@@ -224,6 +224,7 @@ void saturation_set_type(Saturation *s, SaturationType t)
 
 float saturation_buf_apply(void *saturation_v, float *restrict buf, int len, int channel_unused, float input_amp)
 {
+    (void)channel_unused;
     Saturation *s = saturation_v;
     s->buf_fn(s, buf, len);
     return input_amp;
@@ -238,7 +239,6 @@ float saturation_buf_apply(void *saturation_v, float *restrict buf, int len, int
 
 float saturation_buf_apply_stereo(void *saturation_v, float *restrict L, float *restrict R, int len, float input_amp)
 {
-    Saturation *s = saturation_v;
     if (L)
 	input_amp = saturation_buf_apply(saturation_v, L, len, 0, input_amp);
     if (R)

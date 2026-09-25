@@ -72,7 +72,7 @@ typedef struct window {
     uint8_t num_deferred_draw_ops;
 
     SDL_Event *current_event;
-    bool needs_redraw;
+    _Atomic bool needs_redraw;
     bool focused;
 
 } Window;

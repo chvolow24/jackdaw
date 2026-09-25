@@ -829,7 +829,7 @@ static int timeline_draw(Timeline *tl)
     /* SDL_RenderFillRect(main_win->rend, &tl->track_area->rect); */
     /* layout_draw(main_win, tl->track_area); */
     /* if (internal_tl_needs_redraw) { */
-    /*     main_win->needs_redraw = true; */
+    /*     atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed); */
     /*     internal_tl_needs_redraw = false; */
     /* } else { */
     /*     main_win->needs_redraw = false; */
@@ -891,8 +891,10 @@ void status_bar_draw()
 
 void project_draw()
 {
-    if (!main_win->needs_redraw) return;
-    main_win->needs_redraw = false;
+    if (!atomic_load_explicit(&main_win->needs_redraw, memory_order_relaxed)) {
+        return;
+    }
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
     Session *session = session_get();
     window_start_draw(main_win, NULL);
     Timeline *tl = ACTIVE_TL;

@@ -66,10 +66,10 @@ void adsr_endpoints_init(ADSRParams *p, Page **cb_page, APINode *parent_node, ch
 	"attack",
 	"Attack",
 	JDAW_THREAD_DSP,
-	page_el_gui_cb, NULL, dsp_cb_attack,
+	component_gui_cb, NULL, dsp_cb_attack,
 	p, NULL, cb_page, "attack_slider");
     endpoint_set_default_value(&p->a_ep, (Value){.int_v = 8});
-    endpoint_set_allowed_range(&p->a_ep, (Value){.int_v = 0}, (Value){.int_v = 2000});
+    endpoint_set_allowed_range(&p->a_ep, (Value){.int_v = 0}, (Value){.int_v = MAX_ATTACK_MS});
     endpoint_set_label_fn(&p->a_ep, label_msec);
     api_endpoint_register(&p->a_ep, &p->api_node);
 
@@ -80,10 +80,10 @@ void adsr_endpoints_init(ADSRParams *p, Page **cb_page, APINode *parent_node, ch
 	"decay",
 	"Decay",
 	JDAW_THREAD_DSP,
-	page_el_gui_cb, NULL, dsp_cb_decay,
+	component_gui_cb, NULL, dsp_cb_decay,
 	p, NULL, cb_page, "decay_slider");
     endpoint_set_default_value(&p->d_ep, (Value){.int_v = 200});
-    endpoint_set_allowed_range(&p->d_ep, (Value){.int_v = 0}, (Value){.int_v = 2000});
+    endpoint_set_allowed_range(&p->d_ep, (Value){.int_v = 0}, (Value){.int_v = MAX_DECAY_MS});
     endpoint_set_label_fn(&p->d_ep, label_msec);
     api_endpoint_register(&p->d_ep, &p->api_node);
 
@@ -94,7 +94,7 @@ void adsr_endpoints_init(ADSRParams *p, Page **cb_page, APINode *parent_node, ch
 	"sustain",
 	"Sustain",
 	JDAW_THREAD_DSP,
-	page_el_gui_cb, NULL, dsp_cb_sustain,
+	component_gui_cb, NULL, dsp_cb_sustain,
 	p, NULL, cb_page, "sustain_slider");
     endpoint_set_default_value(&p->s_ep, (Value){.float_v = 0.4f});
     endpoint_set_allowed_range(&p->s_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 1.0f});
@@ -107,7 +107,7 @@ void adsr_endpoints_init(ADSRParams *p, Page **cb_page, APINode *parent_node, ch
 	"release",
 	"Release",
 	JDAW_THREAD_DSP,
-	page_el_gui_cb, NULL, dsp_cb_release,
+	component_gui_cb, NULL, dsp_cb_release,
 	p, NULL, cb_page, "release_slider");
     endpoint_set_default_value(&p->r_ep, (Value){.int_v = 300});
     endpoint_set_allowed_range(&p->r_ep, (Value){.int_v = 0}, (Value){.int_v = 2000});
@@ -122,7 +122,7 @@ void adsr_endpoints_init(ADSRParams *p, Page **cb_page, APINode *parent_node, ch
 	"ramp_exponent",
 	"Ramp exponent",
 	JDAW_THREAD_DSP,
-	page_el_gui_cb, NULL, dsp_cb_ramp_exp,
+	component_gui_cb, NULL, dsp_cb_ramp_exp,
 	p, NULL, cb_page, "ramp_exp_slider");
     endpoint_set_default_value(&p->ramp_exp_ep, (Value){.float_v = 2.0});
     endpoint_set_allowed_range(&p->ramp_exp_ep, (Value){.float_v = 1.0}, (Value){.float_v = 20.0});
@@ -190,10 +190,6 @@ void adsr_set_params(
     p->r = r;
     p->ramp_exp = ramp_exp;
 
-    if (p->a_ramp) free(p->a_ramp);
-    if (p->d_ramp) free(p->d_ramp);
-    p->a_ramp = malloc(sizeof(float) * a);
-    p->d_ramp = malloc(sizeof(float) * d);
     for (int32_t i=0; i<a; i++) {
 	p->a_ramp[i] = pow((double)i / a, 1 / ramp_exp);
     }
@@ -552,10 +548,6 @@ int32_t adsr_query_position(ADSRState *s)
 
 void adsr_params_deinit(ADSRParams *p)
 {
-    if (p->a_ramp) free(p->a_ramp);
-    p->a_ramp = NULL;
-    if (p->d_ramp) free(p->d_ramp);
-    p->d_ramp = NULL;
     if (p->followers) {
 	free(p->followers);
 	p->followers = NULL;

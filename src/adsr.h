@@ -6,6 +6,9 @@
 #include "api.h"
 #include "endpoint.h"
 
+#define MAX_ATTACK_MS 2000
+#define MAX_DECAY_MS 2000
+
 enum adsr_stage {
     ADSR_UNINIT,
     ADSR_A,
@@ -23,8 +26,8 @@ typedef struct adsr_params {
     float s; /* raw amp */
     int32_t r; /* sample_frames */
 
-    float *a_ramp;
-    float *d_ramp;
+    float a_ramp[MAX_ATTACK_MS * 96];
+    float d_ramp[MAX_DECAY_MS * 96];
 
     float ramp_exp;
 

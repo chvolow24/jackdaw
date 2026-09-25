@@ -92,9 +92,9 @@ void handle_window_events(SDL_Event e, Window *win)
             w = e.window.data1;
             h = e.window.data2;
         }
-        main_win->needs_redraw = true;
+        atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
         window_resize_passive(main_win, w, h);
-        main_win->needs_redraw = true;
+        atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
     } else if (e.window.event == SDL_WINDOWEVENT_DISPLAY_CHANGED) {
         int rw = 0, rh = 0, ww = 0, wh = 0;
         SDL_GetWindowSize(main_win->win, &ww, &wh);
@@ -137,7 +137,7 @@ void loop_project_main()
     
     main_win->current_event = &e;
     while (!(main_win->i_state & I_STATE_QUIT)) {
-        session_run_thread_callbacks(JDAW_THREAD_MAIN);
+        if (session_run_thread_callbacks(JDAW_THREAD_MAIN) > 0) atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 	while (SDL_PollEvent(&e)) {            
 	    frames_since_event = 0;
 	    switch (e.type) {
@@ -164,7 +164,7 @@ void loop_project_main()
 		break;
 	    case SDL_MOUSEMOTION: {
 		window_set_mouse_point(main_win, e.motion.x, e.motion.y);
-                main_win->needs_redraw = true; 
+                atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed); 
 		if (session->dragged_component.component) {
 		    draggable_mouse_motion(&session->dragged_component, main_win);
 		    break;
@@ -204,7 +204,7 @@ void loop_project_main()
 		if (main_win->txt_editing) {
 		    txt_input_event_handler(main_win->txt_editing, &e);
 		}
-                main_win->needs_redraw = true;
+                atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 		break;
 	    case SDL_KEYDOWN: {
 		scrolling_lt = NULL;
@@ -271,7 +271,7 @@ void loop_project_main()
 				input_fn->bound_button->return_color);
 
 			}
-                        main_win->needs_redraw = true;
+                        atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 			/* timeline_reset(ACTIVE_TL); */
 		    }
 		    break;
@@ -320,7 +320,7 @@ void loop_project_main()
 		break;
 	    case SDL_MOUSEWHEEL: {
 		Timeline *tl = ACTIVE_TL;
-		main_win->needs_redraw = true;
+		atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 		if (session->dragged_component.component) {
 		    draggable_handle_scroll(&session->dragged_component, e.wheel.x, e.wheel.y);
 		    break;
@@ -404,7 +404,7 @@ void loop_project_main()
 		    main_win->i_state |= I_STATE_MOUSE_R;
                     context_at_point_create_menu(main_win->mousep);
 		}
-                main_win->needs_redraw = true;
+                atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 		break;
 	    case SDL_MOUSEBUTTONUP:
 		scrolling_lt = NULL;
@@ -420,7 +420,7 @@ void loop_project_main()
 		if (session->piano_roll) {
 		    piano_roll_mouse_up(main_win->mousep);
 		}
-                main_win->needs_redraw = true;
+                atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 		break;
 	    case SDL_FINGERUP:
 		fingersdown = SDL_GetNumTouchFingers(-1);
@@ -430,7 +430,7 @@ void loop_project_main()
 		    }
 		    scrub_block = false;
 		}
-                main_win->needs_redraw = true;
+                atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 		break;
 	    case SDL_FINGERDOWN:
 	        fingersdown = SDL_GetNumTouchFingers(-1);
@@ -438,7 +438,7 @@ void loop_project_main()
 		    layout_halt_scroll(scrolling_lt);
 		    scrolling_lt = NULL;
 		}
-                main_win->needs_redraw = true;
+                atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 		break;
 	    case SDL_DROPFILE: {
 		Timeline *tl = ACTIVE_TL;
@@ -454,7 +454,7 @@ void loop_project_main()
 		timeline_set_play_position(tl, pos, false);
 		io_open_file(e.drop.file, IO_FILE_TYPE_UNDETERMINED, timeline_selected_track(ACTIVE_TL), pos);
 		SDL_free(e.drop.file);
-                main_win->needs_redraw = true;
+                atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 	    }
 		break;		
 	    default:
@@ -502,7 +502,7 @@ void loop_project_main()
 		}
 		timeline_reset(tl, false);
 	    }
-            main_win->needs_redraw = true;
+            atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 	}
 	
 	first_frame = false;
@@ -533,7 +533,7 @@ void loop_project_main()
 	    session->drag_color_pulse_phase++;
 	    session->drag_color_pulse_phase %= DRAG_COLOR_PULSE_PHASE_MAX;
 	    session->drag_color_pulse_prop = (sin(TAU * (double)session->drag_color_pulse_phase / DRAG_COLOR_PULSE_PHASE_MAX) + 1.0) / 2.0;
-	    main_win->needs_redraw = true;
+	    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 	}
 
 	if (session->playhead_scroll.playhead_do_incr) {
@@ -567,18 +567,18 @@ void loop_project_main()
 	    } else {
 		main_win->txt_editing->cursor_countdown--;
 	    }
-            main_win->needs_redraw = true;
+            atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 	}
 	if (session->playback.recording) {
 	    transport_recording_update_cliprects();
-            main_win->needs_redraw = true;
+            atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 	}
 	if (status_frame()) {
-            main_win->needs_redraw = true;
+            atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
         }
 
         if (session_do_ongoing_changes(JDAW_THREAD_MAIN) > 0) {
-            main_win->needs_redraw = true;
+            atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
         }
 	if (main_win->needs_redraw) {
 	    set_clipref_at_cursor();

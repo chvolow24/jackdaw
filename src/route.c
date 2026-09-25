@@ -332,7 +332,7 @@ AudioRoute *track_add_audio_route(Track *track, Track *dst, float init_amp)
     track_reset_proc_order(track);
     timeline_resort_tracks_proc_order(track->tl);
 
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 
     user_event_push(
 	undo_add_audio_route,

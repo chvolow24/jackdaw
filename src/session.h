@@ -192,7 +192,7 @@ struct source_mode {
 };
 
 struct playback {
-    float play_speed;
+    _Atomic float play_speed;
     Endpoint play_speed_ep;
     bool loop_play;
     bool dragging;

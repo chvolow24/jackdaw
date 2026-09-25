@@ -148,7 +148,7 @@ int prompt_user(const char *header, const char *description, int num_options, co
     }
     modal->x = saved_modal_x;
     modal_destroy(modal);
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
     main_win->i_state = 0;
     return prompt_user_sel;
 }

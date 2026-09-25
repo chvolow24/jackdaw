@@ -171,6 +171,8 @@ NEW_EVENT_FN(dispose_forward_add_effect, "")
 /* Always call before adding any effects */
 void effect_chain_init(EffectChain *ec, Project *proj, APINode *parent_api_node, const char *obj_name, int32_t chunk_len_sframes)
 {
+    TESTBREAK;
+    fprintf(stderr, "EC INIT len %d\n", chunk_len_sframes);
     bool already_init = false;
     if (ec->initialized) {
 	log_tmp(LOG_DEBUG, "Redundant to effect_chain_reinit on \"%s\" (new name \"%s\" (likely deser)\n", ec->obj_name, obj_name);
@@ -356,7 +358,7 @@ Effect *effect_chain_add_effect(EffectChain *ec, EffectType type)
 	JDAW_INT,
 	"channel_mode", NULL,
 	JDAW_THREAD_MAIN,
-	page_el_gui_cb, NULL, NULL,
+	component_gui_cb, NULL, NULL,
 	NULL, NULL, &e->page, "ch_mode_dropdown");
     
 
@@ -499,10 +501,6 @@ static void effect_silence(Effect *e);
 
 float effect_chain_buf_apply(EffectChain *ec, float *restrict L, float *restrict R, int len, float input_amp)
 {
-    /* fprintf(stderr, "EC buf apply thread %s len %d\n", get_current_thread_name(), len); */
-    if (len == 64 && current_thread() == JDAW_THREAD_DSP) {
-        TESTBREAK;
-    }
     static float amp_epsilon = 1e-7f;
     float running_amp = input_amp;
     /* if (len > ec->chunk_len_sframes) { */
@@ -661,7 +659,7 @@ void effect_delete(Effect *e, bool from_undo)
 	if (ec->num_effects > 0) {
 	    effect_chain_open_tabview(ec);
 	} else {
-	    main_win->needs_redraw = true;
+	    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 	}
 	/* if (strncmp(ec->obj_name, "Synth", 5) == 0) { */
 	/* } */

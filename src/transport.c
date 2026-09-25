@@ -340,7 +340,7 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 		session->source_mode.src_play_pos_sframes = clip->len_sframes - 1;
 	    }
 	}
-	main_win->needs_redraw = true;
+	atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
     } else if (session->playback.playing) {
 	/* timer_start(); */
 	struct dsp_chunk_info *chunk_info = tl->dsp_chunks_info + tl->dsp_chunks_info_read_i;
@@ -350,7 +350,7 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 	}
 	chunk_info->elapsed_playback_chunks++;
 	int32_t new_play_pos = chunk_info->tl_start + proj->chunk_size_sframes * chunk_info->elapsed_playback_chunks * chunk_info->playspeed;
-	timeline_move_play_position(tl, new_play_pos - tl->play_pos_sframes);
+	timeline_move_play_position(tl, new_play_pos - atomic_load_explicit(&tl->play_pos_sframes, memory_order_relaxed));
 	int N = proj->fourier_len_sframes / proj->chunk_size_sframes;
 	if (chunk_info->elapsed_playback_chunks >= N) {
 	    tl->dsp_chunks_info_read_i++;
@@ -370,8 +370,7 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     /* transport_log("...done ongoing changes\n"); */
 
     if (dev->channel_dsts[0].conn->request_playhead_reset) {
-	int32_t saved_write_pos = tl->buf_write_pos;
-	
+        
 	/* Give DSP thread a new starting position */
 	tl->read_pos_sframes = dev->channel_dsts[0].conn->request_playhead_pos;
 
@@ -439,9 +438,6 @@ static void *transport_dsp_threadfn(void *arg)
 	
 	/* GET MIXDOWN */
 	get_mixdown_chunk(tl, buf_L, buf_R, len, tl->read_pos_sframes, play_speed);
-	/* get_mixdown_chunk(tl, buf_L, 0, len, tl->read_pos_sframes, play_speed); */
-	/* get_mixdown_chunk(tl, buf_R, 1, len, tl->read_pos_sframes, play_speed); */
-	
 
 	/* DSP */
 	float dL[len * 2];
@@ -524,13 +520,6 @@ static void *transport_dsp_threadfn(void *arg)
 	chunk_info->playspeed = play_speed;
 	tl->dsp_chunks_info_write_i++;
 	if (tl->dsp_chunks_info_write_i >= RING_BUF_LEN_FFT_CHUNKS) tl->dsp_chunks_info_write_i = 0;
-
-
-	/* Increment the playback ring buffer write pos */
-	tl->buf_write_pos += len;
-	if (tl->buf_write_pos >= len * RING_BUF_LEN_FFT_CHUNKS) {
-	    tl->buf_write_pos = 0;
-	}
 	
 	/* Move the read (DSP) pos */
 	tl->read_pos_sframes += len * play_speed;
@@ -594,7 +583,7 @@ void transport_start_playback()
     if (session->playback.playing) return;
     session->playback.playing = true;
     Timeline *tl = ACTIVE_TL;
-    tl->read_pos_sframes = tl->play_pos_sframes;
+    tl->read_pos_sframes = atomic_load_explicit(&tl->play_pos_sframes, memory_order_relaxed);
 
     for (uint8_t i=0; i<tl->num_tracks; i++) {
 	Track *track = tl->tracks[i];
@@ -675,7 +664,7 @@ void transport_execute_playhead_jump(Timeline *tl, int32_t new_pos)
     } else {
 	/* Handled now: reconcile read (DSP thread) pos and play (playback thread) pos */
 	tl->read_pos_sframes = new_pos;
-	tl->play_pos_sframes = new_pos;
+	atomic_store_explicit(&tl->play_pos_sframes, new_pos, memory_order_relaxed);
     }
 }
 
@@ -712,8 +701,6 @@ void transport_stop_playback()
     /*     /\* fprintf(stdout, "\t->reinitiailizing writable chunks\n"); *\/ */
     /*     sem_post(tl->writable_chunks); */
     /* } */
-    tl->buf_read_pos = 0;
-    tl->buf_write_pos = 0;
     tl->dsp_chunks_info_read_i = 0;
     tl->dsp_chunks_info_write_i = 0;
 
@@ -1182,7 +1169,7 @@ void transport_stop_recording()
     Textbox *record_button = ((Button *)el->component)->tb;
     textbox_set_background_color(record_button, &colors.quickref_button_blue );
 
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 }
 
 void transport_set_mark(Timeline *tl, bool in)
@@ -1202,7 +1189,7 @@ void transport_set_mark(Timeline *tl, bool in)
 	    session->source_mode.src_out_sframes = session->source_mode.src_play_pos_sframes;
 	}
     }
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 }
 
 void transport_set_mark_to(Timeline *tl, int32_t pos, bool in)

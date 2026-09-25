@@ -37,7 +37,7 @@ void clipref_gain_gui_cb(Endpoint *ep)
 {
     ClipRef *cr = ep->xarg1;
     clipref_reset(cr, false);
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
     label_move(cr->gain_label, main_win->mousep.x, cr->layout->rect.y + cr->layout->rect.h / 2);
     label_reset(cr->gain_label, endpoint_read(ep, NULL));
 }
@@ -360,7 +360,7 @@ void clipref_bring_to_front()
 	    }
 	}
     }
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 }
 ClipRef *clipref_at_cursor_not_dragging()
 {
@@ -486,14 +486,14 @@ void clipref_delete(ClipRef *cr)
     if (cr->grabbed) {
 	timeline_clipref_ungrab(cr);
     }
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
     cr->deleted = true;
     clipref_remove_from_track(cr);
 }
 
 void clipref_undelete(ClipRef *cr)
 {
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
     cr->deleted = false;
     clipref_insert_on_track(cr, cr->track);
 }

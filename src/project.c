@@ -252,65 +252,65 @@ uint8_t project_add_timeline(Project *proj, char *name)
 	textbox_reset_full(session->gui.loop_play_lemniscate);
     }
     
-    new_tl->buf_L = calloc(1, sizeof(float) * proj->fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS);
-    new_tl->buf_R = calloc(1, sizeof(float) * proj->fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS);
+    /* new_tl->buf_L = calloc(1, sizeof(float) * proj->fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS); */
+    /* new_tl->buf_R = calloc(1, sizeof(float) * proj->fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS); */
     
-    new_tl->buf_write_pos = 0;
-    new_tl->buf_read_pos = 0;
+    /* new_tl->buf_write_pos = 0; */
+    /* new_tl->buf_read_pos = 0; */
     char buf[128];
     snprintf(buf, 128, SEM_NAME_UNPAUSE, new_tl->index);
-    bool retry = false;
-retry1:
-    if ((new_tl->unpause_sem = sem_open(buf, O_CREAT | O_EXCL, 0666, 0)) == SEM_FAILED) {
-	if (errno != EEXIST) {
-	    perror("Error opening unpause sem");
-	}
-	sem_unlink(buf);
-	if (!retry) {
-	    goto retry1;
-	    retry = true;
-	} else {
-	    fprintf(stderr, "Fatal error: retry failed\n");
-	    exit(1);
-	}
-	/* exit(1); */
+    /* bool retry = false; */
+/* retry1: */
+/*     if ((new_tl->unpause_sem = sem_open(buf, O_CREAT | O_EXCL, 0666, 0)) == SEM_FAILED) { */
+/* 	if (errno != EEXIST) { */
+/* 	    perror("Error opening unpause sem"); */
+/* 	} */
+/* 	sem_unlink(buf); */
+/* 	if (!retry) { */
+/* 	    goto retry1; */
+/* 	    retry = true; */
+/* 	} else { */
+/* 	    fprintf(stderr, "Fatal error: retry failed\n"); */
+/* 	    exit(1); */
+/* 	} */
+/* 	/\* exit(1); *\/ */
 	
-    }
-retry2:
-    snprintf(buf, 128, SEM_NAME_READABLE_CHUNKS, new_tl->index);
-    if ((new_tl->readable_chunks = sem_open(buf, O_CREAT | O_EXCL, 0666, 0)) == SEM_FAILED) {
-	if (errno != EEXIST) {
-	    perror("Error opening readable chunks sem");
-	}
-	sem_unlink(buf);
-	if (!retry) {
-	    goto retry2;
-	    retry = true;
-	} else {
-	    fprintf(stderr, "Fatal error: retry failed\n");
-	    exit(1);
-	}
+/*     } */
+/* retry2: */
+/*     snprintf(buf, 128, SEM_NAME_READABLE_CHUNKS, new_tl->index); */
+/*     if ((new_tl->readable_chunks = sem_open(buf, O_CREAT | O_EXCL, 0666, 0)) == SEM_FAILED) { */
+/* 	if (errno != EEXIST) { */
+/* 	    perror("Error opening readable chunks sem"); */
+/* 	} */
+/* 	sem_unlink(buf); */
+/* 	if (!retry) { */
+/* 	    goto retry2; */
+/* 	    retry = true; */
+/* 	} else { */
+/* 	    fprintf(stderr, "Fatal error: retry failed\n"); */
+/* 	    exit(1); */
+/* 	} */
 
-	/* exit(1); */
-    }
-retry3:
-    snprintf(buf, 128, SEM_NAME_WRITABLE_CHUNKS, new_tl->index);
-    int init_writable_chunks = proj->fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS / proj->chunk_size_sframes;
-    if ((new_tl->writable_chunks = sem_open(buf, O_CREAT | O_EXCL, 0666, init_writable_chunks)) == SEM_FAILED) {
-	if (errno != EEXIST) {
-	    perror("Error opening writable chunks sem");
-	}
-	sem_unlink(buf);
-	if (!retry) {
-	    goto retry3;
-	    retry = true;
-	} else {
-	    fprintf(stderr, "Fatal error: retry failed\n");
-	    exit(1);
-	}
-	/* exit(1); */
-    }
-    main_win->needs_redraw = true;
+/* 	/\* exit(1); *\/ */
+/*     } */
+/* retry3: */
+/*     snprintf(buf, 128, SEM_NAME_WRITABLE_CHUNKS, new_tl->index); */
+/*     int init_writable_chunks = proj->fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS / proj->chunk_size_sframes; */
+/*     if ((new_tl->writable_chunks = sem_open(buf, O_CREAT | O_EXCL, 0666, init_writable_chunks)) == SEM_FAILED) { */
+/* 	if (errno != EEXIST) { */
+/* 	    perror("Error opening writable chunks sem"); */
+/* 	} */
+/* 	sem_unlink(buf); */
+/* 	if (!retry) { */
+/* 	    goto retry3; */
+/* 	    retry = true; */
+/* 	} else { */
+/* 	    fprintf(stderr, "Fatal error: retry failed\n"); */
+/* 	    exit(1); */
+/* 	} */
+/* 	/\* exit(1); *\/ */
+/*     } */
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
     proj->timelines[proj->num_timelines] = new_tl;
     proj->num_timelines++;
 
@@ -340,15 +340,15 @@ static void timeline_destroy(Timeline *tl, bool displace_in_proj)
 	    proj->num_timelines--;
 	}
     }
-    if (tl->buf_L) free(tl->buf_L);
-    if (tl->buf_R) free(tl->buf_R);
+    /* if (tl->buf_L) free(tl->buf_L); */
+    /* if (tl->buf_R) free(tl->buf_R); */
 
     /* if (tl->timecode_tb) textbox_destroy(tl->timecode_tb); */
     /* if (tl->loop_play_lemniscate) textbox_destroy(tl->loop_play_lemniscate); */
 
-    if (sem_close(tl->unpause_sem) != 0) perror("Sem close");
-    if (sem_close(tl->writable_chunks) != 0) perror("Sem close");
-    if (sem_close(tl->readable_chunks) != 0) perror("Sem close");
+    /* if (sem_close(tl->unpause_sem) != 0) perror("Sem close"); */
+    /* if (sem_close(tl->writable_chunks) != 0) perror("Sem close"); */
+    /* if (sem_close(tl->readable_chunks) != 0) perror("Sem close"); */
 
     char buf[128];
     snprintf(buf, 128, SEM_NAME_UNPAUSE, tl->index);
@@ -659,7 +659,7 @@ void timeline_rectify_track_indices(Timeline *tl)
     /* fprintf(stderr, "->tt selector: %d\n", tl->click_track_selector); */
     memcpy(tl->tracks, track_stack, sizeof(Track *) * tl->num_tracks);
     memcpy(tl->click_tracks, click_track_stack, sizeof(ClickTrack *) * tl->num_click_tracks);
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 }
 
 Track *timeline_selected_track(Timeline *tl)
@@ -681,7 +681,7 @@ void timeline_select_track(Track *track)
     tl->track_selector = track->tl_rank;
     tl->layout_selector = track->layout->index;
     tl->click_track_selector = -1;
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 }
 
 ClickTrack *timeline_selected_click_track(Timeline *tl)
@@ -1289,7 +1289,7 @@ void timeline_reset_loop_play_lemniscate(Timeline *tl)
     session->gui.loop_play_lemniscate->layout->rect.w = out_x - in_x;
     layout_set_values_from_rect(session->gui.loop_play_lemniscate->layout);
     textbox_reset(session->gui.loop_play_lemniscate);
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
     
 }
 
@@ -1305,7 +1305,7 @@ void timeline_reset_full(Timeline *tl)
 	timeline_reset_loop_play_lemniscate(tl);
     }
 
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 
 }
 
@@ -1320,7 +1320,7 @@ void timeline_reset(Timeline *tl, bool rescaled)
 	timeline_reset_loop_play_lemniscate(tl);
     }
 
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 }
 
 void track_increment_vol(Track *track)
@@ -1384,7 +1384,7 @@ bool track_mute(Track *track)
     } else {
 	textbox_set_background_color(track->tb_mute_button, &colors.mute_solo_grey);
     }
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
     return track->muted;
 }
 
@@ -1405,7 +1405,7 @@ bool track_solo(Track *track)
 	if (piano_roll_solo_button) textbox_set_background_color(piano_roll_solo_button, &colors.mute_solo_grey);
 
     }
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
     return track->solo;
 }
 
@@ -1554,7 +1554,7 @@ void track_or_tracks_solo(Timeline *tl, Track *track_opt)
     }
 	    
 
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 }
 
 
@@ -1612,7 +1612,7 @@ void track_or_tracks_mute(Timeline *tl, Track *track_opt)
             }
         }
     }
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 
     if (num_muted > 0) {
 	Track **undo_packet = calloc(num_muted, sizeof(Track *));
@@ -1709,7 +1709,7 @@ static void track_set_in_onclick(void *void_arg)
 {
     struct track_in_arg *arg = (struct track_in_arg *)void_arg;
     track_set_input_to(arg->track, arg->type, arg->obj);
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 }
 
 void track_set_midi_out(Track *track)
@@ -2256,7 +2256,7 @@ void timeline_switch(uint8_t new_tl_index)
     /* session->gui.audio_rect = &(layout_get_child_by_name_recursive(new->track_area->parent, "audio_rect")->rect); */
     /* session->gui.ruler_rect = &(layout_get_child_by_name_recursive(new->track_area->parent, "ruler")->rect); */
     
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
     project_reset_tl_label(new->proj);
 }
 
@@ -2303,7 +2303,7 @@ static void track_move_automation(Automation *a, int direction, bool from_undo)
 {
     TEST_FN_CALL(automation_index, a);
     Track *track = a->track;
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
     TEST_FN_CALL(track_automation_order, track);
     int new_pos = a->index + direction;
     if (new_pos >= 0 && new_pos < track->num_automations) {
@@ -2398,7 +2398,7 @@ static void check_freeze_click_track(Timeline * tl)
 	tl->layout_selector = -1;
 	tl->click_track_selector = 0;
 	tl->track_selector = -1;
-	main_win->needs_redraw = true;
+	atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
     }
 }
 
@@ -2412,7 +2412,7 @@ bool check_unfreeze_click_track(Timeline *tl)
 	ct->layout->y = cached_frozen_ct_y;
 	tl->click_track_frozen = false;
 	layout_reset(tl->track_area);
-	main_win->needs_redraw = true;
+	atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 	tl->layout_selector = 0;
 	tl->click_track_selector = 0;
 	tl->track_selector = -1;
@@ -2449,7 +2449,7 @@ void timeline_move_track_or_automation(Timeline *tl, int direction)
 	timeline_refocus_click_track(tl, tt, direction > 0);
     }
     timeline_reset(tl, false);
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 }
 
 void project_set_chunk_size(uint16_t new_chunk_size)
@@ -2585,7 +2585,7 @@ void timeline_scroll_playhead(double dim)
 
 void project_active_tl_redraw(Project *proj)
 {
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 }
 
 bool track_minimize(Track *t)

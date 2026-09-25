@@ -1056,7 +1056,7 @@ ClickTrack *timeline_add_click_track(Timeline *tl)
     t->layout = lt;
     layout_size_to_fit_children_v(click_tracks_area, true, 0);
     layout_reset(tl->track_area);
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 
     layout_force_reset(lt);
 
@@ -1207,7 +1207,7 @@ static int set_tempo_submit_form(void *mod_v, void *target)
 	}
     }
     window_pop_modal(main_win);
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
     return 0;
 }
 #define TEMPO_STRLEN 8
@@ -1289,7 +1289,7 @@ void timeline_click_track_set_tempo_at_cursor(Timeline *tl)
 
     modal_reset(mod);
     modal_move_onto(mod);
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
  }
 
 static void click_track_delete_internal(ClickTrack *tt, bool from_undo);
@@ -1385,12 +1385,12 @@ ClickSegment *click_track_cut_at(ClickTrack *tt, int32_t at)
 NEW_EVENT_FN(undo_cut_click_track, "undo cut click track")
     ClickSegment *s = (ClickSegment *)obj2;
     simple_click_segment_remove(s);
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 }
 
 NEW_EVENT_FN(redo_cut_click_track, "redo cut click track")
     simple_click_segment_reinsert(obj2, val2.int32_v);
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 }
 
 NEW_EVENT_FN(dispose_forward_cut_click_track, "")
@@ -1408,7 +1408,7 @@ void timeline_cut_click_track_at_cursor(Timeline *tl)
 	status_set_errstr("Error: cannot cut at existing segment boundary");
 	return;
     }
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
     Value cut_pos = {.int32_v = tl->play_pos_sframes};
     Value new_seg_duration = {.int32_v = s->next ? s->next->start_pos - s->start_pos : -1};
     user_event_push(
@@ -1429,7 +1429,7 @@ void timeline_increment_click_at_cursor(Timeline *tl, int inc_by)
     uint8_t subdiv_lens[s->cfg.num_beats];
     memcpy(subdiv_lens, s->cfg.beat_len_atoms, s->cfg.num_beats * sizeof(uint8_t));
     click_segment_set_config(s, s->num_measures, new_tempo, s->cfg.num_beats, subdiv_lens, tt->end_bound_behavior);
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 }
 
 void click_track_get_prox_beats(ClickTrack *ct, int32_t pos, BeatProminence bp, int32_t *prev_pos_dst, int32_t *next_pos_dst)
@@ -1715,9 +1715,6 @@ void click_track_draw(ClickTrack *tt)
 
 void click_track_mix_metronome(ClickTrack *ct, float *mixdown_buf, int32_t mixdown_buf_len, int32_t tl_start_pos_sframes, int32_t tl_end_pos_sframes, float step, int channel)
 {
-    /* fprintf(stderr, "MIX METRONOME start %d\n", tl_start_pos_sframes); */
-    /* static float *ct->metronome_buf; */
-    /* static int32_t ct->metronome_buf_len; */
     if (!ct->metronome_buf || ct->metronome_buf_len != mixdown_buf_len) {
 	if (ct->metronome_buf) free(ct->metronome_buf);
 	ct->metronome_buf_len = mixdown_buf_len;
@@ -1808,7 +1805,7 @@ void click_track_mix_metronome(ClickTrack *ct, float *mixdown_buf, int32_t mixdo
 	if (!ctp.seg) break;
 
     }
-    float_buf_mult_const(ct->metronome_buf, endpoint_read(&ct->metronome.vol_ep, NULL).float_v, ct->metronome_buf_len);
+    float_buf_mult_const(ct->metronome_buf, ct->metronome.vol, ct->metronome_buf_len);
 add_metronome_buf:
     float_buf_add(mixdown_buf, ct->metronome_buf, mixdown_buf_len);
 }
@@ -1894,7 +1891,7 @@ void click_track_mute_unmute(ClickTrack *t)
     } else {
 	textbox_set_background_color(t->metronome_button, &colors.play_green);
     }
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 }
 
 

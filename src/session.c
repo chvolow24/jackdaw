@@ -183,7 +183,7 @@ Session *session_create()
 	"output_vol",
 	"Output vol",
 	JDAW_THREAD_PLAYBACK,
-	page_el_gui_cb, NULL, NULL, /* page el args initialized in panel */
+	component_gui_cb, NULL, NULL, /* page el args initialized in panel */
 	NULL, NULL, NULL, NULL);
     endpoint_set_allowed_range(&session->playback.output_vol_ep, (Value){.float_v = 0.0f}, (Value){.float_v = 1.0f});
     endpoint_set_default_value(&session->playback.output_vol_ep, (Value){.float_v = 1.0f});
@@ -503,6 +503,8 @@ void session_clear_all_queues()
     session->queued_ops.num_queued_audio_bufs = 0;
     check_queued_ops_unlock(queued_audio_buf_lock);
 
+
+    session_clear_all_queued_callbacks();
     session_clear_all_ongoing_changes();
 }
 

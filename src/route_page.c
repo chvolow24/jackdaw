@@ -365,7 +365,7 @@ void route_page_open(Track *track, bool select_outs_tab)
     if (select_outs_tab) {
 	tabview_select_tab(tv, 1);
     }
-    main_win->needs_redraw = true;    
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);    
 }
 
 

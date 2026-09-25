@@ -72,7 +72,7 @@ static NEW_EVENT_FN(undo_move_clips, "undo move clips / adj clip bounds")
 	/* End new */
 	clipref_reset(cliprefs[i], false);
     }
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 }
 
 static NEW_EVENT_FN(redo_move_clips, "redo move clips / adj clip bounds")
@@ -88,7 +88,7 @@ static NEW_EVENT_FN(redo_move_clips, "redo move clips / adj clip bounds")
 	cliprefs[i]->end_in_clip = positions[i + num].end_in_clip;
 	clipref_reset(cliprefs[i], false);
     }
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 }
 
 void timeline_cache_grabbed_clip_positions(Timeline *tl)
@@ -265,7 +265,7 @@ void timeline_grab_ungrab(Timeline *tl, ClipRef *cr_opt)
 	status_stat_drag();
     }    
     
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 }
 
 void timeline_grab_and_drag(Timeline *tl)
@@ -289,7 +289,7 @@ void timeline_grab_left_edge(Timeline *tl, ClipRef *cr_opt)
 	status_stat_drag();
     }    
 
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 }
 
 /* Grab right edge of clip at cursor */
@@ -303,7 +303,7 @@ void timeline_grab_right_edge(Timeline *tl, ClipRef *cr_opt)
 	status_stat_drag();
     }    
 
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 }
 
 void timeline_grab_no_edge(Timeline *tl)
@@ -318,7 +318,7 @@ void timeline_grab_no_edge(Timeline *tl)
 	status_stat_drag();
     }    
 
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 
 }
 
@@ -403,7 +403,7 @@ void timeline_grab_marked_range(Timeline *tl, ClipRefEdge edge)
 	status_stat_drag();
     }    
 
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 }
 
 

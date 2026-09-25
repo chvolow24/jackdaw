@@ -324,7 +324,7 @@ void timeline_set_play_position(Timeline *tl, int32_t abs_pos_sframes, bool move
 
 
     timeline_flush_unclosed_midi_notes();
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 }
 
 
@@ -333,7 +333,7 @@ void timeline_move_play_position(Timeline *tl, int32_t move_by_sframes)
 {
     RESTRICT_NOT_DSP("timeline_move_play_position");
     /* RESTRICT_NOT_MAIN("timeline_move_play_position"); */
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
     Session *session = session_get();
     
     int64_t new_pos = (int64_t)tl->play_pos_sframes + move_by_sframes;
@@ -366,7 +366,7 @@ void timeline_move_play_position(Timeline *tl, int32_t move_by_sframes)
 	timeview_scroll_sframes(&tl->timeview, move_by_sframes);
 	tl->needs_reset = true;
     }
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 }
 
 

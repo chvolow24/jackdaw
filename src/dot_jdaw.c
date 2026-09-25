@@ -1335,7 +1335,7 @@ static int jdaw_read_track(FILE *f, Timeline *tl)
 		    }
 		    if (read_file_version_at_or_above("00.23")) {
 			/* fprintf(stderr, "\n\nReading synth effect chain....\n"); */
-			jdaw_read_effect_chain(f, proj_reading, &track->synth->effect_chain, &track->synth->api_node, "synth", tl->proj->fourier_len_sframes);
+			jdaw_read_effect_chain(f, proj_reading, &track->synth->effect_chain, &track->synth->api_node, "synth", tl->proj->chunk_size_sframes);
 			track->synth->effect_chain.api_node.do_not_serialize = true;
 			track->synth->effect_chain.api_node.do_not_automate = true;
 		    }

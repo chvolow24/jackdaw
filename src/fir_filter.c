@@ -191,7 +191,7 @@ void filter_init(FIRFilter *filter, FilterType type, uint16_t impulse_response_l
 	"freq",
 	"Cutoff or center freq",
 	JDAW_THREAD_DSP,
-	page_el_gui_cb, NULL, filter_cutoff_dsp_cb,
+	component_gui_cb, NULL, filter_cutoff_dsp_cb,
 	/* filter_cutoff_gui_cb, NULL, filter_cutoff_dsp_cb, */
         filter, NULL, &filter->effect->page, "track_settings_filter_cutoff_slider");
     endpoint_set_allowed_range(

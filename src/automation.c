@@ -118,7 +118,7 @@ void automation_remove(Automation *a)
     if (a->removed) return;
     a->removed = true;
     Track *track = a->track;
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
     bool displace = false;
     bool some_read = false;
     for (uint16_t i=0; i<track->num_automations; i++) {
@@ -164,7 +164,7 @@ void automation_reinsert(Automation *a)
     a->removed = false;
     /* a->deleted = false; */
     Track *track = a->track;
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
     for (int16_t i=track->num_automations; i>=0; i--) {
 	if (i < track->num_automations) {
 	    /* fprintf(stderr, "incr index, moving %d->%d\n", i, i+1); */
@@ -780,7 +780,7 @@ static void keyframe_move(Keyframe *k, int32_t new_pos, Value new_value)
     }
     keyframe_set_y_prop(a, k - a->keyframes);
     k->draw_x = timeline_get_draw_x(a->track->tl, new_pos);
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 }
 
 static inline bool kf_in_range(Automation *a, Keyframe *k, uint16_t start, uint16_t end)
@@ -863,7 +863,7 @@ Keyframe *automation_insert_keyframe_at(
     int32_t pos,
     Value val)
 {
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
     if (a->num_keyframes + 1 >= a->keyframe_arrlen) {
 	keyframe_arr_resize(a);
     }
@@ -1174,7 +1174,7 @@ static bool automation_get_kf_range(Automation *a, int32_t start_pos, int32_t en
 
 static void automation_remove_kf_range(Automation *a, uint16_t remove_start_i, uint16_t remove_end_i)
 {
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 
     /* Do not allow removal of all keyframes */
     if (remove_start_i == 0 && remove_end_i == a->num_keyframes) {
@@ -1567,7 +1567,7 @@ static void keyframe_move_coords(Keyframe *k, int x, int y)
 
 NEW_EVENT_FN(undo_redo_move_keyframe, "undo/redo move keyframe")
     Automation *a = (Automation *)obj1;
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
     uint16_t index = *((uint16_t *)obj2);
     Keyframe *k = a->keyframes + index;
     keyframe_move(k, val1.int32_v, val2);
@@ -2191,13 +2191,13 @@ bool automation_handle_delete(Automation *a)
 	keyframe_delete(tl->dragging_keyframe);
 	tl->dragging_keyframe = NULL;
 	status_cat_callstr(" selected keyframe");
-	main_win->needs_redraw = true;
+	atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 	return true;
     }
     if (tl->in_mark_sframes < tl->out_mark_sframes) {
 	automation_delete_keyframe_range(a, tl->in_mark_sframes, tl->out_mark_sframes);
 	status_cat_callstr(" keyframe in->out");
-	main_win->needs_redraw = true;
+	atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 	return true;
     }
     return false;

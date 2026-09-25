@@ -598,7 +598,7 @@ void window_push_modal(Window *win, Modal *modal)
     }
     
     #ifndef LAYOUT_BUILD
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
     #endif
     
     /* if (win->active_tabview) { */

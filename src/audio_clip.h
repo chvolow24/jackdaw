@@ -49,7 +49,7 @@ typedef struct clip {
     char name[MAX_NAMELENGTH];
     bool deleted;
     uint8_t channels;
-    _Atomic uint32_t len_sframes;
+    uint32_t len_sframes;
     /* ClipRef *refs[MAX_CLIP_REFS]; */
     /* uint16_t num_refs; */
     
@@ -59,7 +59,9 @@ typedef struct clip {
 
     pthread_mutex_t buf_realloc_lock;
     float *L;
+    int32_t L_alloc_len;
     float *R;
+    int32_t R_alloc_len;
     uint32_t write_bufpos_sframes;
     /* Recording in */
     Track *target;

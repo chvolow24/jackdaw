@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include "assets.h"
+#include "atomic.h"
 #include "clipref.h"
 #include "color.h"
 #include "components.h"
@@ -1369,7 +1370,7 @@ void piano_roll_grabbed_notes_move_vertical(int move_by)
 {
     Session *session = session_get();
     if (session->dragging && state.clip->num_grabbed_notes > 0) {
-	if (!session->playback.playing) {
+	if (!aldr(&session->playback.playing)) {
 	    midi_clipref_cache_grabbed_note_info(state.cr);
 	}
 	/* int notes_to_play[16]; */
@@ -1394,7 +1395,7 @@ void piano_roll_grabbed_notes_move_vertical(int move_by)
 
 	/* Play at most 8 distinct pitches */
 	/* play_grabbed_notes(8); */
-	if (!session->playback.playing) {
+	if (!aldr(&session->playback.playing)) {
 	    midi_clipref_push_grabbed_note_move_event(state.cr);
 	}
     }
@@ -1701,7 +1702,7 @@ static void piano_draw()
 	    continue;
 	} else {
 	    int piano_note = 87 - i;
-	    if (!session->playback.playing && piano_note + PIANO_BOTTOM_NOTE == state.selected_note) {
+	    if (!aldr(&session->playback.playing) && piano_note + PIANO_BOTTOM_NOTE == state.selected_note) {
 		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.midi_note_orange));
 		SDL_RenderFillRect(main_win->rend, &lt->rect);
 		SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 255);
@@ -1718,7 +1719,7 @@ static void piano_draw()
 	SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 255);
 	if (lt->name[1] == 'b') {
 	    int piano_note = 87 - i;
-	    if (!session->playback.playing && piano_note + PIANO_BOTTOM_NOTE == state.selected_note) {
+	    if (!aldr(&session->playback.playing) && piano_note + PIANO_BOTTOM_NOTE == state.selected_note) {
 		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.midi_note_orange));
 		SDL_RenderFillRect(main_win->rend, &lt->rect);
 		SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 255);

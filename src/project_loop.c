@@ -19,6 +19,7 @@
 
 #include <time.h>
 #include "SDL_video.h"
+#include "atomic.h"
 #include "audio_connection.h"
 #include "audio_clip.h"
 #include "automation.h"
@@ -137,6 +138,7 @@ void loop_project_main()
     
     main_win->current_event = &e;
     while (!(main_win->i_state & I_STATE_QUIT)) {
+        fprintf(stderr, "MAIN LOOP ITER!\n");
         if (session_run_thread_callbacks(JDAW_THREAD_MAIN) > 0) atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 	while (SDL_PollEvent(&e)) {            
 	    frames_since_event = 0;
@@ -337,10 +339,10 @@ void loop_project_main()
 			if (fabs(e.wheel.preciseY) > fabs(e.wheel.preciseX)) {
 			    scrub_block = true;
 			    timeline_play_speed_adj(e.wheel.preciseY);
-			    if (!session->playback.playing) transport_start_playback();
+			    if (!aldr(&session->playback.playing)) transport_start_playback();
 			} else if (!scrub_block) {
 			    play_speed_scroll_recency = 0;
-			    if (!session->playback.playing) transport_start_playback();
+			    if (!aldr(&session->playback.playing)) transport_start_playback();
 			    Value old_speed = endpoint_read(&session->playback.play_speed_ep, NULL);
 			    if (main_win->i_state & I_STATE_CMDCTRL) {
 				float new_speed = (old_speed.float_v + e.wheel.preciseX) / 2;
@@ -477,7 +479,7 @@ void loop_project_main()
 
 
 	Timeline *tl = ACTIVE_TL;
-	if (!session->playback.playing && frames_since_event >= IDLE_AFTER_N_FRAMES) {
+	if (!aldr(&session->playback.playing) && frames_since_event >= IDLE_AFTER_N_FRAMES) {
             /* fprintf(stderr, "IDLING!\n"); */
 	    /* goto end_frame; */
 	} else {
@@ -512,7 +514,7 @@ void loop_project_main()
 	    float new_speed = old_speed.float_v / 3.0;
             endpoint_write(&session->playback.play_speed_ep, (Value){.float_v = new_speed}, true, true, true, false);
 	}	
-	if (session->playback.playing && !session->source_mode.source_mode) {
+	if (aldr(&session->playback.playing) && !session->source_mode.source_mode) {
 	    timeline_catchup(tl);
 	    timeline_set_timecode(tl);
 	    /* Set click track clock displays */
@@ -592,7 +594,7 @@ void loop_project_main()
 	}
 	static const int zero_playspeed_count_thresh = 20;
         static int zero_playspeed_count = 0;
-	if (session->playback.playing) {
+	if (aldr(&session->playback.playing)) {
             float play_speed = endpoint_read(&session->playback.play_speed_ep, NULL).float_v;
 	    if (tl->read_pos_sframes <= TL_MIN_SFRAMES || tl->read_pos_sframes >= TL_MAX_SFRAMES) {
 		status_set_errstr("Reached end of timeline. S-u to return to t=0");

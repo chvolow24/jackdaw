@@ -8,6 +8,7 @@
 
 *****************************************************************************************************************/
 
+#include "atomic.h"
 #include "clipref.h"
 #include "log.h"
 #include "midi_io.h"
@@ -362,7 +363,8 @@ void midi_device_read(MIDIDevice *d)
 void midi_device_output_chunk_to_clip(MIDIDevice *d, enum midi_ts_type ts_type)
 {
     /* fprintf(stderr, "Current clip? %p\n", d->current_clip); */
-    if (!d->current_clip) return;
+    MIDIClip *current_clip = aldr(&d->current_clip);
+    if (!current_clip) return;
     /* PmTimestamp current_time = Pt_Time(); */
     /* fprintf(stderr, "PROCESSING %d unconsumed...\n", d->num_unconsumed_events); */
     PmEvent e;
@@ -381,29 +383,29 @@ void midi_device_output_chunk_to_clip(MIDIDevice *d, enum midi_ts_type ts_type)
 	    return;
 	}
 	/* fprintf(stderr, "EVENT %d/%d, timestamp: %d pos rel %d (record start %d)\n", i, d->num_unconsumed_events, e.timestamp, pos_rel, d->record_start); */
-	if (msg_type == 9 && d->current_clip) {
+	if (msg_type == 9 && current_clip) {
 	    Note *unclosed = d->unclosed_notes + note_val;
 	    unclosed->key = note_val;
 	    unclosed->velocity = velocity;
 	    unclosed->start_rel = pos_rel;
 	    unclosed->unclosed = true;
-	} else if (msg_type == 8 && d->current_clip) {
+	} else if (msg_type == 8 && current_clip) {
 	    /* fprintf(stderr, "Got a note off\n"); */
 	    Note *unclosed = d->unclosed_notes + note_val;
-	    /* if (d->current_clip) */
+	    /* if (current_clip) */
 	    if (unclosed->unclosed) {
-		midi_clip_insert_note(d->current_clip, channel, note_val, unclosed->velocity, unclosed->start_rel, pos_rel);
+		midi_clip_insert_note(current_clip, channel, note_val, unclosed->velocity, unclosed->start_rel, pos_rel);
 		unclosed->unclosed = false;
 	    }
-	} else if (msg_type == 0xB && d->current_clip) { /* Controller */
-	    midi_clip_add_controller_change(d->current_clip, e, pos_rel);
+	} else if (msg_type == 0xB && current_clip) { /* Controller */
+	    midi_clip_add_controller_change(current_clip, e, pos_rel);
 	    /* MIDICC cc = midi_cc_from_event(&e, pos_rel); */
-	    /* midi_clip_add_cc(d->current_clip, cc); */
+	    /* midi_clip_add_cc(current_clip, cc); */
 	} else if (msg_type == 0xE) {
 	    /* fprintf(stderr, "RECORD PITCH BEND!\n"); */
-	    midi_clip_add_pitch_bend(d->current_clip, e, pos_rel);
+	    midi_clip_add_pitch_bend(current_clip, e, pos_rel);
 	    /* MIDIPitchBend pb = midi_pitch_bend_from_event(&e, pos_rel); */
-	    /* midi_clip_add_pb(d->current_clip, pb); */
+	    /* midi_clip_add_pb(current_clip, pb); */
 	}
     }    
 }
@@ -411,10 +413,11 @@ void midi_device_output_chunk_to_clip(MIDIDevice *d, enum midi_ts_type ts_type)
 /* Uses PortTime timer for end rel timestamp */
 void midi_device_close_all_notes(MIDIDevice *d)
 {
-    /* fprintf(stderr, "Closing all notes, then current clip %p\n", d->current_clip); */
+    /* fprintf(stderr, "Closing all notes, then current clip %p\n", current_clip); */
+    MIDIClip *current_clip = aldr(&d->current_clip);
     for (int i=0; i<128; i++) {
 	Note *n = d->unclosed_notes + i;
-	if (n->unclosed && d->current_clip) {
+	if (n->unclosed && current_clip) {
 	    PmEvent e;
 	    e.timestamp = Pt_Time();
 	    e.message = Pm_Message(
@@ -427,7 +430,7 @@ void midi_device_close_all_notes(MIDIDevice *d)
 	    /* n->unclosed = false; */
 	}
     }
-    if (d->current_clip) {
+    if (current_clip) {
  	midi_device_output_chunk_to_clip(d, MIDI_TS_MSEC);
     }
 }
@@ -440,17 +443,17 @@ static void track_flush_unclosed_midi_notes(Track *track)
     case MIDI_OUT_DEVICE:
 	break;
     case MIDI_OUT_SYNTH:
-	synth_close_all_notes(track->midi_out);
+	synth_close_all_notes_thread_safe(track->midi_out);
 	break;
 	
     }
-    track->note_offs.read_i = 0;
-    track->note_offs.num_queued = 0;
+    /* track->note_offs.read_i = 0; */
+    /* track->note_offs.num_queued = 0; */
 }
 void timeline_flush_unclosed_midi_notes()
 {
     Session *session = session_get();
-    if (!session->playback.playing) return;
+    if (!aldr(&session->playback.playing)) return;
     Timeline *tl = ACTIVE_TL;
     for (int i=0; i<tl->num_tracks; i++) {
 	Track *track = tl->tracks[i];

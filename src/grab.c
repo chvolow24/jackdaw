@@ -9,6 +9,7 @@
 *****************************************************************************************************************/
 
 #include <stdlib.h>
+#include "atomic.h"
 #include "audio_clip.h"
 #include "clipref.h"
 #include "grab.h"
@@ -246,11 +247,11 @@ void timeline_grab_ungrab(Timeline *tl, ClipRef *cr_opt)
 	for (int i=0; i<num_clips; i++) {
 	    timeline_clipref_grab(clips_to_grab[i], CLIPREF_EDGE_NONE);
 	}
-	if (session->dragging && session->playback.playing) {
+	if (session->dragging && aldr(&session->playback.playing)) {
 	    timeline_cache_grabbed_clip_positions(tl);
 	}
     } else {
-	if (session->dragging && session->playback.playing) {
+	if (session->dragging && aldr(&session->playback.playing)) {
 	    timeline_push_grabbed_clip_move_event(tl);
 	}
 	for (int i=0; i<tl->num_grabbed_clips; i++) {

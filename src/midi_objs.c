@@ -5,6 +5,14 @@
 #include <string.h>
 #include "midi_objs.h"
 
+PmEvent make_note_off(int channel, int key)
+{
+    PmEvent e;
+    uint8_t status = 0x80 + channel;
+    e.message = Pm_Message(status, key, 0);
+    return e;
+}
+
 PmEvent note_create_event_no_ts(Note *note, uint8_t channel, bool is_note_off)
 {
     PmEvent e;

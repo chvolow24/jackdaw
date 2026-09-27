@@ -25,6 +25,7 @@
 #include <semaphore.h>
 #include <stdbool.h>
 #include <time.h>
+#include "spsc_lfqueue.h"
 #define MAX_CONN_NAMELENGTH 128
 #define MAX_DEV_NAMELENGTH MAX_CONN_NAMELENGTH
 #define MAX_INPUT_CHANNELS 16
@@ -48,9 +49,11 @@ typedef struct audio_device{
     SDL_AudioSpec spec;
     int index; /* Valid only between calls to SDL_GetNumAudioDevices */
     SDL_AudioDeviceID id;
-    int16_t *rec_buffer;
-    uint32_t rec_buf_len_samples;
-    int32_t write_bufpos_samples;
+    LFQueue rec_buffer;
+    _Atomic int queued_samples;
+    /* int16_t *rec_buffer; */
+    /* uint32_t rec_buf_len_samples; */
+    /* int32_t write_bufpos_samples; */
     bool open;
     _Atomic bool playing; /* i.e., "unpaused," has callback running */
     /* bool request_close; */

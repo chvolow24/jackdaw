@@ -278,14 +278,32 @@ typedef struct synth {
 
     /* Synchronization */
     pthread_mutex_t audio_proc_lock;
+
+    /* For asynchronous MIDI events; e.g. silencing, QWERTY (?) or piano roll(?) */
+    LFQueue midi_queue;
 } Synth;
 
 Synth *synth_create(Track *track);
+
+/* synchronous! only call on same thread as synth_add_buf */
 void synth_feed_midi(Synth *s, PmEvent *events, int num_events, int32_t tl_start, bool send_immediate);
+
+/* asynchronous, from MAIN only */
+void synth_enqueue_midi(Synth *s, PmEvent *events, int num_events);
+
 void synth_add_buf(Synth *s, float *restrict L, float *restrict R, int32_t len, float step, bool has_timeout, double timeout_after_msec);
+
+/* synchronous */
 void synth_close_all_notes(Synth *s);
+
+void synth_close_all_notes_thread_safe(Synth *s);
 void synth_clear_all(Synth *s);
+
+/* synchronous! only call on same thread as synth_add_buf */
 void synth_silence(Synth *s);
+
+/* asynchronous */
+void synth_request_silence(Synth *s);
 
 /* Return 0 for success, 1 for unset (carrier NULL), < 0 for error */
 int synth_set_freq_mod_pair(Synth *s, OscCfg *carrier_cfg, OscCfg *modulator_cfg);

@@ -72,7 +72,6 @@ SDL_Color EQ_CTRL_COLORS_LIGHT[] = {
 
 static void eq_dsp_cb(Endpoint *ep)
 {
-    fprintf(stderr, "DSP cb\n");
     EQ *eq = ep->xarg1;
     EQFilterCtrl *ctrl = ep->xarg2;
 

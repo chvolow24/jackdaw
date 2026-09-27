@@ -16,6 +16,7 @@
 #include "input.h"
 #include "label.h"
 #include "log.h"
+#include "midi_io.h"
 #include "page.h"
 #include "status.h"
 #include "synth.h"
@@ -1046,7 +1047,8 @@ Synth *synth_create(Track *track)
 	exit(1);
     }
 
-    fprintf(stderr, "SYNTH ec init...\n");
+    lfqueue_init(&s->midi_queue, sizeof(PmEvent), PM_EVENT_BUF_NUM_EVENTS);
+    
     effect_chain_init(&s->effect_chain, track->tl->proj, &s->api_node, "synth", track->tl->proj->chunk_size_sframes);
     s->effect_chain.api_node.do_not_serialize = true;
     s->effect_chain.api_node.do_not_automate = true;
@@ -2079,6 +2081,20 @@ void synth_feed_midi(
     }
 }
 
+void synth_enqueue_midi(Synth *s, PmEvent *events, int num_events)
+{
+    MAIN_THREAD_ONLY(synth_enqueue_midi);
+    int i=0;
+    for (; i<num_events; i++) {
+        if (lfqueue_try_enqueue(&s->midi_queue, &events[i], 1) != LFQUEUE_SUCCESS) {
+            break;
+        }
+    }
+    if (i != num_events) {
+        log_tmp(LOG_WARN, "Could only queue %d/%d events for synth\n", i, num_events);
+    }
+}
+
 /* void synth_feed_note( */
 /*     Synth *s, */
 /*     int pitch, */
@@ -2118,6 +2134,18 @@ void synth_add_buf(Synth *s, float *restrict L, float *restrict R, int32_t len, 
     /* synth_debug_summary(s, channel, len, step); */
     /* fprintf(stderr, "PED? %d\n", s->pedal_depressed); */
     /* if (channel != 0) return; */
+    PmEvent e[PM_EVENT_BUF_NUM_EVENTS];
+    int num_events = 0;
+    while (num_events < PM_EVENT_BUF_NUM_EVENTS) {
+        if (lfqueue_try_dequeue(&s->midi_queue, &e[num_events], 1) != LFQUEUE_SUCCESS) {
+            break;
+        }
+        num_events++;
+    }
+    if (num_events > 0) {
+        fprintf(stderr, "Dequeued %d events\n", num_events);
+        synth_feed_midi(s, e, num_events, 0, true);
+    }
 
     if (s->mono_mode) has_timeout = false;
     #ifdef JDAW_MACOS_BUILD
@@ -2333,25 +2361,36 @@ int32_t synth_make_notes(Synth *s, int *pitches, int *velocities, int num_pitche
 }
 
 
+void synth_close_all_notes_thread_safe(Synth *s)
+{
+    TESTBREAK;
+    fprintf(stderr, "Call to close on synth %s\n", s->preset_name);
+    PmEvent e[128];
+    for (int i=0; i<128; i++) {
+        e[i] = make_note_off(0, i);
+    }
+    synth_enqueue_midi(s, e, 128);
+}
 
 void synth_close_all_notes(Synth *s)
 {
     for (int i=0; i<SYNTH_NUM_VOICES; i++) {
-	SynthVoice *v = s->voices + i;
-	synth_voice_pitch_bend(v, 0.0);
-	if (!v->available) {
-	    /* fprintf(stderr, "\tkill voice %d\n", i); */
-	    adsr_start_release(&v->amp_env, 0);
-	    /* adsr_start_release(v->amp_env + 1, 0); */
-	    adsr_start_release(&v->filter_env, 0);
-	    /* adsr_start_release(v->filter_env + 1, 0); */
-	    adsr_start_release(&v->noise_amt_env, 0);
-	    /* adsr_start_release(v->noise_amt_env + 1, 0); */
-	}
+        SynthVoice *v = s->voices + i;
+        synth_voice_pitch_bend(v, 0.0);
+        if (!v->available) {
+            /* fprintf(stderr, "\tkill voice %d\n", i); */
+            adsr_start_release(&v->amp_env, 0);
+            /* adsr_start_release(v->amp_env + 1, 0); */
+            adsr_start_release(&v->filter_env, 0);
+            /* adsr_start_release(v->filter_env + 1, 0); */
+            adsr_start_release(&v->noise_amt_env, 0);
+            /* adsr_start_release(v->noise_amt_env + 1, 0); */
+        }
     }
 }
 void synth_silence(Synth *s)
 {
+    RESTRICT_NOT_MAIN()
     /* exit(1); */
     for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 	SynthVoice *v = s->voices + i;
@@ -2360,6 +2399,13 @@ void synth_silence(Synth *s)
     }
     effect_chain_silence(&s->effect_chain);
 }
+
+void synth_request_silence(Synth *s)
+{
+    synth_close_all_notes_thread_safe(s);
+    effect_chain_silence(&s->effect_chain);
+}
+
 void synth_clear_all(Synth *s)
 {
     for (int i=0; i<SYNTH_NUM_VOICES; i++) {
@@ -2593,5 +2639,9 @@ void synth_destroy(Synth *s)
     adsr_params_deinit(&s->amp_env);
     adsr_params_deinit(&s->noise_amt_env);
     adsr_params_deinit(&s->filter_env);
+
+    lfqueue_deinit(&s->midi_queue);
+    pthread_mutex_destroy(&s->audio_proc_lock);
+    
     free(s);
 }

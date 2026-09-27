@@ -931,7 +931,6 @@ int set_rect_wh(Layout *lt)
 
 void reset_iterations(LayoutIterator *iter);
 
-
 /* New iterative implementation */
 void breakfn();
 void layout_force_reset(Layout *lt)
@@ -948,7 +947,7 @@ void layout_force_reset(Layout *lt)
 	/* DO CALCS */
         #ifndef LAYOUT_BUILD
 	iters++;
-	if (iters > 500) {
+	if (iters > 1000) {
 	    breakfn();
 	    /* TESTBREAK; */
 	}
@@ -988,7 +987,6 @@ void layout_force_reset(Layout *lt)
 	}
 	    
     }
-    
 }
 
 /* SDL's SDL_HasIntersection does not include zero-area overlap */

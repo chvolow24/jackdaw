@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include "atomic.h"
 #include "timeview.h"
 
 int32_t timeview_get_pos_sframes(TimeView *tv, int draw_x)
@@ -97,7 +98,7 @@ void timeview_rescale(TimeView *tv, double sfpp_scale_factor, bool on_mouse, SDL
     if (on_mouse) {
 	center_abs_pos = timeview_get_pos_sframes(tv, mousep.x);
     } else if (tv->play_pos) {
-	center_abs_pos = *(tv->play_pos);
+	center_abs_pos = aldr(tv->play_pos);
     }
     if (sfpp_scale_factor == 0) {
         fprintf(stderr, "Warning! Scale factor 0 in rescale_timeview\n");
@@ -136,17 +137,18 @@ void timeview_catchup(TimeView *tv)
     /* while (catchup_w > session->gui.audio_rect->w / 2 && catchup_w > 10) { */
     /* 	catchup_w /= 2; */
     /* } */
-    int playhead_x = timeview_get_draw_x(tv, *tv->play_pos);
+    int32_t play_pos = aldr(tv->play_pos);
+    int playhead_x = timeview_get_draw_x(tv, play_pos);
     if (playhead_x > tv->rect->x + tv->rect->w) {
-	tv->offset_left_sframes = *tv->play_pos - timeview_get_w_sframes(tv, tv->rect->w - catchup_w);
+	tv->offset_left_sframes = play_pos - timeview_get_w_sframes(tv, tv->rect->w - catchup_w);
     }
     else if (playhead_x < tv->rect->x) {
-	tv->offset_left_sframes = *tv->play_pos - timeview_get_w_sframes(tv, catchup_w);
+	tv->offset_left_sframes = play_pos - timeview_get_w_sframes(tv, catchup_w);
     }
     timeview_rectify_scroll(tv);
 }
 
-void timeview_init(TimeView *tv, SDL_Rect *rect, double sfpp, int32_t offset_left, int32_t *play_pos, int32_t *in, int32_t *out)
+void timeview_init(TimeView *tv, SDL_Rect *rect, double sfpp, int32_t offset_left, _Atomic int32_t *play_pos, int32_t *in, int32_t *out)
 {
     tv->rect = rect;
     tv->sample_frames_per_pixel = sfpp;

@@ -1,3 +1,4 @@
+#include "atomic.h"
 #include "log.h"
 #include "midi_io.h"
 #include "piano_roll.h"
@@ -46,11 +47,12 @@ static void *instrument_monitor_threadfn(void *arg)
             piano_roll_feed_midi(local_event_buf, i);
         }
         synth_feed_midi(s, local_event_buf, i, 0, true);
-        if (d->current_clip && d->current_clip->recording) {
+        MIDIClip *current_clip = aldr(&d->current_clip);
+        if (current_clip && d->current_clip->recording) {
             midi_device_output_chunk_to_clip(d, 1);
-            d->current_clip->len_sframes += len_sframes;
+            current_clip->len_sframes += len_sframes;
         }
-        if (fabs(playspeed) < 1e-6 || !session->playback.playing) playspeed = 1.0f;
+        if (fabs(playspeed) < 1e-6 || !aldr(&session->playback.playing)) playspeed = 1.0f;
 
         float L[len_sframes];
         float R[len_sframes];

@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <sys/stat.h>
 
+#include "atomic.h"
 #include "consts.h"
 #include "error.h"
 #include "loading.h"
@@ -134,8 +135,8 @@ static int open_jdaw_file_runtime_only(FILE *f, const char *filepath)
         }
     }
 
-    if (session->playback.recording) transport_stop_recording();
-    else if (session->playback.playing) transport_stop_playback();
+    if (aldr(&session->playback.recording)) transport_stop_recording();
+    else if (aldr(&session->playback.playing)) transport_stop_playback();
     /* Wait for playback callback to exit */
     audioconn_close(session->audio_io.playback_conn);
     /* api_quit(); */

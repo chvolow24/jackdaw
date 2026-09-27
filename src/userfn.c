@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <sys/param.h>
 #include "SDL_events.h"
+#include "atomic.h"
 #include "audio_clip.h"
 #include "audio_connection.h"
 #include "autocompletion.h"
@@ -765,9 +766,9 @@ void user_tl_play(void *nullarg)
 {
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
-    if (session->piano_roll && !session->playback.playing) {
+    if (session->piano_roll && !aldr(&session->playback.playing)) {
 	piano_roll_start_moving();
-    } else if (session->dragging && !session->playback.playing && tl->num_grabbed_clips > 0) {
+    } else if (session->dragging && !aldr(&session->playback.playing) && tl->num_grabbed_clips > 0) {
 	timeline_cache_grabbed_clip_positions(tl);
     }
     bool started = false;
@@ -785,7 +786,7 @@ void user_tl_play(void *nullarg)
 	/* status_stat_playspeed(); */
     }
 
-    if (!session->playback.playing) {
+    if (!aldr(&session->playback.playing)) {
 	started = true;
 	transport_start_playback();
     }
@@ -802,7 +803,7 @@ void user_tl_play(void *nullarg)
 void user_tl_halve_playspeed(void *nullarg)
 {
     Session *session = session_get();
-    if (session->playback.playing) {
+    if (aldr(&session->playback.playing)) {
 	timeline_play_speed_mult(0.5);
     }    
 }
@@ -822,7 +823,7 @@ void user_tl_halve_playspeed(void *nullarg)
 void user_tl_play_pause(void *nullarg)
 {
     Session *session = session_get();
-    if (session->playback.playing) user_tl_pause(NULL);
+    if (aldr(&session->playback.playing)) user_tl_pause(NULL);
     else {
 	user_tl_play(NULL);
 	timeline_play_speed_set(1.0);
@@ -833,7 +834,7 @@ void user_tl_pause(void *nullarg)
 {
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
-    if (session->playback.playing) {
+    if (aldr(&session->playback.playing)) {
         timeline_play_speed_set(0.0);
 	transport_stop_playback();
     } else {
@@ -857,9 +858,9 @@ void user_tl_rewind(void *nullarg)
 {
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
-    if (session->piano_roll && !session->playback.playing) {
+    if (session->piano_roll && !aldr(&session->playback.playing)) {
 	piano_roll_start_moving();
-    } else if (session->dragging && !session->playback.playing && tl->num_grabbed_clips > 0) {
+    } else if (session->dragging && !aldr(&session->playback.playing) && tl->num_grabbed_clips > 0) {
 	timeline_cache_grabbed_clip_positions(tl);
     }
     if (endpoint_read(&session->playback.play_speed_ep, NULL).float_v >= 0.0f) {
@@ -890,9 +891,9 @@ void user_tl_play_slow(void *nullarg)
 {
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
-    if (session->piano_roll && !session->playback.playing) {
+    if (session->piano_roll && !aldr(&session->playback.playing)) {
 	piano_roll_start_moving();
-    } else if (session->dragging && !session->playback.playing && tl->num_grabbed_clips > 0) {
+    } else if (session->dragging && !aldr(&session->playback.playing) && tl->num_grabbed_clips > 0) {
 	timeline_cache_grabbed_clip_positions(tl);
     }
     timeline_play_speed_set(playspeed_at_zoom(&ACTIVE_TL->timeview, SLOW_PLAYBACK_SPEED));
@@ -910,9 +911,9 @@ void user_tl_rewind_slow(void *nullarg)
 {
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
-    if (session->piano_roll && !session->playback.playing) {
+    if (session->piano_roll && !aldr(&session->playback.playing)) {
 	piano_roll_start_moving();
-    } else if (session->dragging && !session->playback.playing && tl->num_grabbed_clips > 0) {
+    } else if (session->dragging && !aldr(&session->playback.playing) && tl->num_grabbed_clips > 0) {
 	timeline_cache_grabbed_clip_positions(tl);
     }
     if (tl->timeview.sample_frames_per_pixel < SFPP_THRESHOLD) {
@@ -2300,7 +2301,7 @@ void user_tl_toggle_drag(void *nullarg)
     session->dragging = !session->dragging;
     status_stat_drag();
     Timeline *tl = ACTIVE_TL;
-    if (session->playback.playing) {
+    if (aldr(&session->playback.playing)) {
 	if (session->piano_roll) {
 	    if (session->dragging) {
 		piano_roll_start_moving();

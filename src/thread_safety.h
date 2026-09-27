@@ -61,7 +61,7 @@ enum jdaw_thread {
     }
 
 #define DSP_THREAD_ONLY_WHEN_ACTIVE(name) \
-    if (session->playback.playing && !on_thread(JDAW_THREAD_DSP)) {	\
+    if (aldr(&session->playback.playing) && !on_thread(JDAW_THREAD_DSP)) { \
         fprintf(stderr, "Error: fn %s called outside DSP thread while proj playing", #name); \
 	breakfn(); \
 	exit(1);\

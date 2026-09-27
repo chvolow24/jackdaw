@@ -180,7 +180,7 @@ struct source_mode {
     bool source_mode;
     ClipType src_clip_type;
     void *src_clip;
-    int32_t src_play_pos_sframes;
+    _Atomic int32_t src_play_pos_sframes;
     int32_t src_in_sframes;
     int32_t src_out_sframes;
     float src_play_speed;
@@ -196,9 +196,9 @@ struct playback {
     Endpoint play_speed_ep;
     bool loop_play;
     bool dragging;
-    bool recording;
+    _Atomic bool recording;
     bool new_cliprefs_repositioned;
-    bool playing;
+    _Atomic bool playing;
     bool lock_view_to_playhead;
     float output_vol;
     Endpoint output_vol_ep;

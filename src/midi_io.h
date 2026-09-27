@@ -26,7 +26,7 @@
 
 
 #define MAX_UNCLOSED_NOTES 64
-#define PM_EVENT_BUF_NUM_EVENTS 64
+#define PM_EVENT_BUF_NUM_EVENTS 512
 #define MAX_MIDI_DEVICES 16
 #define MIDI_OUTPUT_LATENCY 0
  
@@ -71,7 +71,7 @@ typedef struct midi_device {
     int output; /* Alias for info->output if PortMidi device */
     int opened; /* Alias for info->opened if PortMidi device */
 
-    MIDIClip *current_clip;
+    MIDIClip *_Atomic current_clip;
 
     PmTimestamp record_start;
     bool recording;

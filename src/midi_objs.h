@@ -134,13 +134,9 @@ int midi_event_ring_buf_insert(MIDIEventRingBuf *rb, PmEvent e);
 /* } MIDIPitchBend; */
 
 
-/* MIDICC midi_cc_from_event(PmEvent *e, int32_t pos_rel); */
-
-/* PmEvent note_create_event_no_ts(Note *note, bool is_note_off); */
+PmEvent make_note_off(int channel, int key);
 PmEvent note_create_event_no_ts(Note *note, uint8_t channel, bool is_note_off);
-/* PmEvent midi_cc_create_event_no_ts(MIDICC *cc); */
-/* PmEvent midi_pitch_bend_create_event_no_ts(MIDIPitchBend *pb); */
-/* MIDIPitchBend midi_pitch_bend_from_event(PmEvent *e, int32_t pos_rel); */
+
 float midi_pitch_bend_float_from_event(PmEvent *e);
 
 void midi_controller_insert_change(Controller *c, int32_t pos, uint8_t data);

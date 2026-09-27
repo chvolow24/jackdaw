@@ -29,7 +29,7 @@ typedef struct {
     double sample_frames_per_pixel;
     int32_t offset_left_sframes;
     SDL_Rect *rect;
-    int32_t *play_pos;
+    _Atomic int32_t *play_pos;
     int32_t *in_mark;
     int32_t *out_mark;
     bool restrict_view;
@@ -39,7 +39,7 @@ typedef struct {
 } TimeView;
 
 
-void timeview_init(TimeView *tv, SDL_Rect *rect, double sfpp, int32_t offset_left, int32_t *play_pos, int32_t *in, int32_t *out);
+void timeview_init(TimeView *tv, SDL_Rect *rect, double sfpp, int32_t offset_left, _Atomic int32_t *play_pos, int32_t *in, int32_t *out);
 
 int32_t timeview_get_pos_sframes(TimeView *tv, int draw_x);
 

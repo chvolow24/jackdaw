@@ -206,7 +206,7 @@ void timeline_set_timecode(Timeline *tl)
 
     /* Timeline *tl = ACTIVE_TL; */
     char sign = tl->play_pos_sframes < 0 ? '-' : '+';
-    uint32_t abs_play_pos = abs(tl->play_pos_sframes);
+    uint32_t abs_play_pos = abs(aldr(&tl->play_pos_sframes));
     uint8_t seconds, minutes, hours;
     uint32_t frames;
 
@@ -233,8 +233,8 @@ static void track_handle_playhead_jump(Track *track)
 	Automation *a = track->automations[i];
 	automation_clear_cache(a);
     }
-    if (track->synth) {
-	synth_close_all_notes(track->synth);
+    if (track->synth && !track->muted && !track->solo_muted) {
+	synth_close_all_notes_thread_safe(track->synth);
 	/* synth_silence(track->synth); */
     }
     /* eq_clear(&track->eq); */
@@ -244,7 +244,7 @@ static void track_full_pause(Track *track)
 {
     if (track->synth) {
 	/* synth_close_all_notes(track->synth); */
-	synth_silence(track->synth);
+	synth_request_silence(track->synth);
     }
     effect_chain_silence(&track->effect_chain);
 }
@@ -300,7 +300,7 @@ void timeline_set_play_position(Timeline *tl, int32_t abs_pos_sframes, bool move
 	    timeline_reset(tl, false);
 	}
     }
-    if (session->playback.playing) {
+    if (aldr(&session->playback.playing)) {
 	timeline_handle_playhead_jump(tl);
     }
     timeline_set_timecode(tl);
@@ -399,7 +399,7 @@ void timeline_catchup(Timeline *tl)
 int32_t timeline_get_play_pos_now(Timeline *tl)
 {
     Session *session = session_get();
-    if (!session->playback.playing) {
+    if (!aldr(&session->playback.playing)) {
 	return tl->play_pos_sframes;
     }
     struct timespec now;

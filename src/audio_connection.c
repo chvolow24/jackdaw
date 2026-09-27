@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <sys/errno.h>
 /* #include <semaphore.h> */
+#include "atomic.h"
 #include "audio_connection.h"
 #include "consts.h"
 #include "error.h"
@@ -23,7 +24,7 @@
 
 
 /* #define DEVICE_BUFLEN_SECONDS 2 /\* TODO: reduce, and write to clip during recording *\/ */
-#define DEVICE_BUFLEN_CHUNKS 64
+#define DEVICE_BUFLEN_CHUNKS 1028
 
 #define PD_BUFLEN_CHUNKS 64
 
@@ -272,15 +273,17 @@ int audioconn_open(Session *session, AudioConn *conn)
 	}
 
 	if (conn->iscapture) {
-	    device->rec_buf_len_samples = DEVICE_BUFLEN_CHUNKS * session->proj.chunk_size_sframes * device->spec.channels;
-	    uint32_t device_buf_len_bytes = device->rec_buf_len_samples * sizeof(int16_t);
-	    if (!device->rec_buffer) {
-		device->rec_buffer = malloc(device_buf_len_bytes);
-	    }
-	    device->write_bufpos_samples = 0;
-	    if (!(device->rec_buffer)) {
-		fprintf(stderr, "Error: unable to allocate space for device buffer.\n");
-	    }
+            fprintf(stderr, "INIT %s len %d\n", device->name, DEVICE_BUFLEN_CHUNKS * session->proj.chunk_size_sframes * device->spec.channels);
+            lfqueue_init(&device->rec_buffer, sizeof(int16_t), DEVICE_BUFLEN_CHUNKS * session->proj.chunk_size_sframes * device->spec.channels);
+	    /* device->rec_buf_len_samples = DEVICE_BUFLEN_CHUNKS * session->proj.chunk_size_sframes * device->spec.channels; */
+	    /* uint32_t device_buf_len_bytes = device->rec_buf_len_samples * sizeof(int16_t); */
+	    /* if (!device->rec_buffer) { */
+	    /*     device->rec_buffer = malloc(device_buf_len_bytes); */
+	    /* } */
+	    /* device->write_bufpos_samples = 0; */
+	    /* if (!(device->rec_buffer)) { */
+	    /*     fprintf(stderr, "Error: unable to allocate space for device buffer.\n"); */
+	    /* } */
 	}
     }
 	break;
@@ -366,18 +369,21 @@ void audio_device_destroy(AudioDevice *dev)
     /* if (sem_close(dev->request_close) != 0) { */
     /* 	error_exit("Error closing device sem: %s\n", strerror(errno)); */
     /* } */
-    if (dev->rec_buffer) {
-	free(dev->rec_buffer);
-    }
+    lfqueue_deinit(&dev->rec_buffer);
+    /* if (dev->rec_buffer) { */
+    /*     free(dev->rec_buffer); */
+    /* } */
     free(dev);
 }
 
 static void device_close(AudioDevice *device)
 {
-    if (device->rec_buffer) {
-	free(device->rec_buffer);
-	device->rec_buffer = NULL;
-    }
+    fprintf(stderr, "DEINIT %s\n", device->name);
+    lfqueue_deinit(&device->rec_buffer);
+    /* if (device->rec_buffer) { */
+    /*     free(device->rec_buffer); */
+    /*     device->rec_buffer = NULL; */
+    /* } */
     /* fprintf(stdout, "CLOSING device %s, id: %d\n",device->name, device->id); */
     SDL_CloseAudioDevice(device->id);
     device->open = false;
@@ -734,7 +740,7 @@ static void select_out_onclick(void *arg)
 {
     Session *session = session_get();
     int index = *((int *)arg);
-    if (session->playback.playing) {
+    if (aldr(&session->playback.playing)) {
 	transport_stop_playback();
 	timeline_play_speed_set(0.0);
     }

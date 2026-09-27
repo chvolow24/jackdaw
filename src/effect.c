@@ -10,6 +10,7 @@
 
 #include <stdlib.h>
 #include "api.h"
+#include "atomic.h"
 #include "color.h"
 #include "delay_line.h"
 #include "effect.h"
@@ -171,8 +172,6 @@ NEW_EVENT_FN(dispose_forward_add_effect, "")
 /* Always call before adding any effects */
 void effect_chain_init(EffectChain *ec, Project *proj, APINode *parent_api_node, const char *obj_name, int32_t chunk_len_sframes)
 {
-    TESTBREAK;
-    fprintf(stderr, "EC INIT len %d\n", chunk_len_sframes);
     bool already_init = false;
     if (ec->initialized) {
 	log_tmp(LOG_DEBUG, "Redundant to effect_chain_reinit on \"%s\" (new name \"%s\" (likely deser)\n", ec->obj_name, obj_name);
@@ -503,6 +502,12 @@ float effect_chain_buf_apply(EffectChain *ec, float *restrict L, float *restrict
 {
     static float amp_epsilon = 1e-7f;
     float running_amp = input_amp;
+    if (aldr(&ec->request_clear)) {
+        for (int i=0; i<ec->num_effects; i++) {
+            effect_silence(ec->effects[i]);
+        }
+        astrr(&ec->request_clear, false);
+    }
     /* if (len > ec->chunk_len_sframes) { */
     /*     int index = 0; */
     /*     while (index < len) { */
@@ -573,9 +578,11 @@ static void effect_silence(Effect *e)
 
 void effect_chain_silence(EffectChain *ec)
 {
-    for (int i=0; i<ec->num_effects; i++) {
-	effect_silence(ec->effects[i]);
-    }
+    MAIN_THREAD_ONLY(effect_chain_silence);
+    astrr(&ec->request_clear, true);
+    /* for (int i=0; i<ec->num_effects; i++) { */
+    /*     effect_silence(ec->effects[i]); */
+    /* } */
 }
 
 

@@ -89,6 +89,7 @@ typedef struct effect_chain {
     /* APINode *api_node; /\* Allocated on parent object, e.g. track or synth *\/ */
     const char *obj_name;
     bool mid_side_encoded;
+    _Atomic bool request_clear;
 } EffectChain;
 
 void effect_chain_init(EffectChain *ec, Project *proj, APINode *parent_node, const char *obj_name, int32_t chunk_len_sframes);

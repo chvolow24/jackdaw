@@ -1779,7 +1779,7 @@ void timeline_force_stop_midi_monitoring()
     session->midi_io.monitor_synth = NULL;
     session->midi_io.monitor_device = NULL;
     /* Only close output audio device if project is not playing from timeline */
-    if (!session->playback.playing) {
+    if (!aldr(&session->playback.playing)) {
 	audioconn_stop_playback(session->audio_io.playback_conn);
     }
     pthread_mutex_lock(&synth->audio_proc_lock);
@@ -1794,7 +1794,7 @@ void midi_monitor_clear()
 {
     Session *session = session_get();
     if (aldr(&session->midi_io.monitoring) && session->midi_io.monitor_synth) {
-	synth_silence(session->midi_io.monitor_synth);
+	synth_request_silence(session->midi_io.monitor_synth);
     }
 }
 
@@ -1941,7 +1941,7 @@ bool timeline_check_set_midi_monitoring()
 	session->midi_io.monitor_synth = NULL;
 	session->midi_io.monitor_device = NULL;
 	/* Only close output audio device if project is not playing from timeline */
-	if (!session->playback.playing) {
+	if (!aldr(&session->playback.playing)) {
 	    audioconn_stop_playback(session->audio_io.playback_conn);
 	}
 	if (track && track->synth && was_monitoring) {
@@ -2198,7 +2198,7 @@ void timeline_switch(uint8_t new_tl_index)
 {
     Session *session = session_get();
     Timeline *current = ACTIVE_TL;
-    if (session->playback.playing) {
+    if (aldr(&session->playback.playing)) {
 	transport_stop_playback();
 	timeline_play_speed_set(0.0);
     }
@@ -2445,7 +2445,7 @@ static bool refocus_track_lt(Timeline *tl, Layout *lt, Layout *inner, bool at_bo
 	    lt->parent->scroll_offset_v = -1 * y_diff / main_win->dpi_scale_factor;
 	}
 	if (lt->parent->scroll_offset_v > 0) lt->parent->scroll_offset_v = 0;
-	layout_force_reset(lt->parent);
+	layout_reset(lt->parent);
 	return true;
     }
     return false;

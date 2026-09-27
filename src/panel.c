@@ -142,7 +142,7 @@ static void panel_draw(Panel *p)
     /* if (!page->layout->parent) breakfn(); */
     /* fprintf(stderr, "WTF WTF WTF WTF %p\n", page->layout->parent); */
     /* page_reset(page); */
-    layout_force_reset(page->layout);
+    /* layout_force_reset(page->layout); */
     /* fprintf(stderr, "\t->page y, h: %d, %d\n", page->layout->rect.y, page->layout->rect.h); */
     /* fprintf(stderr, "\t->page layout y: %f, type %d\n", page->layout->y.value, page->layout->y.type); */
 						     

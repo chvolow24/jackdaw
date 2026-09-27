@@ -88,7 +88,6 @@ void session_enqueue_callback(enum jdaw_thread for_thread, struct queued_cb cb)
 
 int session_run_thread_callbacks(enum jdaw_thread thread)
 {
-    /* if (thread == JDAW_THREAD_MAIN) fprintf(stderr, "Running callbacks on main thread\n"); */
     Session *session = session_get();
     LFQueue *arr = session->queued_ops.queued_callbacks_v2[thread];
     struct queued_cb cbs[MAX_CBS_PER_QUEUE * NUM_EP_WRITER_THREADS] = {0};
@@ -100,7 +99,6 @@ int session_run_thread_callbacks(enum jdaw_thread thread)
             num_cbs++;
         }
     }
-    if (thread == JDAW_THREAD_MAIN && num_cbs > 0) fprintf(stderr, "....found %d\n", num_cbs);
     /* Work backwards to dedupe */
     int num_seen = 0;
     struct queued_cb seen[num_cbs];

@@ -99,6 +99,12 @@ enum midi_out_type {
     MIDI_OUT_SYNTH
 };
 
+struct dsp_chunk_info {
+    int32_t tl_start;
+    float playspeed;
+    int elapsed_playback_chunks;
+};
+
 
 typedef struct track {
     char name[MAX_NAMELENGTH];
@@ -183,6 +189,7 @@ typedef struct track {
     /* DelayLine delay_line; */
     /* bool delay_line_active; */
 
+    pthread_mutex_t automations_arr_lock;
     Automation *automations[MAX_TRACK_AUTOMATIONS];
     uint8_t num_automations;
     int16_t selected_automation;
@@ -321,9 +328,10 @@ typedef struct timeline {
     /* dsp_chunks_info records information about buffered fourier-length
        chunks, which is used in the playback callback to reset the playhead
        position correctly */
-    struct dsp_chunk_info *dsp_chunks_info;
-    int dsp_chunks_info_read_i;
-    int dsp_chunks_info_write_i;
+    /* struct dsp_chunk_info *dsp_chunks_info; */
+    LFQueue dsp_chunks_info_lfqueue;
+    /* int dsp_chunks_info_read_i; */
+    /* int dsp_chunks_info_write_i; */
         
     Track *tracks[MAX_TRACKS];
     Track *tracks_proc_order[MAX_TRACKS];

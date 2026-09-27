@@ -10,6 +10,8 @@
 
 #include "envelope_follower.h"
 
+#define WRITE_SHARED_MOD 1000
+
 void envelope_follower_set_times(EnvelopeFollower *e, int32_t attack_sframes, int32_t decay_sframes)
 {
     e->attack_coeff = 1 - exp(-1.0 / attack_sframes);
@@ -23,7 +25,7 @@ void envelope_follower_set_times_msec(EnvelopeFollower *e, double attack_msec, d
 }
 
 float envelope_follower_sample(EnvelopeFollower *e, float in)
-{
+{   
     float out;
     in = fabsf(in);
     if (in > e->prev_out) {
@@ -32,6 +34,11 @@ float envelope_follower_sample(EnvelopeFollower *e, float in)
 	out =  in * e->release_coeff + (1 - e->release_coeff) * e->prev_out;
     }    
     e->prev_out = out;
+    e->write_shared_ctr++;
+    if (e->write_shared_ctr >= WRITE_SHARED_MOD) {
+        shared_float_write(&e->main_thread_val, out);
+        e->write_shared_ctr = 0;
+    }
     return out;
 }
 

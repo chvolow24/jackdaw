@@ -1,4 +1,5 @@
 #include "log.h"
+#include "midi_io.h"
 #include "piano_roll.h"
 #include "project.h"
 #include "session.h"
@@ -16,7 +17,6 @@ static void *instrument_monitor_threadfn(void *arg)
     struct sched_param sched;
     int policy;
     pthread_getschedparam(pthread_self(), &policy, &sched);
-    fprintf(stderr, "ACTUAL PRI: %d policy %s\n", sched.sched_priority, policy == SCHED_RR ? "RR" : policy == SCHED_FIFO ? "FIFO" : "other");
     Session *session = session_get();
     int len_sframes = session->proj.chunk_size_sframes;;
     MIDIDevice *d = session->midi_io.monitor_device;
@@ -30,23 +30,26 @@ static void *instrument_monitor_threadfn(void *arg)
                &session->playback.instrument_monitor_lfqueue,
                LR,
                len_sframes * 2) == LFQUEUE_SUCCESS) {};
-    fprintf(stderr, "ENTERING!\n");
     while (thread_not_canceled()) {
         session_do_ongoing_changes(JDAW_THREAD_INSTRUMENT);
         session_run_thread_callbacks(JDAW_THREAD_INSTRUMENT);
         /* fprintf(stderr, "last iter time: %ld\n", clock() - c); */
         /* c = clock(); */
         midi_device_read(d);
-        float playspeed = session->playback.play_speed;
-        if (session->piano_roll) {
-            piano_roll_feed_midi(d->buffer, d->num_unconsumed_events);
+        float playspeed = endpoint_read(&session->playback.play_speed_ep, NULL).float_v;
+        PmEvent local_event_buf[PM_EVENT_BUF_NUM_EVENTS];
+        int i=0;
+        while (lfqueue_try_dequeue(&d->event_queue, local_event_buf + i, 1) == LFQUEUE_SUCCESS) {
+            i++;
         }
-        synth_feed_midi(s, d->buffer, d->num_unconsumed_events, 0, true);
+        if (session->piano_roll) {
+            piano_roll_feed_midi(local_event_buf, i);
+        }
+        synth_feed_midi(s, local_event_buf, i, 0, true);
         if (d->current_clip && d->current_clip->recording) {
             midi_device_output_chunk_to_clip(d, 1);
             d->current_clip->len_sframes += len_sframes;
         }
-        d->num_unconsumed_events = 0;
         if (fabs(playspeed) < 1e-6 || !session->playback.playing) playspeed = 1.0f;
 
         float L[len_sframes];

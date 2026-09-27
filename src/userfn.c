@@ -106,7 +106,7 @@ static int quit_no_action(void *self, void *xarg)
     /* user_modal_dismiss(NULL); */
     if (main_win->num_modals > 0)
 	window_pop_modal(main_win);
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 
     return 0;
 }
@@ -179,10 +179,10 @@ static int submit_server_form(void *mod_v, void *target)
     fprintf(stderr, "STARTING SERVER ON PORT: %d\n", port);
     if (api_start_server(port) == 0) {
 	window_pop_modal(main_win);
-main_win->needs_redraw = true;
+atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 	return 0;
     } else {
-main_win->needs_redraw = true;
+atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 	status_set_errstr("Unable to start server; port may be in use");
     }
     return 0;
@@ -246,7 +246,7 @@ static int submit_save_as_form(void *mod_v, void *target)
 	io_set_default_dir(IO_DIR_PROJ, dirpath);
 	window_pop_modal(main_win);
     }
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
     return 0;
 }
 
@@ -462,7 +462,7 @@ void user_global_save_project(void *nullarg)
 /* 	ClipRef *cr = wav_load_to_track(track, filepath, tl->play_pos_sframes); */
 /* 	if (!cr) { */
 /* 	    Timeline *tl = ACTIVE_TL; */
-/* main_win->needs_redraw = true; *\/ */
+/* atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed); *\/ */
 /* 	    window_pop_modal(main_win); */
 /* 	    return; */
 /* 	} */
@@ -511,7 +511,7 @@ void user_global_save_project(void *nullarg)
 /* 	    /\* if (!main_win->active_tabview) { *\/ */
 /* 	    /\* 	TabView *tv = synth_tabview_create(t); *\/ */
 /* 	    /\* 	tabview_activate(tv); *\/ */
-/* main_win->needs_redraw = true; *\\/ *\/ */
+/* atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed); *\\/ *\/ */
 /* 	    /\* 	timeline_check_set_midi_monitoring(); *\/ */
 /* 	    /\* 	tabview_select_tab(tv, 4); *\/ */
 /* 	    /\* } *\/ */
@@ -538,7 +538,7 @@ void user_global_save_project(void *nullarg)
 /* 	Track *track = timeline_selected_track(tl); */
 /* 	TabView *tv = synth_tabview_create(track); */
 /* 	tabview_activate(tv, track, track->name); */
-/* main_win->needs_redraw = true; *\/ */
+/* atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed); *\/ */
 /* 	timeline_check_set_midi_monitoring(); */
 /* 	/\* tabview_select_tab(tv, 0); *\/ */
 /*     } */
@@ -551,7 +551,7 @@ static void openfile_file_select_action(DirNav *dn, DirPath *dp)
     if (IO_FILE_TYPE_OK(t)) {
         window_pop_modal(main_win);
     }
-main_win->needs_redraw = true;
+atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 }
 
 void user_global_open_file(void *nullarg)
@@ -708,7 +708,7 @@ void user_menu_translate_up(void *nullarg)
 	exit(1);
     }
     menu_translate(m, 0, -1 * MENU_MOVE_BY);
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 }
 
 void user_menu_translate_down(void *nullarg)
@@ -719,7 +719,7 @@ void user_menu_translate_down(void *nullarg)
 	exit(1);
     }
     menu_translate(m, 0, MENU_MOVE_BY);
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 
 }
 
@@ -731,7 +731,7 @@ void user_menu_translate_left(void *nullarg)
 	exit(1);
     }
     menu_translate(m, -1 * MENU_MOVE_BY, 0);
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 }
 
 void user_menu_translate_right(void *nullarg)
@@ -742,13 +742,13 @@ void user_menu_translate_right(void *nullarg)
 	exit(1);
     }
     menu_translate(m, MENU_MOVE_BY, 0);
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 }
 
 void user_menu_dismiss(void *nullarg)
 {
     window_pop_menu(main_win);
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
     /* window_pop_mode(main_win); */
 }
 
@@ -771,7 +771,7 @@ void user_tl_play(void *nullarg)
 	timeline_cache_grabbed_clip_positions(tl);
     }
     bool started = false;
-    if (session->playback.play_speed <= 0.0f) {
+    if (endpoint_read(&session->playback.play_speed_ep, NULL).float_v <= 0.0f) {
 	/* session->playback.play_speed = 1.0f; */
 	timeline_play_speed_set(playspeed_at_zoom(&ACTIVE_TL->timeview, 1.0));
 	/* if (ACTIVE_TL->timeview.sample_frames_per_pixel < SFPP_THRESHOLD) { */
@@ -834,7 +834,7 @@ void user_tl_pause(void *nullarg)
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     if (session->playback.playing) {
-	session->playback.play_speed = 0;
+        timeline_play_speed_set(0.0);
 	transport_stop_playback();
     } else {
 	timeline_full_pause(tl);
@@ -845,7 +845,7 @@ void user_tl_pause(void *nullarg)
     /* 	btn, */
     /* 	&colors.quickref_button_pressed, */
     /* 	&colors.quickref_button_blue); */
-main_win->needs_redraw = true;
+atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
     if (session->piano_roll) {
 	piano_roll_stop_moving();
     } else if (session->dragging && tl->num_grabbed_clips > 0) {
@@ -862,7 +862,7 @@ void user_tl_rewind(void *nullarg)
     } else if (session->dragging && !session->playback.playing && tl->num_grabbed_clips > 0) {
 	timeline_cache_grabbed_clip_positions(tl);
     }
-    if (session->playback.play_speed >= 0.0f) {
+    if (endpoint_read(&session->playback.play_speed_ep, NULL).float_v >= 0.0f) {
 	timeline_play_speed_set(playspeed_at_zoom(&ACTIVE_TL->timeview, -1.0));
 	/* if (ACTIVE_TL->timeview.sample_frames_per_pixel < SFPP_THRESHOLD) { */
 	/*     timeline_play_speed_set(-1 * ACTIVE_TL->timeview.sample_frames_per_pixel / 100); */
@@ -1032,7 +1032,7 @@ void user_tl_zoom_out(void *nullarg)
 static NEW_EVENT_FN(undo_redo_set_mark, "undo/redo set mark")
     int32_t *mark = (int32_t *)obj1;
     *mark = val1.int32_v;
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 }
 
 /* NEW_EVENT_FN(redo_set_mark) */
@@ -1290,7 +1290,7 @@ void user_tl_add_track(void *tl_opt)
     /* 	btn, */
     /* 	&colors.quickref_button_pressed, */
     /* 	&colors.quickref_button_blue); */
-main_win->needs_redraw = true;
+atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 
     Value nullval = {.int_v = 0};
     user_event_push(
@@ -1313,7 +1313,7 @@ static void track_select_n(int n)
     Track *track = tl->tracks[n];
     bool *active = &(track->active);
     *active = !(*active);
-main_win->needs_redraw = true;
+atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
     /* track->input->active = *active; */
     /* fprintf(stdout, "SETTING %s to %d\n", track->input->name, track->input->active); */
 }
@@ -1377,7 +1377,7 @@ static bool activate_all_tracks(Timeline *tl)
 	    ret = false;
 	}
     }
-main_win->needs_redraw = true;
+atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
     return ret;
 }
 
@@ -1386,7 +1386,7 @@ static void deactivate_all_tracks(Timeline *tl)
     for (uint8_t i=0; i<tl->num_tracks; i++) {
 	tl->tracks[i]->active = false;
     }
-main_win->needs_redraw = true;
+atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 }
 
 void user_tl_track_activate_all(void *nullarg)
@@ -1415,7 +1415,7 @@ void user_tl_track_selector_up(void *nullarg)
     if (tl->click_track_frozen && tl->layout_selector <= 0) {
 	tl->layout_selector = -1; /* Select the frozen click track */
 	tl->click_track_selector = -1;
-main_win->needs_redraw = true;
+atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 	return;
     }
     else if (tl->layout_selector > 0) {
@@ -1491,7 +1491,7 @@ button_animation_and_exit:
 	    timeline_refocus_click_track(tl, timeline_selected_click_track(tl), false);
 	}
     }
-main_win->needs_redraw = true;
+atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 
     /* if (session->gui.panels_initialized) { */
     /* 	PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_previous"); */
@@ -1582,7 +1582,7 @@ void user_tl_track_selector_down(void *nullarg)
 
 button_animation_and_exit:
 
-main_win->needs_redraw = true;
+atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
     if (selected) {
 	timeline_refocus_track(tl, selected, true);
     } else {
@@ -1593,7 +1593,7 @@ main_win->needs_redraw = true;
     }
 
     /* if (selected) timeline_refocus_track(tl, selected, true); */
-main_win->needs_redraw = true;
+atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 
     /* if (session->gui.panels_initialized) { */
     /* 	PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_next"); */
@@ -1680,7 +1680,7 @@ void user_tl_track_rename(void *nullarg)
     if (track) {
 	track_rename(track);
     }
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
     /* fprintf(stdout, "DONE track edit\n"); */
 }
 
@@ -1694,7 +1694,7 @@ void user_tl_rename_clip_at_cursor(void *cr_opt)
     }
     if (cr) {
 	clipref_rename(cr);
-	main_win->needs_redraw = true;
+	atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
     }
 }
 
@@ -1970,7 +1970,7 @@ void user_tl_track_open_settings(void *track_opt)
     Timeline *tl = ACTIVE_TL;
     if (main_win->active_tabview) {
 	tabview_close(main_win->active_tabview);
-	main_win->needs_redraw = true;
+	atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 	return;
     }
     
@@ -1989,7 +1989,7 @@ void user_tl_track_open_settings(void *track_opt)
 	TabView *tv = effect_chain_tabview_create(&track->effect_chain);
 	/* TabView *tv = track_effects_tabview_create(track); */
 	tabview_activate(tv, track, track->name);
-	main_win->needs_redraw = true;
+	atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
     } else {
 	timeline_click_track_edit(tl);
     }
@@ -2016,7 +2016,7 @@ void user_tl_track_open_synth(void *track_opt)
     if (track) {
 	TabView *tv = synth_tabview_create(track);
 	tabview_activate(tv, track, track->name);
-	main_win->needs_redraw = true;
+	atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 	timeline_check_set_midi_monitoring();
     } else {
 	status_set_errstr("Cannot open synth: no track");
@@ -2074,7 +2074,7 @@ void user_tl_track_show_hide_automations(void *track_opt)
     } else {
 	track_automations_show_all(track);
     }
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 }
 
 void user_tl_track_automation_toggle_read(void *nullarg)
@@ -2090,7 +2090,7 @@ void user_tl_track_automation_toggle_read(void *nullarg)
 	Automation *a = track->automations[track->selected_automation];
 	automation_toggle_read(a);
     }
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 
 }
 
@@ -2117,7 +2117,7 @@ void user_tl_record(void *nullarg)
 	Automation *sel_auto = sel_track->automations[sel_track->selected_automation];
 	automation_record(sel_auto);
 	session->automation_recording = sel_auto;
-	main_win->needs_redraw = true;
+	atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 	return;
     }
     transport_start_recording();
@@ -2313,7 +2313,7 @@ void user_tl_toggle_drag(void *nullarg)
 	    timeline_push_grabbed_clip_move_event(tl);
 	}
     }
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 }
 
 void user_tl_cut_clipref(void *nullarg)
@@ -2321,7 +2321,7 @@ void user_tl_cut_clipref(void *nullarg)
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     timeline_cut_at_cursor(tl);
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 }
 
 void user_tl_cut_clipref_and_grab_edges(void *nullarg)
@@ -2329,7 +2329,7 @@ void user_tl_cut_clipref_and_grab_edges(void *nullarg)
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     timeline_cut_at_cursor_and_grab_edges(tl);
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 }
 
 void user_tl_split_stereo_clipref(void *nullarg)
@@ -2393,7 +2393,7 @@ void user_tl_load_clip_at_cursor_to_src(void *cr_opt)
 	session->source_mode.source_mode = false;
 	window_extract_mode(main_win, MODE_SOURCE);
 	/* window_pop_mode(main_win); */
-	main_win->needs_redraw = true;
+	atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 	return;
     }
     /* Timeline *tl = ACTIVE_TL; */
@@ -2438,7 +2438,7 @@ void user_tl_load_clip_at_cursor_to_src(void *cr_opt)
 	/* fprintf(stdout, "Src clip name? %s\n", session->source_mode.src_clip->name); */
 	/* txt_set_value_handle(proj->source_name_tb->text, session->source_mode.src_clip->name); */
 	/* fprintf(stderr, "SFPP: %f\n", session->source_mode.timeview.sample_frames_per_pixel); */
-	main_win->needs_redraw = true;
+	atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 	PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_source_clip_name_tb");
 	Textbox *tb = (Textbox *)el->component;
 	textbox_set_value_handle(tb, clip_name);
@@ -2470,7 +2470,7 @@ void user_tl_activate_source_mode(void *nullarg)
 	window_extract_mode(main_win, MODE_SOURCE);
 	/* window_pop_mode(main_win); */
     }
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 
 }
 
@@ -2537,7 +2537,7 @@ void user_tl_drop_from_source(void *nullarg)
 	    if (session->source_mode.num_dropped <= 4) session->source_mode.num_dropped++;
 	    /* fprintf(stdout, "MET condition, num dropped: %d\n", session->source_mode.num_dropped); */
 	}
-	main_win->needs_redraw = true;
+	atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 	Value nullval = {.int_v = 0};
 	user_event_push(
 	    
@@ -2570,7 +2570,7 @@ static void user_tl_drop_savedn_from_source(int n)
 	cr->end_in_clip = drop.out;
 	clipref_reset(cr, true);
 
-	main_win->needs_redraw = true;
+	atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 	Value nullval = {.int_v = 0};
 	user_event_push(
 	    
@@ -2612,7 +2612,7 @@ static int new_tl_submit_form(void *mod_v, void *target)
 	}
     }
     window_pop_modal(main_win);
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
     return 0;
 }
 
@@ -2641,7 +2641,7 @@ void user_tl_add_new_timeline(void *nullarg)
     window_push_modal(main_win, mod);
     modal_reset(mod);
     modal_move_onto(mod);
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 }
 
 void user_tl_previous_timeline(void *nullarg)
@@ -2739,7 +2739,7 @@ static int submit_save_wav_form(void *mod_v, void *target)
 	status_set_errstr("Unable to write file \"%s\"", dirpath);
     }
 
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 
     return 0;
 }
@@ -2816,14 +2816,14 @@ void user_tl_delete_generic(void *nullarg)
     ClickTrack *ct;
     if ((t = timeline_selected_track(tl)) && TRACK_AUTO_SELECTED(t)) {
 	if (automation_handle_delete(t->automations[t->selected_automation])) {
-	    main_win->needs_redraw = true;
+	    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 	    return;
 	}
     } else if (tl->dragging_keyframe) {
 	status_cat_callstr(" selected keyframe");
 	keyframe_delete(tl->dragging_keyframe);
 	tl->dragging_keyframe = NULL;
-	main_win->needs_redraw = true;
+	atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 	return;
     } else if ((ct = timeline_selected_click_track(tl))) {
 	click_track_delete_segment_at_cursor(ct);
@@ -2842,7 +2842,7 @@ void user_tl_delete_generic(void *nullarg)
 	    status_stat_drag();
 	}
     }
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 }
 
 
@@ -2995,7 +2995,7 @@ void user_source_zoom_in(void *nullarg)
 {
     Session *session = session_get();
     timeview_rescale(&session->source_mode.timeview, 1.2, false, (SDL_Point){0});
-    main_win->needs_redraw = true;
+    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 }
 
 void user_source_zoom_out(void *nullarg)

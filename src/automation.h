@@ -107,7 +107,6 @@ typedef struct automation {
     bool read;
     bool write;
 
-    pthread_mutex_t lock; /* TODO: be more specific; what is this for? */
     pthread_mutex_t keyframe_arr_lock; /* Protect ALL keyframes in DSP ops in case of realloc */
 
     Keyframe *keyframes;

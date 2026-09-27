@@ -52,7 +52,8 @@ static float get_track_mixdown_chunk(Track *track, float *restrict L, float *res
     /************************* VOL/PAN AUTOMATION *************************/
     Automation *vol_auto = NULL;
     Automation *pan_auto = NULL;
-    
+
+    pthread_mutex_lock(&track->automations_arr_lock);
     for (uint8_t i=0; i<track->num_automations; i++) {
 	Automation *a = track->automations[i];
 	if (a->type == AUTO_VOL) vol_auto = a;
@@ -60,7 +61,6 @@ static float get_track_mixdown_chunk(Track *track, float *restrict L, float *res
 	if (a->endpoint == &track->vol_ep) vol_auto = a;
 	else if (a->endpoint == &track->pan_ep) pan_auto = a;
     }
-
     for (int i=0; i<track->num_automations; i++) {
 	Automation *a = track->automations[i];
 	if (a->read && !a->write && a->endpoint) {
@@ -68,6 +68,7 @@ static float get_track_mixdown_chunk(Track *track, float *restrict L, float *res
 	    endpoint_write(a->endpoint, val, true, true, true, false);
 	}
     }
+    pthread_mutex_unlock(&track->automations_arr_lock);
 
     float vol_vals[output_chunk_len_sframes];
     float pan_vals[2][output_chunk_len_sframes];

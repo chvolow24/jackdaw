@@ -66,6 +66,7 @@ void mqwert_init()
 	JDAW_THREAD_MAIN,
 	NULL, mqwert_active_cb, NULL,
 	NULL, NULL, NULL, NULL);
+    lfqueue_init(&state.v_device.event_queue, sizeof(PmEvent), PM_EVENT_BUF_NUM_EVENTS);
 }
 
 static int raw_note_from_key(char key)
@@ -213,7 +214,7 @@ void mqwert_handle_key(char key, bool is_keyup)
 	state.velocity
 	);
     
-    if (midi_device_add_event(&state.v_device, e) == 0) {
+    if (midi_device_add_event(&state.v_device, e) != 0) {
 	fprintf(stderr, "Error in midi_qwert_handle_note: device event buf full\n");
     }
     /* if (!is_keyup) { */
@@ -252,7 +253,7 @@ void mqwert_set_pitch_bend(float cents)
 	msb
 	);
     
-    if (midi_device_add_event(&state.v_device, e) == 0) {
+    if (midi_device_add_event(&state.v_device, e) != 0) {
 	fprintf(stderr, "Error in midi_qwert_handle_note: device event buf full\n");
     }
 
@@ -275,9 +276,10 @@ void mqwert_pitch_bend(float cents)
 
 void mqwert_get_current_notes(MIDIDevice *dst_device)
 {
-    dst_device->num_unconsumed_events = state.v_device.num_unconsumed_events;
-    memcpy(&dst_device->buffer, &state.v_device.buffer, dst_device->num_unconsumed_events * sizeof(PmEvent));
-    state.v_device.num_unconsumed_events = 0;
+    PmEvent e;
+    while (lfqueue_try_dequeue(&state.v_device.event_queue, &e, 1) == LFQUEUE_SUCCESS) {
+        lfqueue_try_enqueue(&dst_device->event_queue, &e, 1);
+    }
 }
 
 /* returns note if pressed, 0 if not */

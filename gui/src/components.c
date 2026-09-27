@@ -1,3 +1,4 @@
+#include "atomic.h"
 #include "color.h"
 #include "components.h"
 #include "endpoint.h"
@@ -245,7 +246,7 @@ Value slider_reset(Slider *s)
 	    break;
 	}
     }
-    if (s->ep->display_label) {
+    if (aldr(&s->ep->display_label)) {
 	label_reset(s->label, slider_val);
     }
 

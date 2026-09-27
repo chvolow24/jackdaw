@@ -18,6 +18,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include "atomic.h"
 #include "endpoint.h"
 #include "log.h"
 #include "session_endpoint_ops.h"
@@ -100,12 +101,12 @@ void endpoint_register_callback(
     EndptCb cb)
 {
     MAIN_THREAD_ONLY(endpoint_register_callback);
-    int num = atomic_load_explicit(&ep->num_registered_callbacks[thread], memory_order_relaxed);
+    int num = aldr(&ep->num_registered_callbacks[thread]);
     if (num >= MAX_ENDPOINT_CALLBACKS) {
         log_tmp(LOG_ERROR, "Max endpoint callbacks registered for %s\n", ep->local_id);
         return;
     }
-    atomic_store_explicit(&ep->registered_callbacks[thread][num], cb, memory_order_relaxed);
+    astrr(&ep->registered_callbacks[thread][num], cb);
     atomic_compare_exchange_strong_explicit(
         &ep->num_registered_callbacks[thread],
         &num,
@@ -164,7 +165,7 @@ static void set_thread_local_val_cb(Endpoint *ep)
 
 static void reenqueue_gui_cb(Endpoint *ep)
 {
-    EndptCb cb = atomic_load_explicit(&ep->reenqueue_gui_cb, memory_order_relaxed);
+    EndptCb cb = aldr(&ep->reenqueue_gui_cb);
     struct queued_cb qcb;
     qcb.ep = ep;
     qcb.cb = cb;
@@ -213,11 +214,11 @@ int endpoint_write(
     bool val_changed = !jdaw_val_equal(old_val, new_val, ep->val_type);
     bool write_has_occurred = false;
     if (!val_changed &&
-        (write_has_occurred = atomic_load_explicit(&ep->write_has_occurred, memory_order_relaxed))) {
+        (write_has_occurred = aldr(&ep->write_has_occurred))) {
         return EP_WRITE_NO_CHANGE;
     }
     
-    ep->display_label = undoable || ep->changing; /* heuristic, ok */
+    astrr(&ep->display_label, undoable || ep->changing); /* heuristic, ok */
 
     bool async_thread_loc_val_change = false;
     if (
@@ -249,13 +250,13 @@ int endpoint_write(
      */
     bool delay_gui_cb = false;
     for (int t=NUM_JDAW_THREADS - 1; t>=0; t--) {
-        int num = atomic_load_explicit(&ep->num_registered_callbacks[t], memory_order_relaxed);
+        int num = aldr(&ep->num_registered_callbacks[t]);
         for (int i=0; i<num; i++) {
-            EndptCb cb = atomic_load_explicit(&ep->registered_callbacks[t][i], memory_order_relaxed);
+            EndptCb cb = aldr(&ep->registered_callbacks[t][i]);
             if (t == (int)owner && async_thread_loc_val_change) {
                 goto enqueue;
             } else if (t == (int)JDAW_THREAD_MAIN && delay_gui_cb) {
-                atomic_store_explicit(&ep->reenqueue_gui_cb, cb, memory_order_relaxed);
+                astrr(&ep->reenqueue_gui_cb, cb);
                 struct queued_cb cbs = (struct queued_cb){reenqueue_gui_cb, ep};
                 session_enqueue_callback(owner, cbs);
                 goto enqueue;
@@ -301,7 +302,7 @@ int endpoint_write(
 	/* } */
     }
     /* ep->last_write_val = new_val; */
-    atomic_store_explicit(&ep->write_has_occurred, true, memory_order_relaxed);
+    astrr(&ep->write_has_occurred, true);
     
     return ret;
 }
@@ -330,12 +331,12 @@ Value endpoint_read(Endpoint *ep, ValType *vt)
 /* PROBLEM: there may be queued value change operations */
 void endpoint_set_owner(Endpoint *ep, enum jdaw_thread thread)
 {
-    atomic_store(&ep->owner_thread, thread);
+    astrr(&ep->owner_thread, thread);
 }
 
 enum jdaw_thread endpoint_get_owner(Endpoint *ep)
 {
-    return atomic_load(&ep->owner_thread);
+    return aldr(&ep->owner_thread);
 }
 
 void endpoint_start_continuous_change(

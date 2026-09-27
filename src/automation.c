@@ -144,7 +144,9 @@ void automation_remove(Automation *a)
     timeline_rectify_track_area(a->track->tl);
     /* layout_force_reset(track->layout->parent); */
     /* timeline_reset(track->tl, false); */
+    pthread_mutex_lock(&track->automations_arr_lock);
     track->num_automations--;
+    pthread_mutex_unlock(&track->automations_arr_lock);
     if (!some_read || track->num_automations == 0) {
 	track->automation_dropdown->background_color = &colors.grey;
     }
@@ -164,7 +166,7 @@ void automation_reinsert(Automation *a)
     a->removed = false;
     /* a->deleted = false; */
     Track *track = a->track;
-    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
+    pthread_mutex_lock(&track->automations_arr_lock);
     for (int16_t i=track->num_automations; i>=0; i--) {
 	if (i < track->num_automations) {
 	    /* fprintf(stderr, "incr index, moving %d->%d\n", i, i+1); */
@@ -185,9 +187,10 @@ void automation_reinsert(Automation *a)
 	    if (a->read) {
 		track->automation_dropdown->background_color = &colors.dropdown_green;
 	    }
-	    return;
+	    break;
 	}
     }
+    pthread_mutex_unlock(&track->automations_arr_lock);
 
     TEST_FN_CALL(track_automation_order, track);
 }
@@ -258,18 +261,10 @@ Automation *track_add_automation_from_endpoint(Track *track, Endpoint *ep)
     api_endpoint_get_display_route_until(ep, a->name, MAX_NAMELENGTH, &track->api_node);
 
     int ret;
-    if ((ret = pthread_mutex_init(&a->lock, NULL) != 0)) {
-	fprintf(stderr, "Error initializing automation lock: %s\n", strerror(ret));
-	exit(1);
-    }
     if ((ret = pthread_mutex_init(&a->keyframe_arr_lock, NULL) != 0)) {
 	fprintf(stderr, "Error initializing keyframe arr lock: %s\n", strerror(ret));
 	exit(1);
     }
-
-    
-    track->automations[track->num_automations] = a;
-    track->num_automations++;
 
     a->val_type = ep->val_type;
     if (a->val_type == JDAW_BOOL) a->min = (Value){.bool_v = false};
@@ -283,6 +278,11 @@ Automation *track_add_automation_from_endpoint(Track *track, Endpoint *ep)
     automation_insert_keyframe_at(a, 0, base_kf_val);
     endpoint_bind_automation(ep, a);
     track->automation_dropdown->background_color = &colors.dropdown_green;
+
+    pthread_mutex_lock(&track->automations_arr_lock);
+    track->automations[track->num_automations] = a;
+    track->num_automations++;
+    pthread_mutex_unlock(&track->automations_arr_lock);
 
     Value nullval;
     memset(&nullval, '\0', sizeof(Value));
@@ -770,8 +770,10 @@ static void keyframe_move(Keyframe *k, int32_t new_pos, Value new_value)
 	return;
     } else if (new_pos > k->pos && k < a->keyframes + a->num_keyframes - 1 && (k+1)->pos <= new_pos) {
 	return;
-    }
 
+    }
+    /* TODO: use lighter-weight concurrency scheme; maybe even lock per keyf */
+    pthread_mutex_lock(&a->keyframe_arr_lock);
     k->pos = new_pos;
     k->value = new_value;
     keyframe_recalculate_m(a, k - a->keyframes);
@@ -780,6 +782,7 @@ static void keyframe_move(Keyframe *k, int32_t new_pos, Value new_value)
     }
     keyframe_set_y_prop(a, k - a->keyframes);
     k->draw_x = timeline_get_draw_x(a->track->tl, new_pos);
+    pthread_mutex_unlock(&a->keyframe_arr_lock);
     atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 }
 
@@ -863,11 +866,11 @@ Keyframe *automation_insert_keyframe_at(
     int32_t pos,
     Value val)
 {
-    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
     if (a->num_keyframes + 1 >= a->keyframe_arrlen) {
 	keyframe_arr_resize(a);
     }
 
+    pthread_mutex_lock(&a->keyframe_arr_lock);    
     uint16_t insert_i = 0;
     while (insert_i <a->num_keyframes) {
 	/* fprintf(stderr, "\tChecking %d...\n", insert_i); */
@@ -905,6 +908,7 @@ Keyframe *automation_insert_keyframe_at(
 	/*     fprintf(stderr, "i: %d, pos: %d, dx: %d, dy: %f\n", i, a->keyframes[i].pos, a->keyframes[i].m_fwd.dx, a->keyframes[i].m_fwd.dy.float_v); */
 	/* } */
     }
+    pthread_mutex_unlock(&a->keyframe_arr_lock);
     return inserted;
 }
 
@@ -992,9 +996,7 @@ describe:
 
 static Keyframe *automation_check_get_cache(Automation *a, int32_t pos)
 {
-    pthread_mutex_lock(&a->lock);
     automation_reset_cache(a, pos);
-    pthread_mutex_unlock(&a->lock);
     return a->current;
 }
 
@@ -1087,7 +1089,7 @@ static void keyframe_remove(Keyframe *k)
     main_win->needs_redraw= true;
     uint16_t pos = k - a->keyframes;
     uint16_t num = a->num_keyframes - pos;
-    int ret = pthread_mutex_lock(&a->lock);
+    int ret = pthread_mutex_lock(&a->keyframe_arr_lock);
     if (ret != 0) {
 	fprintf(stderr, "ERROR locking in remove: %s\n", strerror(ret));
 	exit(1);
@@ -1107,7 +1109,7 @@ static void keyframe_remove(Keyframe *k)
     a->num_keyframes--;
     keyframe_recalculate_m(a, pos - 1);
     
-    pthread_mutex_unlock(&a->lock);
+    pthread_mutex_unlock(&a->keyframe_arr_lock);
 }
 
 /* return true if success */
@@ -1174,13 +1176,11 @@ static bool automation_get_kf_range(Automation *a, int32_t start_pos, int32_t en
 
 static void automation_remove_kf_range(Automation *a, uint16_t remove_start_i, uint16_t remove_end_i)
 {
-    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
-
     /* Do not allow removal of all keyframes */
     if (remove_start_i == 0 && remove_end_i == a->num_keyframes) {
 	remove_start_i++;
     }
-    pthread_mutex_lock(&a->lock);
+    pthread_mutex_lock(&a->keyframe_arr_lock);
     int32_t remove_count = remove_end_i - remove_start_i;
     int32_t move_count = a->num_keyframes - remove_end_i;
     if (remove_count > 0) {
@@ -1203,7 +1203,7 @@ static void automation_remove_kf_range(Automation *a, uint16_t remove_start_i, u
 	keyframe_recalculate_m(a, remove_start_i);
 	    
     }
-    pthread_mutex_unlock(&a->lock);
+    pthread_mutex_unlock(&a->keyframe_arr_lock);
 }
 
 
@@ -1404,9 +1404,12 @@ static void keyframe_draw(int x, int y)
 }
 
 /* This function assumes "current" pointer has been set or unset appropriately elsewhere */
-Value inline automation_get_value(Automation *a, int32_t pos, float direction)
+Value automation_get_value(Automation *a, int32_t pos, float direction)
 {
-    return automation_value_at(a, pos);
+    pthread_mutex_lock(&a->keyframe_arr_lock);
+    Value val = automation_value_at(a, pos);
+    pthread_mutex_unlock(&a->keyframe_arr_lock);
+    return val;
 }
 
 /* void automation_get_value_range(Automation *a, int32_t start_pos, void *dst_arr, int num_items, float step) */
@@ -1550,7 +1553,6 @@ static void keyframe_move_coords(Keyframe *k, int x, int y)
     if (i < a->num_keyframes - 1) {
 	next = k+1;
     }
-    
     if ((!prev || (abs_pos > prev->pos)) && (!next || (abs_pos < next->pos))) {
 	k->draw_x = x;
 	double val_prop = (double)(a->bckgrnd_rect->y + a->bckgrnd_rect->h - y) / a->bckgrnd_rect->h;

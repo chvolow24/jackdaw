@@ -24,10 +24,14 @@
 #include <math.h>
 #include <stdint.h>
 
+#include "shared_value_decl.h"
+
 typedef struct envelope_follower {
     float prev_out;
     double attack_coeff;
     double release_coeff;
+    int write_shared_ctr;
+    SharedFloat main_thread_val;
 } EnvelopeFollower;
 
 

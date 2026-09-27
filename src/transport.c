@@ -18,6 +18,7 @@
 #include <stdatomic.h>
 #include <string.h>
 #include <sys/errno.h>
+#include "atomic.h"
 #include "porttime.h"
 #include "audio_clip.h"
 #include "audio_connection.h"
@@ -93,14 +94,6 @@ double timespec_elapsed_ms(const struct timespec *start, const struct timespec *
 /* } */
 
 extern struct colors colors;
-
-/* static bool do_quit_internal; */
-struct dsp_chunk_info {
-    int32_t tl_start;
-    /* int32_t ring_buf_start; */
-    float playspeed;
-    int elapsed_playback_chunks;
-};
 
 static void copy_device_buf_to_clips(AudioDevice *dev);
 void copy_conn_buf_to_clip(Clip *clip, enum audio_conn_type type);
@@ -257,7 +250,7 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     /* if ((err = pthread_mutex_unlock(&session->queued_ops.queued_audio_buf_lock)) != 0) { */
     /*     fprintf(stderr, "Error unlocking queued audio buf lock (in playback cb): %s\n", strerror(err)); */
     /* } */
-    if (!session->playback.playing && !session->midi_io.monitoring && queue_loc.num_queued == 0) {
+    if (!session->playback.playing && !aldr(&session->midi_io.monitoring) && queue_loc.num_queued == 0) {
 	memset(stream, '\0', len);
 	return;
     }
@@ -305,7 +298,7 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     /* Check for monitor synth and add buf to chunk_L and chunk_R */
     float monitor_LR[len_sframes * 2];
     bool has_monitor = false;
-    if (session->midi_io.monitoring) {
+    if (aldr(&session->midi_io.monitoring)) {
         int ret = lfqueue_wait_dequeue(&session->playback.instrument_monitor_lfqueue, monitor_LR, len_sframes * 2, 10, 100, NULL);
         if (ret == LFQUEUE_SUCCESS) has_monitor = true;
     }
@@ -343,21 +336,24 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 	atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
     } else if (session->playback.playing) {
 	/* timer_start(); */
-	struct dsp_chunk_info *chunk_info = tl->dsp_chunks_info + tl->dsp_chunks_info_read_i;
-	if (!chunk_info) {
-	    log_tmp(LOG_WARN, "Chunk info not set in playback callback (session->playback.playing set during pb cb execution)\n");
-	    goto end_playhead_reset;
-	}
-	chunk_info->elapsed_playback_chunks++;
-	int32_t new_play_pos = chunk_info->tl_start + proj->chunk_size_sframes * chunk_info->elapsed_playback_chunks * chunk_info->playspeed;
-	timeline_move_play_position(tl, new_play_pos - atomic_load_explicit(&tl->play_pos_sframes, memory_order_relaxed));
+        static struct dsp_chunk_info chunk_info = {0};
 	int N = proj->fourier_len_sframes / proj->chunk_size_sframes;
-	if (chunk_info->elapsed_playback_chunks >= N) {
-	    tl->dsp_chunks_info_read_i++;
-	    if (tl->dsp_chunks_info_read_i >= RING_BUF_LEN_FFT_CHUNKS) {
-		tl->dsp_chunks_info_read_i = 0;
-	    }
-	}
+        int ret = lfqueue_try_dequeue(&tl->dsp_chunks_info_lfqueue, &chunk_info, 1);
+        if (ret != LFQUEUE_SUCCESS) {
+            if (chunk_info.elapsed_playback_chunks > N) {
+                log_tmp(LOG_WARN, "Chunk info not set in playback callback (session->playback.playing set during pb cb execution)\n");
+            }
+	    goto end_playhead_reset;
+        }
+	chunk_info.elapsed_playback_chunks++;
+	int32_t new_play_pos = chunk_info.tl_start + proj->chunk_size_sframes * chunk_info.elapsed_playback_chunks * chunk_info.playspeed;
+	timeline_move_play_position(tl, new_play_pos - atomic_load_explicit(&tl->play_pos_sframes, memory_order_relaxed));
+	/* if (chunk_info.elapsed_playback_chunks >= N) { */
+	/*     tl->dsp_chunks_info_read_i++; */
+	/*     if (tl->dsp_chunks_info_read_i >= RING_BUF_LEN_FFT_CHUNKS) { */
+	/* 	tl->dsp_chunks_info_read_i = 0; */
+	/*     } */
+	/* } */
 	/* sem_post(tl->writable_chunks); */
 	/* timer_stop_and_print("Did playback_things"); */
     }
@@ -369,10 +365,10 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     /* timer_stop_and_print("Did ongoing changes"); */
     /* transport_log("...done ongoing changes\n"); */
 
-    if (dev->channel_dsts[0].conn->request_playhead_reset) {
+    if (aldr(&dev->channel_dsts[0].conn->request_playhead_reset)) {
         
 	/* Give DSP thread a new starting position */
-	tl->read_pos_sframes = dev->channel_dsts[0].conn->request_playhead_pos;
+	tl->read_pos_sframes = aldr(&dev->channel_dsts[0].conn->request_playhead_pos);
 
 	/* "Read" the rest of the mixdown buffer so DSP restarts */
 	/* while (tl->buf_read_pos != saved_write_pos) { */
@@ -387,11 +383,8 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 	/*     } */
 	/* } */
 
-	/* Reset the dsp chunks info indices */
-	tl->dsp_chunks_info_read_i = 0;
-	tl->dsp_chunks_info_write_i = 0;
 
-	dev->channel_dsts[0].conn->request_playhead_reset = false;
+	astrr(&dev->channel_dsts[0].conn->request_playhead_reset, false);
     }
     /* if (log_fn_exit) { */
     /* 	log_tmp(LOG_DEBUG, "Exiting playback callback\n"); */
@@ -413,11 +406,12 @@ static void *transport_dsp_threadfn(void *arg)
     int N = len / tl->proj->chunk_size_sframes;
     bool init = true;
 
-    if (!tl->dsp_chunks_info) {
-	tl->dsp_chunks_info = calloc(RING_BUF_LEN_FFT_CHUNKS, sizeof(struct dsp_chunk_info));
-	tl->dsp_chunks_info_read_i = 0;
-	tl->dsp_chunks_info_write_i = 0;
-    }
+
+    /* if (!tl->dsp_chunks_info) { */
+    /*     tl->dsp_chunks_info = calloc(RING_BUF_LEN_FFT_CHUNKS, sizeof(struct dsp_chunk_info)); */
+    /*     tl->dsp_chunks_info_read_i = 0; */
+    /*     tl->dsp_chunks_info_write_i = 0; */
+    /* } */
     
     while (thread_not_canceled()) {
 	/* transport_log("Loop iter\n"); */
@@ -432,7 +426,7 @@ static void *transport_dsp_threadfn(void *arg)
 
         session_run_thread_callbacks(JDAW_THREAD_DSP);
 	/* pthread_testcancel(); */
-	float play_speed = session->playback.play_speed;
+	float play_speed = endpoint_read(&session->playback.play_speed_ep, NULL).float_v;
 	/* tl->last_read_playspeed = play_speed; */
 	/* tl->current_dsp_chunk_start = tl->read_pos_sframes; */
 	
@@ -513,16 +507,15 @@ static void *transport_dsp_threadfn(void *arg)
 	}
 
 	/* Log chunk info for playback */
-	struct dsp_chunk_info *chunk_info = tl->dsp_chunks_info + tl->dsp_chunks_info_write_i;
-	chunk_info->elapsed_playback_chunks = 0;
-	chunk_info->tl_start = tl->read_pos_sframes;
+	struct dsp_chunk_info chunk_info;
+	chunk_info.elapsed_playback_chunks = 0;
+	chunk_info.tl_start = tl->read_pos_sframes;
 	/* chunk_info->ring_buf_start = tl->buf_write_pos; */
-	chunk_info->playspeed = play_speed;
-	tl->dsp_chunks_info_write_i++;
-	if (tl->dsp_chunks_info_write_i >= RING_BUF_LEN_FFT_CHUNKS) tl->dsp_chunks_info_write_i = 0;
+	chunk_info.playspeed = play_speed;
+        lfqueue_wait_enqueue(&tl->dsp_chunks_info_lfqueue, &chunk_info, 1, 100, 0, thread_get_cancellation_bool(current_thread()));
 	
 	/* Move the read (DSP) pos */
-	tl->read_pos_sframes += len * play_speed;
+	atomic_fetch_add_explicit(&tl->read_pos_sframes, len * play_speed, memory_order_relaxed);
 	
 	/* TODO: needs work post play position refactor */
 	if (session->playback.loop_play) {
@@ -659,8 +652,8 @@ void transport_execute_playhead_jump(Timeline *tl, int32_t new_pos)
     Session *session = session_get();
     if (session->playback.playing) {
 	/* To be handled in playback thread */
-	session->audio_io.playback_conn->request_playhead_reset = true;
-	session->audio_io.playback_conn->request_playhead_pos = new_pos;
+        astrr(&session->audio_io.playback_conn->request_playhead_reset, true);
+        astrr(&session->audio_io.playback_conn->request_playhead_pos, new_pos);
     } else {
 	/* Handled now: reconcile read (DSP thread) pos and play (playback thread) pos */
 	tl->read_pos_sframes = new_pos;
@@ -674,7 +667,7 @@ void transport_stop_playback()
     if (!session->playback.playing) return;
     Timeline *tl = ACTIVE_TL;
     if (!tl) return;
-    if (!session->midi_io.monitoring) {
+    if (!aldr(&session->midi_io.monitoring)) {
 	audioconn_stop_playback(session->audio_io.playback_conn);
     } else {
 	midi_monitor_clear();
@@ -701,8 +694,6 @@ void transport_stop_playback()
     /*     /\* fprintf(stdout, "\t->reinitiailizing writable chunks\n"); *\/ */
     /*     sem_post(tl->writable_chunks); */
     /* } */
-    tl->dsp_chunks_info_read_i = 0;
-    tl->dsp_chunks_info_write_i = 0;
 
     /* TODO: MAYBE */
     tl->read_pos_sframes = tl->play_pos_sframes;

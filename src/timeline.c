@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <time.h>
+#include "atomic.h"
 #include "consts.h"
 #include "audio_clip.h"
 #include "clipref.h"
@@ -336,7 +337,7 @@ void timeline_move_play_position(Timeline *tl, int32_t move_by_sframes)
     atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
     Session *session = session_get();
     
-    int64_t new_pos = (int64_t)tl->play_pos_sframes + move_by_sframes;
+    int64_t new_pos = (int64_t)aldr(&tl->play_pos_sframes) + move_by_sframes;
     if (session->playback.loop_play) {
 	int32_t loop_len = tl->out_mark_sframes - tl->in_mark_sframes;
 	if (loop_len > 0) {
@@ -346,14 +347,17 @@ void timeline_move_play_position(Timeline *tl, int32_t move_by_sframes)
 		new_pos = tl->in_mark_sframes + remainder;
 	    }
 	}
- }
+    }
     if (new_pos > TL_MAX_SFRAMES || new_pos < TL_MIN_SFRAMES) {
 	/* TODO: exit playback safely from playback thread ? */
 	status_set_errstr("reached end of timeline");
-	new_pos = tl->play_pos_sframes;
+	/* new_pos = tl->play_pos_sframes; */
 	move_by_sframes = 0;
     }
-    tl->play_pos_sframes = new_pos;
+
+    atomic_fetch_add_explicit(&tl->play_pos_sframes, move_by_sframes, memory_order_relaxed);
+    /* fprintf(stderr, "%d -> %lld\n", tl->play_pos_sframes, new_pos); */
+    /* atomic_store_explicit(&tl->play_pos_sframes, new_pos, memory_order_relaxed); */
     clock_gettime(CLOCK_MONOTONIC, &tl->play_pos_moved_at);
     if (session->dragging) {
 	if (session->piano_roll) {
@@ -401,5 +405,5 @@ int32_t timeline_get_play_pos_now(Timeline *tl)
     struct timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
     double elapsed_s = now.tv_sec + ((double)now.tv_nsec / 1e9) - tl->play_pos_moved_at.tv_sec - ((double)tl->play_pos_moved_at.tv_nsec / 1e9);
-    return tl->play_pos_sframes + elapsed_s * tl->proj->sample_rate * session->playback.play_speed;
+    return tl->play_pos_sframes + elapsed_s * tl->proj->sample_rate * endpoint_read(&session->playback.play_speed_ep, NULL).float_v;
 }

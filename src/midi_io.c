@@ -9,6 +9,7 @@
 *****************************************************************************************************************/
 
 #include "clipref.h"
+#include "log.h"
 #include "midi_io.h"
 #include "midi_clip.h"
 #include "midi_objs.h"
@@ -16,6 +17,8 @@
 #include "portmidi.h"
 #include "porttime.h"
 #include "session.h"
+#include "spsc_lfqueue.h"
+
 
 static int populate_global_midi_device_list(MIDIDevice *devices)
 {
@@ -180,6 +183,8 @@ void session_populate_midi_device_lists(Session *session)
 	    MIDIDevice *device = devices + i;
 	    if (device->input) {
 		session->midi_io.inputs[session->midi_io.num_inputs] = *device;
+                /* fprintf(stderr, "INITIALIZING device %s %p\n", session->midi_io.inputs[session->midi_io.num_inputs].name, session->midi_io.inputs + session->midi_io.num_inputs); */
+                lfqueue_init(&session->midi_io.inputs[session->midi_io.num_inputs].event_queue, sizeof(PmEvent), PM_EVENT_BUF_NUM_EVENTS);
 		if (device->type == MIDI_DEVICE_PM) {
 		    midi_device_open(session->midi_io.inputs + session->midi_io.num_inputs);
 		} else if (device->type == MIDI_DEVICE_QWERTY) {
@@ -212,6 +217,9 @@ int session_init_midi(Session *session)
 
 void session_deinit_midi(Session *session)
 {
+    for (int i=0; i<session->midi_io.num_inputs; i++) {
+        lfqueue_deinit(&session->midi_io.inputs[i].event_queue);
+    }
     /* midi_close_virtual_devices(&session->midi_io); */
 }
 
@@ -258,7 +266,6 @@ int midi_device_open(MIDIDevice *d)
 	break;
     case MIDI_DEVICE_QWERTY: {
 	d->opened = true;
-	d->num_unconsumed_events = 0;
     }
 	break;
     default:
@@ -281,7 +288,7 @@ int midi_device_close(MIDIDevice *d)
 	return err;
     case MIDI_DEVICE_QWERTY:
 	d->opened = false;
-	d->num_unconsumed_events = 0;
+	/* d->num_unconsumed_events = 0; */
 	break;
     default:
 	break;
@@ -289,18 +296,18 @@ int midi_device_close(MIDIDevice *d)
     return 0;
 }
 
-/* Returns number of unconsumed events, or 0 if buf full */
+/* returns 0 on success, else 1 if device full */
 int midi_device_add_event(MIDIDevice *d, PmEvent e)
 {
-    if (d->num_unconsumed_events >= PM_EVENT_BUF_NUM_EVENTS) {
-	return 0;
+    int ret = lfqueue_try_enqueue(&d->event_queue, &e, 1);
+    if (ret == LFQUEUE_SUCCESS) {
+        return 0;
+    } else {
+        return 1;
     }
-    d->buffer[d->num_unconsumed_events] = e;
-    d->num_unconsumed_events++;
-    return d->num_unconsumed_events;
 }
 
-/* Get MIDI data from the source device and add it to the devie event buf */
+/* Get MIDI data from the source device and add it to the device event buf */
 void midi_device_read(MIDIDevice *d)
 {
     if (d->type == MIDI_DEVICE_QWERTY) {
@@ -309,23 +316,24 @@ void midi_device_read(MIDIDevice *d)
     }
     /* fprintf(stderr, "opened? %d\n", d->info->opened); */
     if (!d->info || !d->info->opened) return;
-
-    if (d->num_unconsumed_events > 0) {
-	fprintf(stderr, "Error: overwriting unconsumed events on device \"%s\"\n", d->info->name);
-    }
-    /* Session *session = session_get(); */
-    /* Timeline *tl = ACTIVE_TL; */
+    PmEvent local_buf[PM_EVENT_BUF_NUM_EVENTS];
     int num_read = Pm_Read(
 	d->stream,
-	d->buffer,
-	sizeof(d->buffer) / sizeof(PmEvent));
+	local_buf,
+	PM_EVENT_BUF_NUM_EVENTS);
 
     if (num_read < 0) {
 	fprintf(stderr, "Error: midi record error: %s\n", Pm_GetErrorText(num_read));
-	fprintf(stderr, "Args passed: device: %p, d->stream %p, d->buffer %p\n", d, d->stream, d->buffer);
+	fprintf(stderr, "Args passed: device: %p, d->stream %p\n", d, d->stream);
 	return;
     }
-    d->num_unconsumed_events = num_read;
+    for (int i=0; i<num_read; i++) {
+        if (lfqueue_try_enqueue(&d->event_queue, local_buf + i, 1) != LFQUEUE_SUCCESS) {
+            log_tmp(LOG_WARN, "Only able to enqueue %d/%d events\n", i, num_read);
+            break;
+        }
+    }
+   
     /* PmTimestamp current_time = Pt_Time(); */
     /* for (int i=0; i<num_read; i++) { */
     /* 	PmEvent e = d->buffer[i]; */
@@ -357,8 +365,8 @@ void midi_device_output_chunk_to_clip(MIDIDevice *d, enum midi_ts_type ts_type)
     if (!d->current_clip) return;
     /* PmTimestamp current_time = Pt_Time(); */
     /* fprintf(stderr, "PROCESSING %d unconsumed...\n", d->num_unconsumed_events); */
-    for (int i=0; i<d->num_unconsumed_events; i++) {
-	PmEvent e = d->buffer[i];
+    PmEvent e;
+    while (lfqueue_try_dequeue(&d->event_queue, &e, 1) == LFQUEUE_SUCCESS) {
 	uint8_t status = Pm_MessageStatus(e.message);
 	uint8_t channel = status & 0x0F;
 	uint8_t note_val = Pm_MessageData1(e.message);
@@ -413,7 +421,7 @@ void midi_device_close_all_notes(MIDIDevice *d)
 		0x80,
 		n->key,
 		0);
-	    if (midi_device_add_event(d, e) == 0) {
+	    if (midi_device_add_event(d, e) != 0) {
 		fprintf(stderr, "Error: no room for note off in midi_device_close_all_notes\n");
 	    }
 	    /* n->unclosed = false; */

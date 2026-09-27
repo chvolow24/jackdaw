@@ -101,7 +101,7 @@ typedef struct endpoint {
     _Atomic EndptCb registered_callbacks[NUM_JDAW_THREADS][MAX_ENDPOINT_CALLBACKS];
     _Atomic int num_registered_callbacks[NUM_JDAW_THREADS];
 
-    bool display_label; /* Set in endpoint write based on "undoable" -- used in gui cbs */
+    _Atomic bool display_label; /* Set in endpoint write based on "undoable" -- used in gui cbs */
     
     /* pthread_mutex_t val_lock; */
     /* pthread_mutex_t owner_lock; */

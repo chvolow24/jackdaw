@@ -21,6 +21,7 @@
 #include <stdbool.h>
 #include "portmidi.h"
 #include "midi_objs.h"
+#include "spsc_lfqueue.h"
 /* #include "synth.h" */
 
 
@@ -60,8 +61,9 @@ typedef struct midi_device {
     int32_t latency; /* Applicable for output devices only */
     PmDeviceID id;
     PmStream *stream;
-    PmEvent buffer[PM_EVENT_BUF_NUM_EVENTS];
-    uint8_t num_unconsumed_events;
+    LFQueue event_queue;
+    /* PmEvent buffer[PM_EVENT_BUF_NUM_EVENTS]; */
+    /* uint8_t num_unconsumed_events; */
     
     const PmDeviceInfo *info;
     char *name; /* Alias for info->name if PortMidi device */
@@ -96,7 +98,7 @@ struct midi_io {
 
     Synth *monitor_synth;
     MIDIDevice *monitor_device;
-    bool monitoring;
+    _Atomic bool monitoring;
     char monitor_in_text[MIDI_MONITOR_STRLEN];
     char monitor_out_text[MIDI_MONITOR_STRLEN];
 };

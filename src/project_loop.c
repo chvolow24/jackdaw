@@ -307,7 +307,7 @@ void loop_project_main()
 		case SDL_SCANCODE_J:
 		case SDL_SCANCODE_L:
 		    if (main_win->i_state & I_STATE_K) {
-			session->playback.play_speed = 0;
+			/* session->playback.play_speed = 0; */
 			session->source_mode.src_play_speed = 0;
 			transport_stop_playback();
 		    }
@@ -593,11 +593,12 @@ void loop_project_main()
 	static const int zero_playspeed_count_thresh = 20;
         static int zero_playspeed_count = 0;
 	if (session->playback.playing) {
+            float play_speed = endpoint_read(&session->playback.play_speed_ep, NULL).float_v;
 	    if (tl->read_pos_sframes <= TL_MIN_SFRAMES || tl->read_pos_sframes >= TL_MAX_SFRAMES) {
 		status_set_errstr("Reached end of timeline. S-u to return to t=0");
 		transport_stop_playback();
 	    }
-	    if (!session->source_mode.source_mode && fabs(session->playback.play_speed) < 1e-3f) {
+	    if (!session->source_mode.source_mode && fabs(play_speed) < 1e-3f) {
 		zero_playspeed_count++;
 	    } else {
 		zero_playspeed_count = 0;
@@ -613,15 +614,15 @@ void loop_project_main()
 	    if (elapsed_s > 0.05) {
 		goto end_frame;
 	    }
-	    int32_t play_pos_adj = tl->play_pos_sframes + elapsed_s * session_get_sample_rate() * session->playback.play_speed;
+	    int32_t play_pos_adj = tl->play_pos_sframes + elapsed_s * session_get_sample_rate() * play_speed;
 	    for (uint8_t i=0; i<tl->num_tracks; i++) {
 		Track *track = tl->tracks[i];
 		for (uint8_t ai=0; ai<track->num_automations; ai++) {
 		    Automation *a = track->automations[ai];
 		    if (a->write) {
-			int32_t frame_dur = session_get_sample_rate() * session->playback.play_speed / 30.0;
+			int32_t frame_dur = session_get_sample_rate() * play_speed / 30.0;
 			Value val = endpoint_read(a->endpoint, NULL);
-			automation_do_write(a, val, play_pos_adj, play_pos_adj + frame_dur, session->playback.play_speed);
+			automation_do_write(a, val, play_pos_adj, play_pos_adj + frame_dur, play_speed);
 		    }
 		}
 		

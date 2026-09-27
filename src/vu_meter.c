@@ -183,7 +183,8 @@ void vu_meter_draw(VUMeter *vu)
     int channels = vu->ef_R ? 2 : 1;
     for (int channel=0; channel<channels; channel++) {
 	EnvelopeFollower *ef = channel == 0 ? vu->ef_L : vu->ef_R;
-	float prop = (vu->amp_max - ef->prev_out) / vu->amp_max;
+        float ef_val = shared_float_read(&ef->main_thread_val);
+	float prop = (vu->amp_max - ef_val) / vu->amp_max;
 	if (prop < 0.0f) prop = 0.0f;
 	/* fprintf(stderr, "PROP: %f\n", prop); */
 	SDL_Rect bar_container = bar_layout->rect;

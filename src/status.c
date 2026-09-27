@@ -219,7 +219,7 @@ void status_stat_playspeed()
     Session *session = session_get();
     /* fprintf(stdout, "stat playspeed\n"); */
     char buf[64];
-    snprintf(buf, sizeof(buf), "Play speed: %0.3f",session->playback.play_speed);
+    snprintf(buf, sizeof(buf), "Play speed: %0.3f", endpoint_read(&session->playback.play_speed_ep, NULL).float_v);
     status_set_statstr(buf);
     session->status_bar.draw_call = true;
 }

@@ -14,6 +14,7 @@
 #include <semaphore.h>
 #include <fcntl.h>
 #include "assets.h"
+#include "atomic.h"
 #include "audio_clip.h"
 #include "audio_connection.h"
 #include "automation.h"
@@ -251,65 +252,9 @@ uint8_t project_add_timeline(Project *proj, char *name)
 	textbox_set_text_color(session->gui.loop_play_lemniscate, &colors.white);
 	textbox_reset_full(session->gui.loop_play_lemniscate);
     }
-    
-    /* new_tl->buf_L = calloc(1, sizeof(float) * proj->fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS); */
-    /* new_tl->buf_R = calloc(1, sizeof(float) * proj->fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS); */
-    
-    /* new_tl->buf_write_pos = 0; */
-    /* new_tl->buf_read_pos = 0; */
-    char buf[128];
-    snprintf(buf, 128, SEM_NAME_UNPAUSE, new_tl->index);
-    /* bool retry = false; */
-/* retry1: */
-/*     if ((new_tl->unpause_sem = sem_open(buf, O_CREAT | O_EXCL, 0666, 0)) == SEM_FAILED) { */
-/* 	if (errno != EEXIST) { */
-/* 	    perror("Error opening unpause sem"); */
-/* 	} */
-/* 	sem_unlink(buf); */
-/* 	if (!retry) { */
-/* 	    goto retry1; */
-/* 	    retry = true; */
-/* 	} else { */
-/* 	    fprintf(stderr, "Fatal error: retry failed\n"); */
-/* 	    exit(1); */
-/* 	} */
-/* 	/\* exit(1); *\/ */
-	
-/*     } */
-/* retry2: */
-/*     snprintf(buf, 128, SEM_NAME_READABLE_CHUNKS, new_tl->index); */
-/*     if ((new_tl->readable_chunks = sem_open(buf, O_CREAT | O_EXCL, 0666, 0)) == SEM_FAILED) { */
-/* 	if (errno != EEXIST) { */
-/* 	    perror("Error opening readable chunks sem"); */
-/* 	} */
-/* 	sem_unlink(buf); */
-/* 	if (!retry) { */
-/* 	    goto retry2; */
-/* 	    retry = true; */
-/* 	} else { */
-/* 	    fprintf(stderr, "Fatal error: retry failed\n"); */
-/* 	    exit(1); */
-/* 	} */
 
-/* 	/\* exit(1); *\/ */
-/*     } */
-/* retry3: */
-/*     snprintf(buf, 128, SEM_NAME_WRITABLE_CHUNKS, new_tl->index); */
-/*     int init_writable_chunks = proj->fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS / proj->chunk_size_sframes; */
-/*     if ((new_tl->writable_chunks = sem_open(buf, O_CREAT | O_EXCL, 0666, init_writable_chunks)) == SEM_FAILED) { */
-/* 	if (errno != EEXIST) { */
-/* 	    perror("Error opening writable chunks sem"); */
-/* 	} */
-/* 	sem_unlink(buf); */
-/* 	if (!retry) { */
-/* 	    goto retry3; */
-/* 	    retry = true; */
-/* 	} else { */
-/* 	    fprintf(stderr, "Fatal error: retry failed\n"); */
-/* 	    exit(1); */
-/* 	} */
-/* 	/\* exit(1); *\/ */
-/*     } */
+    lfqueue_init(&new_tl->dsp_chunks_info_lfqueue, sizeof(struct dsp_chunk_info), RING_BUF_LEN_FFT_CHUNKS);
+
     atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
     proj->timelines[proj->num_timelines] = new_tl;
     proj->num_timelines++;
@@ -350,21 +295,22 @@ static void timeline_destroy(Timeline *tl, bool displace_in_proj)
     /* if (sem_close(tl->writable_chunks) != 0) perror("Sem close"); */
     /* if (sem_close(tl->readable_chunks) != 0) perror("Sem close"); */
 
-    char buf[128];
-    snprintf(buf, 128, SEM_NAME_UNPAUSE, tl->index);
-    if (sem_unlink(buf) != 0 && errno != ENOENT) {
-	perror("Error in sem unlink");
-    }
-    snprintf(buf, 128, SEM_NAME_WRITABLE_CHUNKS, tl->index);
-    if (sem_unlink(buf) != 0 && errno != ENOENT) {
-	perror("Error in sem unlink");
-    }
-    snprintf(buf, 128, SEM_NAME_READABLE_CHUNKS, tl->index);
-    if (sem_unlink(buf) != 0 && errno != ENOENT) {
-	perror("Error in sem unlink");
-    }
+    /* char buf[128]; */
+    /* snprintf(buf, 128, SEM_NAME_UNPAUSE, tl->index); */
+    /* if (sem_unlink(buf) != 0 && errno != ENOENT) { */
+    /*     perror("Error in sem unlink"); */
+    /* } */
+    /* snprintf(buf, 128, SEM_NAME_WRITABLE_CHUNKS, tl->index); */
+    /* if (sem_unlink(buf) != 0 && errno != ENOENT) { */
+    /*     perror("Error in sem unlink"); */
+    /* } */
+    /* snprintf(buf, 128, SEM_NAME_READABLE_CHUNKS, tl->index); */
+    /* if (sem_unlink(buf) != 0 && errno != ENOENT) { */
+    /*     perror("Error in sem unlink"); */
+    /* } */
 
-    free(tl->dsp_chunks_info);
+    lfqueue_deinit(&tl->dsp_chunks_info_lfqueue);
+    /* free(tl->dsp_chunks_info); */
     /* layout_destroy(tl->layout); */
     layout_destroy(tl->track_area);
     free(tl);
@@ -791,6 +737,11 @@ Track *timeline_add_track_with_name(Timeline *tl, const char *track_name, int at
 	track_color_index = 0;
     }
 
+    int ret = pthread_mutex_init(&track->automations_arr_lock, NULL);
+    if (ret != 0) {
+        error_exit("Failed to init track automations_arr_lock mutex\n");
+    }
+    
     effect_chain_init(&track->effect_chain, tl->proj, &track->api_node, track->name, tl->proj->fourier_len_sframes);
     /* int err = pthread_mutex_init(&track->effect_chain_lock, NULL); */
     /* if (err != 0) { */
@@ -1822,7 +1773,7 @@ void timeline_force_stop_midi_monitoring()
 {
     log_tmp(LOG_DEBUG, "Forcing stop midi monitoring...\n");
     Session *session = session_get();
-    if (!session->midi_io.monitoring) return;
+    if (!aldr(&session->midi_io.monitoring)) return;
     Synth *synth = session->midi_io.monitor_synth;
     if (!synth) return;
     session->midi_io.monitor_synth = NULL;
@@ -1836,13 +1787,13 @@ void timeline_force_stop_midi_monitoring()
     api_node_set_owner(&synth->api_node, JDAW_THREAD_DSP);
     pthread_mutex_unlock(&synth->audio_proc_lock);
 
-    session->midi_io.monitoring = false;
+    astrr(&session->midi_io.monitoring, false);
 }
 
 void midi_monitor_clear()
 {
     Session *session = session_get();
-    if (session->midi_io.monitoring && session->midi_io.monitor_synth) {
+    if (aldr(&session->midi_io.monitoring) && session->midi_io.monitor_synth) {
 	synth_silence(session->midi_io.monitor_synth);
     }
 }
@@ -1910,7 +1861,7 @@ bool timeline_check_set_midi_monitoring()
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     Track *track = timeline_selected_track(tl);
-    bool was_monitoring = session->midi_io.monitoring;
+    bool was_monitoring = aldr(&session->midi_io.monitoring);
     if (track) {
 	if (track->midi_out && track->midi_out_type == MIDI_OUT_SYNTH) {
 	    char out_device_name[MAX_NAMELENGTH];
@@ -1956,8 +1907,9 @@ bool timeline_check_set_midi_monitoring()
 	MIDIDevice *d = session->midi_io.monitor_device;
 
 	/* Clear notes in system device buffer */
-	Pm_Read(d->stream, d->buffer, PM_EVENT_BUF_NUM_EVENTS);
-	d->num_unconsumed_events = 0;
+        PmEvent loc_event_buf[PM_EVENT_BUF_NUM_EVENTS];
+	Pm_Read(d->stream, loc_event_buf, PM_EVENT_BUF_NUM_EVENTS);
+	/* d->num_unconsumed_events = 0; */
 
 	/* Clear notes in synth if present */
 	Synth *synth = session->midi_io.monitor_synth;
@@ -1977,7 +1929,8 @@ bool timeline_check_set_midi_monitoring()
             instrument_monitor_start();
 	}
 	/* audioconn_start_playback(session->audio_io.playback_conn); */
-	session->midi_io.monitoring = true;
+        astrr(&session->midi_io.monitoring, true);
+	/* session->midi_io.monitoring = true; */
 	if (!was_monitoring) {
 	    panel_page_refocus(session->gui.panels, "MIDI monitoring", 1);
 	}
@@ -1998,7 +1951,7 @@ bool timeline_check_set_midi_monitoring()
 	    pthread_mutex_unlock(&track->synth->audio_proc_lock);
 	    /* api_node_set_owner(&track->synth->api_node, JDAW_THREAD_DSP); */
 	}
-	session->midi_io.monitoring = false;
+	astrr(&session->midi_io.monitoring, false);
 	/* fprintf(stderr, "NO Monitor\n"); */
 	if (was_monitoring) {
 	    panel_page_refocus(session->gui.panels, "MIDI monitoring", 1);
@@ -2132,6 +2085,11 @@ void track_destroy(Track *track, bool displace)
     }
 
     effect_chain_deinit(&track->effect_chain);
+    int ret = pthread_mutex_destroy(&track->automations_arr_lock);
+    if (ret != 0) {
+        error_exit("Failed to deinit track automations_arr_lock mutex\n");
+    }
+
 
     free(track->buf_L);
     free(track->buf_R);
@@ -2515,13 +2473,14 @@ void timeline_play_speed_set(double new_speed)
 {
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
-    double old_speed = session->playback.play_speed;
-    session->playback.play_speed = new_speed;
+    double old_speed = endpoint_read(&session->playback.play_speed_ep, NULL).float_v;
+    endpoint_write(&session->playback.play_speed_ep, (Value){.float_v = new_speed}, true, true, true, false);
+    /* session->playback.play_speed = new_speed; */
     
     /* If speed crosses the zero line, need to invalidate direction-dependent caches */
-    if (session->playback.play_speed * old_speed < 0.0) {
+    if (new_speed * old_speed < 0.0) {
 	timeline_set_play_position(tl, tl->play_pos_sframes, false);
-	if (session->playback.play_speed < 0) {
+	if (new_speed < 0) {
 	    PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_play");
 	    Textbox *play_button = ((Button *)el->component)->tb;
 	    textbox_set_background_color(play_button, &colors.quickref_button_blue);
@@ -2545,9 +2504,10 @@ void timeline_play_speed_set(double new_speed)
 void timeline_play_speed_mult(double scale_factor)
 {
     Session *session = session_get();
-    double new_speed = session->playback.play_speed * scale_factor;
+    double old_speed = endpoint_read(&session->playback.play_speed_ep, NULL).float_v;
+    double new_speed = old_speed * scale_factor;
     if (fabs(new_speed) > MAX_PLAY_SPEED) {
-	timeline_play_speed_set(session->playback.play_speed);
+	timeline_play_speed_set(old_speed);
     } else {
 	timeline_play_speed_set(new_speed);
     }
@@ -2556,7 +2516,7 @@ void timeline_play_speed_mult(double scale_factor)
 void timeline_play_speed_adj(double dim)
 {
     Session *session = session_get();
-    double new_speed = session->playback.play_speed;
+    double new_speed = endpoint_read(&session->playback.play_speed_ep, NULL).float_v;
     if ((main_win->i_state & I_STATE_CMDCTRL) && (main_win->i_state & I_STATE_META)) {
 	new_speed *= dim < -0.5 ? pow(1.0/2.0, 1.0/12.0) : dim > 0.5 ? pow(1.0/2.0, -1.0/12.0) : 1.0;
     } else if (main_win->i_state & I_STATE_CMDCTRL) {

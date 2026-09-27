@@ -116,8 +116,8 @@ typedef struct audio_conn {
     struct conn_channel_cfg channel_cfg;
     bool is_default;
     
-    bool request_playhead_reset;
-    int32_t request_playhead_pos;
+    _Atomic bool request_playhead_reset;
+    _Atomic int32_t request_playhead_pos;
 } AudioConn;
 
 

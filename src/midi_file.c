@@ -445,9 +445,9 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 		break;
 	    }
 	    e.message = Pm_Message(status, note, velocity);
-	    if (midi_device_add_event(v_device + clip_index, e) == PM_EVENT_BUF_NUM_EVENTS) {
+	    if (midi_device_add_event(v_device + clip_index, e) != 0) {
 		midi_device_output_chunk_to_clip(v_device + clip_index, 0);
-		v_device[clip_index].num_unconsumed_events = 0;
+		/* v_device[clip_index].num_unconsumed_events = 0; */
 		
 	    }
 	    /* v_device[clip_index].buffer[v_device[clip_index].num_unconsumed_events] = e; */
@@ -475,9 +475,9 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 		}
 		/* Convert type to note off for internal use */
 		e.message = Pm_Message(0x80 + channel, note, velocity);
-		if (midi_device_add_event(v_device + clip_index, e) == PM_EVENT_BUF_NUM_EVENTS) {
+		if (midi_device_add_event(v_device + clip_index, e) != 0) {
 		    midi_device_output_chunk_to_clip(v_device + clip_index, 0);
-		    v_device[clip_index].num_unconsumed_events = 0;
+		    /* v_device[clip_index].num_unconsumed_events = 0; */
 		
 		}
 
@@ -497,9 +497,9 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 		}
 
 		e.message = Pm_Message(status, note, velocity);
-		if (midi_device_add_event(v_device + clip_index, e) == PM_EVENT_BUF_NUM_EVENTS) {
+		if (midi_device_add_event(v_device + clip_index, e) != 0) {
 		    midi_device_output_chunk_to_clip(v_device + clip_index, 0);
-		    v_device[clip_index].num_unconsumed_events = 0;
+		    /* v_device[clip_index].num_unconsumed_events = 0; */
 		
 		}
 
@@ -530,15 +530,11 @@ static void get_midi_trck(FILE *f, int32_t len, int track_index, MIDIClip **mcli
 	    case 0xE0: {// Pitch bend
 		uint8_t lsb = fgetc(f);
 		uint8_t msb = fgetc(f);
-		/* float floatval = (float)val / 16384.0f; */
-		/* MIDIPitchBend pb = midi_pitch_bend_from_event(&e, 0); */
 		uint8_t clip_index = file_info.format == 0 ? channel : track_index - 1;
 		e.message = Pm_Message(status, lsb, msb);
-		v_device[clip_index].buffer[v_device[clip_index].num_unconsumed_events] = e;
-		v_device[clip_index].num_unconsumed_events++;
-		if (v_device[clip_index].num_unconsumed_events == PM_EVENT_BUF_NUM_EVENTS) {
+                /* TODO: this will drop events! Need better reporting from lfqueue */
+                if (lfqueue_try_enqueue(&v_device[clip_index].event_queue, &e, 1) != LFQUEUE_SUCCESS) {
 		    midi_device_output_chunk_to_clip(&v_device[clip_index], 0);
-		    v_device[clip_index].num_unconsumed_events = 0;
 		}
 
 		/* fgetc(f); fgetc(f); */

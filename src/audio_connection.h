@@ -50,7 +50,6 @@ typedef struct audio_device{
     int index; /* Valid only between calls to SDL_GetNumAudioDevices */
     SDL_AudioDeviceID id;
     LFQueue rec_buffer;
-    _Atomic int queued_samples;
     /* int16_t *rec_buffer; */
     /* uint32_t rec_buf_len_samples; */
     /* int32_t write_bufpos_samples; */

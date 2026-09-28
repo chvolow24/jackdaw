@@ -69,6 +69,7 @@ enum jdaw_thread {
 
 #define MAIN_THREAD_ONLY(name)		   \
     if (!on_thread(JDAW_THREAD_MAIN)) {					\
+        print_backtrace();                                              \
 	fprintf(stderr, "Error: fn %s called outside main thread", #name); \
 	exit(1); \
     }

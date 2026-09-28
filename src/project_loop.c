@@ -138,7 +138,6 @@ void loop_project_main()
     
     main_win->current_event = &e;
     while (!(main_win->i_state & I_STATE_QUIT)) {
-        fprintf(stderr, "MAIN LOOP ITER!\n");
         if (session_run_thread_callbacks(JDAW_THREAD_MAIN) > 0) atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 	while (SDL_PollEvent(&e)) {            
 	    frames_since_event = 0;

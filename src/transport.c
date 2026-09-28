@@ -122,13 +122,13 @@ void transport_record_callback(void* user_data, uint8_t *stream, int len)
 
 
     /* If there's room in the device record buffer, copy directly to that */
-    fprintf(stderr, "REC CB %s %d enqueued\n", dev->name, lfqueue_peep_enqueued(&dev->rec_buffer));
+    /* fprintf(stderr, "REC CB %s %d enqueued\n", dev->name, lfqueue_peep_enqueued(&dev->rec_buffer)); */
     int ret;
     if ((ret = lfqueue_try_enqueue(&dev->rec_buffer, stream, stream_len_samples)) != LFQUEUE_SUCCESS) {
         fprintf(stderr, "ERROR: unable to enqueue recorded audio! %s\n", lfqueue_get_errstr(ret));
         exit(1);
     }
-    atomic_fetch_add_explicit(&dev->queued_samples, stream_len_samples, memory_order_release);
+    /* atomic_fetch_add_explicit(&dev->queued_samples, stream_len_samples, memory_order_release); */
     /* if (dev->write_bufpos_samples + stream_len_samples < dev->rec_buf_len_samples) { */
     /*     memcpy(dev->rec_buffer + dev->write_bufpos_samples, stream, len); */
     /*     dev->write_bufpos_samples += stream_len_samples; */
@@ -912,12 +912,12 @@ void create_clip_buffers(Clip *clip, uint32_t len_sframes)
 void dequeue_recorded_audio()
 {
     Session *session = session_get();
-    fprintf(stderr, "DEQUEUE RECORDED AUDIO!\n");
+    /* fprintf(stderr, "DEQUEUE RECORDED AUDIO!\n"); */
     for (int i=0; i<session->audio_io.num_record_devices; i++) {
         AudioDevice *dev = session->audio_io.record_devices[i];
-        int queued_samples = atomic_load_explicit(&dev->queued_samples, memory_order_acquire);
+        int queued_samples = lfqueue_peep_enqueued(&dev->rec_buffer);
         if (queued_samples == 0) continue;
-        fprintf(stderr, "Device %s has %d queued samples\n", dev->name, queued_samples);
+        /* fprintf(stderr, "Device %s has %d queued samples\n", dev->name, queued_samples); */
         int queued_sframes = queued_samples / dev->spec.channels;
         Clip *clips[dev->spec.channels];
         float *buffers[dev->spec.channels];
@@ -958,7 +958,7 @@ void dequeue_recorded_audio()
                     buffers[channel][frame_i + written_frames] = (double)buf[i] / INT16_MAX;
             }
             written_frames += dev->spec.samples;
-            atomic_fetch_sub_explicit(&dev->queued_samples, buf_len, memory_order_release);
+            /* atomic_fetch_sub_explicit(&dev->queued_samples, buf_len, memory_order_release); */
             if (written_frames >= queued_sframes) break;
         }
         for (int c=0; c<dev->spec.channels; c++) {

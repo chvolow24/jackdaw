@@ -578,7 +578,6 @@ static void effect_silence(Effect *e)
 
 void effect_chain_silence(EffectChain *ec)
 {
-    MAIN_THREAD_ONLY(effect_chain_silence);
     astrr(&ec->request_clear, true);
     /* for (int i=0; i<ec->num_effects; i++) { */
     /*     effect_silence(ec->effects[i]); */

@@ -636,7 +636,7 @@ void loop_project_main()
 
     end_frame:
 
-	if ((!redrawn && frames_since_event >= IDLE_AFTER_N_FRAMES) || !main_win->focused) {
+	if (!aldr(&session->playback.recording) && ((!redrawn && frames_since_event >= IDLE_AFTER_N_FRAMES) || !main_win->focused)) {
 	    SDL_Delay(200);
 	} else {
 	    SDL_Delay(1);

@@ -23,6 +23,7 @@
 #include "audio_clip.h"
 #include "clipref.h"
 #include "grab.h"
+#include "jdaw_time.h"
 #include "midi_io.h"
 #include "piano_roll.h"
 #include "project.h"
@@ -338,6 +339,12 @@ void timeline_move_play_position(Timeline *tl, int32_t move_by_sframes)
     Session *session = session_get();
     
     int64_t new_pos = (int64_t)aldr(&tl->play_pos_sframes) + move_by_sframes;
+
+    /* static int64_t tcalled = 0; */
+    /* int64_t now = realtime_microseconds(); */
+    /* fprintf(stderr, "move by: %d (diff %lld)\n", move_by_sframes, now - tcalled); */
+    /* tcalled = now; */
+    
     if (session->playback.loop_play) {
 	int32_t loop_len = tl->out_mark_sframes - tl->in_mark_sframes;
 	if (loop_len > 0) {

@@ -73,10 +73,12 @@ typedef struct pd_conn {
 } PdConn;
 
 typedef struct jdaw_conn {
-    float *rec_buffer_L;
-    float *rec_buffer_R;
-    uint32_t rec_buf_len_sframes;
-    int32_t write_bufpos_sframes;
+    LFQueue rec_buffer;
+    AudioConn *conn;
+    /* float *rec_buffer_L; */
+    /* float *rec_buffer_R; */
+    /* uint32_t rec_buf_len_sframes; */
+    /* int32_t write_bufpos_sframes; */
 } JDAWConn;
 
 enum audio_conn_type {
@@ -107,10 +109,10 @@ typedef struct audio_conn {
     /* const char *name; */
     char name[MAX_CONN_NAMELENGTH];
     bool open;
-    bool active;
+    _Atomic bool active;
     bool available;
     bool playing;
-    Clip *current_clip; /* The clip currently being recorded, if applicable */
+    Clip *_Atomic current_clip; /* The clip currently being recorded, if applicable */
     bool current_clip_repositioned;
     /* struct realtime_tick callback_time; */ /* Deprecated (for now) 2026-01-21 */
     enum audio_conn_type type;

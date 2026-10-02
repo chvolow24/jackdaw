@@ -15,6 +15,7 @@
 #include "atomic.h"
 #include "audio_connection.h"
 #include "consts.h"
+#include "dev.h"
 #include "error.h"
 #include "log.h"
 #include "project.h"
@@ -208,6 +209,8 @@ int audio_io_get_connections(Session *session, int iscapture)
 	jdaw->iscapture = iscapture;
 	jdaw->available = true;
 	jdaw->obj = &session->audio_io.jdaw_conn;
+        /* TODO: cleanup this linkage, mostly vestigial */
+        session->audio_io.jdaw_conn.conn = jdaw;
 	conn_list[*conn_index] = jdaw;
 	(*conn_index)++;
     }
@@ -273,7 +276,6 @@ int audioconn_open(Session *session, AudioConn *conn)
 	}
 
 	if (conn->iscapture) {
-            fprintf(stderr, "INIT %s len %d\n", device->name, DEVICE_BUFLEN_CHUNKS * session->proj.chunk_size_sframes * device->spec.channels);
             lfqueue_init(&device->rec_buffer, sizeof(int16_t), DEVICE_BUFLEN_CHUNKS * session->proj.chunk_size_sframes * device->spec.channels);
 	    /* device->rec_buf_len_samples = DEVICE_BUFLEN_CHUNKS * session->proj.chunk_size_sframes * device->spec.channels; */
 	    /* uint32_t device_buf_len_bytes = device->rec_buf_len_samples * sizeof(int16_t); */
@@ -307,12 +309,12 @@ int audioconn_open(Session *session, AudioConn *conn)
 	/* conn->index = -1; */
 	break;
     case AUDIO_CONN_JDAW_OUT:
-	if (conn->iscapture) {
-	    JDAWConn *jconn = conn->obj;
-	    jconn->rec_buf_len_sframes = PD_BUFLEN_CHUNKS * 64;
-	    if (!jconn->rec_buffer_L) jconn->rec_buffer_L = malloc(sizeof(float) * jconn->rec_buf_len_sframes);
-	    if (!jconn->rec_buffer_R) jconn->rec_buffer_R = malloc(sizeof(float) * jconn->rec_buf_len_sframes);
-	}
+	/* if (conn->iscapture) { */
+	/*     JDAWConn *jconn = conn->obj; */
+	/*     jconn->rec_buf_len_sframes = PD_BUFLEN_CHUNKS * 64; */
+	/*     if (!jconn->rec_buffer_L) jconn->rec_buffer_L = malloc(sizeof(float) * jconn->rec_buf_len_sframes); */
+	/*     if (!jconn->rec_buffer_R) jconn->rec_buffer_R = malloc(sizeof(float) * jconn->rec_buf_len_sframes); */
+	/* } */
 	break;
     }
     conn->open = true;
@@ -342,12 +344,13 @@ int audioconn_open(Session *session, AudioConn *conn)
 
 void jdaw_conn_destroy(JDAWConn *jconn)
 {
-    if (jconn->rec_buffer_L) {
-	free(jconn->rec_buffer_L);
-    }
-    if (jconn->rec_buffer_R) {
-	free(jconn->rec_buffer_R);
-    }
+    lfqueue_deinit(&jconn->rec_buffer);
+    /* if (jconn->rec_buffer_L) { */
+    /*     free(jconn->rec_buffer_L); */
+    /* } */
+    /* if (jconn->rec_buffer_R) { */
+    /*     free(jconn->rec_buffer_R); */
+    /* } */
 }
 
 void audioconn_destroy(AudioConn *conn)
@@ -391,17 +394,9 @@ static void device_close(AudioDevice *device)
     device->id = 0;
 }
 
-void jdaw_conn_close(JDAWConn *jconn)
+DEPRECATED void jdaw_conn_close(JDAWConn *jconn)
 {
-    jconn->write_bufpos_sframes = 0;
-    /* if (jconn->rec_buffer_L) { */
-    /*     free(jconn->rec_buffer_L); */
-    /*     jconn->rec_buffer_L = NULL; */
-    /* } */
-    /* if (jconn->rec_buffer_R) { */
-    /*     free(jconn->rec_buffer_R); */
-    /*     jconn->rec_buffer_R = NULL; */
-    /* } */
+
 }
 
 void audioconn_halt(AudioConn *conn)
@@ -705,8 +700,10 @@ void audioconn_reset_chunk_size(AudioConn *c, uint16_t new_chunk_size)
 
 static void init_jdaw_conn(Session *session)
 {
-    session->audio_io.jdaw_conn.rec_buffer_L = NULL;
-    session->audio_io.jdaw_conn.rec_buffer_R = NULL;
+    int request_len = DEVICE_BUFLEN_CHUNKS * DEFAULT_AUDIO_CHUNK_LEN_SFRAMES * 2;
+    lfqueue_init(&session->audio_io.jdaw_conn.rec_buffer,
+                 sizeof(float),
+                 request_len);
 }
 static void init_pd_conn(Session *session)
 {

@@ -19,6 +19,7 @@
 #include <string.h>
 #include <sys/errno.h>
 #include "atomic.h"
+#include "loading.h"
 #include "porttime.h"
 #include "audio_clip.h"
 #include "audio_connection.h"
@@ -95,49 +96,17 @@ double timespec_elapsed_ms(const struct timespec *start, const struct timespec *
 
 extern struct colors colors;
 
-static void copy_device_buf_to_clips(AudioDevice *dev);
 void copy_conn_buf_to_clip(Clip *clip, enum audio_conn_type type);
 					 
 void transport_record_callback(void* user_data, uint8_t *stream, int len)
 {
     AudioDevice *dev = user_data;    
     uint32_t stream_len_samples = len / sizeof(int16_t);
-
-    /* Simple latency compensation */
-    /* if (!session->playback.new_cliprefs_repositioned) { */
-    /* 	/\* TODO: real latency compensation (probably with PortAudio *\/ */
-    /* 	int32_t playback_latency_sframes = session->proj.chunk_size_sframes * 5; */
-    /* 	int32_t recorded_chunk_tl_pos = ACTIVE_TL->play_pos_sframes - playback_latency_sframes - stream_len_samples / dev->spec.channels; */
-    /* 	for (uint16_t i = session->proj.active_clip_index; i<session->proj.num_clips; i++) { */
-    /* 	    Clip *clip = session->proj.clips[i]; */
-    /* 	    if (!clip->recording) break; */
-    /* 	    for (int i=0; i<clip->num_refs; i++) { */
-    /* 		ClipRef *cr = clip->refs[i]; */
-    /* 		fprintf(stderr, "Tl pos %d->%d\n", cr->tl_pos, recorded_chunk_tl_pos); */
-    /* 		cr->tl_pos = recorded_chunk_tl_pos; */
-    /* 	    } */
-    /* 	} */
-    /* 	session->playback.new_cliprefs_repositioned = true; */
-    /* } */
-
-
-    /* If there's room in the device record buffer, copy directly to that */
-    /* fprintf(stderr, "REC CB %s %d enqueued\n", dev->name, lfqueue_peep_enqueued(&dev->rec_buffer)); */
     int ret;
     if ((ret = lfqueue_try_enqueue(&dev->rec_buffer, stream, stream_len_samples)) != LFQUEUE_SUCCESS) {
         fprintf(stderr, "ERROR: unable to enqueue recorded audio! %s\n", lfqueue_get_errstr(ret));
         exit(1);
     }
-    /* atomic_fetch_add_explicit(&dev->queued_samples, stream_len_samples, memory_order_release); */
-    /* if (dev->write_bufpos_samples + stream_len_samples < dev->rec_buf_len_samples) { */
-    /*     memcpy(dev->rec_buffer + dev->write_bufpos_samples, stream, len); */
-    /*     dev->write_bufpos_samples += stream_len_samples; */
-    /* } else { /\* Dump data to clip(s) before writing to dev buffer *\/ */
-    /*     copy_device_buf_to_clips(dev); */
-    /*     /\* Now that there's room, copy to rec buffer *\/ */
-    /*     memcpy(dev->rec_buffer, stream, len); */
-    /*     dev->write_bufpos_samples = stream_len_samples; */
-    /*  } */
  }
 
 static void get_source_mode_chunk(float *restrict dst_L, float *restrict dst_R, uint32_t len_sframes, int32_t start_pos_sframes, float step)
@@ -247,21 +216,11 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     Session *session = session_get();
     set_thread_id(JDAW_THREAD_PLAYBACK);
 
-    /* Take care of queued audio bufs */
-    /* int err; */
-    /* if ((err = pthread_mutex_lock(&session->queued_ops.queued_audio_buf_lock)) != 0) { */
-    /*     fprintf(stderr, "Error locking queued audio buf lock (in playback cb): %s\n", strerror(err)); */
-    /* } */
-    /* loc_queue_bufs(session->queued_ops.queued_audio_bufs, session->queued_ops.num_queued_audio_bufs); */
-    /* session->queued_ops.num_queued_audio_bufs = 0; */
-    /* if ((err = pthread_mutex_unlock(&session->queued_ops.queued_audio_buf_lock)) != 0) { */
-    /*     fprintf(stderr, "Error unlocking queued audio buf lock (in playback cb): %s\n", strerror(err)); */
-    /* } */
     if (!aldr(&session->playback.playing) && !aldr(&session->midi_io.monitoring)) {
+        fprintf(stderr, "early return\n");
 	memset(stream, '\0', len);
 	return;
     }
-
 
     Project *proj = &session->proj;
     Timeline *tl = ACTIVE_TL;
@@ -270,63 +229,77 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
     memset(stream, '\0', len);
     uint32_t stream_len_samples = len / sizeof(int16_t);
     uint32_t len_sframes = stream_len_samples / proj->channels;
-    float chunk_L[len_sframes];
-    float chunk_R[len_sframes];
-    memset(chunk_L, '\0', sizeof(chunk_L));
-    memset(chunk_R, '\0', sizeof(chunk_L));
+    float chunk_LR[stream_len_samples];
+    bool has_playback = false;
+    bool has_monitor = false;
     
     /* Gather data from timeline, generated in DSP threadfn */
     if (aldr(&session->playback.playing)) {
 	if (session->source_mode.source_mode) {
-	    get_source_mode_chunk(chunk_L, chunk_R, len_sframes, session->source_mode.src_play_pos_sframes, session->source_mode.src_play_speed);
+            /* TODO: restore source mode! */
+	    /* get_source_mode_chunk(chunk_L, chunk_R, len_sframes, session->source_mode.src_play_pos_sframes, session->source_mode.src_play_speed); */
 	    /* get_source_mode_chunk(1, chunk_R, len_sframes, session->source_mode.src_play_pos_sframes, session->source_mode.src_play_speed); */
 	} else {
-            float interleaved[len_sframes * 2];
+            /* float interleaved[stream_len_samples]; */
             int ret = lfqueue_try_dequeue(
                 &session->playback.playback_lfqueue,
-                interleaved,
-                len_sframes * 2);
+                chunk_LR,
+                /* interleaved, */
+                stream_len_samples);
             if (ret != LFQUEUE_SUCCESS) {
+                fprintf(stderr, "Dequeue failure early return\n");
                 return;
+            } else {
+                has_playback = true;
             }
-            for (int i=0; i<len_sframes * 2; i+=2) {
-                chunk_L[i/2] = interleaved[i];
-                chunk_R[i/2] = interleaved[i+1];
-            }
-            
-	    /* tl->buf_read_pos += len_sframes; */
-	    /* if (tl->buf_read_pos >= proj->fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS) { */
-	    /*     tl->buf_read_pos = 0; */
-	    /* } */
 	}
-    }
 
-    /* transport_log("playback callback, cleared buffer..\n"); */
-    /* Check for monitor synth and add buf to chunk_L and chunk_R */
-    float monitor_LR[len_sframes * 2];
-    bool has_monitor = false;
+    }
+    float monitor_LR[stream_len_samples];
     if (aldr(&session->midi_io.monitoring)) {
-        int ret = lfqueue_wait_dequeue(&session->playback.instrument_monitor_lfqueue, monitor_LR, len_sframes * 2, 10, 100, NULL);
-        if (ret == LFQUEUE_SUCCESS) has_monitor = true;
-    }
-    /* Check for queued bufs and add to chunk_L and chunk_R */
-    /* loc_queued_bufs_add(chunk_L, chunk_R, len_sframes); */
-
-    float_buf_mult_const(chunk_L, session->playback.output_vol, len_sframes);
-    float_buf_mult_const(chunk_R, session->playback.output_vol, len_sframes);
-    int16_t *stream_fmt = (int16_t *)stream;
-    for (uint32_t i=0; i<stream_len_samples; i+=2)
-    {
-	float val_L = chunk_L[i/2];
-	float val_R = chunk_R[i/2];
-        if (has_monitor) {
-            val_L += monitor_LR[i];
-            val_R += monitor_LR[i + 1];
+        int ret = lfqueue_wait_dequeue(
+            &session->playback.instrument_monitor_lfqueue,
+            monitor_LR,
+            stream_len_samples,
+            10,
+            100,
+            NULL);
+        if (ret == LFQUEUE_SUCCESS) {
+            has_monitor = true;
         }
-	envelope_follower_sample(&session->proj.output_L_ef, val_L);
-	envelope_follower_sample(&session->proj.output_R_ef, val_R);
-	stream_fmt[i] = (int16_t)(clip_float_sample(val_L) * INT16_MAX);
-	stream_fmt[i+1] = (int16_t)(clip_float_sample(val_R) * INT16_MAX);
+    }
+    float *chunk_LR_ptr = chunk_LR;
+    if (has_playback && has_monitor) {
+        float_buf_add(chunk_LR, monitor_LR, stream_len_samples);
+    } else if (has_monitor) {
+        chunk_LR_ptr = monitor_LR;
+    } else if (!has_playback) {
+        return;
+    }
+
+    float_buf_mult_const(chunk_LR_ptr, session->playback.output_vol, stream_len_samples);
+
+    /* TODO: better way to check that jdaw conn is active
+       is AudioConn->active still needed ?
+     */
+    if (aldr(&session->audio_io.jdaw_conn.conn->active)) {
+        int ret = lfqueue_try_enqueue(
+            &session->audio_io.jdaw_conn.rec_buffer,
+            chunk_LR_ptr,
+            stream_len_samples);
+        if (ret != LFQUEUE_SUCCESS) {
+            log_tmp(LOG_WARN, "Enqueueing jdaw conn buf failed: %s\n", lfqueue_get_errstr(ret));
+        }
+    }
+            
+
+    
+    int16_t *stream_fmt = (int16_t *)stream;
+    for (uint32_t i=0; i<stream_len_samples; i+=2) {
+	envelope_follower_sample(&session->proj.output_L_ef, chunk_LR_ptr[i]);
+	envelope_follower_sample(&session->proj.output_R_ef, chunk_LR_ptr[i + 1]);
+	stream_fmt[i] = (int16_t)(clip_float_sample(chunk_LR_ptr[i]) * INT16_MAX);
+	stream_fmt[i+1] = (int16_t)(clip_float_sample(chunk_LR_ptr[i + 1]) * INT16_MAX);
     }
 
     if (session->source_mode.source_mode && session->source_mode.src_clip_type == CLIP_AUDIO) {
@@ -355,47 +328,14 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 	chunk_info.elapsed_playback_chunks++;
 	int32_t new_play_pos = chunk_info.tl_start + proj->chunk_size_sframes * chunk_info.elapsed_playback_chunks * chunk_info.playspeed;
 	timeline_move_play_position(tl, new_play_pos - atomic_load_explicit(&tl->play_pos_sframes, memory_order_relaxed));
-	/* if (chunk_info.elapsed_playback_chunks >= N) { */
-	/*     tl->dsp_chunks_info_read_i++; */
-	/*     if (tl->dsp_chunks_info_read_i >= RING_BUF_LEN_FFT_CHUNKS) { */
-	/* 	tl->dsp_chunks_info_read_i = 0; */
-	/*     } */
-	/* } */
-	/* sem_post(tl->writable_chunks); */
-	/* timer_stop_and_print("Did playback_things"); */
     }
-    /* timer_start(); */
+    
     end_playhead_reset:
-    /* session_do_ongoing_changes(session, JDAW_THREAD_PLAYBACK); */
-    /* session_flush_val_changes(session, JDAW_THREAD_PLAYBACK); */
-    /* session_flush_callbacks(session, JDAW_THREAD_PLAYBACK); */
-    /* timer_stop_and_print("Did ongoing changes"); */
-    /* transport_log("...done ongoing changes\n"); */
-
-    if (aldr(&dev->channel_dsts[0].conn->request_playhead_reset)) {
-        
+    if (aldr(&dev->channel_dsts[0].conn->request_playhead_reset)) {       
 	/* Give DSP thread a new starting position */
 	tl->read_pos_sframes = aldr(&dev->channel_dsts[0].conn->request_playhead_pos);
-
-	/* "Read" the rest of the mixdown buffer so DSP restarts */
-	/* while (tl->buf_read_pos != saved_write_pos) { */
-	/*     int semret = sem_trywait(tl->readable_chunks); */
-	/*     if (semret != 0) { */
-	/* 	error_exit("ERROR: unable to wait on readable chunks! sem_trywait: %s", strerror(errno)); */
-	/*     } */
-	/*     tl->buf_read_pos += len_sframes; */
-	/*     sem_post(tl->writable_chunks); */
-	/*     if (tl->buf_read_pos >= proj->fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS) { */
-	/* 	tl->buf_read_pos = 0; */
-	/*     } */
-	/* } */
-
-
 	astrr(&dev->channel_dsts[0].conn->request_playhead_reset, false);
     }
-    /* if (log_fn_exit) { */
-    /* 	log_tmp(LOG_DEBUG, "Exiting playback callback\n"); */
-    /* } */
 }
 
 static void *transport_dsp_threadfn(void *arg)
@@ -410,16 +350,6 @@ static void *transport_dsp_threadfn(void *arg)
     float buf_L[len];
     float buf_R[len];
 
-    int N = len / tl->proj->chunk_size_sframes;
-    bool init = true;
-
-
-    /* if (!tl->dsp_chunks_info) { */
-    /*     tl->dsp_chunks_info = calloc(RING_BUF_LEN_FFT_CHUNKS, sizeof(struct dsp_chunk_info)); */
-    /*     tl->dsp_chunks_info_read_i = 0; */
-    /*     tl->dsp_chunks_info_write_i = 0; */
-    /* } */
-    
     while (thread_not_canceled()) {
 	/* transport_log("Loop iter\n"); */
 	/* Performance timer */
@@ -496,22 +426,22 @@ static void *transport_dsp_threadfn(void *arg)
 	/* memcpy(tl->proj->output_L, buf_L, sizeof(float) * len); */
 	/* memcpy(tl->proj->output_R, buf_R, sizeof(float) * len); */
 
-	for (uint16_t i=tl->proj->active_clip_index; i<tl->proj->num_clips; i++) {
-	    Clip *clip = tl->proj->clips[i];
-	    AudioConn *conn = clip->recorded_from;
-	    if (!conn) continue;
-	    if (conn->type == AUDIO_CONN_JDAW_OUT) {
-		JDAWConn *jconn = conn->obj;
-		/* if (jconn->write_bufpos_sframes + len < jconn->rec_buf_len_sframes) { */
-		memcpy(jconn->rec_buffer_L + jconn->write_bufpos_sframes, buf_L, sizeof(float) * len);
-		memcpy(jconn->rec_buffer_R + jconn->write_bufpos_sframes, buf_R, sizeof(float) * len);
-		jconn->write_bufpos_sframes += len;
-		if (jconn->write_bufpos_sframes + 2 * len >= jconn->rec_buf_len_sframes) {
-		    copy_conn_buf_to_clip(clip, AUDIO_CONN_JDAW_OUT);
-		}
-		break;
-	    }
-	}
+	/* for (uint16_t i=tl->proj->active_clip_index; i<tl->proj->num_clips; i++) { */
+	/*     Clip *clip = tl->proj->clips[i]; */
+	/*     AudioConn *conn = clip->recorded_from; */
+	/*     if (!conn) continue; */
+	/*     if (conn->type == AUDIO_CONN_JDAW_OUT) { */
+	/* 	/\* JDAWConn *jconn = conn->obj; *\/ */
+	/* 	/\* if (jconn->write_bufpos_sframes + len < jconn->rec_buf_len_sframes) { *\/ */
+	/* 	/\* memcpy(jconn->rec_buffer_L + jconn->write_bufpos_sframes, buf_L, sizeof(float) * len); *\/ */
+	/* 	/\* memcpy(jconn->rec_buffer_R + jconn->write_bufpos_sframes, buf_R, sizeof(float) * len); *\/ */
+	/* 	/\* jconn->write_bufpos_sframes += len; *\/ */
+	/* 	/\* if (jconn->write_bufpos_sframes + 2 * len >= jconn->rec_buf_len_sframes) { *\/ */
+	/* 	/\*     copy_conn_buf_to_clip(clip, AUDIO_CONN_JDAW_OUT); *\/ */
+	/* 	/\* } *\/ */
+	/* 	break; */
+	/*     } */
+	/* } */
 
 	/* Log chunk info for playback */
 	struct dsp_chunk_info chunk_info;
@@ -749,23 +679,23 @@ void transport_start_recording()
 	    if (track->input_type == AUDIO_CONN) {
 		Clip *clip = NULL;
 		AudioConn *conn = track->input;
-		if (!conn->active || !conn->current_clip) {
+		if (!aldr(&conn->active) || !aldr(&conn->current_clip)) {
 		    if (audioconn_open(session, conn) < 0) {
 			log_tmp(LOG_WARN, "Error opening audio conn \"%s\" for recording; device may have already been opened\n", conn->name);
 			audioconn_remove(conn);
 			continue;
 		    }
 		    /* setting conn->active here accounts for redundancy */
-		    conn->active = true; 
+		    astrr(&conn->active, true); 
 		    conns_to_activate[num_conns_to_activate] = conn;
 		    num_conns_to_activate++;
 
 		    clip = clip_create(conn, track); /* Sets clip num channels */
 		    clip->recording = true;
-		    conn->current_clip = clip;
+		    astrr(&conn->current_clip, clip);
 		    conn->current_clip_repositioned = false;
 		} else {
-		    clip = conn->current_clip;
+		    clip = aldr(&conn->current_clip);
 		    conn->current_clip_repositioned = false;
 		}
 		clipref_create(track, tl->record_from_sframes, CLIP_AUDIO, clip);
@@ -780,7 +710,7 @@ void transport_start_recording()
 		mdevice->record_start = Pt_Time();
 		mclip->recording = true;
 		/* mclilen_sframesp-> */
-		mdevice->current_clip = mclip;
+		astrr(&mdevice->current_clip, mclip);
 		/* conn->current_clip_repositioned = false; */
 		clipref_create(track, tl->record_from_sframes, CLIP_MIDI, mclip);
 	    }
@@ -802,16 +732,16 @@ void transport_start_recording()
 		    audioconn_remove(conn);
 		    goto end_get_conns;
 		}
-		conn->active = true;
+		astrr(&conn->active, true);
 		conns_to_activate[num_conns_to_activate] = conn;
 		num_conns_to_activate++;
 		clip = clip_create(conn, track);
 		clip->recording = true;
 		/* home = true; */
-		conn->current_clip = clip;
+		astrr(&conn->current_clip, clip);
 		conn->current_clip_repositioned = false;
 	    } else {
-		clip = conn->current_clip;
+	        clip = aldr(&conn->current_clip);
 		conn->current_clip_repositioned = false;
 	    }
 	    /* Clip ref is created as "home", meaning clip data itself is associated with this ref */
@@ -819,7 +749,6 @@ void transport_start_recording()
 	} else if (track->input_type == MIDI_DEVICE) {
 	    MIDIDevice *mdevice = track->input;
 	    midi_device_open(mdevice);
-	    fprintf(stderr, "Device type??? %d\n", mdevice->type);
 	    if (mdevice->type == MIDI_DEVICE_QWERTY) {
 		activate_mqwert = true;
 	    }
@@ -835,7 +764,7 @@ void transport_start_recording()
 end_get_conns:
     for (uint8_t i=0; i<num_conns_to_activate; i++) {
 	conn = conns_to_activate[i];
-	audioconn_open(session, conn);
+	/* audioconn_open(session, conn); */
 
 	/* TODO: why is this here? move to audioconn_open ? */
 	/* if (conn->type == DEVICE) { */
@@ -859,8 +788,6 @@ end_get_conns:
 
     timeline_play_speed_set(1.0);
     transport_start_playback();
-
-    /* pd_jackdaw_record_get_block(); */
 
 }
 
@@ -924,7 +851,7 @@ void dequeue_recorded_audio()
         memset(clips, 0, sizeof(clips));
         memset(buffers, 0, sizeof(buffers));
         for (int i=0; i<dev->spec.channels; i++) {
-            Clip *clip = dev->channel_dsts[i].conn->current_clip;
+            Clip *clip = aldr(&dev->channel_dsts[i].conn->current_clip);
             if (!clip) continue;
             bool dupe = false;
             clips[i] = clip;
@@ -940,11 +867,11 @@ void dequeue_recorded_audio()
         for (int c=0; c<dev->spec.channels; c++) {
             if (!clips[c]) continue;
             if (dev->channel_dsts[c].channel == 0) {
-                clips[c] = dev->channel_dsts[c].conn->current_clip;
+                clips[c] = aldr(&dev->channel_dsts[c].conn->current_clip);
                 buffers[c] = clips[c]->L + clips[c]->write_bufpos_sframes;
             } else {
-                clips[c] = dev->channel_dsts[c].conn->current_clip;
-                buffers[c] = dev->channel_dsts[c].conn->current_clip->R + clips[c]->write_bufpos_sframes;
+                clips[c] = aldr(&dev->channel_dsts[c].conn->current_clip);
+                buffers[c] = clips[c]->R + clips[c]->write_bufpos_sframes;
             }
         }
         int buf_len = dev->spec.samples * dev->spec.channels;
@@ -977,6 +904,33 @@ void dequeue_recorded_audio()
             }
         }
     }
+    int buf_len = session->proj.chunk_size_sframes * 2;
+    float jconn_buf[buf_len];
+    AudioConn *jdaw_conn = session->audio_io.jdaw_conn.conn;
+    Clip *clip = NULL;
+        
+    if (jdaw_conn && (clip = aldr(&jdaw_conn->current_clip))) {
+        int queued_samples = lfqueue_peep_enqueued(&session->audio_io.jdaw_conn.rec_buffer);
+        int queued_sframes = queued_samples / 2;
+        create_clip_buffers(clip, clip->len_sframes + queued_sframes);
+        fprintf(stderr, "LEN SFRAMES: %d\n", clip->len_sframes);
+        /* int written_sframes = 0; */
+        while (queued_samples > 0 &&
+               lfqueue_try_dequeue(
+                   &session->audio_io.jdaw_conn.rec_buffer,
+                   jconn_buf,
+                   buf_len) == LFQUEUE_SUCCESS) {
+            queued_samples -= buf_len;
+            for (int i=0; i<buf_len; i+=2) {
+                clip->L[clip->len_sframes + i / 2] = jconn_buf[i];
+                clip->R[clip->len_sframes + i / 2] = jconn_buf[i+1];
+            }
+            clip->len_sframes += buf_len / 2;
+            clip->write_bufpos_sframes = clip->len_sframes;
+            clip_init_or_update_waveform(clip);
+        }
+    }
+
 }
 
 /* static void copy_device_buf_to_clips(AudioDevice *dev) */
@@ -1044,14 +998,14 @@ void copy_conn_buf_to_clip(Clip *clip, enum audio_conn_type type)
 	break;
     case AUDIO_CONN_JDAW_OUT: {
 	/* OUROBOROS */
-	JDAWConn *jconn = clip->recorded_from->obj;
-	clip->len_sframes = clip->write_bufpos_sframes + jconn->write_bufpos_sframes;
-	create_clip_buffers(clip, clip->len_sframes);
-	memcpy(clip->L + clip->write_bufpos_sframes, jconn->rec_buffer_L, jconn->write_bufpos_sframes * sizeof(float));
-	memcpy(clip->R + clip->write_bufpos_sframes, jconn->rec_buffer_R, jconn->write_bufpos_sframes * sizeof(float));
-	clip->write_bufpos_sframes = clip->len_sframes;
-	jconn->write_bufpos_sframes = 0;
-	clip_init_or_update_waveform(clip);
+	/* JDAWConn *jconn = clip->recorded_from->obj; */
+	/* clip->len_sframes = clip->write_bufpos_sframes + jconn->write_bufpos_sframes; */
+	/* create_clip_buffers(clip, clip->len_sframes); */
+	/* memcpy(clip->L + clip->write_bufpos_sframes, jconn->rec_buffer_L, jconn->write_bufpos_sframes * sizeof(float)); */
+	/* memcpy(clip->R + clip->write_bufpos_sframes, jconn->rec_buffer_R, jconn->write_bufpos_sframes * sizeof(float)); */
+	/* clip->write_bufpos_sframes = clip->len_sframes; */
+	/* jconn->write_bufpos_sframes = 0; */
+	/* clip_init_or_update_waveform(clip); */
     }
 	break;
     default:
@@ -1149,8 +1103,8 @@ void transport_stop_recording()
 	    }
 	    for (int i=0; i<session->audio_io.num_record_conns; i++) {
 		AudioConn *conn = session->audio_io.record_conns[i];
-		if (conn->current_clip == clip) {
-		    conn->current_clip = NULL;
+		if (aldr(&conn->current_clip) == clip) {
+		    astrr(&conn->current_clip, NULL);
 		}
 	    }
 	    clip_destroy(clip);
@@ -1177,7 +1131,7 @@ void transport_stop_recording()
 	}
 	switch (clip->recorded_from->type) {
 	case AUDIO_CONN_DEVICE:
-	    clip->recorded_from->current_clip = NULL;
+	    astrr(&clip->recorded_from->current_clip, NULL);
 	    /* Do nothing; handled above */
 	    break;
 	case AUDIO_CONN_PD:
@@ -1315,7 +1269,7 @@ void transport_recording_update_cliprects()
 	    clipref_len = ((PdConn *)clip->recorded_from->obj)->write_bufpos_sframes + clip->write_bufpos_sframes;
 	    break;
 	case AUDIO_CONN_JDAW_OUT:
-	    clipref_len = ((JDAWConn *)clip->recorded_from->obj)->write_bufpos_sframes + clip->write_bufpos_sframes;
+            clipref_len = clip->len_sframes;
 	    break;
 	}
 

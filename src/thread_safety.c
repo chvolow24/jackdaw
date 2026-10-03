@@ -120,7 +120,7 @@ void thread_start(enum jdaw_thread thread, pthread_attr_t *attr, void *(*threadf
     int ret = pthread_create(&THREAD_IDS[thread], attr, threadfn, arg);
     if (ret != 0 && attr) {
         log_tmp(LOG_WARN, "pthread_create failed on %s thread with requested attributes: %s\n", get_thread_name(thread), strerror(ret));
-        ret = pthread_create(&THREAD_IDS[thread], attr, threadfn, arg);
+        ret = pthread_create(&THREAD_IDS[thread], NULL, threadfn, arg);
     }
     if (ret != 0) {
         log_tmp(LOG_ERROR, "pthread_create failed on %s thread: %s\n", get_thread_name(thread), strerror(ret));

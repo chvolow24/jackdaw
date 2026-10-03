@@ -83,11 +83,11 @@ void log_tmp(enum log_level level, char *fmt, ...)
     #ifndef TESTBUILD
     if (level == LOG_DEBUG) return;
     #endif
-    va_list ap;
-    va_start(ap, fmt);
-    
+    va_list ap1, ap2;
+    va_start(ap1, fmt);
+    va_copy(ap2, ap1);
     if (level <= LOG_WARN) {
-        vfprintf(stderr, fmt, ap);
+        vfprintf(stderr, fmt, ap1);
     }
 
     enum jdaw_thread thread = current_thread();
@@ -95,16 +95,17 @@ void log_tmp(enum log_level level, char *fmt, ...)
 	const char *timestamp_loc = timestamp();
 	/* fprintf(stderr, "(%s) %s [%s]:f ", log_level_str(level), timestamp_loc, get_thread_name(thread)); */
 	fprintf(logfile[thread], "(%s) %s [%s]: ", log_level_str(level), timestamp_loc, get_thread_name(thread));
-	vfprintf(logfile[thread], fmt, ap);
+	vfprintf(logfile[thread], fmt, ap2);
 	/* va_start(ap, fmt); */
 	/* vfprintf(stderr, fmt, ap); */
 	fflush(logfile[thread]);
     } else {
 	char buffer[255] = {0};
-	vsnprintf(buffer, 255, fmt, ap);
+	vsnprintf(buffer, 255, fmt, ap2);
 	fprintf(stderr, "WARNING: Thread logfile not yet created or unset. Log message: %s\n", buffer);
     }
-    va_end(ap);
+    va_end(ap1);
+    va_end(ap2);
     /* pthread_mutex_unlock(&log_mutex); */
 }
 

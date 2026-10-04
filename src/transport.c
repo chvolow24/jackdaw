@@ -19,7 +19,6 @@
 #include <string.h>
 #include <sys/errno.h>
 #include "atomic.h"
-#include "loading.h"
 #include "porttime.h"
 #include "audio_clip.h"
 #include "audio_connection.h"
@@ -35,7 +34,6 @@
 #include "spsc_lfqueue.h"
 #include "user_event.h"
 #include "mixdown.h"
-#include "piano_roll.h"
 #include "project.h"
 #include "pure_data.h"
 #include "session.h"
@@ -140,76 +138,6 @@ static void get_source_mode_chunk(float *restrict dst_L, float *restrict dst_R, 
      }
  }
 
-/* void transport_recording_update_cliprects(); */
-
-/* static inline float clip(float f) */
-/* { */
-/*     if (f > 1.0) return 1.0; */
-/*     if (f < -1.0) return -1.0; */
-/*     return f; */
-/* } */
-
-/* #define MAX_QUEUED_BUFS 64 */
-/* struct transport_buf_queue { */
-/*     int num_queued; */
-/*     QueuedBuf queue[MAX_QUEUED_BUFS]; */
-/* }; */
-
-/* static struct transport_buf_queue queue_loc; */
-
-/* static void loc_dequeue_buf(int index) */
-/* { */
-/*     if (queue_loc.queue[index].free_when_done) { */
-/* 	free(queue_loc.queue[index].buf[0]); */
-/* 	if (queue_loc.queue[index].channels > 1) { */
-/* 	    free(queue_loc.queue[index].buf[1]); */
-/* 	} */
-/*     } */
-/*     if (index < queue_loc.num_queued - 1) { */
-/* 	memmove(queue_loc.queue + index, queue_loc.queue + index + 1, (queue_loc.num_queued - index - 1) * sizeof(QueuedBuf)); */
-/*     } */
-/*     queue_loc.num_queued--; */
-/* } */
-
-/* static void loc_queue_bufs(QueuedBuf *qb, int num_bufs) */
-/* { */
-/*     if (queue_loc.num_queued + num_bufs > MAX_QUEUED_BUFS) { */
-/* 	fprintf(stderr, "Error: reached max num queued bufs\n"); */
-/* 	return; */
-/*     } */
-/*     memcpy(queue_loc.queue + queue_loc.num_queued, qb, num_bufs * sizeof(QueuedBuf)); */
-/*     queue_loc.num_queued += num_bufs; */
-/* } */
-
-/* static void loc_queued_bufs_add(float *chunk_L, float *chunk_R, int len_sframes) */
-/* { */
-/*     for (int i=0; i<queue_loc.num_queued; i++) { */
-/* 	int chunk_start = 0; */
-/* 	QueuedBuf *qb = queue_loc.queue + i; */
-/* 	/\* fprintf(stderr, "\t%d: play after: %d\n", i, qb->play_after_sframes); *\/ */
-/* 	if (qb->play_after_sframes > len_sframes) { */
-/* 	    qb->play_after_sframes -= len_sframes; */
-/* 	    continue; */
-/* 	} else if (qb->play_after_sframes > 0) { */
-/* 	    chunk_start = qb->play_after_sframes; */
-/* 	    qb->play_after_sframes = 0; */
-/* 	} */
-/* 	int len_rem = qb->len_sframes - qb->play_index; */
-/* 	int add_len = len_rem < len_sframes - chunk_start ? len_rem : len_sframes - chunk_start; */
-/* 	float_buf_add(chunk_L + chunk_start, qb->buf[0] + qb->play_index, add_len); */
-/* 	if (qb->channels > 1) { */
-/* 	    float_buf_add(chunk_R + chunk_start, qb->buf[1] + qb->play_index, add_len); */
-/* 	} else { */
-/* 	    float_buf_add(chunk_R + chunk_start, qb->buf[0] + qb->play_index, add_len); */
-/* 	} */
-/* 	qb->play_index += add_len; */
-/* 	/\* Buf is finished; remove from queue and decrement i to avoid skipping anything *\/ */
-/* 	if (qb->play_index >= qb->len_sframes) { */
-/* 	    loc_dequeue_buf(i); */
-/* 	    i--; */
-/* 	} */
-/*     } */
-/* } */
 
 void transport_playback_callback(void* user_data, uint8_t* stream, int len)
 {

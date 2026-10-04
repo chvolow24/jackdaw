@@ -116,11 +116,6 @@ struct drop_save {
     int32_t out;
 };
 
-struct queued_val_change {
-    Endpoint *ep;
-    Value new_val;
-    bool run_gui_cb;
-};
 
 struct status_bar {
     pthread_mutex_t errstr_lock;
@@ -145,35 +140,34 @@ struct queued_cb {
     Endpoint *ep;
 };
 
+struct queued_user_event {
+    EventFn undo_fn;
+    EventFn redo_fn;
+    EventFn dispose_fn;
+    EventFn dispose_forward_fn;
+    void *obj1;
+    void *obj2;
+    Value undo_val1;
+    Value undo_val2;
+    Value redo_val1;
+    Value redo_val2;
+    ValType type1;
+    ValType type2;
+    bool free_obj1;
+    bool free_obj2;
+};
+
 struct queued_ops {
-    
-    /* /\* Endpoint-related *\/ */
-    /* struct queued_val_change queued_val_changes[NUM_JDAW_THREADS][MAX_QUEUED_OPS]; */
-    /* uint8_t num_queued_val_changes[NUM_JDAW_THREADS]; */
-    /* pthread_mutex_t queued_val_changes_lock; */
-    
-    /* EndptCb queued_callbacks[NUM_JDAW_THREADS][MAX_QUEUED_OPS]; */
-    /* Endpoint *queued_callback_args[NUM_JDAW_THREADS][MAX_QUEUED_OPS]; */
-    /* uint8_t num_queued_callbacks[NUM_JDAW_THREADS]; */
-    /* pthread_mutex_t queued_callback_lock; */
-    
-    /* Main thread only */
     Endpoint *ongoing_changes[NUM_JDAW_THREADS][MAX_QUEUED_OPS];
     int num_ongoing_changes[NUM_JDAW_THREADS];
-    /* pthread_mutex_t ongoing_changes_lock; */
 
-    /* /\* Piano roll *\/ */
-    /* PmEvent piano_roll_queued_events[MAX_QUEUED_OPS]; */
-    /* pthread_mutex_t piano_roll_insertion_lock; */
-
-    /* Transport */
-    QueuedBuf queued_audio_bufs[MAX_QUEUED_BUFS];
-    int num_queued_audio_bufs;
-    pthread_mutex_t queued_audio_buf_lock;
-
-    /* Endpoint queues v2 */
-    /* First index is destination (reader); second index is writer */
+    /* Endpoint callbacks */
     LFQueue queued_callbacks_v2[NUM_JDAW_THREADS][NUM_EP_WRITER_THREADS];
+
+    /* user_event_push can only be called on the Main thread;
+     each ep writer thread can queue user events (e.g. when
+     an endpoint continuous change is terminated) */
+    LFQueue queued_user_events[NUM_JDAW_THREADS];
 };
 
 struct source_mode {    

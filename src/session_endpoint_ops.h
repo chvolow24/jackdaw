@@ -29,3 +29,8 @@ void session_enqueue_callback(enum jdaw_thread for_thread, struct queued_cb cb);
 int session_run_thread_callbacks(enum jdaw_thread thread);
 /* Use when closing project */
 void session_clear_all_queued_callbacks();
+
+/* used in user_event.c to make push_user_event thread safe */
+void session_enqueue_user_event(const struct queued_user_event *const event);
+/* call this in main loop to push queued user events */
+void session_dequeue_user_events();

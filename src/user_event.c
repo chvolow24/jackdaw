@@ -19,12 +19,18 @@
 #include "log.h"
 #include "project.h"
 #include "session.h"
+#include "session_endpoint_ops.h"
 #include "user_event.h"
 
 extern Project *proj;
 
+
 static void rectify_all_changes_saved_flag(UserEventHistory *history)
 {
+    if (!on_thread(JDAW_THREAD_MAIN)) {
+        /* session_enqueue_callback(); */
+    }
+    MAIN_THREAD_ONLY(rectify_all_changes_saved_flag);
     /* fprintf(stderr, "GET s cp type %d, id %lld\n",  history->save_checkpoint_type, history->save_checkpoint_id); */
     switch (history->save_checkpoint_type) {
     case USER_EVENT_UNINIT:
@@ -174,6 +180,25 @@ void user_event_history_clear(UserEventHistory *history)
     history->len = 0;
 }
 
+void user_event_push_queued(const struct queued_user_event e)
+{
+    user_event_push(
+        e.undo_fn,
+        e.redo_fn,
+        e.dispose_fn,
+        e.dispose_forward_fn,
+        e.obj1,
+        e.obj2,
+        e.undo_val1,
+        e.undo_val2,
+        e.redo_val1,
+        e.redo_val2,
+        e.type1,
+        e.type2,
+        e.free_obj1,
+        e.free_obj2);
+}
+
 UserEvent *user_event_push(
     EventFn undo_fn,
     EventFn redo_fn,
@@ -191,6 +216,26 @@ UserEvent *user_event_push(
     bool free_obj2
     )
 {
+    if (!on_thread(JDAW_THREAD_MAIN)) {
+        struct queued_user_event e;
+        e.undo_fn = undo_fn;
+        e.redo_fn = redo_fn;
+        e.dispose_fn = dispose_fn;
+        e.dispose_forward_fn = dispose_forward_fn;
+        e.obj1 = obj1;
+        e.obj2 = obj2;
+        e.undo_val1 = undo_val1;
+        e.undo_val2 = undo_val2;
+        e.redo_val1 = redo_val1;
+        e.redo_val2 = redo_val2;
+        e.type1 = type1;
+        e.type2 = type2;
+        e.free_obj1 = free_obj1;
+        e.free_obj2 = free_obj2;
+        session_enqueue_user_event(&e);
+        return NULL;
+    }
+    MAIN_THREAD_ONLY(user_event_push);
     Session *session = session_get();
     if (!session) return NULL;
     if (!session->proj_initialized) return NULL;

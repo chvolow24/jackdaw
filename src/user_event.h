@@ -87,8 +87,8 @@ typedef struct user_event_history {
     const char *macro_message;
     bool always_sequence_order;
 
-    bool all_changes_saved; /*   */
-    int64_t save_checkpoint_id; /*  */
+    bool all_changes_saved; /* !(project has unsaved changes) */
+    int64_t save_checkpoint_id; /* id of the event at which proj was saved */
     enum save_checkpoint_type save_checkpoint_type;
 } UserEventHistory;
 
@@ -114,6 +114,7 @@ UserEvent *user_event_push(
     ValType type2,
     bool free_obj1,
     bool free_obj2);
+
 
 void user_event_undo_set_value(
     UserEvent *self,

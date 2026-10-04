@@ -55,7 +55,7 @@ int session_do_ongoing_changes(enum jdaw_thread thread)
 
 void session_clear_ongoing_changes(enum jdaw_thread thread)
 {
-    MAIN_THREAD_ONLY(session_add_ongoing_change);
+    MAIN_THREAD_ONLY(session_clear_ongoing_changes);
     struct queued_cb cb;
     cb.ep = NULL;
     cb.cb = clear_ongoing_changes_cb;
@@ -97,6 +97,7 @@ int session_run_thread_callbacks(enum jdaw_thread thread)
         int ret;
         while ((ret = lfqueue_try_dequeue(queue, cbs + num_cbs, 1)) == LFQUEUE_SUCCESS) {
             num_cbs++;
+            if (num_cbs == MAX_CBS_PER_QUEUE * NUM_EP_WRITER_THREADS) break;
         }
     }
     /* Work backwards to dedupe */
@@ -136,4 +137,31 @@ void session_clear_all_queued_callbacks()
     }
 }
 
+void session_enqueue_user_event(const struct queued_user_event *const event)
+{
+    Session *session = session_get();
+    LFQueue *q = &session->queued_ops.queued_user_events[current_thread()];
+    int ret = lfqueue_try_enqueue(q, event, 1);
+    fprintf(stderr, "enqueued user event!\n");
+    if (ret != LFQUEUE_SUCCESS) {
+        TESTBREAK;
+        log_tmp(LOG_WARN, "Unable to enqueue user event: %s\n", lfqueue_get_errstr(ret));
+    }
+}
 
+/* Defined in user_event.c */
+void user_event_push_queued(const struct queued_user_event e);
+
+void session_dequeue_user_events()
+{
+    MAIN_THREAD_ONLY(session_dequeue_user_events);
+    Session *session = session_get();
+    for (enum jdaw_thread t=0; t<NUM_JDAW_THREADS; t++) {
+        LFQueue *q = &session->queued_ops.queued_user_events[t];
+        struct queued_user_event event_dst;
+        while (lfqueue_try_dequeue(q, &event_dst, 1) == LFQUEUE_SUCCESS) {
+            fprintf(stderr, "Dequeued user event!\n");
+            user_event_push_queued(event_dst);
+        }
+    }
+}

@@ -22,6 +22,7 @@
 #include "instrument_monitor.h"
 #include "session.h"
 #include "session_endpoint_ops.h"
+#include "thread_safety.h"
 #include "timeline.h"
 #include "transport.h"
 #include "user_event.h"
@@ -144,13 +145,14 @@ Session *session_create()
 
     session_init_hamburger(session);
 
-    int err;
+    /* int err; */
 
-    if ((err = pthread_mutex_init(&session->queued_ops.queued_audio_buf_lock, NULL)) != 0) {
-	fprintf(stderr, "Error initializing queued audio buf mutex: %s\n", strerror(err));
-	exit(1);
-    }
+    /* if ((err = pthread_mutex_init(&session->queued_ops.queued_audio_buf_lock, NULL)) != 0) { */
+    /*     fprintf(stderr, "Error initializing queued audio buf mutex: %s\n", strerror(err)); */
+    /*     exit(1); */
+    /* } */
 
+    /* Initialize endpoint-related lfqueues */
     for (enum jdaw_thread t=0; t<NUM_JDAW_THREADS; t++) {
         for (enum jdaw_thread w=0; w<NUM_EP_WRITER_THREADS; w++) {
             int ret = lfqueue_init(
@@ -160,6 +162,17 @@ Session *session_create()
             if (ret <= 0) {
                 log_tmp(LOG_ERROR, "Error initializing endpoint callback lfqueue\n");
             }
+        }
+    }
+
+    /* Initialize queued user events */
+    for (enum jdaw_thread t=0; t<NUM_JDAW_THREADS; t++) {
+        int ret = lfqueue_init(
+            &session->queued_ops.queued_user_events[t],
+            sizeof(struct queued_user_event),
+            MAX_CBS_PER_QUEUE);
+        if (ret <= 0) {
+            log_tmp(LOG_ERROR, "Error initializing user event lfqueue\n");
         }
     }
 
@@ -448,60 +461,60 @@ uint32_t session_get_sample_rate()
 }
 
 /* Call from any thread to queue audio data for immediate or delayed playback */
-void session_queue_audio(int channels, float *c1, float *c2, int32_t len, int32_t delay, bool free_when_done)
+DEPRECATED void session_queue_audio(int channels, float *c1, float *c2, int32_t len, int32_t delay, bool free_when_done)
 {
-    int err;
-    if ((err = pthread_mutex_lock(&session->queued_ops.queued_audio_buf_lock)) != 0) {
-	fprintf(stderr, "Error locking queued audio buf lock (in session_queue_audio): %s\n", strerror(err));
-    }
+/*     int err; */
+/*     if ((err = pthread_mutex_lock(&session->queued_ops.queued_audio_buf_lock)) != 0) { */
+/* 	fprintf(stderr, "Error locking queued audio buf lock (in session_queue_audio): %s\n", strerror(err)); */
+/*     } */
 
-    Session *session = session_get();
-    if (session->queued_ops.num_queued_audio_bufs == MAX_QUEUED_BUFS) goto unlock_and_exit;
+/*     Session *session = session_get(); */
+/*     if (session->queued_ops.num_queued_audio_bufs == MAX_QUEUED_BUFS) goto unlock_and_exit; */
     
-    QueuedBuf *qb = session->queued_ops.queued_audio_bufs + session->queued_ops.num_queued_audio_bufs;
-    qb->channels = channels;
-    qb->buf[0] = c1;
-    qb->buf[1] = c2;
-    qb->len_sframes = len;
-    qb->play_index = 0;
-    qb->play_after_sframes = delay;
-    qb->free_when_done = free_when_done;
-    session->queued_ops.num_queued_audio_bufs++;
-    if (!session->audio_io.playback_conn->playing) {
-	audioconn_start_playback(session->audio_io.playback_conn);
-    }
-unlock_and_exit:
-    if ((err = pthread_mutex_unlock(&session->queued_ops.queued_audio_buf_lock)) != 0) {
-	fprintf(stderr, "Error unlocking queued audio buf lock (in session_queue_audio): %s\n", strerror(err));
-    }
+/*     QueuedBuf *qb = session->queued_ops.queued_audio_bufs + session->queued_ops.num_queued_audio_bufs; */
+/*     qb->channels = channels; */
+/*     qb->buf[0] = c1; */
+/*     qb->buf[1] = c2; */
+/*     qb->len_sframes = len; */
+/*     qb->play_index = 0; */
+/*     qb->play_after_sframes = delay; */
+/*     qb->free_when_done = free_when_done; */
+/*     session->queued_ops.num_queued_audio_bufs++; */
+/*     if (!session->audio_io.playback_conn->playing) { */
+/* 	audioconn_start_playback(session->audio_io.playback_conn); */
+/*     } */
+/* unlock_and_exit: */
+/*     if ((err = pthread_mutex_unlock(&session->queued_ops.queued_audio_buf_lock)) != 0) { */
+/* 	fprintf(stderr, "Error unlocking queued audio buf lock (in session_queue_audio): %s\n", strerror(err)); */
+/*     } */
 
 }
 
-#define check_queued_ops_lock(name) \
-    if ((err = pthread_mutex_lock(&session->queued_ops.name))) {	\
-	fprintf(stderr, "Error locking " #name " (in session_clear_all_queues)\n");\
-    } \
+/* #define check_queued_ops_lock(name) \ */
+/*     if ((err = pthread_mutex_lock(&session->queued_ops.name))) {	\ */
+/* 	fprintf(stderr, "Error locking " #name " (in session_clear_all_queues)\n");\ */
+/*     } \ */
 
-#define check_queued_ops_unlock(name) \
-    if ((err = pthread_mutex_unlock(&session->queued_ops.name))) {	\
-	fprintf(stderr, "Error locking " #name " (in session_clear_all_queues)\n");\
-    } \
+/* #define check_queued_ops_unlock(name) \ */
+/*     if ((err = pthread_mutex_unlock(&session->queued_ops.name))) {	\ */
+/* 	fprintf(stderr, "Error locking " #name " (in session_clear_all_queues)\n");\ */
+/*     } \ */
 
 
 void session_clear_all_queues()
 {
     /* Clear audio bufs */
-    int err;
-    check_queued_ops_lock(queued_audio_buf_lock);
-    for (int i=0; i<session->queued_ops.num_queued_audio_bufs; i++) {
-        QueuedBuf *qb = session->queued_ops.queued_audio_bufs + i;
-	if (qb->free_when_done) {
-	    free(qb->buf[0]);
-	    if (qb->channels > 1) free(qb->buf[1]);
-	}
-    }
-    session->queued_ops.num_queued_audio_bufs = 0;
-    check_queued_ops_unlock(queued_audio_buf_lock);
+    /* int err; */
+    /* check_queued_ops_lock(queued_audio_buf_lock); */
+    /* for (int i=0; i<session->queued_ops.num_queued_audio_bufs; i++) { */
+    /*     QueuedBuf *qb = session->queued_ops.queued_audio_bufs + i; */
+    /*     if (qb->free_when_done) { */
+    /*         free(qb->buf[0]); */
+    /*         if (qb->channels > 1) free(qb->buf[1]); */
+    /*     } */
+    /* } */
+    /* session->queued_ops.num_queued_audio_bufs = 0; */
+    /* check_queued_ops_unlock(queued_audio_buf_lock); */
 
 
     session_clear_all_queued_callbacks();

@@ -249,10 +249,19 @@ int endpoint_write(
        of other callbacks (GUI reflects correct state)
      */
     bool delay_gui_cb = false;
+    bool set_t = false;
     for (int t=NUM_JDAW_THREADS - 1; t>=0; t--) {
+        if (set_t) t = JDAW_THREAD_DSP - 1;
         int num = aldr(&ep->num_registered_callbacks[t]);
         for (int i=0; i<num; i++) {
-            EndptCb cb = aldr(&ep->registered_callbacks[t][i]);
+            EndptCb cb = aldr(&ep->registered_callbacks[t][i]);            
+            /* After loading DSP callbacks,
+               operate them on the instrument thread */
+            if (t == JDAW_THREAD_DSP && owner == JDAW_THREAD_INSTRUMENT) {
+                t = JDAW_THREAD_INSTRUMENT;
+                set_t = true;
+            }
+
             if (t == (int)owner && async_thread_loc_val_change) {
                 goto enqueue;
             } else if (t == (int)JDAW_THREAD_MAIN && delay_gui_cb) {
@@ -270,7 +279,8 @@ int endpoint_write(
                 cb(ep);
             } else {
             enqueue:
-                if (t > 0) delay_gui_cb = true;                
+                if (t > 0) delay_gui_cb = true;
+                /* Owner has changed, but queued callbacks remain */
                 struct queued_cb cbs = (struct queued_cb){cb, ep};
                 session_enqueue_callback(t, cbs);
             }

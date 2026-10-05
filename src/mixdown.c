@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <pthread.h>
+#include "atomic.h"
 #include "audio_clip.h"
 #include "automation.h"
 #include "clipref.h"
@@ -108,8 +109,10 @@ static float get_track_mixdown_chunk(Track *track, float *restrict L, float *res
     /* float total_amp = 0.0f; */
 
     /* Get data from clip sources */
-    for (uint16_t i=0; i<track->num_clips; i++) {
-	ClipRef *cr = track->clips[i];
+    ClipRef **clips = atomic_load_explicit(&track->clips, memory_order_acquire);
+    uint16_t num_clips = aldr(&track->num_clips);
+    for (uint16_t i=0; i<num_clips; i++) {
+	ClipRef *cr = clips[i];
 	if (!cr) {
 	    continue;
 	}

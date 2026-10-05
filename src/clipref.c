@@ -8,6 +8,7 @@
 
 *****************************************************************************************************************/
 #include <stdlib.h>
+#include "atomic.h"
 #include "audio_clip.h"
 #include "clipref.h"
 #include "color.h"
@@ -47,6 +48,47 @@ void clipref_gain_dsp_cb(Endpoint *ep)
     ClipRef *cr = ep->xarg1;
     int sign = cr->gain_ctrl / (fabs(cr->gain_ctrl));
     cr->gain = sign * pow(fabs(cr->gain_ctrl), VOL_EXP);
+}
+
+/* Handled sharing of parent track array */
+static void clipref_add_to_track_array(ClipRef *cr, Track *track)
+{
+    ClipRef **old_clips = aldr(&track->clips);
+    uint16_t num_clips = aldr(&track->num_clips);
+    ClipRef **new_clips = malloc(sizeof(Clip *) * (num_clips + 1));
+    memcpy(new_clips, old_clips, sizeof(Clip *) * num_clips);
+    new_clips[num_clips] = cr;
+    astrr(&track->clips, new_clips);
+    atomic_store_explicit(&track->num_clips, num_clips + 1, memory_order_release);
+    session_schedule_free_after_dsp_epoch(old_clips, aldr(&session_get()->threading.dsp_epoch));
+}
+
+/* true if removed */
+static bool clipref_remove_from_track_array(ClipRef *cr, Track *track)
+{
+    ClipRef **old_clips = aldr(&track->clips);
+    uint16_t num_clips = aldr(&track->num_clips);
+    ClipRef **new_clips = malloc(sizeof(Clip *) * num_clips);
+    memcpy(new_clips, old_clips, sizeof(Clip *) * num_clips);
+    
+    bool displace = false;
+    for (uint16_t i=0; i<num_clips; i++) {
+	ClipRef *test = track->clips[i];
+	if (test == cr) {
+	    displace = true;
+	} else if (displace && i > 0) {
+	    new_clips[i - 1] = test;	    
+	}
+    }
+    if (!displace) {
+        free(new_clips);
+        return false;
+    }
+
+    astrr(&track->num_clips, num_clips - 1);
+    atomic_store_explicit(&track->clips, new_clips, memory_order_release);
+    session_schedule_free_after_dsp_epoch(old_clips, aldr(&session_get()->threading.dsp_epoch));
+    return true;
 }
 
 ClipRef *clipref_create(
@@ -162,17 +204,24 @@ ClipRef *clipref_create(
     } else if (type == CLIP_MIDI) {
 	textbox_set_text_color(cr->label, &colors.dark_brown);
     }
-    /* textbox_size_to_fit(cr->label, CLIPREF_NAMELABEL_H_PAD, CLIPREF_NAMELABEL_V_PAD); */
-    /* fprintf(stdout, "Clip num refs: %d\n", clip->num_refs); */
-    /* clip->refs[clip->num_refs] = cr; */
-    /* clip->num_refs++; */
-    /* pthread_mutex_unlock(&cr->lock); */
-    if (track->num_clips == track->clips_alloc_len) {
-	track->clips_alloc_len *= 2;
-	track->clips = realloc(track->clips, track->clips_alloc_len * sizeof(ClipRef *));
-    }
-    track->clips[track->num_clips] = cr;
-    track->num_clips++;
+    
+    /* if (track->num_clips == track->clips_alloc_len) { */
+    /*     track->clips_alloc_len *= 2; */
+    /*     track->clips = realloc(track->clips, track->clips_alloc_len * sizeof(ClipRef *)); */
+    /* } */
+    /* ClipRef **old_clips = aldr(&track->clips); */
+    /* uint16_t num_clips = aldr(&track->num_clips); */
+    /* ClipRef **new_clips = malloc(sizeof(ClipRef *) * num_clips + 1); */
+    /* memcpy(new_clips, old_clips, sizeof(ClipRef *) * num_clips); */
+    /* new_clips[num_clips] = cr; */
+    /* astrr(&track->clips, new_clips); */
+    /* atomic_store_explicit(&track->num_clips, num_clips + 1, memory_order_release); */
+    /* session_enqueue_free_after_dsp_epoch(old_clips, aldr(&session_get()->threading.dsp_epoch)); */
+
+    clipref_add_to_track_array(cr, track);
+    /* track->clips[track->num_clips] = cr;     */
+    /* track->num_clips++; */
+    
     if (cr->type == CLIP_AUDIO) {
 	pthread_mutex_unlock(&cr->lock);
     }
@@ -236,20 +285,20 @@ void clipref_reset(ClipRef *cr, bool rescaled)
 
 static void clipref_remove_from_track(ClipRef *cr)
 {
-    bool displace = false;
-    Track *track = cr->track;
-    for (uint16_t i=0; i<track->num_clips; i++) {
-	ClipRef *test = track->clips[i];
-	if (test == cr) {
-	    displace = true;
-	} else if (displace && i > 0) {
-	    track->clips[i - 1] = test;	    
-	}
-    }
+    /* bool displace = false; */
+    /* Track *track = cr->track; */
+    /* for (uint16_t i=0; i<track->num_clips; i++) { */
+    /*     ClipRef *test = track->clips[i]; */
+    /*     if (test == cr) { */
+    /*         displace = true; */
+    /*     } else if (displace && i > 0) { */
+    /*         track->clips[i - 1] = test;	     */
+    /*     } */
+    /* } */
 
-    if (displace) {
+    /* if (displace) { */
+    if (clipref_remove_from_track_array(cr, cr->track)) {
 	layout_remove_child(cr->layout);
-	track->num_clips--; /* else not found! */
     }
 }
 
@@ -277,12 +326,7 @@ static void clipref_remove_from_track(ClipRef *cr)
 
 static void clipref_insert_on_track(ClipRef *cr, Track *target)
 {
-    if (target->num_clips == target->clips_alloc_len) {
-	target->clips_alloc_len *= 2;
-	target->clips = realloc(target->clips, target->clips_alloc_len * sizeof(ClipRef *));	
-    }
-    target->clips[target->num_clips] = cr;
-    target->num_clips++;
+    clipref_add_to_track_array(cr, target);
     cr->track = target;
     layout_reparent(cr->layout, target->inner_layout);
 }

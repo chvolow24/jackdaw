@@ -424,6 +424,10 @@ static void *transport_dsp_threadfn(void *arg)
 		transport_performance_log_elapsed_ticks = 0;
 	    }
 	}
+
+        /* Increment epoch at the end;
+           anything used last epoch (this iter) can be freed now */
+        atomic_fetch_add_explicit(&session->threading.dsp_epoch, 1, memory_order_release);
     }
     log_tmp(LOG_INFO, "DSP thread exit\n");
     /* sem_post(tl->unpause_sem); */

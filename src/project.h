@@ -133,9 +133,9 @@ typedef struct track {
     Endpoint send_to_out_ep;
     APINode audio_routing_api_node;
 
-    ClipRef **clips;
-    uint16_t num_clips;
-    uint16_t clips_alloc_len;
+    ClipRef **_Atomic clips;
+    _Atomic uint16_t num_clips;
+    /* uint16_t clips_alloc_len; */
     /* ClipRef *clips[MAX_TRACK_CLIPS]; */
     /* uint16_t num_clips; */
 

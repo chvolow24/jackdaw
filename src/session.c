@@ -176,6 +176,13 @@ Session *session_create()
         }
     }
 
+    /* Initialize "threading" */
+    atomic_init(&session->threading.dsp_epoch, 0);
+    session->threading.dsp_oes_alloc_len = OBJ_EPOCH_FREE_INIT_CAP;
+    session->threading.dsp_oes = malloc(OBJ_EPOCH_FREE_INIT_CAP * sizeof(struct obj_epoch));
+    session->threading.dsp_oes_len = 0;
+
+    /* Endpoints */
     endpoint_init(
 	&session->playback.play_speed_ep,
 	&session->playback.play_speed,
@@ -565,5 +572,42 @@ void session_set_proj_name(const char *name)
     session_check_reset_window_title();
 }
 
+void session_schedule_free_after_dsp_epoch(void *obj_to_free, uint32_t after_epoch)
+{
+    MAIN_THREAD_ONLY(session_free_after_dsp_epoch);
+    if (session->threading.dsp_oes_len == session->threading.dsp_oes_alloc_len) {
+        session->threading.dsp_oes_alloc_len *= 2;
+        session->threading.dsp_oes = realloc(
+            session->threading.dsp_oes,
+            session->threading.dsp_oes_alloc_len);
+    }
+    struct obj_epoch oe = {obj_to_free, after_epoch};
+    session->threading.dsp_oes[session->threading.dsp_oes_len] = oe;
+    session->threading.dsp_oes_len++;
+}
+
+void session_do_free_after_dsp_epoch()
+{
+    MAIN_THREAD_ONLY(session_free_after_dsp_epoch);
+    uint32_t dsp_epoch = atomic_load_explicit(&session->threading.dsp_epoch, memory_order_acquire);
+    int num_handled = 0;
+    for (int i=0; i<session->threading.dsp_oes_len; i++) {
+        struct obj_epoch oe = session->threading.dsp_oes[i];
+        if (oe.epoch < dsp_epoch) {
+            free(oe.obj);
+            num_handled++;
+        } else {
+            break;
+        }
+    }
+    if (num_handled > 0) {
+        memmove(
+            session->threading.dsp_oes,
+            session->threading.dsp_oes + num_handled,
+            sizeof(struct obj_epoch) * (session->threading.dsp_oes_len - num_handled));
+        fprintf(stderr, "Handled %d scheduled frees!\n", num_handled);
+    }
+    session->threading.dsp_oes_len -= num_handled;
+}
 
 

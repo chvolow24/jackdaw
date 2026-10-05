@@ -216,11 +216,32 @@ struct system {
     int cores;
 };
 
+#define OBJ_EPOCH_FREE_INIT_CAP 8
+
+struct obj_epoch {
+    void *obj;
+    uint32_t epoch;
+};
+
+/* struct obj_epochs_to_free { */
+/*     struct obj_epoch *obj_epochs; */
+/*     int num_obj_epochs; */
+/*     int obj_epochs_capacity; */
+/* }; */
+
+struct threading {
+    _Atomic uint32_t dsp_epoch;
+    struct obj_epoch *dsp_oes;
+    int dsp_oes_alloc_len;
+    int dsp_oes_len;
+};
+
 /* All persistent "global" data not related to a Project or Window */
 typedef struct session {
     struct system sys;
     struct audio_io audio_io;
     struct midi_io midi_io;
+    struct threading threading;
     /* pthread_t main_thread; */
     /* pthread_t dsp_thread; */
     /* pthread_t playback_thread; */
@@ -276,5 +297,8 @@ void session_check_reset_window_title();
 void session_set_proj_path(const char *path);
 
 void session_set_proj_name(const char *name);
+
+void session_schedule_free_after_dsp_epoch(void *obj_to_free, uint32_t after_epoch);
+void session_do_free_after_dsp_epoch();
 
 #endif

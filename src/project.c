@@ -725,8 +725,9 @@ Track *timeline_add_track_with_name(Timeline *tl, const char *track_name, int at
 
     track->channels = tl->proj->channels;
 
-    track->clips_alloc_len = 16;
-    track->clips = calloc(track->clips_alloc_len, sizeof(ClipRef *));
+    astrr(&track->num_clips, 0);
+    /* track->clips_alloc_len = 16; */
+    /* track->clips = calloc(track->clips_alloc_len, sizeof(ClipRef *)); */
 
     Session *session = session_get();
     track->input = session->audio_io.record_conns[session->audio_io.default_record_conn_index];

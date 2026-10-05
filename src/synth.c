@@ -2,6 +2,7 @@
 #include <porttime.h>
 #include "adsr.h"
 #include "api.h"
+#include "atomic.h"
 #include "components.h"
 #include "dot_jdaw.h"
 #include "dsp_utils.h"
@@ -30,8 +31,8 @@ extern double MTOF[];
 static void synth_osc_vol_dsp_cb(Endpoint *ep)
 {
     OscCfg *cfg = ep->xarg1;
-    if (cfg->amp > 1e-9) cfg->active = true;
-    else cfg->active = false;
+    if (cfg->amp > 1e-9) astrr(&cfg->active, true);
+    else astrr(&cfg->active, false);
 }
 
 static void base_cutoff_dsp_cb(Endpoint *ep)
@@ -2091,7 +2092,7 @@ void synth_enqueue_midi(Synth *s, PmEvent *events, int num_events)
         }
     }
     if (i != num_events) {
-        log_tmp(LOG_WARN, "Could only queue %d/%d events for synth\n", i, num_events);
+        log_tmp(LOG_DEBUG, "Could only queue %d/%d events for synth\n", i, num_events);
     }
 }
 
@@ -2143,7 +2144,6 @@ void synth_add_buf(Synth *s, float *restrict L, float *restrict R, int32_t len, 
         num_events++;
     }
     if (num_events > 0) {
-        fprintf(stderr, "Dequeued %d events\n", num_events);
         synth_feed_midi(s, e, num_events, 0, true);
     }
 
@@ -2363,8 +2363,6 @@ int32_t synth_make_notes(Synth *s, int *pitches, int *velocities, int num_pitche
 
 void synth_close_all_notes_thread_safe(Synth *s)
 {
-    TESTBREAK;
-    fprintf(stderr, "Call to close on synth %s\n", s->preset_name);
     PmEvent e[128];
     for (int i=0; i<128; i++) {
         e[i] = make_note_off(0, i);

@@ -131,7 +131,7 @@ struct unison_cfg {
     char *stereo_spread_id;
 };
 typedef struct osc_cfg {
-    bool active;
+    _Atomic bool active;
     WaveShape type;
     float amp;
     /* float amp_unscaled; */

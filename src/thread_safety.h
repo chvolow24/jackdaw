@@ -30,9 +30,9 @@ enum jdaw_thread {
     JDAW_THREAD_MAIN,
     JDAW_THREAD_DSP,
     JDAW_THREAD_API_SERVER,
+    JDAW_THREAD_INSTRUMENT,
     /* Above threads can call endpoint_write; below cannot */
     JDAW_THREAD_PLAYBACK,
-    JDAW_THREAD_INSTRUMENT,
     NUM_JDAW_THREADS
 };
 

@@ -1,3 +1,4 @@
+#include "atomic.h"
 #include "assets.h"
 #include "color.h"
 #include "dir.h"
@@ -131,7 +132,7 @@ static void panel_draw(void *layout_v, void *cfg_v)
 {
     OscCfg *cfg = cfg_v;
     Layout *layout = layout_v;
-    const SDL_Color *color = cfg->active ? &osc_panel_color_on : &osc_panel_color_off;
+    const SDL_Color *color = aldr(&cfg->active) ? &osc_panel_color_on : &osc_panel_color_off;
     /* SDL_Color *color = color_v; */
     SDL_SetRenderDrawColor(main_win->rend, sdl_colorp_expand(color));
     geom_fill_rounded_rect(main_win->rend, &layout->rect, 8 * main_win->dpi_scale_factor);

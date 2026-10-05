@@ -694,7 +694,10 @@ void toggle_draw(Toggle *tgl)
     SDL_RenderFillRect(main_win->rend, &tgl->layout->rect);
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(slider_bar_container_bckgrnd));
     SDL_RenderFillRect(main_win->rend, &tgl->layout->children[0]->rect);
-    if (*(tgl->value)) {
+    bool value = false;
+    if (tgl->endpoint) value = endpoint_read(tgl->endpoint, NULL).bool_v;
+    else value = &(tgl->value);
+    if (value) {
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(slider_bar_color));
 	SDL_RenderFillRect(main_win->rend, &(tgl->layout->children[0]->rect));
     }

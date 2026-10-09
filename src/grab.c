@@ -429,22 +429,28 @@ void timeline_grabbed_clips_move(Timeline *tl, int32_t move_by_sframes)
 	}
 	switch(cr->grabbed_edge) {
 	case CLIPREF_EDGE_LEFT: {
-	    int32_t new_start = cr->start_in_clip + move_by_sframes;
+	    int32_t new_start = aldr(&cr->start_in_clip) + move_by_sframes;
 	    if (new_start < 0) new_start = 0;
-	    if (new_start >= cr->end_in_clip) new_start = cr->end_in_clip - 1;
-	    cr->tl_pos += new_start - cr->start_in_clip;
-	    cr->start_in_clip = new_start;
+	    if (new_start >= aldr(&cr->end_in_clip)) new_start = cr->end_in_clip - 1;
+	    atomic_fetch_add_explicit(
+                &cr->tl_pos,
+                new_start - cr->start_in_clip,
+                memory_order_relaxed);
+	    astrr(&cr->start_in_clip, new_start);
 	}
 	    break;
 	case CLIPREF_EDGE_RIGHT: {
-	    int32_t new_end = cr->end_in_clip + move_by_sframes;
-	    if (new_end <= cr->start_in_clip) new_end = cr->start_in_clip + 1;
+	    int32_t new_end = aldr(&cr->end_in_clip) + move_by_sframes;
+	    if (new_end <= aldr(&cr->start_in_clip)) new_end = aldr(&cr->start_in_clip) + 1;
 	    if (new_end > clip_len) new_end = clip_len;
-	    cr->end_in_clip = new_end;
+	    astrr(&cr->end_in_clip, new_end);
 	}
 	    break;
 	case CLIPREF_EDGE_NONE:
-	    cr->tl_pos += move_by_sframes;
+	    atomic_fetch_add_explicit(
+                &cr->tl_pos,
+                move_by_sframes,
+                memory_order_relaxed);
 	    break;
 	}
 	/* clipref_reset(cr, false); */

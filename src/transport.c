@@ -845,7 +845,6 @@ void dequeue_recorded_audio()
         int queued_samples = lfqueue_peep_enqueued(&session->audio_io.jdaw_conn.rec_buffer);
         int queued_sframes = queued_samples / 2;
         create_clip_buffers(clip, clip->len_sframes + queued_sframes);
-        fprintf(stderr, "LEN SFRAMES: %d\n", clip->len_sframes);
         /* int written_sframes = 0; */
         while (queued_samples > 0 &&
                lfqueue_try_dequeue(

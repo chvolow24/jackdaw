@@ -132,7 +132,7 @@ static float get_track_mixdown_chunk(Track *track, float *restrict L, float *res
 	    pthread_mutex_unlock(&cr->lock);
 	    continue;
 	}
-	double pos_in_clip_sframes = start_pos_sframes - cr->tl_pos;
+	double pos_in_clip_sframes = start_pos_sframes - aldr(&cr->tl_pos);
 	int32_t end_pos = pos_in_clip_sframes + (step * output_chunk_len_sframes);
 	int32_t min, max;
 	if (end_pos >= pos_in_clip_sframes) {
@@ -192,7 +192,7 @@ static float get_track_mixdown_chunk(Track *track, float *restrict L, float *res
 		while (chunk_i < output_chunk_len_sframes) {
 		    if (pos_in_clip_sframes > 0 && pos_in_clip_sframes < cr_len - 1) { /* Truncate last sample to allow for interpolation */
 			float sample;
-			double clip_index_f = pos_in_clip_sframes + (double)cr->start_in_clip;
+			double clip_index_f = pos_in_clip_sframes + (double)aldr(&cr->start_in_clip);
 			if (fabs(step) != 1.0f) {
 			    int index_left = (int)floor(clip_index_f);
 			    double diff_left = clip_index_f - (double)index_left;

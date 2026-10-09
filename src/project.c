@@ -1090,7 +1090,7 @@ void project_clear_active_clips()
 
 /* void midi_clipref_reset(MIDIClipRef *mcr, bool rescaled) */
 /* { */
-/*     mcr->layout->rect.x = timeline_get_draw_x(mcr->track->tl, mcr->tl_pos); */
+/*     mcr->layout->rect.x = timeline_get_draw_x(mcr->track->tl, maldr(&cr->tl_pos)); */
 
 /*     /\* TODO: Len! *\/ */
 /*     uint32_t cr_len = 96000; */
@@ -1110,7 +1110,7 @@ void project_clear_active_clips()
 /* void clipref_reset(ClipRef *cr, bool rescaled) */
 /* { */
 
-/*     cr->layout->rect.x = timeline_get_draw_x(cr->track->tl, cr->tl_pos); */
+/*     cr->layout->rect.x = timeline_get_draw_x(cr->track->tl, aldr(&cr->tl_pos)); */
 /*     uint32_t cr_len = cr->start_in_clip >= cr->out_mark_sframes */
 /* 	? cr->clip->len_sframes */
 /* 	: cr->out_mark_sframes - cr->start_in_clip; */
@@ -1123,7 +1123,7 @@ void project_clear_active_clips()
 /*     /\* if (rescaled) { *\/ */
 /*     cr->waveform_redraw = true; */
 /*     /\* } *\/ */
-/*     /\* cr->rect.x = timeline_get_draw_x(cr->tl_pos); *\/ */
+/*     /\* cr->rect.x = timeline_get_draw_x(aldr(&cr->tl_pos)); *\/ */
 /*     /\* uint32_t cr_len = cr->start_in_clip >= cr->out_mark_sframes *\/ */
 /*     /\* 	? cr->clip->len_sframes *\/ */
 /*     /\* 	: cr->out_mark_sframes - cr->start_in_clip; *\/ */

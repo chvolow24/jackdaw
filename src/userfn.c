@@ -1144,10 +1144,10 @@ void user_tl_goto_previous_clip_boundary(void *nullarg)
 	ClipRef *cr = clipref_at_cursor_not_dragging();
 	int32_t pos;
 	if (cr) {
-	    if (cr->tl_pos == tl->play_pos_sframes) {
+	    if (aldr(&cr->tl_pos) == tl->play_pos_sframes) {
 		goto goto_previous_clip;
 	    }
-	    timeline_set_play_position(tl, cr->tl_pos, true);
+	    timeline_set_play_position(tl, aldr(&cr->tl_pos), true);
 	    timeline_reset(tl, false);
 	} else {
 	goto_previous_clip:
@@ -1175,10 +1175,10 @@ void user_tl_goto_next_clip_boundary(void *nullarg)
 	ClipRef *cr = clipref_at_cursor_not_dragging();
 	int32_t pos;
 	if (cr) {
-	    if (cr->tl_pos + clipref_len(cr) == tl->play_pos_sframes) {
+	    if (aldr(&cr->tl_pos) + clipref_len(cr) == tl->play_pos_sframes) {
 		goto goto_next_clip;
 	    }
-	    timeline_set_play_position(tl, cr->tl_pos + clipref_len(cr), true);
+	    timeline_set_play_position(tl, aldr(&cr->tl_pos) + clipref_len(cr), true);
 	    timeline_reset(tl, false);
 	} else {
 	goto_next_clip:
@@ -2255,7 +2255,7 @@ void user_tl_paste_grabbed_clips(void *nullarg)
     int32_t leftmost = tl->clipboard[0]->tl_pos;
     for (int i=0; i<tl->num_clips_in_clipboard; i++) {
 	ClipRef *cr = tl->clipboard[i];
-	if (cr->tl_pos < leftmost) leftmost = cr->tl_pos;
+	if (aldr(&cr->tl_pos) < leftmost) leftmost = aldr(&cr->tl_pos);
     }
 
     
@@ -2264,7 +2264,7 @@ void user_tl_paste_grabbed_clips(void *nullarg)
     for (int i=0; i<tl->num_clips_in_clipboard; i++) {
 	ClipRef *cr = tl->clipboard[i];
 	if (!cr->deleted && !cr->track->deleted) {
-	    int32_t offset = cr->tl_pos - leftmost;
+	    int32_t offset = aldr(&cr->tl_pos) - leftmost;
 	    ClipRef *copy = clipref_create(
 		cr->track,
 		tl->play_pos_sframes + offset,
@@ -2273,8 +2273,8 @@ void user_tl_paste_grabbed_clips(void *nullarg)
 	    copy->gain = cr->gain;
 	    if (!copy) continue;
 	    snprintf(copy->name, MAX_NAMELENGTH, "%s copy", cr->name);
-	    copy->start_in_clip = cr->start_in_clip;
-	    copy->end_in_clip = cr->end_in_clip;
+	    astrr(&copy->start_in_clip, aldr(&cr->start_in_clip));
+	    astrr(&copy->end_in_clip, aldr(&cr->end_in_clip));
 	    /* copy->start_ramp_len = cr->start_ramp_len; */
 	    /* copy->end_ramp_len = cr->end_ramp_len; */
 	    timeline_clipref_grab(copy, CLIPREF_EDGE_NONE);
@@ -2426,9 +2426,9 @@ void user_tl_load_clip_at_cursor_to_src(void *cr_opt)
     }
     if (cr && clip && !clip_recording && clip_len > 10) {
 	session->source_mode.src_clip = clip;
-	session->source_mode.src_in_sframes = cr->start_in_clip;
+	session->source_mode.src_in_sframes = aldr(&cr->start_in_clip);
 	session->source_mode.src_play_pos_sframes = 0;
-	session->source_mode.src_out_sframes = cr->end_in_clip;
+	session->source_mode.src_out_sframes = aldr(&cr->end_in_clip);
 	session->source_mode.timeview.sample_frames_per_pixel =
 	    (double)clip_len / session->source_mode.timeview.rect->w;
 	session->source_mode.timeview.restrict_view = true;
@@ -2523,10 +2523,10 @@ void user_tl_drop_from_source(void *nullarg)
 	    CLIP_AUDIO,
 	    session->source_mode.src_clip);
 	if (!cr) return;
-	cr->start_in_clip = session->source_mode.src_in_sframes;
-	cr->end_in_clip = session->source_mode.src_out_sframes;
+	astrr(&cr->start_in_clip, session->source_mode.src_in_sframes);
+	astrr(&cr->end_in_clip, session->source_mode.src_out_sframes);
 	clipref_reset(cr, true);
-	struct drop_save current_drop = (struct drop_save){cr->source_clip, cr->start_in_clip, cr->end_in_clip};
+	struct drop_save current_drop = (struct drop_save){cr->source_clip, aldr(&cr->start_in_clip), aldr(&cr->end_in_clip)};
 	/* struct drop_save drop_zero =  session->source_mode.saved_drops[0]; */
 	/* fprintf(stdout, "Current: %p, %d, %d\nzero: %p, %d, %d\n", current_drop.clip, current_drop.in, current_drop.out, drop_zero.clip, drop_zero.in, drop_zero.out); */
 	if (session->source_mode.num_dropped == 0 || memcmp(&current_drop, &(session->source_mode.saved_drops[0]), sizeof(struct drop_save)) != 0) {
@@ -2534,7 +2534,7 @@ void user_tl_drop_from_source(void *nullarg)
 		session->source_mode.saved_drops[i] = session->source_mode.saved_drops[i-1];
 	    }
 	    /* memcpy(session->source_mode.saved_drops + 1, session->source_mode.saved_drops, 3 * sizeof(struct drop_save)); */
-	    session->source_mode.saved_drops[0] = (struct drop_save){cr->source_clip, cr->start_in_clip, cr->end_in_clip};
+	    session->source_mode.saved_drops[0] = (struct drop_save){cr->source_clip, aldr(&cr->start_in_clip), aldr(&cr->end_in_clip)};
 	    if (session->source_mode.num_dropped <= 4) session->source_mode.num_dropped++;
 	    /* fprintf(stdout, "MET condition, num dropped: %d\n", session->source_mode.num_dropped); */
 	}
@@ -2567,8 +2567,8 @@ static void user_tl_drop_savedn_from_source(int n)
 	/* int32_t drop_pos = get_drop_pos(); */
 	ClipRef *cr = clipref_create(track, drop_pos, CLIP_AUDIO, drop.clip);
 	if (!cr) return;
-	cr->start_in_clip = drop.in;
-	cr->end_in_clip = drop.out;
+	astrr(&cr->start_in_clip, drop.in);
+	astrr(&cr->end_in_clip, drop.out);
 	clipref_reset(cr, true);
 
 	atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);

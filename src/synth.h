@@ -280,7 +280,8 @@ typedef struct synth {
     pthread_mutex_t audio_proc_lock;
 
     /* For asynchronous MIDI events; e.g. silencing, QWERTY (?) or piano roll(?) */
-    LFQueue midi_queue;
+    /* First queue is from main; second from dsp */
+    LFQueue midi_queue[2];
 } Synth;
 
 Synth *synth_create(Track *track);

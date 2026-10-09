@@ -1048,7 +1048,8 @@ Synth *synth_create(Track *track)
 	exit(1);
     }
 
-    lfqueue_init(&s->midi_queue, sizeof(PmEvent), PM_EVENT_BUF_NUM_EVENTS);
+    lfqueue_init(&s->midi_queue[0], sizeof(PmEvent), PM_EVENT_BUF_NUM_EVENTS);
+    lfqueue_init(&s->midi_queue[1], sizeof(PmEvent), PM_EVENT_BUF_NUM_EVENTS);
     
     effect_chain_init(&s->effect_chain, track->tl->proj, &s->api_node, "synth", track->tl->proj->chunk_size_sframes);
     s->effect_chain.api_node.do_not_serialize = true;
@@ -2084,10 +2085,16 @@ void synth_feed_midi(
 
 void synth_enqueue_midi(Synth *s, PmEvent *events, int num_events)
 {
-    MAIN_THREAD_ONLY(synth_enqueue_midi);
+    enum jdaw_thread t = current_thread();
+    
+    RESTRICT_THREAD(
+        (t == JDAW_THREAD_MAIN ||
+         t == JDAW_THREAD_DSP),
+        "synth_enqueue_midi main or dsp only");
+    int thread_index = t == JDAW_THREAD_MAIN ? 0 : 1;
     int i=0;
     for (; i<num_events; i++) {
-        if (lfqueue_try_enqueue(&s->midi_queue, &events[i], 1) != LFQUEUE_SUCCESS) {
+        if (lfqueue_try_enqueue(&s->midi_queue[thread_index], &events[i], 1) != LFQUEUE_SUCCESS) {
             break;
         }
     }
@@ -2135,14 +2142,21 @@ void synth_add_buf(Synth *s, float *restrict L, float *restrict R, int32_t len, 
     /* synth_debug_summary(s, channel, len, step); */
     /* fprintf(stderr, "PED? %d\n", s->pedal_depressed); */
     /* if (channel != 0) return; */
-    PmEvent e[PM_EVENT_BUF_NUM_EVENTS];
+    PmEvent e[PM_EVENT_BUF_NUM_EVENTS * 2];
     int num_events = 0;
     while (num_events < PM_EVENT_BUF_NUM_EVENTS) {
-        if (lfqueue_try_dequeue(&s->midi_queue, &e[num_events], 1) != LFQUEUE_SUCCESS) {
+        if (lfqueue_try_dequeue(&s->midi_queue[0], &e[num_events], 1) != LFQUEUE_SUCCESS) {
             break;
         }
         num_events++;
     }
+    while (num_events < PM_EVENT_BUF_NUM_EVENTS) {
+        if (lfqueue_try_dequeue(&s->midi_queue[1], &e[num_events], 1) != LFQUEUE_SUCCESS) {
+            break;
+        }
+        num_events++;
+    }
+
     if (num_events > 0) {
         synth_feed_midi(s, e, num_events, 0, true);
     }
@@ -2638,7 +2652,8 @@ void synth_destroy(Synth *s)
     adsr_params_deinit(&s->noise_amt_env);
     adsr_params_deinit(&s->filter_env);
 
-    lfqueue_deinit(&s->midi_queue);
+    lfqueue_deinit(&s->midi_queue[0]);
+    lfqueue_deinit(&s->midi_queue[1]);
     pthread_mutex_destroy(&s->audio_proc_lock);
     
     free(s);

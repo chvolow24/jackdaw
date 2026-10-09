@@ -40,9 +40,9 @@ typedef struct clip_ref {
     ClipRefEdge grabbed_edge;
     bool home;
     
-    int32_t tl_pos;
-    int32_t start_in_clip;
-    int32_t end_in_clip;
+    _Atomic int32_t tl_pos;
+    _Atomic int32_t start_in_clip;
+    _Atomic int32_t end_in_clip;
 
     Track *track;
 

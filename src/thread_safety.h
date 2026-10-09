@@ -74,6 +74,13 @@ enum jdaw_thread {
 	exit(1); \
     }
 
+#define RESTRICT_THREAD(name, condition)        \
+    if (!(condition)) {                         \
+    print_backtrace();                          \
+    fprintf(stderr, "Error: thread condition failed: %s", #name);   \
+    exit(1);\
+    }       \
+
 #else
 
 #define RESTRICT_NOT_MAIN(name)
@@ -81,6 +88,7 @@ enum jdaw_thread {
 #define DSP_THREAD_ONLY(name)
 #define MAIN_THREAD_ONLY(name)
 #define DSP_THREAD_ONLY_WHEN_ACTIVE(name)
+#define RESTRICT_THREAD(name, condition)
 
 #endif
 

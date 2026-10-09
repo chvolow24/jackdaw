@@ -20,6 +20,7 @@
 #include "midi_clip.h"
 /* #include "project.h" */
 #include "session.h"
+#include "thread_safety.h"
 #include "timeline.h"
 
 #define CLIPREF_NAMELABEL_H 20
@@ -60,7 +61,11 @@ static void clipref_add_to_track_array(ClipRef *cr, Track *track)
     new_clips[num_clips] = cr;
     astrr(&track->clips, new_clips);
     atomic_store_explicit(&track->num_clips, num_clips + 1, memory_order_release);
-    session_schedule_free_after_dsp_epoch(old_clips, aldr(&session_get()->threading.dsp_epoch));
+    if (thread_is_active(JDAW_THREAD_DSP)) {
+        session_schedule_free_after_dsp_epoch(old_clips, aldr(&session_get()->threading.dsp_epoch));
+    } else {
+        free(old_clips);
+    }
 }
 
 /* true if removed */
@@ -87,7 +92,11 @@ static bool clipref_remove_from_track_array(ClipRef *cr, Track *track)
 
     astrr(&track->num_clips, num_clips - 1);
     atomic_store_explicit(&track->clips, new_clips, memory_order_release);
-    session_schedule_free_after_dsp_epoch(old_clips, aldr(&session_get()->threading.dsp_epoch));
+    if (thread_is_active(JDAW_THREAD_DSP)) {
+        session_schedule_free_after_dsp_epoch(old_clips, aldr(&session_get()->threading.dsp_epoch));
+    } else {
+        free(old_clips);
+    }
     return true;
 }
 
@@ -100,7 +109,7 @@ ClipRef *clipref_create(
 {
     ClipRef *cr = calloc(1, sizeof(ClipRef));
     cr->track = track;
-    cr->tl_pos = tl_pos;
+    astrr(&cr->tl_pos, tl_pos);
     cr->type = type;
     cr->source_clip = source_clip;
 		  
@@ -125,7 +134,7 @@ ClipRef *clipref_create(
 	} else {
 	    snprintf(cr->name, MAX_NAMELENGTH, "%s", aclip->name);
 	}
-	cr->end_in_clip = aclip->len_sframes;
+	astrr(&cr->end_in_clip, aclip->len_sframes);
 	
     }
 	break;
@@ -145,7 +154,7 @@ ClipRef *clipref_create(
 	} else {
 	    snprintf(cr->name, MAX_NAMELENGTH, "%s", mclip->name);
 	}
-	cr->end_in_clip = mclip->len_sframes;
+	astrr(&cr->end_in_clip, mclip->len_sframes);
     }
 	break;
     }
@@ -232,24 +241,24 @@ ClipRef *clipref_create(
 
 int32_t clipref_len(ClipRef *cr)
 {
-    if (cr->end_in_clip == 0) {
+    if (aldr(&cr->end_in_clip) == 0) {
 	switch(cr->type) {
 	case CLIP_AUDIO:
-	    cr->end_in_clip = ((Clip *)cr->source_clip)->len_sframes;
+	    astrr(&cr->end_in_clip, ((Clip *)cr->source_clip)->len_sframes);
 	    /* return ((Clip *)(cr->source_clip))->len_sframes; */
 	    break;
 	case CLIP_MIDI:
-	    cr->end_in_clip = ((MIDIClip *)cr->source_clip)->len_sframes;
+	    astrr(&cr->end_in_clip, ((MIDIClip *)cr->source_clip)->len_sframes);
 	    /* return ((MIDIClip *)cr->source_clip)->len_sframes; */
 	    break;
 	}
     }
-    return cr->end_in_clip - cr->start_in_clip;
+    return aldr(&cr->end_in_clip) - aldr(&cr->start_in_clip);
 }
 
 void clipref_reset(ClipRef *cr, bool rescaled)
 {
-    cr->layout->x.value = timeline_get_draw_x(cr->track->tl, cr->tl_pos) / main_win->dpi_scale_factor;;
+    cr->layout->x.value = timeline_get_draw_x(cr->track->tl, aldr(&cr->tl_pos)) / main_win->dpi_scale_factor;;
     int32_t cr_len = clipref_len(cr);
     /* uint32_t cr_len = cr->in_mark_sframes >= cr->out_mark_sframes */
     /* 	? cr->clip->len_sframes */
@@ -395,7 +404,7 @@ void clipref_bring_to_front()
     ClipRef *to_move = NULL;
     for (int i=0; i<track->num_clips; i++) {
 	ClipRef *cr = track->clips[i];
-	if (!to_move && cr->tl_pos <= tl->play_pos_sframes && cr->tl_pos + clipref_len(cr) >= tl->play_pos_sframes) {
+	if (!to_move && aldr(&cr->tl_pos) <= tl->play_pos_sframes && aldr(&cr->tl_pos) + clipref_len(cr) >= tl->play_pos_sframes) {
 	    to_move = cr;
 	} else if (to_move) {
 	    track->clips[i-1] = track->clips[i];
@@ -417,7 +426,7 @@ ClipRef *clipref_at_cursor_not_dragging()
     for (int i=track->num_clips -1; i>=0; i--) {
 	ClipRef *cr = track->clips[i];
 	if (session->dragging && cr->grabbed) continue;
-	if (cr->tl_pos <= tl->play_pos_sframes && cr->tl_pos + clipref_len(cr) >= tl->play_pos_sframes) {
+	if (aldr(&cr->tl_pos) <= tl->play_pos_sframes && aldr(&cr->tl_pos) + clipref_len(cr) >= tl->play_pos_sframes) {
 	    return cr;
 	}
     }
@@ -444,7 +453,7 @@ void set_clipref_at_cursor()
     /* Reverse iter to ensure top-most clip is returned in case of overlap */
     for (int i=track->num_clips -1; i>=0; i--) {
 	ClipRef *cr = track->clips[i];
-	if (cr->tl_pos <= tl->play_pos_sframes && cr->tl_pos + clipref_len(cr) >= tl->play_pos_sframes) {
+	if (aldr(&cr->tl_pos) <= tl->play_pos_sframes && aldr(&cr->tl_pos) + clipref_len(cr) >= tl->play_pos_sframes) {
 	    tl->clipref_at_cursor = cr;
 	    return;
 	}
@@ -467,7 +476,7 @@ ClipRef *clipref_at_cursor_in_track(Track *track)
 {
     for (int i=track->num_clips-1; i>=0; i--) {
 	ClipRef *cr = track->clips[i];
-	if (cr->tl_pos <= track->tl->play_pos_sframes && cr->tl_pos + clipref_len(cr) >= track->tl->play_pos_sframes) {
+	if (aldr(&cr->tl_pos) <= track->tl->play_pos_sframes && aldr(&cr->tl_pos) + clipref_len(cr) >= track->tl->play_pos_sframes) {
 	    return cr;
 	}
     }
@@ -486,11 +495,11 @@ ClipRef *clipref_before_cursor(int32_t *pos_dst)
     for (int i=0; i<track->num_clips; i++) {
 	ClipRef *cr = track->clips[i];
 	if (cr->grabbed && session->dragging) continue;
-	int32_t cr_end = cr->tl_pos + clipref_len(cr);
+	int32_t cr_end = aldr(&cr->tl_pos) + clipref_len(cr);
 	if (cr_end <= tl->play_pos_sframes && cr_end >= end) {
 	    ret = cr;
 	    if (cr_end == tl->play_pos_sframes) {
-		end = cr->tl_pos;
+		end = aldr(&cr->tl_pos);
 	    } else {
 		end = cr_end;
 	    }
@@ -513,7 +522,7 @@ ClipRef *clipref_after_cursor(int32_t *pos_dst)
     for (int i=0; i<track->num_clips; i++) {
 	ClipRef *cr = track->clips[i];
 	if (cr->grabbed && session->dragging) continue;
-	int32_t cr_start = cr->tl_pos;
+	int32_t cr_start = aldr(&cr->tl_pos);
 	if (cr_start > tl->play_pos_sframes && cr_start <= start) {
 	    start = cr_start;
 	    if (pos_dst)
@@ -721,20 +730,20 @@ static NEW_EVENT_FN(dispose_forward_cut_clipref, "")
 void track_reset(Track *, bool);
 static ClipRef *clipref_cut(ClipRef *cr, int32_t cut_pos_rel)
 {
-    /* TrackClip *new = clipref_add(cr->track, cr->clip, cr->tl_pos + cut_pos_rel, false); */
-    ClipRef *new = clipref_create(cr->track, cr->tl_pos + cut_pos_rel, cr->type, cr->source_clip);
+    /* TrackClip *new = clipref_add(cr->track, cr->clip, aldr(&cr->tl_pos) + cut_pos_rel, false); */
+    ClipRef *new = clipref_create(cr->track, aldr(&cr->tl_pos) + cut_pos_rel, cr->type, cr->source_clip);
     if (!new) {
 	return NULL;
     }
     new->gain = cr->gain;
     if (cut_pos_rel < 0) return NULL;
     new->start_in_clip = cr->start_in_clip + cut_pos_rel;
-    new->end_in_clip = cr->end_in_clip == 0 ? clipref_len(cr) : cr->end_in_clip;
-    Value orig_end_pos = {.int32_v = cr->end_in_clip};
-    cr->end_in_clip = cr->end_in_clip == 0 ? cut_pos_rel : cr->end_in_clip - (clipref_len(cr) - cut_pos_rel);
+    new->end_in_clip = aldr(&cr->end_in_clip) == 0 ? clipref_len(cr) : aldr(&cr->end_in_clip);
+    Value orig_end_pos = {.int32_v = aldr(&cr->end_in_clip)};
+    astrr(&cr->end_in_clip, aldr(&cr->end_in_clip) == 0 ? cut_pos_rel : aldr(&cr->end_in_clip) - (clipref_len(cr) - cut_pos_rel));
     track_reset(cr->track, true);
 
-    Value cut_pos = {.int32_v = cr->end_in_clip};
+    Value cut_pos = {.int32_v = aldr(&cr->end_in_clip)};
     user_event_push(
 	undo_cut_clipref,
 	redo_cut_clipref,
@@ -757,8 +766,8 @@ void timeline_cut_at_cursor(Timeline *tl)
 	    status_set_errstr("Error: no clip at cursor");
 	    return;
 	}
-	if (tl->play_pos_sframes > cr->tl_pos && tl->play_pos_sframes < cr->tl_pos + clipref_len(cr)) {
-	    clipref_cut(cr, tl->play_pos_sframes - cr->tl_pos);
+	if (tl->play_pos_sframes > aldr(&cr->tl_pos) && tl->play_pos_sframes < aldr(&cr->tl_pos) + clipref_len(cr)) {
+	    clipref_cut(cr, tl->play_pos_sframes - aldr(&cr->tl_pos));
 	}
     } else {
 	timeline_cut_click_track_at_cursor(tl);
@@ -779,8 +788,8 @@ void timeline_cut_at_cursor_and_grab_edges(Timeline *tl)
 	    status_set_errstr("Error: no clip at cursor");
 	    return;
 	}
-	if (tl->play_pos_sframes > cr->tl_pos && tl->play_pos_sframes < cr->tl_pos + clipref_len(cr)) {
-	    ClipRef *new = clipref_cut(cr, tl->play_pos_sframes - cr->tl_pos);
+	if (tl->play_pos_sframes > aldr(&cr->tl_pos) && tl->play_pos_sframes < aldr(&cr->tl_pos) + clipref_len(cr)) {
+	    ClipRef *new = clipref_cut(cr, tl->play_pos_sframes - aldr(&cr->tl_pos));
 	    if (new) {
 		timeline_clipref_grab(new, CLIPREF_EDGE_LEFT);
 		timeline_clipref_grab(cr, CLIPREF_EDGE_RIGHT);
@@ -852,10 +861,10 @@ int clipref_split_stereo_to_mono(ClipRef *cr, ClipRef **new_L_dst, ClipRef **new
     Track *next_track = t->tl->tracks[t->tl_rank + 1];
 
     ClipRef *new_L, *new_R;
-    new_L = clipref_create(t, cr->tl_pos, CLIP_AUDIO, clip_L);
-    new_R = clipref_create(next_track, cr->tl_pos, CLIP_AUDIO, clip_R);
-    /* new_L = track_add_clipref(t, clip_L, cr->tl_pos, true); */
-    /* new_R = track_add_clipref(next_track, clip_R, cr->tl_pos, true); */
+    new_L = clipref_create(t, aldr(&cr->tl_pos), CLIP_AUDIO, clip_L);
+    new_R = clipref_create(next_track, aldr(&cr->tl_pos), CLIP_AUDIO, clip_R);
+    /* new_L = track_add_clipref(t, clip_L, aldr(&cr->tl_pos), true); */
+    /* new_R = track_add_clipref(next_track, clip_R, aldr(&cr->tl_pos), true); */
     if (new_L_dst) *new_L_dst = new_L;
     if (new_R_dst) *new_R_dst = new_R;
     snprintf(new_L->name, MAX_NAMELENGTH, "%s L", cr->name);
@@ -891,8 +900,8 @@ int clipref_split_stereo_to_mono(ClipRef *cr, ClipRef **new_L_dst, ClipRef **new
 bool clipref_marked(Timeline *tl, ClipRef *cr)
 {
     if (tl->in_mark_sframes >= tl->out_mark_sframes) return false;
-    int32_t cr_end = cr->tl_pos + clipref_len(cr);
-    if (cr_end >= tl->in_mark_sframes && cr->tl_pos <= tl->out_mark_sframes) return true;
+    int32_t cr_end = aldr(&cr->tl_pos) + clipref_len(cr);
+    if (cr_end >= tl->in_mark_sframes && aldr(&cr->tl_pos) <= tl->out_mark_sframes) return true;
     return false;
 }
 

@@ -10,15 +10,14 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include "atomic.h"
 #include "audio_clip.h"
 #include "clipref.h"
 #include "compressor.h"
 #include "consts.h"
 #include "delay_line.h"
-#include "dsp_utils.h"
 #include "effect.h"
 #include "eq.h"
-#include "file_backup.h"
 #include "fir_filter.h"
 #include "jdaw_ffmpeg.h"
 #include "log.h"
@@ -298,8 +297,8 @@ static void jdaw_write_track(FILE *f, Track *track)
     fwrite(&track->solo_muted, 1, 1, f);
     fwrite(&track->minimized, 1, 1, f);
     fwrite(&track->send_to_out, 1, 1, f);
-    
-    uint16_ser_le(f, &track->num_clips);
+    uint16_t num_clips = aldr(&track->num_clips);
+    uint16_ser_le(f, &num_clips);
     for (uint16_t i=0; i<track->num_clips; i++) {
 	jdaw_write_clipref(f, track->clips[i]);
     }
@@ -546,9 +545,12 @@ static void jdaw_write_clipref(FILE *f, ClipRef *cr)
     uint8_ser(f, &src_clip_index_8);
     /* fwrite(&src_clip_index, 1, 1, f); */
 
-    int32_ser_le(f, &cr->tl_pos);
-    int32_ser_le(f, &cr->start_in_clip);
-    int32_ser_le(f, &cr->end_in_clip);
+    int32_t tl_pos = aldr(&cr->tl_pos),
+        start_in_clip = aldr(&cr->start_in_clip),
+        end_in_clip = aldr(&cr->end_in_clip);
+    int32_ser_le(f, &tl_pos);
+    int32_ser_le(f, &start_in_clip);
+    int32_ser_le(f, &end_in_clip);
 
     /* Linear start/end ramps to be implemented later */
     uint32_t null_ramp_val = 0;

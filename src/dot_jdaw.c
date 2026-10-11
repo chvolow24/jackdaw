@@ -233,8 +233,9 @@ static void jdaw_write_midi_clip(FILE *f, MIDIClip *mclip)
     fwrite(hdr_mclip, 1, 5, f);
     uint8_t namelen = strlen(mclip->name);
     uint8_ser(f, &namelen);
-    fwrite(&mclip->name, 1, namelen, f);    
-    uint32_ser_le(f, &mclip->len_sframes);
+    fwrite(&mclip->name, 1, namelen, f);
+    uint32_t len_sframes = aldr(&mclip->len_sframes);
+    uint32_ser_le(f, &len_sframes);
 
 
     /* INSTEAD of writing objects, write midi stream */

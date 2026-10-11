@@ -12,7 +12,7 @@
     transport.c
 
     * Audio callback fns
-    * Playback and recording
++    * Playback and recording
  *****************************************************************************************************************/
 
 #include <stdatomic.h>
@@ -349,27 +349,6 @@ static void *transport_dsp_threadfn(void *arg)
             0,
             thread_get_cancellation_bool(current_thread()));
 
-	/* memcpy(tl->buf_L + tl->buf_write_pos, buf_L, sizeof(float) * len); */
-	/* memcpy(tl->buf_R + tl->buf_write_pos, buf_R, sizeof(float) * len); */
-	/* memcpy(tl->proj->output_L, buf_L, sizeof(float) * len); */
-	/* memcpy(tl->proj->output_R, buf_R, sizeof(float) * len); */
-
-	/* for (uint16_t i=tl->proj->active_clip_index; i<tl->proj->num_clips; i++) { */
-	/*     Clip *clip = tl->proj->clips[i]; */
-	/*     AudioConn *conn = clip->recorded_from; */
-	/*     if (!conn) continue; */
-	/*     if (conn->type == AUDIO_CONN_JDAW_OUT) { */
-	/* 	/\* JDAWConn *jconn = conn->obj; *\/ */
-	/* 	/\* if (jconn->write_bufpos_sframes + len < jconn->rec_buf_len_sframes) { *\/ */
-	/* 	/\* memcpy(jconn->rec_buffer_L + jconn->write_bufpos_sframes, buf_L, sizeof(float) * len); *\/ */
-	/* 	/\* memcpy(jconn->rec_buffer_R + jconn->write_bufpos_sframes, buf_R, sizeof(float) * len); *\/ */
-	/* 	/\* jconn->write_bufpos_sframes += len; *\/ */
-	/* 	/\* if (jconn->write_bufpos_sframes + 2 * len >= jconn->rec_buf_len_sframes) { *\/ */
-	/* 	/\*     copy_conn_buf_to_clip(clip, AUDIO_CONN_JDAW_OUT); *\/ */
-	/* 	/\* } *\/ */
-	/* 	break; */
-	/*     } */
-	/* } */
 
 	/* Log chunk info for playback */
 	struct dsp_chunk_info chunk_info;
@@ -395,15 +374,7 @@ static void *transport_dsp_threadfn(void *arg)
 		}
 	    }
 	}
-	
-	/* for (int i=0; i<N; i++) { */
-	/*     sem_post(tl->readable_chunks); */
-	/* } */
-	/* if (init) { */
-	/*     sem_post(tl->unpause_sem); */
-	/*     init = false; */
-	/* } */
-	
+        
 	session_do_ongoing_changes(JDAW_THREAD_DSP);
         
 	if (transport_performance_logging) {
@@ -542,38 +513,13 @@ void transport_stop_playback()
 	midi_monitor_clear();
     }
 
-    /* Busy waiting */
-    /* uint32_t test = 0; */
-    /* AudioDevice *dev = session->audio_io.playback_conn->obj; */
-    /* while (dev->request_close) { */
-    /* 	test++; */
-    /* 	if (test > 2e8) { */
-    /* 	    log_tmp(LOG_ERROR, "Audio device \"%s\" requested close, but has not closed. Closing from DSP thread.\n", session->audio_io.playback_conn->name); */
-    /* 	    SDL_PauseAudioDevice(dev->id, 1); */
-    /* 	    dev->playing = false; */
-    /* 	    TESTBREAK; */
-    /* 	    break; */
-    /* 	} */
-    /* } */
-
     thread_cancel(JDAW_THREAD_DSP);
 
-    /* Reset writeable chunks sem */
-    /* for (int i=0; i<session->proj.fourier_len_sframes * RING_BUF_LEN_FFT_CHUNKS / session->proj.chunk_size_sframes; i++) { */
-    /*     /\* fprintf(stdout, "\t->reinitiailizing writable chunks\n"); *\/ */
-    /*     sem_post(tl->writable_chunks); */
-    /* } */
-
-    /* TODO: MAYBE */
     tl->read_pos_sframes = tl->play_pos_sframes;
 
     
     astrr(&session->playback.playing, false);
-    /* pthread_kill(proj->dsp_thread, SIGINT); */
-    /* fprintf(stdout, "Cancelled!\n"); */
     session->source_mode.src_play_speed = 0.0f;
-    /* session->playback.play_speed = 0.0f; */
-
     
     PageEl *el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_play");
     Textbox *play_button = ((Button *)el->component)->tb;
@@ -582,8 +528,6 @@ void transport_stop_playback()
     el = panel_area_get_el_by_id(session->gui.panels, "panel_quickref_rewind");
     Textbox *rewind_button = ((Button *)el->component)->tb;
     textbox_set_background_color(rewind_button, &colors.quickref_button_blue);
-
-
 }
 
 void transport_start_recording()
@@ -725,12 +669,6 @@ end_get_conns:
 
 void create_clip_buffers(Clip *clip, uint32_t len_sframes)
 {
-    /* if (clip->L != NULL) { */
-
-    /* 	fprintf(stderr, "Error: clip %s already has a buffer allocated\n", clip->name); */
-    /* 	exit(1); */
-    /* } */
-    /* fprintf(stdout, "CREATING CLIP BUFFERS %d\n", len_sframes); */
     pthread_mutex_lock(&clip->buf_realloc_lock);
     uint32_t buf_len_bytes = sizeof(float) * len_sframes;
     if (!clip->L) {
@@ -864,52 +802,6 @@ void dequeue_recorded_audio()
 
 }
 
-/* static void copy_device_buf_to_clips(AudioDevice *dev) */
-/* { */
-/*     Clip *clips[dev->spec.channels]; */
-/*     float *buffers[dev->spec.channels]; */
-/*     memset(clips, 0, sizeof(clips)); */
-/*     memset(buffers, 0, sizeof(buffers)); */
-/*     /\* int32_t read_pos = ACTIVE_TL->read_pos_sframes; *\/ */
-/*     for (int c=0; c<dev->spec.channels; c++) { */
-/* 	clips[c] = dev->channel_dsts[c].conn->current_clip; */
-/* 	bool clip_redundant = false; */
-/* 	for (int j=0; j<c; j++) { */
-/* 	    if (clips[j] == clips[c]) { */
-/* 		clip_redundant = true; */
-/* 		break; */
-/* 	    } */
-/* 	} */
-/* 	if (!clip_redundant && clips[c]) { */
-/* 	    clips[c]->len_sframes = clips[c]->write_bufpos_sframes + dev->write_bufpos_samples / dev->spec.channels; */
-/* 	    create_clip_buffers(clips[c], clips[c]->len_sframes); */
-/* 	} */
-
-/*     } */
-/*     for (int c=0; c<dev->spec.channels; c++) { */
-/* 	if (!clips[c]) continue; */
-/* 	if (dev->channel_dsts[c].channel == 0) { */
-/* 	    clips[c] = dev->channel_dsts[c].conn->current_clip; */
-/* 	    buffers[c] = clips[c]->L + clips[c]->write_bufpos_sframes; */
-/* 	} else { */
-/* 	    clips[c] = dev->channel_dsts[c].conn->current_clip; */
-/* 	    buffers[c] = dev->channel_dsts[c].conn->current_clip->R + clips[c]->write_bufpos_sframes; */
-/* 	} */
-
-/*     } */
-/*     for (int i=0; i<dev->write_bufpos_samples; i++) { */
-/* 	if (buffers[i % dev->spec.channels]) { */
-/* 	    buffers[i % dev->spec.channels][i / dev->spec.channels] = (double)dev->rec_buffer[i] / INT16_MAX; */
-/* 	} */
-/*     } */
-/*     for (int c=0; c<dev->spec.channels; c++) {  */
-/* 	if (clips[c]) { */
-/* 	    clips[c]->write_bufpos_sframes = clips[c]->len_sframes; */
-/* 	    clip_init_or_update_waveform(clips[c]); */
-/* 	} */
-/*     } */
-/* } */
-
 void copy_conn_buf_to_clip(Clip *clip, enum audio_conn_type type)
 {
     switch (type) {
@@ -928,15 +820,6 @@ void copy_conn_buf_to_clip(Clip *clip, enum audio_conn_type type)
     }
 	break;
     case AUDIO_CONN_JDAW_OUT: {
-	/* OUROBOROS */
-	/* JDAWConn *jconn = clip->recorded_from->obj; */
-	/* clip->len_sframes = clip->write_bufpos_sframes + jconn->write_bufpos_sframes; */
-	/* create_clip_buffers(clip, clip->len_sframes); */
-	/* memcpy(clip->L + clip->write_bufpos_sframes, jconn->rec_buffer_L, jconn->write_bufpos_sframes * sizeof(float)); */
-	/* memcpy(clip->R + clip->write_bufpos_sframes, jconn->rec_buffer_R, jconn->write_bufpos_sframes * sizeof(float)); */
-	/* clip->write_bufpos_sframes = clip->len_sframes; */
-	/* jconn->write_bufpos_sframes = 0; */
-	/* clip_init_or_update_waveform(clip); */
     }
 	break;
     default:
@@ -1218,7 +1101,7 @@ void transport_recording_update_cliprects()
 
 	for (uint16_t j=0; j<mclip->num_refs; j++) {
 	    ClipRef *cr = mclip->refs[j];
-	    cr->end_in_clip = mclip->len_sframes;
+	    cr->end_in_clip = aldr(&mclip->len_sframes);
 	    clipref_reset(cr, false);
 	}
     }

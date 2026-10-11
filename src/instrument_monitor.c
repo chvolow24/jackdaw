@@ -49,8 +49,13 @@ static void *instrument_monitor_threadfn(void *arg)
         synth_feed_midi(s, local_event_buf, i, 0, true);
         MIDIClip *current_clip = aldr(&d->current_clip);
         if (current_clip && d->current_clip->recording) {
+            lfqueue_try_enqueue(&d->event_queue, local_event_buf, i);
             midi_device_output_chunk_to_clip(d, 1);
-            current_clip->len_sframes += len_sframes;
+            atomic_fetch_add_explicit(
+                &current_clip->len_sframes,
+                len_sframes,
+                memory_order_relaxed);
+
         }
         if (fabs(playspeed) < 1e-6 || !aldr(&session->playback.playing)) playspeed = 1.0f;
 

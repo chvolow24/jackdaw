@@ -34,6 +34,8 @@ static const char *thread_names[NUM_JDAW_THREADS] = {
     "instrument",
 };
 
+_Atomic uint32_t thread_epochs[NUM_JDAW_THREADS] = {0};
+
 void set_thread_id(enum jdaw_thread index)
 {
     pthread_t self = pthread_self();
@@ -153,4 +155,16 @@ bool thread_not_canceled()
 _Atomic bool *thread_get_cancellation_bool(enum jdaw_thread thread)
 {
     return &thread_req_cancel[thread];
+}
+
+
+uint32_t thread_epoch(enum jdaw_thread thread)
+{
+    return atomic_load_explicit(&thread_epochs[thread], memory_order_acquire);
+}
+
+void thread_increment_epoch()
+{
+    _Atomic uint32_t *epoch = thread_epochs + current_thread();
+    atomic_fetch_add_explicit(epoch, 1, memory_order_release);
 }

@@ -22,6 +22,7 @@
 
 #include <pthread.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 /* Number of threads on which endpoint ops can occur;
    restricted to main, dsp, and playback threads */
@@ -140,5 +141,7 @@ void thread_cancel(enum jdaw_thread thread);
 bool thread_not_canceled();
 
 _Atomic bool *thread_get_cancellation_bool(enum jdaw_thread thread);
+uint32_t thread_epoch(enum jdaw_thread thread);
+void thread_increment_epoch();
 
 #endif

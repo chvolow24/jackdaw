@@ -38,6 +38,7 @@
 #define MAX_SESSION_AUDIO_DEVICES 32
 #define SESSION_MAX_METRONOME_BUFFERS 16
 #define MAX_QUEUED_OPS 255
+#define MAX_QUEUED_SCHEDULED_FREES 16
 
 #define DRAG_COLOR_PULSE_PHASE_MAX 30
 
@@ -216,24 +217,18 @@ struct system {
     int cores;
 };
 
-#define OBJ_EPOCH_FREE_INIT_CAP 8
-
-struct obj_epoch {
-    void *obj;
-    uint32_t epoch;
+struct scheduled_free {
+    void *obj;    
+    enum jdaw_thread threads[NUM_JDAW_THREADS];
+    uint32_t epochs[NUM_JDAW_THREADS];
+    int num_thread_epochs;
 };
 
-/* struct obj_epochs_to_free { */
-/*     struct obj_epoch *obj_epochs; */
-/*     int num_obj_epochs; */
-/*     int obj_epochs_capacity; */
-/* }; */
-
 struct threading {
-    _Atomic uint32_t dsp_epoch;
-    struct obj_epoch *dsp_oes;
-    int dsp_oes_alloc_len;
-    int dsp_oes_len;
+    LFQueue queued_scheduled_frees[NUM_JDAW_THREADS];
+    struct scheduled_free *sfs;
+    int sfs_alloc_len;
+    int sfs_len;
 };
 
 /* All persistent "global" data not related to a Project or Window */
@@ -298,7 +293,14 @@ void session_set_proj_path(const char *path);
 
 void session_set_proj_name(const char *name);
 
-void session_schedule_free_after_dsp_epoch(void *obj_to_free, uint32_t after_epoch);
-void session_do_free_after_dsp_epoch();
+/* Thread-safe */
+void session_schedule_free(
+    void *obj_to_free,
+    const enum jdaw_thread (*const threads),
+    const uint32_t *const epochs,
+    const int num_thread_epochs);
+
+/* Ok */
+void session_do_scheduled_frees();
 
 #endif

@@ -22,6 +22,7 @@
 #include "instrument_monitor.h"
 #include "session.h"
 #include "session_endpoint_ops.h"
+#include "spsc_lfqueue.h"
 #include "thread_safety.h"
 #include "timeline.h"
 #include "transport.h"
@@ -177,10 +178,14 @@ Session *session_create()
     }
 
     /* Initialize "threading" */
-    atomic_init(&session->threading.dsp_epoch, 0);
-    session->threading.dsp_oes_alloc_len = OBJ_EPOCH_FREE_INIT_CAP;
-    session->threading.dsp_oes = malloc(OBJ_EPOCH_FREE_INIT_CAP * sizeof(struct obj_epoch));
-    session->threading.dsp_oes_len = 0;
+    for (int t=0; t<NUM_JDAW_THREADS; t++) {
+        lfqueue_init(
+            &session->threading.queued_scheduled_frees[t],
+            sizeof(struct scheduled_free),
+            MAX_QUEUED_SCHEDULED_FREES);
+    }
+    session->threading.sfs_alloc_len = 8;
+    session->threading.sfs = malloc(8 * sizeof(struct scheduled_free));
 
     /* Endpoints */
     endpoint_init(
@@ -383,6 +388,12 @@ void session_destroy()
     }
     lfqueue_deinit(&session->playback.playback_lfqueue);
 
+    /* Deinit 'threading' */
+    for (int t=0; t<NUM_JDAW_THREADS; t++) {
+        lfqueue_deinit(&session->threading.queued_scheduled_frees[t]);
+    }
+    free(session->threading.sfs);
+
 
 
     /* user_event_history_clear(&session->history); */
@@ -572,42 +583,98 @@ void session_set_proj_name(const char *name)
     session_check_reset_window_title();
 }
 
-void session_schedule_free_after_dsp_epoch(void *obj_to_free, uint32_t after_epoch)
-{
-    MAIN_THREAD_ONLY(session_free_after_dsp_epoch);
-    if (session->threading.dsp_oes_len == session->threading.dsp_oes_alloc_len) {
-        session->threading.dsp_oes_alloc_len *= 2;
-        session->threading.dsp_oes = realloc(
-            session->threading.dsp_oes,
-            session->threading.dsp_oes_alloc_len);
+void session_schedule_free_after_epochs(struct scheduled_free *oes)
+{    
+    if (on_thread(JDAW_THREAD_MAIN)) {
     }
-    struct obj_epoch oe = {obj_to_free, after_epoch};
-    session->threading.dsp_oes[session->threading.dsp_oes_len] = oe;
-    session->threading.dsp_oes_len++;
 }
 
-void session_do_free_after_dsp_epoch()
+void session_schedule_free(
+    void *obj_to_free,
+    const enum jdaw_thread (*const threads),
+    const uint32_t *const epochs,
+    const int num_thread_epochs)
 {
+    if (!on_thread(JDAW_THREAD_MAIN)) {
+        struct scheduled_free oe;
+        oe.obj = obj_to_free;
+        memcpy(&oe.threads, threads, num_thread_epochs * sizeof(enum jdaw_thread));
+        memcpy(&oe.epochs, epochs, num_thread_epochs * sizeof(enum jdaw_thread));
+        oe.num_thread_epochs = num_thread_epochs;
+        int ret = lfqueue_try_enqueue(&session->threading.queued_scheduled_frees[current_thread()],&oe,1);
+        if (ret != LFQUEUE_SUCCESS) {
+            log_tmp(LOG_ERROR, "Unable to enqueue scheduled free: %s\n", lfqueue_get_errstr(ret));
+        }
+        return;            
+    }
     MAIN_THREAD_ONLY(session_free_after_dsp_epoch);
-    uint32_t dsp_epoch = atomic_load_explicit(&session->threading.dsp_epoch, memory_order_acquire);
-    int num_handled = 0;
-    for (int i=0; i<session->threading.dsp_oes_len; i++) {
-        struct obj_epoch oe = session->threading.dsp_oes[i];
-        if (oe.epoch < dsp_epoch) {
-            free(oe.obj);
-            num_handled++;
-        } else {
-            break;
+    if (session->threading.sfs_len == session->threading.sfs_alloc_len) {
+        session->threading.sfs_alloc_len *= 2;
+        session->threading.sfs = realloc(session->threading.sfs, session->threading.sfs_alloc_len * sizeof(struct scheduled_free));
+    }
+    struct scheduled_free *oe = session->threading.sfs + session->threading.sfs_len;
+    oe->obj = obj_to_free;
+    memcpy(&oe->threads, threads, num_thread_epochs * sizeof(enum jdaw_thread));
+    memcpy(&oe->epochs, epochs, num_thread_epochs * sizeof(enum jdaw_thread));
+    oe->num_thread_epochs = num_thread_epochs;
+    session->threading.sfs_len++;
+}
+
+void session_do_scheduled_frees()
+{
+    MAIN_THREAD_ONLY(session_do_scheduled_free);
+
+    /* Dequeue sfs from other threads and add them to main thread's list */
+    struct scheduled_free dequeued_sfs[MAX_QUEUED_SCHEDULED_FREES * NUM_JDAW_THREADS];
+    int num_dequeued_sfs = 0;
+    for (int t=0; t<NUM_JDAW_THREADS; t++) {
+        while (lfqueue_try_dequeue(
+                   &session->threading.queued_scheduled_frees[t],
+                   dequeued_sfs + num_dequeued_sfs,
+                   1) == LFQUEUE_SUCCESS) {
+            num_dequeued_sfs++;
         }
     }
-    if (num_handled > 0) {
-        memmove(
-            session->threading.dsp_oes,
-            session->threading.dsp_oes + num_handled,
-            sizeof(struct obj_epoch) * (session->threading.dsp_oes_len - num_handled));
-        fprintf(stderr, "Handled %d scheduled frees!\n", num_handled);
+    while (session->threading.sfs_len + num_dequeued_sfs > session->threading.sfs_alloc_len) {
+        session->threading.sfs_alloc_len *= 2;
+        session->threading.sfs = realloc(session->threading.sfs, session->threading.sfs_alloc_len * sizeof(struct scheduled_free));
     }
-    session->threading.dsp_oes_len -= num_handled;
-}
+    memcpy(&session->threading.sfs + session->threading.sfs_len, dequeued_sfs, num_dequeued_sfs * sizeof(struct scheduled_free));
+    session->threading.sfs_len += num_dequeued_sfs;
 
+
+    /* Handle list */
+    for (int i=0; i<session->threading.sfs_len; i++) {
+        struct scheduled_free *sf = session->threading.sfs + i;
+        bool conditions_met = true;
+        for (int i=0; i<sf->num_thread_epochs; i++) {
+            enum jdaw_thread t = sf->threads[i];
+            if (!thread_is_active(t)) {
+                /* condition met for this thread,
+                   regardless of epoch */
+                continue;
+            }
+            uint32_t epoch = sf->epochs[i];
+            if (thread_epoch(t) <= epoch) {
+                conditions_met = false;
+                break;
+            }
+        }
+        if (conditions_met) {
+            /* value of 'i' records the fact that this was done */
+            free(sf->obj);
+        } else {
+            /* save rest for later */
+            if (i > 0) {
+                memmove(
+                    session->threading.sfs,
+                    session->threading.sfs + i,
+                    (session->threading.sfs_len - i) * sizeof(struct scheduled_free));
+                session->threading.sfs_len -= i;
+            }            
+            break;
+        }
+        
+    }    
+}
 

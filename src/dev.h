@@ -9,4 +9,18 @@
   #define DEPRECATED
 #endif
 
+#if defined(__has_c_attribute)
+#  if __has_c_attribute(nodiscard)
+#    define NODISCARD [[nodiscard]]
+#  endif
+#endif
+#ifndef NODISCARD
+#  if defined(__GNUC__) || defined(__clang__)
+#    define NODISCARD __attribute__((__warn_unused_result__))
+#  else
+#    define NODISCARD
+#  endif
+#endif
+
+
 #endif

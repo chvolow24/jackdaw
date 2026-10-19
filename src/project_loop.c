@@ -641,12 +641,13 @@ void loop_project_main()
 
     end_frame:
 
-        session_do_free_after_dsp_epoch();
-
+        session_do_scheduled_frees();
+        thread_increment_epoch();
 	if (!aldr(&session->playback.recording) && ((!redrawn && frames_since_event >= IDLE_AFTER_N_FRAMES) || !main_win->focused)) {
 	    SDL_Delay(200);
 	} else {
 	    SDL_Delay(1);
 	}
+
     }
 }

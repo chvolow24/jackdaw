@@ -75,6 +75,8 @@ static void *instrument_monitor_threadfn(void *arg)
             INSTRUMENT_MONITOR_WAIT_LOOP_USECONDS,
             0,
             thread_get_cancellation_bool(current_thread()));
+
+        thread_increment_epoch();
     }
     return NULL;
 }

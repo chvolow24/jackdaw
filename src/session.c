@@ -589,12 +589,14 @@ void session_schedule_free_after_epochs(struct scheduled_free *oes)
     }
 }
 
+/* copy data from args */
 void session_schedule_free(
     void *obj_to_free,
     const enum jdaw_thread (*const threads),
     const uint32_t *const epochs,
     const int num_thread_epochs)
 {
+    /* Outside of main thread, queue for main thread */
     if (!on_thread(JDAW_THREAD_MAIN)) {
         struct scheduled_free oe;
         oe.obj = obj_to_free;
@@ -607,7 +609,8 @@ void session_schedule_free(
         }
         return;            
     }
-    MAIN_THREAD_ONLY(session_free_after_dsp_epoch);
+
+    /* On main: add to list */
     if (session->threading.sfs_len == session->threading.sfs_alloc_len) {
         session->threading.sfs_alloc_len *= 2;
         session->threading.sfs = realloc(session->threading.sfs, session->threading.sfs_alloc_len * sizeof(struct scheduled_free));

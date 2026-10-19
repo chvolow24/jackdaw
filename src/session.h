@@ -293,7 +293,8 @@ void session_set_proj_path(const char *path);
 
 void session_set_proj_name(const char *name);
 
-/* Thread-safe */
+/* Thread-safe.
+   copies data from args */
 void session_schedule_free(
     void *obj_to_free,
     const enum jdaw_thread (*const threads),

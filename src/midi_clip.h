@@ -48,12 +48,11 @@ typedef struct clip_ref ClipRef;
 
 typedef struct midi_clip {
     char name[MAX_NAMELENGTH];
-    uint32_t len_sframes;
-    
-    Note *notes;
-    uint32_t num_notes;
-    uint32_t notes_alloc_len;
-    pthread_mutex_t notes_arr_lock;
+    _Atomic uint32_t len_sframes;
+    Note *_Atomic notes;
+    _Atomic uint32_t num_notes;
+    /* uint32_t notes_alloc_len; */
+    /* pthread_mutex_t notes_arr_lock; */
     uint32_t note_id;
 
     Controller controllers[MIDI_NUM_CONTROLLERS];
@@ -69,7 +68,7 @@ typedef struct midi_clip {
     ClipRef **refs;
     uint16_t num_refs;
     uint16_t refs_alloc_len;
-    bool recording;
+    _Atomic bool recording;
 
     char *midi_track_name;
     int primary_instrument;

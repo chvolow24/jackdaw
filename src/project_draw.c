@@ -8,6 +8,7 @@
 
 *****************************************************************************************************************/
 
+#include "atomic.h"
 #include "audio_clip.h"
 #include "autocompletion.h"
 #include "color.h"
@@ -212,7 +213,6 @@ static void clipref_draw(ClipRef *cr)
 	if (true_note_height < 1.0) true_note_height = 1.0;
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.dark_brown));
 	MIDIClip *mclip = cr->source_clip;
-	pthread_mutex_lock(&mclip->notes_arr_lock);
 	int32_t first_note = midi_clipref_check_get_first_note(cr);
 	if (first_note < 0) goto end_draw_notes;
 	
@@ -237,7 +237,8 @@ static void clipref_draw(ClipRef *cr)
 	    SDL_RenderFillRect(main_win->rend, &note_rect);
 	}
     end_draw_notes:
-	pthread_mutex_unlock(&mclip->notes_arr_lock);
+        (void)0;
+	/* pthread_mutex_unlock(&mclip->notes_arr_lock); */
     }
 
     
@@ -312,8 +313,10 @@ static void track_draw(Track *track)
     SDL_RenderFillRect(main_win->rend, &track->inner_layout->rect);
 
     /* SDL_RenderSetClipRect(main_win->rend, &tl->layout->rect); */
-    for (uint16_t i=0; i<track->num_clips; i++) {
-	clipref_draw(track->clips[i]);
+    struct sa_data sd = shared_array_get(&track->clips);
+    ClipRef *cr = NULL;
+    while ((cr = *(ClipRef **)shared_array_iter(&sd))) {
+	clipref_draw(cr);
     }
     
     /* Left mask */

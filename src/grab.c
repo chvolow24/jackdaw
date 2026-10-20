@@ -382,8 +382,9 @@ void timeline_grab_marked_range(Timeline *tl, ClipRefEdge edge)
 	Track *t = tl->tracks[i];
 	if (t->active) {
 	    had_active_track = true;
-	    for (int i=0; i<t->num_clips; i++) {
-		ClipRef *cr = t->clips[i];
+            struct sa_data sd = shared_array_get(&t->clips);
+            ClipRef *cr = NULL;
+            while ((cr = *(ClipRef **)shared_array_iter(&sd))) {
 		if (clipref_marked(tl, cr)) {
 		    timeline_clipref_grab(cr, edge);
 		}
@@ -393,8 +394,9 @@ void timeline_grab_marked_range(Timeline *tl, ClipRefEdge edge)
     Track *t = timeline_selected_track(tl);
     if (!had_active_track && t) {
 	/* Track *t = timeline_selected_track(tl); */
-	for (int i=0; i<t->num_clips; i++) {
-	    ClipRef *cr = t->clips[i];
+        struct sa_data sd = shared_array_get(&t->clips);
+        ClipRef *cr = NULL;
+        while ((cr = *(ClipRef **)shared_array_iter(&sd))) {
 	    if (clipref_marked(tl, cr)) {
 		timeline_clipref_grab(cr, edge);
 	    }

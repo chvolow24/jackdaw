@@ -298,10 +298,13 @@ static void jdaw_write_track(FILE *f, Track *track)
     fwrite(&track->solo_muted, 1, 1, f);
     fwrite(&track->minimized, 1, 1, f);
     fwrite(&track->send_to_out, 1, 1, f);
-    uint16_t num_clips = aldr(&track->num_clips);
+    struct sa_data sd = shared_array_get(&track->clips);
+    
+    uint16_t num_clips = sd.len;
     uint16_ser_le(f, &num_clips);
-    for (uint16_t i=0; i<track->num_clips; i++) {
-	jdaw_write_clipref(f, track->clips[i]);
+    ClipRef *cr = NULL;
+    while ((cr = *(ClipRef **)shared_array_iter(&sd))) {
+        jdaw_write_clipref(f, cr);
     }
 
     /* Effects */

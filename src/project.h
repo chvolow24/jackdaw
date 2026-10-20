@@ -35,6 +35,7 @@
 #include "tempo.h"
 #include "timeview.h"
 #include "spsc_lfqueue.h"
+#include "shared_array.h"
 #include "synth.h"
 #include "textbox.h"
 
@@ -133,8 +134,9 @@ typedef struct track {
     Endpoint send_to_out_ep;
     APINode audio_routing_api_node;
 
-    ClipRef **_Atomic clips;
-    _Atomic uint16_t num_clips;
+    SharedArray clips;
+    /* ClipRef **_Atomic clips; */
+    /* _Atomic uint16_t num_clips; */
     /* uint16_t clips_alloc_len; */
     /* ClipRef *clips[MAX_TRACK_CLIPS]; */
     /* uint16_t num_clips; */

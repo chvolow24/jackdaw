@@ -25,6 +25,7 @@
 #include <stdint.h>
 #include "midi_io.h"
 #include "midi_objs.h"
+#include "shared_array.h"
 #include "tempo.h"
 #include "textbox.h"
 
@@ -49,8 +50,9 @@ typedef struct clip_ref ClipRef;
 typedef struct midi_clip {
     char name[MAX_NAMELENGTH];
     _Atomic uint32_t len_sframes;
-    Note *_Atomic notes;
-    _Atomic uint32_t num_notes;
+    SharedArray notes;
+    /* Note *_Atomic notes; */
+    /* _Atomic uint32_t num_notes; */
     /* uint32_t notes_alloc_len; */
     /* pthread_mutex_t notes_arr_lock; */
     uint32_t note_id;

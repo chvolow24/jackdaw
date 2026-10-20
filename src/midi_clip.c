@@ -6,6 +6,7 @@
 #include "midi_objs.h"
 #include "modal.h"
 #include "project.h"
+#include "shared_array.h"
 #include "tempo.h"
 #include "test.h"
 #include "session.h"
@@ -23,17 +24,11 @@ extern struct colors colors;
 /* Mandatory initialization after allocating */
 void midi_clip_init(MIDIClip *mclip)
 {
-    mclip->notes_alloc_len = DEFAULT_NOTES_ALLOC_LEN;
-    mclip->notes = calloc(mclip->notes_alloc_len, sizeof(Note));
+    enum jdaw_thread users[2] = {JDAW_THREAD_INSTRUMENT, JDAW_THREAD_DSP};
+    shared_array_init(&mclip->notes, sizeof(Note), users, 2);
 
     mclip->refs_alloc_len = DEFAULT_REFS_ALLOC_LEN;
     mclip->refs = calloc(mclip->refs_alloc_len, sizeof(ClipRef *));
-
-    int err;
-    if ((err = pthread_mutex_init(&mclip->notes_arr_lock, NULL)) != 0) {
-	fprintf(stderr, "Error initializing mutex in 'midi_clip_init': %s\n", strerror(err));
-	exit(1);
-    }
 }
 
 MIDIClip *midi_clip_create(MIDIDevice *device, Track *target)
@@ -74,7 +69,7 @@ void midi_clip_destroy(MIDIClip *mc, bool displace_in_proj)
     if (mc->recorded_from && mc->recorded_from->current_clip == mc) {
 	mc->recorded_from->current_clip = NULL;
     }
-    free(mc->notes);
+    shared_array_deinit(&mc->notes);
     for (int i=0; i<mc->num_refs; i++) {
 	clipref_destroy(mc->refs[i], false);
     }
@@ -101,7 +96,6 @@ void midi_clip_destroy(MIDIClip *mc, bool displace_in_proj)
     }
     if (mc->pitch_bend.changes) free(mc->pitch_bend.changes);
 
-    pthread_mutex_destroy(&mc->notes_arr_lock);
     free(mc->refs);
     free(mc);
 }
@@ -126,10 +120,11 @@ static void grabbed_notes_incr(MIDIClip *mclip, int32_t from_i, int32_t until_i,
 
 void midi_clip_note_check_reset_bounds(MIDIClip *mc, Note *note)
 {
-    if (note->start_rel < 0 && note == mc->notes) {
+    struct sa_data sd = shared_array_get(&mc->notes);
+    if (note->start_rel < 0 && note == sd.__array) { /* Is first note */
 	int32_t adj = note->start_rel * -1;
-	for (int i=0; i<mc->num_notes; i++) {
-	    Note *note = mc->notes + i;
+        Note *note = NULL;
+        while ((note = (Note *)shared_array_iter(&sd))) {
 	    note->start_rel += adj;
 	    note->end_rel += adj;
 	}
@@ -149,12 +144,14 @@ void midi_clip_note_check_reset_bounds(MIDIClip *mc, Note *note)
 
 void midi_clip_check_reset_bounds(MIDIClip *mc)
 {
-    midi_clip_note_check_reset_bounds(mc, mc->notes); /* first note */
+    struct sa_data sd = shared_array_get(&mc->notes);
+    midi_clip_note_check_reset_bounds(mc, (Note *)shared_array_at(&sd, 0)); /* first note */
     Note *last = NULL;
     int32_t end_pos = 0;
-    for (int i=0; i<mc->num_notes; i++) {
-	if (mc->notes[i].end_rel > end_pos) {
-	    last = mc->notes + i;
+    Note *note = NULL;
+    while ((note = (Note *)shared_array_iter(&sd))) {
+	if (note->end_rel > end_pos) {
+	    last = note;
 	    end_pos = last->end_rel;
 	}
     }
@@ -165,20 +162,12 @@ void midi_clip_check_reset_bounds(MIDIClip *mc)
 
 Note *midi_clip_insert_note(MIDIClip *mc, int channel, int note_val, int velocity, int32_t start_rel, int32_t end_rel)
 {
-    pthread_mutex_lock(&mc->notes_arr_lock);
-    if (!mc->notes) {
-	mc->notes_alloc_len = 32;
-	mc->notes = calloc(mc->notes_alloc_len, sizeof(Note));
-    }
-    if (mc->num_notes == mc->notes_alloc_len) {
-	mc->notes_alloc_len *= 2;
-	mc->notes = realloc(mc->notes, mc->notes_alloc_len * sizeof(Note));
-	memset(mc->notes + mc->num_notes, 0, sizeof(Note) * (mc->notes_alloc_len - mc->num_notes));
-	/* grabbed_notes_rebase(mc, mc->notes);	       */
-    }
-    pthread_mutex_unlock(&mc->notes_arr_lock);
-    Note *note = mc->notes + mc->num_notes;
-    while (note > mc->notes && start_rel < (note - 1)->start_rel) {
+    struct sa_data sd = shared_array_get(&mc->notes);
+    Note notes[sd.len + 1];
+    shared_array_copy(&sd, notes, sd.len);
+    
+    Note *note = notes + sd.len;
+    while (note > notes && start_rel < (note - 1)->start_rel) {
 	*note = *(note - 1);
 	note--;
     }
@@ -188,12 +177,14 @@ Note *midi_clip_insert_note(MIDIClip *mc, int channel, int note_val, int velocit
     note->velocity = velocity;
     note->start_rel = start_rel;
     note->end_rel = end_rel;
-    mc->num_notes++;
     
     note->id = mc->note_id;
     mc->note_id++;
 
-    grabbed_notes_incr(mc, note - mc->notes + 1, mc->num_notes, 1);
+    shared_array_set(&sd, notes, sd.len + 1);
+    // TODO: FIX GRABBED NOTES INCR
+    grabbed_notes_incr(mc, note - notes + 1, sd.len + 1, 1);
+    
     midi_clip_note_check_reset_bounds(mc, note);
     /* if (note->start_rel < 0 && note - mc->notes == 0) { */
     /* 	int32_t adj = note->start_rel * -1; */

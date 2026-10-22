@@ -313,9 +313,9 @@ static void track_draw(Track *track)
     SDL_RenderFillRect(main_win->rend, &track->inner_layout->rect);
 
     /* SDL_RenderSetClipRect(main_win->rend, &tl->layout->rect); */
-    struct sa_data sd = shared_array_get(&track->clips);
+    struct sa_data sd = sa_get(&track->clips);
     ClipRef *cr = NULL;
-    while ((cr = *(ClipRef **)shared_array_iter(&sd))) {
+    while ((cr = *(ClipRef **)sa_iter(&sd))) {
 	clipref_draw(cr);
     }
     

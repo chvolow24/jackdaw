@@ -47,7 +47,7 @@ struct note_quantize_info {
 
 typedef struct note {
     uint8_t channel;
-    uint8_t key;
+    uint8_t key; /* TODO: define a type */
     uint8_t velocity;
     int32_t start_rel; /* sample frames from clip start */
     int32_t end_rel; /* sample frames from clip start */

@@ -1008,10 +1008,10 @@ void piano_roll_up_note()
     if (state.clip->num_notes == 0) return;
     Session *session = session_get();
     int32_t pos = ACTIVE_TL->play_pos_sframes;
-    Note *note = midi_clipref_up_note_at_cursor(state.cr, pos, state.selected_note);
-    if (note) {
+    uint8_t key = midi_clipref_up_note_at_cursor(state.cr, pos, state.selected_note);
+    if (key > 0) {
 	timeline_set_play_position(ACTIVE_TL, pos, false);
-	state.selected_note = note->key;
+	state.selected_note = key;
     } else {
 	piano_roll_move_note_selector(12);
     }
@@ -1022,10 +1022,10 @@ void piano_roll_down_note()
     if (state.clip->num_notes == 0) return;
     Session *session = session_get();
     int32_t pos = ACTIVE_TL->play_pos_sframes;
-    Note *note = midi_clipref_down_note_at_cursor(state.cr, pos, state.selected_note);
-    if (note) {
+    uint8_t key = midi_clipref_down_note_at_cursor(state.cr, pos, state.selected_note);
+    if (key > 0) {
 	timeline_set_play_position(ACTIVE_TL, pos, false);
-	state.selected_note = note->key;
+	state.selected_note = key;
     } else {
 	piano_roll_move_note_selector(-12);
     }
@@ -2187,9 +2187,6 @@ void piano_roll_mouse_up(SDL_Point mousep)
 	    midi_clipref_cache_grabbed_note_info(state.cr);
 	}
     }
-
-
-
 }
 
 

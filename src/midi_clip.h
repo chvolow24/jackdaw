@@ -23,6 +23,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include "dev.h"
 #include "midi_io.h"
 #include "midi_objs.h"
 #include "shared_array.h"
@@ -134,23 +135,31 @@ void midi_clip_read_events(MIDIClip *mclip, PmEvent *events, uint32_t num_events
 /* Note *midi_clipref_get_next_note(ClipRef *cr, int32_t from, int32_t *pos_dst); */
 
 /* Get the next note *after* "from" */
-Note *midi_clipref_get_next_note(ClipRef *cr, int32_t from, int32_t *pos_dst);
+DEPRECATED Note *midi_clipref_get_next_note(ClipRef *cr, int32_t from, int32_t *pos_dst);
 
 /* Get the previous note *before* "from" */
-Note *midi_clipref_get_prev_note(ClipRef *cr, int32_t from, int32_t *pos_dst);
-
-/* Return the first note intersecting "cursor" with a pitch higher than "sel_key" */
-Note *midi_clipref_up_note_at_cursor(ClipRef *cr, int32_t cursor, int sel_key);
-/* Return the last note intersectig "cursor" with a pitch below "sel_key" */
-Note *midi_clipref_down_note_at_cursor(ClipRef *cr, int32_t cursor, int sel_key);
-
-int32_t note_tl_start_pos(Note *note, ClipRef *cr);
-int32_t note_tl_end_pos(Note *note, ClipRef *cr);
+DEPRECATED Note *midi_clipref_get_prev_note(ClipRef *cr, int32_t from, int32_t *pos_dst);
 
 
+/* Return the MIDI key value of first note intersectig "cursor" with a pitch above "sel_key" */
+uint8_t midi_clipref_up_note_at_cursor(ClipRef *cr, int32_t cursor, int sel_key);
+/* Return the MIDI key value of first note intersectig "cursor" with a pitch below "sel_key" */
+uint8_t midi_clipref_down_note_at_cursor(ClipRef *cr, int32_t cursor, int sel_key);
 
-void midi_clip_grab_note(MIDIClip *mclip, Note *note, NoteEdge edge);
-void midi_clip_ungrab_all(MIDIClip *mclip);
+int32_t note_tl_start_pos(const Note *const note, const ClipRef *const cr);
+int32_t note_tl_end_pos(const Note *const note, const ClipRef *const cr);
+
+
+/* Executes grab locally on "notes"; caller MUST return to shared array
+   Has side effects on mclip (first grabbed note, last grabbed note)
+ */
+void midi_clip_grab_note(MIDIClip *mclip, Note *notes, int32_t num_notes, int32_t note_i, NoteEdge edge);
+
+/* Executes ungrab locally on "notes"; caller MUST return to shared array
+   Has side effects on mclip (first grabbed note, last grabbed note)
+ */
+void midi_clip_ungrab_all(MIDIClip *mclip, Note *notes, int32_t num_notes);
+
 void midi_clipref_grab_range(ClipRef *cr, int32_t tl_start, int32_t tl_end);
 void midi_clipref_grab_area(ClipRef *cr, int32_t tl_start, int32_t tl_end, int bottom_note, int top_note);
 /* int midi_clipref_notes_intersecting_area(ClipRef *cr, int32_t range_start, int32_t range_end, int bottom_note, int top_note, Note ***dst); */
@@ -163,12 +172,15 @@ void midi_clip_reinsert_notes(MIDIClip *mclip, Note *notes, int num_notes);
 void midi_clipref_push_grabbed_note_move_event(ClipRef *cr);
 void midi_clipref_cache_grabbed_note_info(ClipRef *cr);
 
-int midi_clipref_notes_intersecting_point(ClipRef *cr, int32_t tl_pos, Note ***dst);
+/* Return a *read-only* copy of notes intersecting point.
+ *dst must be freed by caller (if dst provided) */
+int midi_clipref_notes_intersecting_point(ClipRef *cr, int32_t tl_pos, Note **dst);
+
 void midi_clip_check_reset_bounds(MIDIClip *mc);
 int32_t midi_clip_get_note_by_id(MIDIClip *mclip, uint32_t id);
 /* int midi_clipref_notes_intersecting_area(ClipRef *cr, int32_t range_start, int32_t range_end, int bottom_note, int top_note, Note ***dst); */
 /* int midi_clipref_notes_ending_at_pos(ClipRef *cr, int32_t tl_pos, Note ***dst, int32_t *start_pos_dst); */
-int midi_clipref_notes_ending_at_pos(ClipRef *cr, int32_t tl_pos, Note ***dst, bool latest_start_time, int32_t *start_pos_dst);
+int midi_clipref_notes_ending_at_pos(ClipRef *cr, int32_t tl_pos, const Note ***dst, bool latest_start_time, int32_t *start_pos_dst);
 
 /*------ Quantize interface; creates modal for options ---------------*/
 void midi_clipref_quantize(ClipRef *cr);

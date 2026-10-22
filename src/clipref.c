@@ -54,25 +54,25 @@ void clipref_gain_dsp_cb(Endpoint *ep)
 /* Handled sharing of parent track array */
 static void clipref_add_to_track_array(ClipRef *cr, Track *track)
 {
-    struct sa_data sd = shared_array_get(&track->clips);
+    struct sa_data sd = sa_get(&track->clips);
     int32_t new_len = sd.len + 1;
     ClipRef *new_clips[new_len];
-    shared_array_copy(&sd, new_clips, sd.len);
+    sa_copy(&sd, new_clips, sd.len);
     new_clips[new_len - 1] = cr;
-    shared_array_set(&sd, new_clips, new_len);
+    sa_set(&sd, new_clips, new_len);
 
 }
 
 /* true if removed */
 static bool clipref_remove_from_track_array(ClipRef *cr, Track *track)
 {
-    struct sa_data sd = shared_array_get(&track->clips);
+    struct sa_data sd = sa_get(&track->clips);
     int32_t new_len = sd.len - 1;
     ClipRef *new_clips[new_len];
     int i = 0;
     ClipRef *cr_iter;
     bool found = false;
-    while ((cr_iter = *(ClipRef **)shared_array_iter(&sd))) {
+    while ((cr_iter = *(ClipRef **)sa_iter(&sd))) {
         if (cr_iter == cr) {
             found = true;
             continue;
@@ -81,7 +81,7 @@ static bool clipref_remove_from_track_array(ClipRef *cr, Track *track)
         i++;
     }
     if (found) 
-        shared_array_set(&sd, new_clips, new_len);
+        sa_set(&sd, new_clips, new_len);
 
     return found;
 }
@@ -387,13 +387,13 @@ void clipref_bring_to_front()
     Track *track = timeline_selected_track(tl);
     if (!track) return;
     /* bool displace = false; */
-    struct sa_data sd = shared_array_get(&track->clips);
+    struct sa_data sd = sa_get(&track->clips);
     ClipRef *to_move = NULL;
     ClipRef *cr;
     ClipRef *clips[sd.len];
-    shared_array_copy(&sd, clips, sd.len);
+    sa_copy(&sd, clips, sd.len);
     int i=0;
-    while ((cr = *(ClipRef **)shared_array_iter(&sd))) {
+    while ((cr = *(ClipRef **)sa_iter(&sd))) {
 	if (!to_move
             && aldr(&cr->tl_pos) <= tl->play_pos_sframes
             && aldr(&cr->tl_pos) + clipref_len(cr) >= tl->play_pos_sframes) {
@@ -406,7 +406,7 @@ void clipref_bring_to_front()
 	}
         i++;
     }
-    shared_array_set(&sd, clips, sd.len);
+    sa_set(&sd, clips, sd.len);
     atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 }
 ClipRef *clipref_at_cursor_not_dragging()
@@ -417,9 +417,9 @@ ClipRef *clipref_at_cursor_not_dragging()
     if (!track) return NULL;
     
     /* Reverse iter to ensure top-most clip is returned in case of overlap */
-    struct sa_data sd = shared_array_get(&track->clips);
+    struct sa_data sd = sa_get(&track->clips);
     for (int i=sd.len - 1; i>=0; i--) {
-	ClipRef *cr = (ClipRef *)shared_array_at(&sd, i);
+	ClipRef *cr = (ClipRef *)sa_at(&sd, i);
 	if (session->dragging && cr->grabbed) continue;
 	if (aldr(&cr->tl_pos) <= tl->play_pos_sframes && aldr(&cr->tl_pos) + clipref_len(cr) >= tl->play_pos_sframes) {
 	    return (ClipRef *)cr;
@@ -444,11 +444,11 @@ void set_clipref_at_cursor()
 	tl->clipref_at_cursor = NULL;
 	return;
     }
-    struct sa_data sd = shared_array_get(&track->clips);
+    struct sa_data sd = sa_get(&track->clips);
     
     /* Reverse iter to ensure top-most clip is returned in case of overlap */
     for (int i=sd.len-1; i>=0; i--) {
-        ClipRef *cr = *(ClipRef **)shared_array_at(&sd, i);
+        ClipRef *cr = *(ClipRef **)sa_at(&sd, i);
 	if (aldr(&cr->tl_pos) <= tl->play_pos_sframes && aldr(&cr->tl_pos) + clipref_len(cr) >= tl->play_pos_sframes) {
 	    tl->clipref_at_cursor = cr;
 	    return;
@@ -459,9 +459,9 @@ void set_clipref_at_cursor()
 
 ClipRef *clipref_at_point_in_track(Track *track, int x)
 {
-    struct sa_data sd = shared_array_get(&track->clips);
+    struct sa_data sd = sa_get(&track->clips);
     ClipRef *cr = NULL;
-    while ((cr = *(ClipRef **)shared_array_iter(&sd))) {
+    while ((cr = *(ClipRef **)sa_iter(&sd))) {
 	SDL_Rect cliprect = cr->layout->rect;
 	if (cliprect.x <= x && cliprect.x + cliprect.w > x) {
 	    return cr;
@@ -472,9 +472,9 @@ ClipRef *clipref_at_point_in_track(Track *track, int x)
 
 ClipRef *clipref_at_cursor_in_track(Track *track)
 {
-    struct sa_data sd = shared_array_get(&track->clips);
+    struct sa_data sd = sa_get(&track->clips);
     for (int i=sd.len-1; i>=0; i--) {
-	ClipRef *cr = *(ClipRef**)shared_array_at(&sd, i);
+	ClipRef *cr = *(ClipRef**)sa_at(&sd, i);
 	if (aldr(&cr->tl_pos) <= track->tl->play_pos_sframes && aldr(&cr->tl_pos) + clipref_len(cr) >= track->tl->play_pos_sframes) {
 	    return cr;
 	}
@@ -487,13 +487,13 @@ ClipRef *clipref_before_cursor(int32_t *pos_dst)
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     Track *track = timeline_selected_track(tl);
-    struct sa_data sd = shared_array_get(&track->clips);
+    struct sa_data sd = sa_get(&track->clips);
     if (!track) return NULL;
     if (sd.len == 0) return NULL;
     ClipRef *ret = NULL;
     int32_t end = INT32_MIN;
     for (int i=0; i<sd.len; i++) {
-	ClipRef *cr = *(ClipRef **)shared_array_at(&sd, i);
+	ClipRef *cr = *(ClipRef **)sa_at(&sd, i);
 	if (cr->grabbed && session->dragging) continue;
 	int32_t cr_end = aldr(&cr->tl_pos) + clipref_len(cr);
 	if (cr_end <= tl->play_pos_sframes && cr_end >= end) {
@@ -516,12 +516,12 @@ ClipRef *clipref_after_cursor(int32_t *pos_dst)
     Timeline *tl = ACTIVE_TL;
     Track *track = timeline_selected_track(tl);
     if (!track) return NULL;
-    struct sa_data sd = shared_array_get(&track->clips);
+    struct sa_data sd = sa_get(&track->clips);
     if (sd.len == 0) return NULL;
     ClipRef *ret = NULL;
     int32_t start = INT32_MAX;
     ClipRef *cr = NULL;
-    while ((cr = *(ClipRef **)shared_array_iter(&sd))) {
+    while ((cr = *(ClipRef **)sa_iter(&sd))) {
 	if (cr->grabbed && session->dragging) continue;
 	int32_t cr_start = aldr(&cr->tl_pos);
 	if (cr_start > tl->play_pos_sframes && cr_start <= start) {
@@ -618,10 +618,10 @@ void clipref_destroy(ClipRef *cr, bool displace_in_clip)
     clipref_check_and_remove_from_clipboard_and_piano_roll(cr);
     label_destroy(cr->gain_label);
 
-    struct sa_data sd = shared_array_get(&track->clips);
+    struct sa_data sd = sa_get(&track->clips);
     int32_t num_clips = sd.len;
     ClipRef *clips[sd.len];
-    shared_array_copy(&sd, clips, sd.len);
+    sa_copy(&sd, clips, sd.len);
     bool displace = false;
     for (uint16_t i=0; i<num_clips; i++) {
 	if (clips[i] == cr) {

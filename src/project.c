@@ -726,7 +726,7 @@ Track *timeline_add_track_with_name(Timeline *tl, const char *track_name, int at
     track->channels = tl->proj->channels;
 
     enum jdaw_thread clips_users[] = {JDAW_THREAD_DSP};
-    shared_array_init(&track->clips, sizeof(ClipRef *), clips_users, 1);
+    sa_init(&track->clips, sizeof(ClipRef *), clips_users, 1);
     /* astrr(&track->num_clips, 0); */
     /* track->clips_alloc_len = 16; */
     /* track->clips = calloc(track->clips_alloc_len, sizeof(ClipRef *)); */
@@ -1193,9 +1193,9 @@ static void track_reset_full(Track *track)
     textbox_reset_full(track->tb_pan_label);
     textbox_reset_full(track->tb_input_label);
     textbox_reset_full(track->tb_input_name);
-    struct sa_data sd = shared_array_get(&track->clips);
+    struct sa_data sd = sa_get(&track->clips);
     ClipRef *cr;
-    while ((cr = *(ClipRef **)shared_array_iter(&sd))) {
+    while ((cr = *(ClipRef **)sa_iter(&sd))) {
         clipref_reset(cr, true);
     }
     slider_reset(track->vol_ctrl);
@@ -1205,9 +1205,9 @@ static void track_reset_full(Track *track)
 
 void track_reset(Track *track, bool rescaled)
 {
-    struct sa_data sd = shared_array_get(&track->clips);
+    struct sa_data sd = sa_get(&track->clips);
     ClipRef *cr;
-    while ((cr = *(ClipRef **)shared_array_iter(&sd))) {
+    while ((cr = *(ClipRef **)sa_iter(&sd))) {
         clipref_reset(cr, rescaled);
     }
 
@@ -1983,9 +1983,9 @@ static void timeline_remove_track(Track *track)
 
     /* Deal with timeline data structures */
     Timeline *tl = track->tl;
-    struct sa_data sd = shared_array_get(&track->clips);
+    struct sa_data sd = sa_get(&track->clips);
     ClipRef *cr;
-    while ((cr = *(ClipRef **)shared_array_iter(&sd))) {
+    while ((cr = *(ClipRef **)sa_iter(&sd))) {
         if (cr->grabbed) timeline_clipref_ungrab(cr);
     }
 
@@ -2074,9 +2074,9 @@ void track_destroy(Track *track, bool displace)
     if (main_win->active_tabview && main_win->active_tabview->connected_obj == track) {
 	tabview_close(main_win->active_tabview);
     }
-    struct sa_data sd = shared_array_get(&track->clips);
+    struct sa_data sd = sa_get(&track->clips);
     ClipRef *cr;
-    while ((cr = *(ClipRef **)shared_array_iter(&sd))) {
+    while ((cr = *(ClipRef **)sa_iter(&sd))) {
         clipref_destroy_no_displace(cr);
     }
     for (int i=0; i<track->num_automations; i++) {
@@ -2144,7 +2144,7 @@ void track_destroy(Track *track, bool displace)
     /* if (track->delay_line.lock) SDL_DestroyMutex(track->delay_line.lock); */
     /* pthread_mutex_destroy(&track->delay_line.lock); */
 
-    shared_array_deinit(&track->clips);
+    sa_deinit(&track->clips);
     /* if (track->buf_L_freq_mag) free(track->buf_L_freq_mag); */
     /* if (track->buf_R_freq_mag) free(track->buf_R_freq_mag); */
     if (track->automation_dropdown) symbol_button_destroy(track->automation_dropdown);
@@ -2685,9 +2685,9 @@ ClickTrack *timeline_click_track_at_point(Timeline *tl, SDL_Point point)
 
 ClipRef *track_clipref_at_point(Track *track, SDL_Point point)
 {
-    struct sa_data sd = shared_array_get(&track->clips);
+    struct sa_data sd = sa_get(&track->clips);
     ClipRef *cr;
-    while ((cr = *(ClipRef **)shared_array_iter(&sd))) {
+    while ((cr = *(ClipRef **)sa_iter(&sd))) {
         if (SDL_PointInRect(&point, &cr->layout->rect)) {
             return cr;
         }

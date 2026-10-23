@@ -107,7 +107,27 @@ MIDIClip *midi_clip_create(MIDIDevice *device, Track *target);
 /* Mandatory initialization after allocating */
 void midi_clip_init(MIDIClip *mclip);
 
-Note *midi_clip_insert_note(MIDIClip *mc, int channel, int note_val, int velocity, int32_t start_rel, int32_t end_rel);
+/* Notes array has space for new note.
+   Caller must push changes to clip SA */
+Note *midi_clip_insert_note(
+    MIDIClip *mc,
+    Note *notes_with_space, /* with space at end */
+    int32_t old_num_notes,
+    int channel,
+    int note_val,
+    int velocity,
+    int32_t start_rel,
+    int32_t end_rel);
+
+/* Handled the shared array update */
+void midi_clip_do_insert_note(
+    MIDIClip *mc,
+    int channel,
+    int note_val,
+    int velocity,
+    int32_t start_rel,
+    int32_t end_rel);
+
 int32_t midi_clipref_check_get_first_note(ClipRef *cr);
 int32_t midi_clipref_check_get_last_note(ClipRef *cr);
 void midi_clip_rectify_length(MIDIClip *mclip);
@@ -176,11 +196,20 @@ void midi_clipref_cache_grabbed_note_info(ClipRef *cr);
  *dst must be freed by caller (if dst provided) */
 int midi_clipref_notes_intersecting_point(ClipRef *cr, int32_t tl_pos, Note **dst);
 
-void midi_clip_check_reset_bounds(MIDIClip *mc);
+void midi_clip_check_reset_bounds(MIDIClip *mc, Note *notes, int32_t num_notes);
 int32_t midi_clip_get_note_by_id(MIDIClip *mclip, uint32_t id);
 /* int midi_clipref_notes_intersecting_area(ClipRef *cr, int32_t range_start, int32_t range_end, int bottom_note, int top_note, Note ***dst); */
 /* int midi_clipref_notes_ending_at_pos(ClipRef *cr, int32_t tl_pos, Note ***dst, int32_t *start_pos_dst); */
-int midi_clipref_notes_ending_at_pos(ClipRef *cr, int32_t tl_pos, const Note ***dst, bool latest_start_time, int32_t *start_pos_dst);
+
+/* Caller must free *dst */
+int midi_clipref_notes_ending_at_pos(
+    ClipRef *cr,
+    int32_t tl_pos,
+    const Note *notes,
+    int32_t num_notes,
+    int32_t **dst,
+    bool latest_start_time,
+    int32_t *start_pos_dst);
 
 /*------ Quantize interface; creates modal for options ---------------*/
 void midi_clipref_quantize(ClipRef *cr);

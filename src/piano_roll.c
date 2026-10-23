@@ -1189,34 +1189,32 @@ Note *piano_roll_insert_note(bool make_synth_note)
     int32_t input_dur = get_input_dur_samples();
     int32_t end_pos = clip_note_pos + input_dur;
 
+    struct sa_data sd = sa_get_wr(&state.clip->notes);
+    Note notes[sd.len];
+    sa_copy(&sd, notes, sd.len);
+
     Note *ret = NULL;
     Note *tied_note = NULL;
     int32_t note_tl_end;
     if (state.tie) {
-	Note **tied_notes = NULL;
-	int num_tied = midi_clipref_notes_ending_at_pos(state.cr, tl->play_pos_sframes, &tied_notes, false, NULL);
+        int32_t *tied_notes = NULL;;
+	int num_tied = midi_clipref_notes_ending_at_pos(
+            state.cr,
+            tl->play_pos_sframes,
+            notes,
+            sd.len,
+            &tied_notes,
+            false,
+            NULL);
 	for (int i=0; i<num_tied; i++) {
-	    if (tied_notes[i]->key == state.selected_note) {
-		tied_note = tied_notes[i];
+            Note *note = notes + tied_notes[i];
+	    if (note->key == state.selected_note) {
+		tied_note = note;
 		break;
 	    }
 	}
 	if (num_tied > 0)
 	    free(tied_notes);
-	
-	/* if (state.clip->num_grabbed_notes > 0) { */
-	/*     for (int32_t i=state.clip->first_grabbed_note; i<=state.clip->last_grabbed_note; i++) { */
-	/* 	Note *note = state.clip->notes + i; */
-	/* 	if (note->grabbed */
-	/* 	    && note->key == state.selected_note */
-	/* 	    && note->grabbed_edge == NOTE_EDGE_RIGHT */
-	/* 	    && note_tl_end_pos(note, state.cr) == tl->play_pos_sframes) */
-	/* 	{ */
-	/* 	    tied_note = note; */
-	/* 	    break; */
-	/* 	} */
-	/*     } */
-	/* } */
     }
     if (tied_note) {
 	int32_t old_end_rel = tied_note->end_rel;
@@ -1233,17 +1231,17 @@ Note *piano_roll_insert_note(bool make_synth_note)
 	    (Value){.int32_v = old_end_rel},
 	    (Value){.int32_v = tied_note->id},
 	    (Value){.int32_v = tied_note->end_rel},
-	    0, 0, false, false);
-	    
-	/* midi_clip_rectify_length(state.clip); */
+	    0, 0, false, false);	    
     } else {
-	midi_clip_ungrab_all(state.clip);
-	Note *note = midi_clip_insert_note(state.clip, 0, state.selected_note, state.insert_velocity, clip_note_pos, end_pos);
-	/* fprintf(stderr, "Fresh note %d, grabbed? %d\n",note->key, note->grabbed); */
-	/* int32_t note_tl_start = note_tl_start_pos(note, state.cr); */
+	midi_clip_ungrab_all(state.clip, notes, sd.len);
+	Note *note = midi_clip_insert_note(
+            state.clip,
+            0,
+            state.selected_note,
+            state.insert_velocity,
+            clip_note_pos,
+            end_pos);
 	note_tl_end = note_tl_end_pos(note, state.cr);
-	/* if (state.tie) { */
-	/* midi_clip_grab_note(state.clip, note, NOTE_EDGE_RIGHT); */
 
 	struct insert_note_info *info = malloc(sizeof(struct insert_note_info));
 	info->id = note->id;
@@ -1259,7 +1257,7 @@ Note *piano_roll_insert_note(bool make_synth_note)
 	    state.cr, info,
 	    (Value){.int32_v = note->id},
 	    (Value){.int32_v = note_tl_start_pos(note, state.cr)},
-	    (Value){.int32_v = note - state.clip->notes},
+	    (Value){.int32_v = note - notes},
 	    (Value){.int32_v = note_tl_end_pos(note, state.cr)},
 	    0, 0, false, true);
 	ret = note;

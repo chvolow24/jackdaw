@@ -143,15 +143,12 @@ static void midi_clip_note_check_reset_bounds(MIDIClip *mc, int32_t note_i, Note
     }
 }
 
-void midi_clip_check_reset_bounds(MIDIClip *mc)
+void midi_clip_check_reset_bounds(MIDIClip *mc, Note *notes, int32_t num_notes)
 {
-    struct sa_data sd = sa_get_wr(&mc->notes);
-    Note notes[sd.len];
-    sa_copy(&sd, notes, sd.len);
-    midi_clip_note_check_reset_bounds(mc, 0, notes, sd.len); /* first note */
+    midi_clip_note_check_reset_bounds(mc, 0, notes, num_notes); /* first note */
     Note *last = NULL;
     int32_t end_pos = 0;
-    for (int i=0; i<sd.len; i++) {
+    for (int i=0; i<num_notes; i++) {
         Note *note = notes + i;
 	if (note->end_rel > end_pos) {
 	    last = note;
@@ -159,19 +156,26 @@ void midi_clip_check_reset_bounds(MIDIClip *mc)
 	}
     }
     if (last) {
-	midi_clip_note_check_reset_bounds(mc, last - notes, notes, sd.len);
+	midi_clip_note_check_reset_bounds(mc, last - notes, notes, num_notes);
     }
-    sa_set(&sd, notes, sd.len);
 }
 
-Note *midi_clip_insert_note(MIDIClip *mc, int channel, int note_val, int velocity, int32_t start_rel, int32_t end_rel)
-{
-    struct sa_data sd = sa_get_wr(&mc->notes);
-    Note notes[sd.len + 1];
-    sa_copy(&sd, notes, sd.len);
+
     
-    Note *note = notes + sd.len;
-    while (note > notes && start_rel < (note - 1)->start_rel) {
+
+Note *midi_clip_insert_note(
+    MIDIClip *mc,
+    Note *notes_with_space, /* with space at end */
+    int32_t old_num_notes,
+    int channel,
+    int note_val,
+    int velocity,
+    int32_t start_rel,
+    int32_t end_rel)
+{
+    
+    Note *note = notes_with_space + old_num_notes;
+    while (note > notes_with_space && start_rel < (note - 1)->start_rel) {
 	*note = *(note - 1);
 	note--;
     }
@@ -186,13 +190,36 @@ Note *midi_clip_insert_note(MIDIClip *mc, int channel, int note_val, int velocit
     mc->note_id++;
 
     // TODO: FIX GRABBED NOTES INCR
-    grabbed_notes_incr(mc, note - notes + 1, sd.len + 1, 1);
+    grabbed_notes_incr(mc, note - notes_with_space + 1, old_num_notes + 1, 1);
     
-    midi_clip_note_check_reset_bounds(mc, note - notes, notes, sd.len + 1);
-    sa_set(&sd, notes, sd.len + 1);
+    midi_clip_note_check_reset_bounds(mc, note - notes_with_space, notes_with_space, old_num_notes + 1);
     TEST_FN_CALL(check_note_order, mc);
     return note;
 }
+
+void midi_clip_do_insert_note(
+    MIDIClip *mc,
+    int channel,
+    int note_val,
+    int velocity,
+    int32_t start_rel,
+    int32_t end_rel)
+{
+    struct sa_data sd = sa_get_wr(&mc->notes);
+    Note notes[sd.len + 1];
+    sa_copy(&sd, notes, sd.len);
+    midi_clip_insert_note(
+        mc,
+        notes,
+        sd.len,
+        channel,
+        note_val,
+        velocity,
+        start_rel,
+        end_rel);
+    sa_set(&sd, notes, sd.len + 1);   
+}
+
 
 void midi_clip_add_controller_change(MIDIClip *mclip, PmEvent e, int32_t pos)
 {
@@ -392,7 +419,13 @@ void midi_clip_read_events(
 	    Note *unclosed = unclosed_notes + note_val;
 	    /* if (d->current_clip) */
 	    if (unclosed->unclosed) {
-		midi_clip_insert_note(mclip, channel, note_val, unclosed->velocity, unclosed->start_rel, pos_rel);
+		midi_clip_do_insert_note(
+                    mclip,
+                    channel,
+                    note_val,
+                    unclosed->velocity,
+                    unclosed->start_rel,
+                    pos_rel);
 		unclosed->unclosed = false;
 	    }
 	} else if (msg_type == 0xB) { /* Controller */
@@ -691,25 +724,27 @@ static int midi_clipref_notes_intersecting_area(ClipRef *cr, Note *notes, int32_
     return num_intersecting_notes;
 }
 
-/* CHECKPOINT -- SA REFACTOR DONE ABOVE THIS POINT
-
-=================================================================================================================================
-=================================================================================================================================
+/* Both uses in piano roll modify notes array;
+   therefore, make it take a notes array
  */
-
-int midi_clipref_notes_ending_at_pos(ClipRef *cr, int32_t tl_pos, const Note ***dst, bool latest_start_time, int32_t *start_pos_dst)
+int midi_clipref_notes_ending_at_pos(
+    ClipRef *cr,
+    int32_t tl_pos,
+    const Note *notes,
+    int32_t num_notes,
+    int32_t **dst,
+    bool latest_start_time,
+    int32_t *start_pos_dst)
 {
-    MIDIClip *mclip = cr->source_clip;
     int32_t note_i = midi_clipref_check_get_first_note(cr);
     int32_t last_i = midi_clipref_check_get_last_note(cr);
     if (note_i == -1) return 0;
-    const Note **intersecting = malloc(MAX_INTERSECTING_NOTES * sizeof(Note *));
+    int32_t intersecting[MAX_INTERSECTING_NOTES];
     int num_intersecting = 0;
-    const struct sa_data sd = sa_get_rdonly(&mclip->notes);
     while (note_i <= last_i) {
-        const Note *note = sa_at(&sd, note_i);
+        const Note *note = notes + note_i;
 	if (note_tl_end_pos(note, cr) == tl_pos) {
-	    intersecting[num_intersecting] = note;
+	    intersecting[num_intersecting] = note_i;
 	    num_intersecting++;
 	    if (num_intersecting == MAX_INTERSECTING_NOTES) {
 		break;
@@ -721,25 +756,26 @@ int midi_clipref_notes_ending_at_pos(ClipRef *cr, int32_t tl_pos, const Note ***
     if (latest_start_time) {
 	int32_t max_start_pos = INT32_MIN;
 	for (int i=0; i<num_intersecting; i++) {
-	    int32_t start_pos = note_tl_start_pos(intersecting[i], cr);
+	    int32_t start_pos = note_tl_start_pos(notes + intersecting[i], cr);
 	    if (start_pos > max_start_pos) max_start_pos = start_pos;
 	}
-	*dst = malloc(num_intersecting * sizeof(Note *));
+        int32_t return_arr[num_intersecting];
+	/* *dst = malloc(num_intersecting * sizeof(int32_t)); */
 	for (int i=0; i<num_intersecting; i++) {
-	    int32_t start_pos = note_tl_start_pos(intersecting[i], cr);
+	    int32_t start_pos = note_tl_start_pos(notes + intersecting[i], cr);
 	    if (start_pos == max_start_pos) {
-		(*dst)[num_returned] = intersecting[i];
+		return_arr[num_returned] = intersecting[i];
 		num_returned++;
 	    }
 	}
 	*start_pos_dst = max_start_pos;
-	*dst = realloc(*dst, num_returned * sizeof(Note *));
+	*dst = malloc(num_returned * sizeof(int32_t));
+        memcpy(*dst, return_arr, num_returned * sizeof(int32_t));
     } else {
-	*dst = malloc(num_intersecting * sizeof(Note *));
-	memcpy(*dst, intersecting, num_intersecting * sizeof(Note *));
+	*dst = malloc(num_intersecting * sizeof(int32_t));
+	memcpy(*dst, intersecting, num_intersecting * sizeof(int32_t));
 	num_returned = num_intersecting;
     }
-    free(intersecting);
     return num_returned;
 }
 
@@ -814,7 +850,7 @@ static void grabbed_notes_reset(MIDIClip *mclip, const Note *notes, int32_t num_
 	}
     }
     if (last)
-	mclip->last_grabbed_note = last - (Note *)sd.__array;
+	mclip->last_grabbed_note = last - notes;
 }
 
 /* Executes grab locally on "notes"; caller MUST return to shared array
@@ -883,7 +919,10 @@ void midi_clipref_grab_range(ClipRef *cr, int32_t tl_start, int32_t tl_end)
 	midi_clip_grab_note(mclip, notes, sd.len, i, NOTE_EDGE_NONE);
     }
     
-    if (intersecting) free(intersecting);
+    if (intersecting) {
+        sa_set(&sd, notes, sd.len);
+        free(intersecting);
+    }
 }
 
 /* Execute a grab; return the shared array */
@@ -911,7 +950,6 @@ void midi_clipref_grab_area(ClipRef *cr, int32_t tl_start, int32_t tl_end, int b
         sa_set(&sd, notes, sd.len);
         free(intersecting);
     }
-
 }
 
 static int notecmp(const void *a, const void *b)
@@ -924,25 +962,22 @@ static int notecmp(const void *a, const void *b)
     /* return ((Note *)a)->start_rel - ((Note *)b)->start_rel; */
 }
 
-static void midi_clip_resort_notes(MIDIClip *mclip)
+static void midi_clip_resort_notes(MIDIClip *mclip, Note *notes, int32_t num_notes)
 {
-    const struct sa_data sd = sa_get_wr(&mclip->notes);
-    Note notes[sd.len];
-    sa_copy(&sd, notes, sd.len);
-    qsort(notes, sd.len, sizeof(Note), notecmp);
-    midi_clip_check_reset_bounds(mclip);
-    grabbed_notes_reset(mclip);
-    sa_set(&sd, notes, sd.len);
-    
-    
+    qsort(notes, num_notes, sizeof(Note), notecmp);
+    midi_clip_check_reset_bounds(mclip, notes, num_notes);
+    grabbed_notes_reset(mclip, notes, num_notes);        
 }
 
 void midi_clip_grabbed_notes_move(MIDIClip *mclip, int32_t move_by)
 {
     if (mclip->num_grabbed_notes == 0) return;
-    pthread_mutex_lock(&mclip->notes_arr_lock);
+    const struct sa_data sd = sa_get_wr(&mclip->notes);
+    Note notes[sd.len];
+    sa_copy(&sd, notes, sd.len);
+    
     for (int32_t i=mclip->first_grabbed_note; i<=mclip->last_grabbed_note; i++) {
-	Note *note = mclip->notes + i;
+	Note *note = notes + i;
 	if (!note->grabbed) continue;
 	switch (note->grabbed_edge) {
 	case NOTE_EDGE_NONE:
@@ -958,34 +993,27 @@ void midi_clip_grabbed_notes_move(MIDIClip *mclip, int32_t move_by)
 	    if (note->end_rel < note->start_rel) note->end_rel = note->start_rel;
 	    break;
 	}
-	/* while (note > mclip->notes && note->start_rel < (note - 1)->start_rel) { */
-	/*     Note save = *(note - 1); */
-	/*     *(note - 1) = *note; */
-	/*     *note = save; */
-	/*     note--; */
-	/* } */
-	/* while (note < mclip->notes + mclip->num_notes - 1 && note->start_rel > (note + 1)->start_rel) { */
-	/*     Note save = *(note + 1); */
-	/*     *(note + 1) = *note; */
-	/*     *note = save; */
-	/*     note++; */
-	/* } */
     }
-    qsort(mclip->notes, mclip->num_notes, sizeof(Note), notecmp);
+    qsort(notes, sd.len, sizeof(Note), notecmp);
     /* static void midi_clip_check_reset_bounds(MIDIClip *mc) */
-    pthread_mutex_unlock(&mclip->notes_arr_lock);
-    midi_clip_check_reset_bounds(mclip);
-    grabbed_notes_reset(mclip);
-    TEST_FN_CALL(check_note_order, mclip);
+    midi_clip_check_reset_bounds(mclip, notes, sd.len);
+    grabbed_notes_reset(mclip, notes, sd.len);
+    sa_set(&sd, notes, sd.len);
+    TEST_FN_CALL(check_note_order, mclip);   
 }
 
-
-void midi_clip_reinsert_notes(MIDIClip *mclip, Note *notes, int num_notes)
+void midi_clip_reinsert_notes(MIDIClip *mclip, Note *notes_to_reinsert, int num_notes_to_reinsert)
 {
-    for (int i=0; i<num_notes; i++) {
-	Note *note = notes + i;
+
+    struct sa_data sd = sa_get_wr(&mclip->notes);
+    Note new_notes[sd.len + num_notes_to_reinsert];
+    sa_copy(&sd, new_notes, sd.len);
+    for (int i=0; i<num_notes_to_reinsert; i++) {
+	Note *note = notes_to_reinsert + i;
 	Note *new = midi_clip_insert_note(
 	    mclip,
+            new_notes,
+            sd.len + i,
 	    note->channel,
 	    note->key,
 	    note->velocity,
@@ -993,15 +1021,20 @@ void midi_clip_reinsert_notes(MIDIClip *mclip, Note *notes, int num_notes)
 	    note->end_rel);
 	new->id = note->id;
     }
+    sa_set(&sd, new_notes, sd.len + num_notes_to_reinsert);
 }
 
-static bool note_in_list(const Note *note, Note *list, int list_len)
+/* CHECKPOINT -- SA REFACTOR DONE ABOVE THIS POINT
+
+=================================================================================================================================
+=================================================================================================================================
+ */
+
+
+static bool note_in_list(const Note *const note, const Note *const list, const int list_len)
 {
     for (int i=0; i<list_len; i++) {
 	if (list[i].id == note->id) {
-	    /* if (i < list_len - 1) { */
-	    /* 	memmove(list + i, list + i + 1, sizeof(Note) * (list_len - i - 1)); */
-	    /* } */
 	    return true;
 	}
     }

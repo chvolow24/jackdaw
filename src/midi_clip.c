@@ -245,48 +245,6 @@ void midi_clip_add_pitch_bend(MIDIClip *mclip, PmEvent e, int32_t pos)
     midi_pitch_bend_insert_change(pb, pos, value1, value2);
 }
 
-/* void midi_clip_add_cc(MIDIClip *mc, MIDICC cc_in) */
-/* { */
-/*     /\* fprintf(stderr, "(%d) ADD CC type %d val %d\n", cc_in.pos_rel, cc_in.type, cc_in.value); *\/ */
-/*     if (!mc->ccs) { */
-/* 	mc->ccs_alloc_len = 32; */
-/* 	mc->ccs = calloc(mc->ccs_alloc_len, sizeof(MIDICC)); */
-/*     } */
-/*     if (mc->num_ccs == mc->ccs_alloc_len) { */
-/* 	mc->ccs_alloc_len *= 2; */
-/* 	mc->ccs = realloc(mc->ccs, mc->ccs_alloc_len * sizeof(MIDICC)); */
-/*     } */
-    
-/*     MIDICC *cc = mc->ccs + mc->num_ccs; */
-/*     while (cc > mc->ccs && cc_in.pos_rel < (cc - 1)->pos_rel) { */
-/* 	*cc = *(cc - 1); */
-/* 	cc--; */
-/*     } */
-/*     *cc = cc_in; */
-/*     mc->num_ccs++; */
-/* } */
-
-/* void midi_clip_add_pb(MIDIClip *mc, MIDIPitchBend pb_in) */
-/* { */
-/*     /\* fprintf(stderr, "(%d) ADD PB val %d float %f\n", pb_in.pos_rel, pb_in.value, pb_in.floatval); *\/ */
-/*     if (!mc->pbs) { */
-/* 	mc->pbs_alloc_len = 32; */
-/* 	mc->pbs = calloc(mc->pbs_alloc_len, sizeof(MIDIPitchBend)); */
-/*     } */
-/*     if (mc->num_pbs == mc->pbs_alloc_len) { */
-/* 	mc->pbs_alloc_len *= 2; */
-/* 	mc->pbs = realloc(mc->pbs, mc->pbs_alloc_len * sizeof(MIDIPitchBend)); */
-/*     } */
-    
-/*     MIDIPitchBend *pb = mc->pbs + mc->num_pbs; */
-/*     while (pb > mc->pbs && pb_in.pos_rel < (pb - 1)->pos_rel) { */
-/* 	*pb = *(pb - 1); */
-/* 	pb--; */
-/*     } */
-/*     *pb = pb_in; */
-/*     mc->num_pbs++; */
-/* } */
-
 /* Return -1 if clip has no notes; otherwise, first note index */
 int32_t midi_clipref_check_get_first_note(ClipRef *cr)
 {
@@ -324,38 +282,6 @@ int32_t midi_clipref_check_get_last_note(ClipRef *cr)
     if (cr->last_note == sd.len) cr->last_note = -1;
     return cr->last_note;
 }
-
-
-/* /\* Return -1 if clip has no ccs; otherwise, first cc index *\/ */
-/* int32_t midi_clipref_check_get_first_cc(ClipRef *cr) */
-/* { */
-/*     MIDIClip *clip = cr->source_clip; */
-
-/*     if (cr->first_cc == -1) cr->first_cc = 0; */
-/*     while (cr->first_cc > 0 && clip->ccs[cr->first_cc].pos_rel > cr->start_in_clip) { */
-/* 	cr->first_cc--; */
-/*     } */
-/*     while (cr->first_cc < clip->num_ccs && clip->ccs[cr->first_cc].pos_rel < cr->start_in_clip) { */
-/* 	cr->first_cc++; */
-/*     } */
-/*     if (cr->first_cc == clip->num_ccs) cr->first_cc = -1; */
-/*     return cr->first_cc; */
-/* } */
-
-/* int32_t midi_clipref_check_get_first_pb(ClipRef *cr) */
-/* { */
-/*     MIDIClip *clip = cr->source_clip; */
-
-/*     if (cr->first_pb == -1) cr->first_pb = 0; */
-/*     while (cr->first_pb > 0 && clip->pbs[cr->first_pb].pos_rel > cr->start_in_clip) { */
-/* 	cr->first_pb--; */
-/*     } */
-/*     while (cr->first_pb < clip->num_pbs && clip->pbs[cr->first_pb].pos_rel < cr->start_in_clip) { */
-/* 	cr->first_pb++; */
-/*     } */
-/*     if (cr->first_pb == clip->num_pbs) cr->first_pb = -1; */
-/*     return cr->first_pb; */
-/* } */
 
 int32_t note_tl_start_pos(const Note *const note, const ClipRef *const cr)
 {
@@ -530,23 +456,6 @@ uint32_t midi_clip_get_events(
 	event_buf_insert(dst, &alloc_len, &num_events, e);	
     }
     qsort(*dst, num_events, sizeof(PmEvent), event_cmp);
-    /* fprintf(stderr, "Output %d events\n", num_events); */
-    /* for (int i=0; i<num_events; i++) { */
-    /* 	PmEvent e = (*dst)[i]; */
-    /* 	fprintf(stderr, "\t(%d) %s, pitch %d vel %d\n", */
-    /* 		e.timestamp, */
-    /* 		(Pm_MessageStatus(e.message) & 0xF0) == 0x80 ? "note OFF" : */
-    /* 		(Pm_MessageStatus(e.message) & 0xF0) == 0x90 ? "note ON" : */
-    /* 		"unknown", */
-    /* 		Pm_MessageData1(e.message), */
-    /* 		Pm_MessageData2(e.message)); */
-		
-    /* } */
-    /* fprintf(stderr, "BEFORE RETURN EVENTS:\n"); */
-    /* for (int i=0; i<num_events; i++) { */
-    /* 	PmEvent e = *dst[i]; */
-    /* 	fprintf(stderr, "\t%d: Note %s ts %d\n", i, Pm_MessageStatus(e.message) >> 4 == 8? "OFF" : "ON", e.timestamp); */
-    /* } */
     return num_events;
 }
 
@@ -1024,13 +933,6 @@ void midi_clip_reinsert_notes(MIDIClip *mclip, Note *notes_to_reinsert, int num_
     sa_set(&sd, new_notes, sd.len + num_notes_to_reinsert);
 }
 
-/* CHECKPOINT -- SA REFACTOR DONE ABOVE THIS POINT
-
-=================================================================================================================================
-=================================================================================================================================
- */
-
-
 static bool note_in_list(const Note *const note, const Note *const list, const int list_len)
 {
     for (int i=0; i<list_len; i++) {
@@ -1041,24 +943,29 @@ static bool note_in_list(const Note *const note, const Note *const list, const i
     return false;
 }
 
-void midi_clip_remove_notes_by_id(MIDIClip *mclip, Note *notes, int num_notes)
+void midi_clip_remove_notes_by_id(MIDIClip *mclip, Note *notes_to_remove, int num_notes_to_remove)
 {
-    for (int32_t note_i=0; note_i<mclip->num_notes; note_i++) {
+    const struct sa_data sd = sa_get_wr(&mclip->notes);
+    Note notes[sd.len];
+    sa_copy(&sd, notes, sd.len);
+    int32_t num_notes = sd.len;
+    
+    for (int32_t note_i=0; note_i<num_notes; note_i++) {
 	/* If the note is in the list of IDs */
-	if (note_in_list(mclip->notes + note_i, notes, num_notes)) {
-	    /* num_notes--; /\* Search list has been reduced *\/ */
-	    memmove(mclip->notes + note_i, mclip->notes + note_i + 1, sizeof(Note) * (mclip->num_notes - note_i - 1));
-	    mclip->num_notes--;
-	    note_i--;
+	if (note_in_list(notes + note_i, notes_to_remove, num_notes_to_remove)) {
+	    memmove(notes + note_i, notes + note_i + 1, sizeof(Note) * (num_notes - note_i - 1));
+            num_notes--;
+	    note_i--; /* Search list has been reduced */
 	}
     }
+    sa_set(&sd, notes, num_notes);
 }
 
-static Note *find_note(MIDIClip *mclip, int32_t start_rel, int key, int velocity)
+static Note *find_note(MIDIClip *mclip, Note *notes, int32_t num_notes, int32_t start_rel, int key, int velocity)
 {
-    Note *note = mclip->notes;
-    while (note - mclip->notes < mclip->num_notes && note->start_rel < start_rel) note++;
-    while (note - mclip->notes < mclip->num_notes) {
+    Note *note = notes;
+    while (note - notes < num_notes && note->start_rel < start_rel) note++;
+    while (note - notes < num_notes) {
 	if (note->start_rel == start_rel
 	    && note->key == key
 	    && note->velocity == velocity) {
@@ -1068,55 +975,68 @@ static Note *find_note(MIDIClip *mclip, int32_t start_rel, int key, int velocity
     }
     return NULL;
 }
-NEW_EVENT_FN(undo_delete_grabbed_notes, "undo delete grabbed notes")
+
+NEW_EVENT_FN(undo_delete_grabbed_notes, "undo delete grabbed notes") {
     ClipRef *cr = obj1;
     MIDIClip *clip = cr->source_clip;
-    Note *notes = obj2;
-    int32_t num_notes = val1.int32_v;
-    midi_clip_reinsert_notes(clip, notes, num_notes);
+    Note *deleted_notes = obj2;
+    int32_t num_deleted_notes = val1.int32_v;
+    /* updates shared array */
+    midi_clip_reinsert_notes(clip, deleted_notes, num_deleted_notes);
     if (session_get()->piano_roll) {
 	int32_t max_end = INT32_MIN;
-        for (int i=0; i<num_notes; i++) {
-	    int32_t tl_end = note_tl_end_pos(notes + i, cr);
+        for (int i=0; i<num_deleted_notes; i++) {
+	    int32_t tl_end = note_tl_end_pos(deleted_notes + i, cr);
 	    if (tl_end > max_end) max_end = tl_end;
 	}
 	if (max_end != INT32_MIN) timeline_set_play_position(cr->track->tl, max_end, false);
     }
-}
+}}
+
 static void midi_clipref_grabbed_notes_delete_internal(ClipRef *cr, bool from_undo);
 
-NEW_EVENT_FN(redo_delete_grabbed_notes, "redo delete grabbed notes")
+NEW_EVENT_FN(redo_delete_grabbed_notes, "redo delete grabbed notes") {
     ClipRef *cr = obj1;
     MIDIClip *clip = cr->source_clip;
-    midi_clip_ungrab_all(clip);
-    Note *notes = obj2;
-    int32_t num_notes = val1.int32_v;
+    const struct sa_data sd = sa_get_wr(&clip->notes);
+    Note notes[sd.len];
+    sa_copy(&sd, notes, sd.len);
+    midi_clip_ungrab_all(clip, notes, sd.len);
+    Note *to_delete = obj2;
+    int32_t num_notes_to_delete = val1.int32_v;
     /* fprintf(stderr, "RE-DELETING %d notes\n", num_notes); */
     int32_t min_start = INT32_MAX;
-    for (int i=0; i<num_notes; i++) {
-	Note *note = find_note(clip, notes[i].start_rel, notes[i].key, notes[i].velocity);
+    for (int i=0; i<num_notes_to_delete; i++) {
+        /* Locate note in main array */
+	Note *note = find_note(clip, notes, sd.len, to_delete[i].start_rel, to_delete[i].key, to_delete[i].velocity);
 	if (!note) fprintf(stderr, "ERROR: note not found!\n");
 	int32_t tl_start = note_tl_start_pos(note, cr);
 	if (tl_start < min_start) min_start = tl_start;
-	midi_clip_grab_note(clip, note, NOTE_EDGE_NONE);
+	midi_clip_grab_note(clip, notes, sd.len, note - notes, NOTE_EDGE_NONE);
     }
     if (min_start < INT32_MAX && session_get()->piano_roll) {
 	timeline_set_play_position(cr->track->tl, min_start, false);
     }
+    /* Commit note grabs */
+    sa_set(&sd, notes, sd.len);
+    /* TODO: why delete grabbed notes? Alter array directly */
     midi_clipref_grabbed_notes_delete_internal(cr, true);
-}
+}}
 
+/* Used in piano_roll : undo_insert_note */
 void midi_clip_remove_note_at(MIDIClip *mclip, int32_t note_i)
 {
-    if (mclip->num_notes > 1 && note_i < mclip->num_notes - 1) {
-	memmove(mclip->notes + note_i, mclip->notes + note_i + 1, (mclip->num_notes - note_i - 1) * sizeof(Note));
+    const struct sa_data sd = sa_get_wr(&mclip->notes);
+    Note notes[sd.len];
+    if (sd.len > 1 && note_i < sd.len - 1) {
+	memmove(notes + note_i, notes + note_i + 1, (sd.len - note_i - 1) * sizeof(Note));
 	if (mclip->last_grabbed_note > note_i) {
 	    mclip->last_grabbed_note--;	    
 	} else {
-	    grabbed_notes_reset(mclip);
+	    grabbed_notes_reset(mclip, notes, sd.len - 1);
 	}
     }
-    mclip->num_notes--;
+    sa_set(&sd, notes, sd.len - 1);
 }
 
 static void midi_clipref_grabbed_notes_delete_internal(ClipRef *cr, bool from_undo)

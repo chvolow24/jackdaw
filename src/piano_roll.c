@@ -2220,15 +2220,7 @@ int piano_roll_execute_queued_insertions()
 	    
 	    state.insert_velocity = velocity;
 	    if (e.timestamp - last_insert_ts < CHORD_THRESHOLD_MSEC && last_insert_note_id >= 0) {
-		/* fprintf(stderr, "\tCHORD time diff: %d", e.timestamp - last_insert_ts); */
-		/* int32_t last_insert_note_i = midi_clip_get_note_by_id(state.clip, last_insert_note_id); */
-	        /* if (last_insert_note_i < 0) { */
-		    /* fprintf(stderr, "Error forming chord: could not find note by id %d\n", last_insert_note_id); */
-		/* } else { */
-		    /* timeline_set_play_position(state.cr->track->tl, note_tl_start_pos(state.clip->notes + last_insert_note_i, state.cr), false); */
-		/* fprintf(stderr, "\tGOTO %d", last_insert_tl_pos); */
 		timeline_set_play_position(state.cr->track->tl, last_insert_tl_pos, false);
-		/* } */
 	    }
 	    last_insert_tl_pos = state.cr->track->tl->play_pos_sframes;
 	    /* fprintf(stderr, "\tINSERT %d, SET last tl pos %d\n", state.selected_note, last_insert_tl_pos); */

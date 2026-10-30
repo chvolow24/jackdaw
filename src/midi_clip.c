@@ -943,6 +943,9 @@ static bool note_in_list(const Note *const note, const Note *const list, const i
     return false;
 }
 
+/* Used in piano roll :: undo_paste_grabbed_notes
+   Writes to shared array
+ */
 void midi_clip_remove_notes_by_id(MIDIClip *mclip, Note *notes_to_remove, int num_notes_to_remove)
 {
     const struct sa_data sd = sa_get_wr(&mclip->notes);
@@ -981,7 +984,7 @@ NEW_EVENT_FN(undo_delete_grabbed_notes, "undo delete grabbed notes") {
     MIDIClip *clip = cr->source_clip;
     Note *deleted_notes = obj2;
     int32_t num_deleted_notes = val1.int32_v;
-    /* updates shared array */
+    /* midi_clip_reinsert_notes updates shared array */
     midi_clip_reinsert_notes(clip, deleted_notes, num_deleted_notes);
     if (session_get()->piano_roll) {
 	int32_t max_end = INT32_MIN;
@@ -995,6 +998,7 @@ NEW_EVENT_FN(undo_delete_grabbed_notes, "undo delete grabbed notes") {
 
 static void midi_clipref_grabbed_notes_delete_internal(ClipRef *cr, bool from_undo);
 
+/* writes to shared array */
 NEW_EVENT_FN(redo_delete_grabbed_notes, "redo delete grabbed notes") {
     ClipRef *cr = obj1;
     MIDIClip *clip = cr->source_clip;
@@ -1023,7 +1027,7 @@ NEW_EVENT_FN(redo_delete_grabbed_notes, "redo delete grabbed notes") {
     midi_clipref_grabbed_notes_delete_internal(cr, true);
 }}
 
-/* Used in piano_roll : undo_insert_note */
+/* Used in piano_roll :: undo_insert_note */
 void midi_clip_remove_note_at(MIDIClip *mclip, int32_t note_i)
 {
     const struct sa_data sd = sa_get_wr(&mclip->notes);
@@ -1039,32 +1043,42 @@ void midi_clip_remove_note_at(MIDIClip *mclip, int32_t note_i)
     sa_set(&sd, notes, sd.len - 1);
 }
 
+/* writes to shared array */
 static void midi_clipref_grabbed_notes_delete_internal(ClipRef *cr, bool from_undo)
 {
     MIDIClip *mclip = cr->source_clip;
     Note *grabbed_note_info = calloc(mclip->num_grabbed_notes, sizeof(Note));
     /* for (int i=0; i<mclip->num_grabbed_notes; i++) { */
+    
+    const struct sa_data sd = sa_get_wr(&mclip->notes);
+    int32_t num_notes = sd.len;
+    Note notes[sd.len];
+    sa_copy(&sd, notes, num_notes);
+    
     int32_t grabbed_note_i = 0;
     if (mclip->num_grabbed_notes == 0) return;
     for (int32_t note_i=mclip->first_grabbed_note; note_i<=mclip->last_grabbed_note; note_i++) {
-	Note *note = mclip->notes + note_i;
+	Note *note = notes + note_i;
 	if (!note->grabbed) continue;
 	note->grabbed = false;
 	note->grabbed_edge = NOTE_EDGE_NONE;
 	grabbed_note_info[grabbed_note_i] = *note;
 	grabbed_note_i++;
-	if (mclip->num_notes > 1 && note_i < mclip->num_notes - 1) {
-	    memmove(mclip->notes + note_i, mclip->notes + note_i + 1, (mclip->num_notes - note_i - 1) * sizeof(Note));
+	if (num_notes > 1 && note_i < num_notes - 1) {
+	    memmove(notes + note_i, notes + note_i + 1, (num_notes - note_i - 1) * sizeof(Note));
 	    mclip->last_grabbed_note--;
 	    /* grabbed_notes_incr(mclip, note_i, mclip->num_notes, -1); */
 	}
 	note_i--;
-	mclip->num_notes--;
+	num_notes--;
     }
     mclip->num_grabbed_notes = 0;
-    if (mclip->last_grabbed_note >= mclip->num_notes) {
-	mclip->last_grabbed_note = mclip->num_notes - 1;
+    
+    /* TODO: is this necessary? num_grabbed_notes is zero */
+    if (mclip->last_grabbed_note >= num_notes) {
+	mclip->last_grabbed_note = num_notes - 1;
     }
+    
     if (!from_undo) {
 	user_event_push(
 	    undo_delete_grabbed_notes,
@@ -1077,17 +1091,15 @@ static void midi_clipref_grabbed_notes_delete_internal(ClipRef *cr, bool from_un
 	    (Value){0},
 	    (Value){.int32_v = grabbed_note_i},
 	    (Value){0},
-	    0, 0, false, true);	    
+	    0, 0, false, true);
     }
-
+    sa_set(&sd, notes, sd.len);
 }
-
 
 void midi_clipref_grabbed_notes_delete(ClipRef *cr)
 {
     midi_clipref_grabbed_notes_delete_internal(cr, false);
 }
-
 
 /* GRABBED NOTE MOVES
    - CACHE
@@ -1106,12 +1118,11 @@ struct note_move_info {
     uint8_t key_after;
 };
 
-
-int32_t midi_clip_get_note_by_id(MIDIClip *mclip, uint32_t id)
+int32_t midi_clip_get_note_by_id(Note *notes, int32_t num_notes, uint32_t id)
 {
-    for (int32_t i=0; i<mclip->num_notes; i++) {
+    for (int32_t i=0; i<num_notes; i++) {
 	/* fprintf(stderr, "TEST note %d, id %d<=>%d\n", i, mclip->notes[i].id, id); */
-	if (mclip->notes[i].id == id) {
+	if (notes[i].id == id) {
 	    return i;
 	}
     }
@@ -1119,47 +1130,55 @@ int32_t midi_clip_get_note_by_id(MIDIClip *mclip, uint32_t id)
 }
 
 NEW_EVENT_FN(undo_move_grabbed_notes, "undo move grabbed notes")
+{
     ClipRef *cr = obj1;
     MIDIClip *mclip = cr->source_clip;
+    const struct sa_data sd = sa_get_wr(&mclip->notes);
+    Note notes[sd.len];
+    sa_copy(&sd, notes, sd.len);
+
     struct note_move_info *info = obj2;
-    int32_t num_notes = val1.int32_v;
-    for (int32_t i=0; i<num_notes; i++) {
-	int32_t note_i = midi_clip_get_note_by_id(mclip, info[i].note_id);
-	Note *note = mclip->notes + note_i;
+    int32_t num_notes_to_move = val1.int32_v;
+    for (int32_t i=0; i<num_notes_to_move; i++) {
+	int32_t note_i = midi_clip_get_note_by_id(notes, sd.len, info[i].note_id);
+	Note *note = notes + note_i;
 	note->start_rel = info[i].start_tl_before - cr->tl_pos + cr->start_in_clip;
 	note->end_rel = info[i].end_tl_before - cr->tl_pos + cr->start_in_clip;;
 	note->key = info[i].key_before;
     }
-    midi_clip_resort_notes(mclip);
-    /* for (int32_t i=0; i<num_notes; i++) { */
-    /*     int32_t new_index = get_note_by_id(mclip, info[i].note_id); */
-    /*     info[i].note_index = new_index; */
-    /* } */
-}
-
+    midi_clip_resort_notes(mclip, notes, sd.len);
+    sa_set(&sd, notes, sd.len);
+}}
 
 NEW_EVENT_FN(redo_move_grabbed_notes, "redo move grabbed notes")
+{
     ClipRef *cr = obj1;
     MIDIClip *mclip = cr->source_clip;
+    const struct sa_data sd = sa_get_wr(&mclip->notes);
+    Note notes[sd.len];
+    sa_copy(&sd, notes, sd.len);
+
     struct note_move_info *info = obj2;
-    int32_t num_notes = val1.int32_v;
-    for (int32_t i=0; i<num_notes; i++) {
-	int32_t note_i = midi_clip_get_note_by_id(mclip, info[i].note_id);
+    int32_t num_notes_to_move = val1.int32_v;
+    for (int32_t i=0; i<num_notes_to_move; i++) {
+	int32_t note_i = midi_clip_get_note_by_id(notes, sd.len, info[i].note_id);
 	if (note_i == -1) {
 	    fprintf(stderr, "ERROR: i=%d, note_i == -1\n", i);
 	    exit(1);
 	}
-        Note *note = mclip->notes + note_i;
+        Note *note = notes + note_i;
 	note->start_rel = info[i].start_tl_after - cr->tl_pos + cr->start_in_clip;
 	note->end_rel = info[i].end_tl_after - cr->tl_pos + cr->start_in_clip;
 	note->key = info[i].key_after;
     }
-    midi_clip_resort_notes(mclip);
-    /* for (int32_t i=0; i<num_notes; i++) { */
-    /* 	int32_t new_index = get_note_by_id(mclip, info[i].note_id); */
-    /* 	info[i].note_index = new_index; */
-    /* } */
-}
+    midi_clip_resort_notes(mclip, notes, sd.len);
+    sa_set(&sd, notes, sd.len);
+}}
+/*
+=========================================================================
+========== refactor done above here =====================================
+=========================================================================
+ */
 
 
 /* Call *after* a move event has completed

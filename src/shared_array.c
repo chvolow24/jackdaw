@@ -94,7 +94,7 @@ const void *const sa_iter(struct sa_data *data)
     return (uint8_t *)data->__array + data->__iter++ * data->sa->el_size;
 }
 
-const void *const sa_at(struct sa_data *data, int32_t index)
+const void *const sa_at(const struct sa_data *data, int32_t index)
 {
     return (uint8_t *)data->__array + index * data->sa->el_size;
 }

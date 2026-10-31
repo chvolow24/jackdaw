@@ -1174,12 +1174,6 @@ NEW_EVENT_FN(redo_move_grabbed_notes, "redo move grabbed notes")
     midi_clip_resort_notes(mclip, notes, sd.len);
     sa_set(&sd, notes, sd.len);
 }}
-/*
-=========================================================================
-========== refactor done above here =====================================
-=========================================================================
- */
-
 
 /* Call *after* a move event has completed
    Assumes that note indices remain constant :|
@@ -1187,14 +1181,18 @@ NEW_EVENT_FN(redo_move_grabbed_notes, "redo move grabbed notes")
 void midi_clipref_push_grabbed_note_move_event(ClipRef *cr)
 {
     MIDIClip *mclip = cr->source_clip;
-    /* fprintf(stderr, "Push! note move in progress? %d num grabbed? %d\n", mclip->note_move_in_progress, mclip->num_grabbed_notes); */
     if (mclip->num_grabbed_notes == 0) return;
     if (!mclip->note_move_in_progress) return;
+    
+    const struct sa_data sd = sa_get_rdonly(&mclip->notes);
+    /* Note notes[sd.len]; */
+    /* sa_copy(&sd, notes, sd.len); */
+    
     mclip->note_move_in_progress = false;
     struct note_move_info *info = calloc(mclip->num_grabbed_notes, sizeof(struct note_move_info));
     int32_t info_i = 0;
     for (int32_t i=mclip->first_grabbed_note; i<=mclip->last_grabbed_note; i++) {
-	Note *note = mclip->notes + i;	    
+	const Note *note = sa_at(&sd, i);	    
 	if (note->grabbed) {
 	    if (info_i >= mclip->num_grabbed_notes) {
 		fprintf(stderr, "ERROR: in push_grabbed_note_move_event: num grabbed notes (indices %d %d, num %d)\n", mclip->first_grabbed_note, mclip->last_grabbed_note, mclip->num_grabbed_notes);
@@ -1250,12 +1248,15 @@ void midi_clipref_cache_grabbed_note_info(ClipRef *cr)
      (e.g. when changing track while dragging), then an event is
      pushed immediately, effectively breaking up the larger move event. */
     MIDIClip *mclip = cr->source_clip;
+    struct sa_data sd = sa_get_wr(&mclip->notes);
+    Note notes[sd.len];
+    sa_copy(&sd, notes, sd.len);
     if (mclip->note_move_in_progress) {
 	midi_clipref_push_grabbed_note_move_event(cr);
     }
     if (mclip->num_grabbed_notes == 0) return;
     for (int32_t i=mclip->first_grabbed_note; i<=mclip->last_grabbed_note; i++) {
-	Note *note = mclip->notes + i;
+	Note *note = notes + i;
 	if (!note->grabbed) continue;
 	note->cached_start_tl_pos = note_tl_start_pos(note, cr);
 	note->cached_end_tl_pos = note_tl_end_pos(note, cr);
@@ -1264,6 +1265,7 @@ void midi_clipref_cache_grabbed_note_info(ClipRef *cr)
 	note->cached_key = note->key;
 	/* fprintf(stderr, "CACHED note %d\n", i); */
     }
+    sa_set(&sd, notes, sd.len);
     mclip->note_move_in_progress = true;
 }
 
@@ -1304,66 +1306,78 @@ static void note_apply_quantize_amt(ClipRef *cr, Note *note)
 }
 
 NEW_EVENT_FN(undo_quantize_notes, "undo quantize notes")
+{
     ClipRef *cr = obj1;
     MIDIClip *mclip = cr->source_clip;
+    const struct sa_data sd = sa_get_wr(&mclip->notes);
+    Note notes[sd.len];
+    sa_copy(&sd, notes, sd.len);
+    
     struct quantize_undo_info *info = obj2;
-    int32_t num_notes = val1.int32_v;
-    for (int32_t i=0; i<num_notes; i++) {
-	Note *note = mclip->notes + midi_clip_get_note_by_id(cr->source_clip, info[i].note_id);
+    int32_t num_notes_to_requantize = val1.int32_v;
+    for (int32_t i=0; i<num_notes_to_requantize; i++) {
+        Note *note = notes + midi_clip_get_note_by_id(notes, sd.len, info[i].note_id);
 	note->quantize_info.amt = 0;
 	note_apply_quantize_amt(cr, note);
 	note->quantize_info = info[i].old_info;
     }
-    midi_clip_resort_notes(mclip);
-    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
-}
+    midi_clip_resort_notes(mclip, notes, sd.len);
+    sa_set(&sd, notes, sd.len);
+}}
 
 NEW_EVENT_FN(redo_quantize_notes, "redo quantize notes")
+{
     ClipRef *cr = obj1;
     MIDIClip *mclip = cr->source_clip;
+    const struct sa_data sd = sa_get_wr(&mclip->notes);
+    Note notes[sd.len];
+    sa_copy(&sd, notes, sd.len);
+
     struct quantize_undo_info *info = obj2;
-    int32_t num_notes = val1.int32_v;
-    for (int32_t i=0; i<num_notes; i++) {
-	Note *note = mclip->notes + midi_clip_get_note_by_id(cr->source_clip, info[i].note_id);
+    int32_t num_notes_to_requantize = val1.int32_v;
+    for (int32_t i=0; i<num_notes_to_requantize; i++) {
+	Note *note = notes + midi_clip_get_note_by_id(notes, sd.len, info[i].note_id);
 	note->quantize_info = info[i].new_info;
 	note_apply_quantize_amt(cr, note);
     }
-    midi_clip_resort_notes(mclip);
-    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
+    midi_clip_resort_notes(mclip, notes, sd.len);
+    sa_set(&sd, notes, sd.len);
+}}
 
-}
-
-
-
-static void midi_clipref_quantize_notes(ClipRef *cr, Note **notes, int num, ClickTrack *ct, float amount, BeatProminence resolution, bool quantize_note_offs)
+/* caller must free *intersecting (if any) */
+static void midi_clipref_quantize_notes(
+    ClipRef *cr,
+    Note *notes,
+    int32_t num_notes,
+    int32_t *note_indices,
+    int32_t num_notes_to_quantize,
+    ClickTrack *ct,
+    float amount,
+    BeatProminence resolution,
+    bool quantize_note_offs)
 {
-    struct quantize_undo_info *undo_info = malloc(sizeof(struct quantize_undo_info) * num);
-    for (int i=0; i<num; i++) {
-	undo_info[i].note_id = notes[i]->id;
-	undo_info[i].old_info = notes[i]->quantize_info;
+    struct quantize_undo_info *undo_info = malloc(sizeof(struct quantize_undo_info) * num_notes_to_quantize);
+    for (int i=0; i<num_notes_to_quantize; i++) {
+        int32_t note_i = note_indices[i];
+	undo_info[i].note_id = notes[note_i].id;
+	undo_info[i].old_info = notes[note_i].quantize_info;
 	
-	notes[i]->quantize_info.unquantized_start_pos = click_track_get_pos(ct, note_tl_start_pos(notes[i], cr));
-	notes[i]->quantize_info.unquantized_end_pos = click_track_get_pos(ct, note_tl_end_pos(notes[i], cr));
+	notes[note_i].quantize_info.unquantized_start_pos = click_track_get_pos(ct, note_tl_start_pos(notes + note_i, cr));
+	notes[note_i].quantize_info.unquantized_end_pos = click_track_get_pos(ct, note_tl_end_pos(notes + note_i, cr));
 
-	/* if (notes[i]->quantize_info.orig_start_pos.seg) { */
-	/*     memcpy(&undo_info[i].old_segment, notes[i]->quantize_info.orig_start_pos.seg, sizeof(ClickSegment)); */
-	/* } else { */
-	/*     undo_info[i].old_segment.click_track = NULL; */
-	/* } */
-
-	notes[i]->quantize_info.amt = amount;
-	notes[i]->quantize_info.quantized = true;
-	ClickTrackPos quantized_start = click_track_pos_round(notes[i]->quantize_info.unquantized_start_pos, resolution);
-	notes[i]->quantize_info.quantized_start_pos = quantized_start;
-	if ((notes[i]->quantize_info.quantize_note_off = quantize_note_offs)) {
-	    ClickTrackPos quantized_end = click_track_pos_round(notes[i]->quantize_info.unquantized_end_pos, resolution);
+	notes[note_i].quantize_info.amt = amount;
+	notes[note_i].quantize_info.quantized = true;
+	ClickTrackPos quantized_start = click_track_pos_round(notes[note_i].quantize_info.unquantized_start_pos, resolution);
+	notes[note_i].quantize_info.quantized_start_pos = quantized_start;
+	if ((notes[note_i].quantize_info.quantize_note_off = quantize_note_offs)) {
+	    ClickTrackPos quantized_end = click_track_pos_round(notes[note_i].quantize_info.unquantized_end_pos, resolution);
 	    if (memcmp(&quantized_start, &quantized_end, sizeof(ClickTrackPos)) == 0) {
 		quantized_end = click_track_pos_do_increment(quantized_end, resolution);
 	    }
-	    notes[i]->quantize_info.quantized_end_pos = quantized_end;
+	    notes[note_i].quantize_info.quantized_end_pos = quantized_end;
 	}
-	note_apply_quantize_amt(cr, notes[i]);
-	undo_info[i].new_info = notes[i]->quantize_info;
+	note_apply_quantize_amt(cr, notes + note_i);
+	undo_info[i].new_info = notes[note_i].quantize_info;
     }
     user_event_push(
 	undo_quantize_notes,
@@ -1371,14 +1385,13 @@ static void midi_clipref_quantize_notes(ClipRef *cr, Note **notes, int num, Clic
 	NULL, NULL,
 	cr,
 	undo_info,
-	(Value){.int32_v = num},
+	(Value){.int32_v = num_notes_to_quantize},
 	(Value){0},
-	(Value){.int32_v = num},
+	(Value){.int32_v = num_notes_to_quantize},
 	(Value){0},
 	0, 0, false, true);
-    midi_clip_resort_notes(cr->source_clip);
+    midi_clip_resort_notes(cr->source_clip, notes, num_notes);
 }
-
 
 /* Amt 0.0 - 1.0 describes how close to the note gets to the beat */
 static void midi_clipref_quantize_notes_in_range(ClipRef *cr, float amount, BeatProminence resolution, bool quantize_note_offs)
@@ -1390,13 +1403,28 @@ static void midi_clipref_quantize_notes_in_range(ClipRef *cr, float amount, Beat
 	status_set_errstr("Add a click track (C-t) before quantizing");
 	return;
     }
+
+    MIDIClip *mclip = cr->source_clip;
+    const struct sa_data sd = sa_get_wr(&mclip->notes);
+    Note notes[sd.len];
+    sa_copy(&sd, notes, sd.len);
     
-    Note **intersecting;
-    int num = midi_clipref_notes_intersecting_area(cr, tl->in_mark_sframes, tl->out_mark_sframes, 0, 127, &intersecting);
+    /* Note **intersecting; */
+    int32_t *intersecting = NULL;
+    int num = midi_clipref_notes_intersecting_area(
+        cr,
+        notes,
+        0,
+        sd.len,
+        tl->in_mark_sframes,
+        tl->out_mark_sframes,
+        0,
+        127,
+        &intersecting);
     if (num == 0) return;
-    midi_clipref_quantize_notes(cr, intersecting, num, ct, amount, resolution, quantize_note_offs);
-    /* uint32_t *note_ids = malloc(sizeof(uint32_t) * num);; */
-    free(intersecting);
+    midi_clipref_quantize_notes(cr, notes, sd.len, intersecting, num, ct, amount, resolution, quantize_note_offs);
+    sa_set(&sd, notes, sd.len);
+    if (intersecting) free(intersecting);
 }
 
 /* Amt 0.0 - 1.0 describes how close to the note gets to the beat */
@@ -1409,12 +1437,35 @@ static void midi_clipref_quantize_all_notes(ClipRef *cr, float amount, BeatPromi
 	return;
     }
     
-    Note **intersecting;
-    int num = midi_clipref_notes_intersecting_area(cr, cr->tl_pos, cr->tl_pos + clipref_len(cr), 0, 127, &intersecting);
+    MIDIClip *mclip = cr->source_clip;
+    const struct sa_data sd = sa_get_wr(&mclip->notes);
+    Note notes[sd.len];
+    sa_copy(&sd, notes, sd.len);
+    
+    int32_t *intersecting = NULL;
+    int num = midi_clipref_notes_intersecting_area(
+        cr,
+        notes,
+        0,
+        sd.len,
+        cr->tl_pos,
+        cr->tl_pos + clipref_len(cr),
+        0,
+        127,
+        &intersecting);
     if (num == 0) return;
-    midi_clipref_quantize_notes(cr, intersecting, num, ct, amount, resolution, quantize_note_offs);
-    /* uint32_t *note_ids = malloc(sizeof(uint32_t) * num);; */
-    free(intersecting);
+    midi_clipref_quantize_notes(
+        cr,
+        notes,
+        sd.len,
+        intersecting,
+        num,
+        ct,
+        amount,
+        resolution,
+        quantize_note_offs);
+    sa_set(&sd, notes, sd.len);
+    if (intersecting) free(intersecting);
 }
 
 
@@ -1423,35 +1474,57 @@ struct note_quant_amt {
     float undo_amt;
 };
 
-static void midi_clipref_notes_adj_quantize_amount(ClipRef *cr, Note **notes, int32_t num, float new_amount, bool from_undo);
+static void midi_clipref_notes_adj_quantize_amount(
+    ClipRef *cr,
+    Note *notes,
+    int32_t num_notes,
+    int32_t *note_indices,
+    int32_t num,
+    float new_amount,bool from_undo);
+
 NEW_EVENT_FN(undo_adj_quantize_amt, "undo adj quantize amount")
-    ClipRef *cr = obj1;
+{
+    ClipRef *cr = obj1;    
     MIDIClip *mclip = cr->source_clip;
+    const struct sa_data sd = sa_get_wr(&mclip->notes);
+    Note notes[sd.len];
+    sa_copy(&sd, notes, sd.len);
+    
     struct note_quant_amt *info = obj2;
     int32_t num = val1.int32_v;
-    Note *note;
     for (int32_t i=0; i<num; i++) {
-        note = mclip->notes + midi_clip_get_note_by_id(mclip, info[i].note_id);
-	midi_clipref_notes_adj_quantize_amount(cr, &note, 1, info[i].undo_amt, true);
+        int32_t note_i = midi_clip_get_note_by_id(notes, sd.len, info[i].note_id);
+	midi_clipref_notes_adj_quantize_amount(cr, notes, sd.len, &note_i, 1, info[i].undo_amt, true);
     }
-}
+    sa_set(&sd, notes, sd.len);
+}}
 
 NEW_EVENT_FN(redo_adj_quantize_amt, "redo adj quantize amount")
+{
     ClipRef *cr = obj1;
     MIDIClip *mclip = cr->source_clip;
+    const struct sa_data sd = sa_get_wr(&mclip->notes);
+    Note notes[sd.len];
+    sa_copy(&sd, notes, sd.len);
+
     struct note_quant_amt *info = obj2;
     int32_t num = val1.int32_v;
-    Note **notes = malloc(num * sizeof(Note *));
+    int32_t indices[num];
     for (int32_t i=0; i<num; i++) {
-        notes[i] = mclip->notes + midi_clip_get_note_by_id(mclip, info[i].note_id);
+        indices[i] = midi_clip_get_note_by_id(notes, sd.len, info[i].note_id);
     }
-    midi_clipref_notes_adj_quantize_amount(cr, notes, num, val2.float_v, true);
-    free(notes);
-}
+    midi_clipref_notes_adj_quantize_amount(cr, notes, sd.len, indices, num, val2.float_v, true);
+    sa_set(&sd, notes, sd.len);
+}}
 
-
-
-static void midi_clipref_notes_adj_quantize_amount(ClipRef *cr, Note **notes, int32_t num, float new_amount, bool from_undo)
+static void midi_clipref_notes_adj_quantize_amount(
+    ClipRef *cr,
+    Note *notes,
+    int32_t num_notes,
+    int32_t *note_indices,
+    int32_t num,
+    float new_amount,
+    bool from_undo)
 {
     struct note_quant_amt *undo_info;
     if (!from_undo) {
@@ -1459,14 +1532,14 @@ static void midi_clipref_notes_adj_quantize_amount(ClipRef *cr, Note **notes, in
     }
     for (int32_t i=0; i<num; i++) {
 	if (!from_undo) {
-	    undo_info[i].undo_amt = notes[i]->quantize_info.amt;
-	    undo_info[i].note_id = notes[i]->id;
+	    undo_info[i].undo_amt = notes[i].quantize_info.amt;
+	    undo_info[i].note_id = notes[i].id;
 	}
-	if (!notes[i]->quantize_info.quantized) continue;
-	notes[i]->quantize_info.amt = new_amount;
-	note_apply_quantize_amt(cr, notes[i]);
-	/* notes[i]->start_rel = notes[i]->quantize_info.start_rel_before + notes[i]->quantize_info.start_diff * new_amount; */
-	/* notes[i]->end_rel = notes[i]->quantize_info.end_rel_before + new_amount * notes[i]->quantize_info.end_diff * new_amount; */
+	if (!notes[i].quantize_info.quantized) continue;
+	notes[i].quantize_info.amt = new_amount;
+	note_apply_quantize_amt(cr, notes + i);
+	/* notes[i].start_rel = notes[i].quantize_info.start_rel_before + notes[i].quantize_info.start_diff * new_amount; */
+	/* notes[i].end_rel = notes[i].quantize_info.end_rel_before + new_amount * notes[i].quantize_info.end_diff * new_amount; */
     }
     if (!from_undo) {
 	user_event_push(
@@ -1480,17 +1553,47 @@ static void midi_clipref_notes_adj_quantize_amount(ClipRef *cr, Note **notes, in
 	    (Value){.float_v = new_amount},
 	    0, 0, false, true);
     }
-    midi_clip_resort_notes(cr->source_clip);
+    midi_clip_resort_notes(cr->source_clip, notes, num_notes);
 }
 
 static void midi_clipref_notes_in_range_adj_quantize_amount(ClipRef *cr, float new_amount, int32_t start_tl_pos, int32_t end_tl_pos)
 {
     if (!cr) return;
-    Note **intersecting;
-    int num_intersecting = midi_clipref_notes_intersecting_area(cr, start_tl_pos, end_tl_pos, 0, 127, &intersecting);
-    midi_clipref_notes_adj_quantize_amount(cr, intersecting, num_intersecting, new_amount, false);
-    if (num_intersecting > 0) free(intersecting);
+    MIDIClip *mclip = cr->source_clip;
+    const struct sa_data sd = sa_get_wr(&mclip->notes);
+    Note notes[sd.len];
+    sa_copy(&sd, notes, sd.len);
+    
+    int32_t *intersecting = NULL;
+    int num_intersecting = midi_clipref_notes_intersecting_area(
+        cr,
+        notes,
+        0,
+        sd.len,
+        start_tl_pos,
+        end_tl_pos,
+        0,
+        127,
+        &intersecting);
+    if (num_intersecting == 0) return;
+    midi_clipref_notes_adj_quantize_amount(
+        cr,
+        notes,
+        sd.len,
+        intersecting,
+        num_intersecting,
+        new_amount,
+        false);
+    if (intersecting) free(intersecting);
+    sa_set(&sd, notes, sd.len);
 }
+
+/*
+=========================================================================
+========== refactor done above here =====================================
+=========================================================================
+ */
+
 
 /*------ Quantize top-level interface --------------------------------*/
 
@@ -1691,11 +1794,11 @@ void midi_clipref_adj_quantize_amt(ClipRef *cr)
 /* Assumes at least one note grabbed. Used in piano roll */
 void midi_clip_grabbed_pitch_range(MIDIClip *mclip, int *min_dst, int *max_dst)
 {
-    /* MIDIClip *mclip = cr->source_clip; */
+    const struct sa_data sd = sa_get_rdonly(&mclip->notes);
     int min = 127;
     int max = 0;
     for (int32_t i=mclip->first_grabbed_note; i<=mclip->last_grabbed_note; i++) {
-	Note *note = mclip->notes + i;
+	const Note *note = sa_at(&sd, i);
 	if (!note->grabbed) continue;
 	if (note->key < min) {
 	    min = note->key;
@@ -1710,11 +1813,11 @@ void midi_clip_grabbed_pitch_range(MIDIClip *mclip, int *min_dst, int *max_dst)
 
 void midi_clip_grabbed_vel_range(MIDIClip *mclip, int *min_dst, int *max_dst)
 {
-    /* MIDIClip *mclip = cr->source_clip; */
+    const struct sa_data sd = sa_get_rdonly(&mclip->notes);
     int min = 127;
     int max = 0;
     for (int32_t i=mclip->first_grabbed_note; i<=mclip->last_grabbed_note; i++) {
-	Note *note = mclip->notes + i;
+	const Note *note = sa_at(&sd, i);
 	if (!note->grabbed) continue;
 	if (note->velocity < min) {
 	    min = note->velocity;
@@ -1735,34 +1838,48 @@ struct note_id_vel {
 };
 
 NEW_EVENT_FN(undo_adj_grabbed_note_velocities, "undo adj note velocity")
+{
     MIDIClip *mclip = obj1;
+    const struct sa_data sd = sa_get_wr(&mclip->notes);
+    Note notes[sd.len];
+    sa_copy(&sd, notes, sd.len);
     struct note_id_vel *info = obj2;
     int32_t num_notes = val1.int32_v;
     for (int32_t i=0; i<num_notes; i++) {
-	Note *note = mclip->notes + midi_clip_get_note_by_id(mclip, info[i].note_id);
+	Note *note = notes + midi_clip_get_note_by_id(notes, sd.len, info[i].note_id);
 	note->velocity = info[i].prev_vel;
     }
-}
+    sa_set(&sd, notes, sd.len);
+}}
 
 NEW_EVENT_FN(redo_adj_grabbed_note_velocities, "redo adj note velocity")
+{
     MIDIClip *mclip = obj1;
+    const struct sa_data sd = sa_get_wr(&mclip->notes);
+    Note notes[sd.len];
+    sa_copy(&sd, notes, sd.len);
+
     struct note_id_vel *info = obj2;
     int32_t num_notes = val1.int32_v;
     for (int32_t i=0; i<num_notes; i++) {
-	Note *note = mclip->notes + midi_clip_get_note_by_id(mclip, info[i].note_id);
+	Note *note = notes + midi_clip_get_note_by_id(notes, sd.len, info[i].note_id);
 	note->velocity = info[i].new_vel;
     }
-}
+    sa_set(&sd, notes, sd.len);
+}}
 
 
 
 void midi_clip_adj_grabbed_velocities(MIDIClip *mclip, int by)
 {
-    
+    const struct sa_data sd = sa_get_wr(&mclip->notes);
+    Note notes[sd.len];
+    sa_copy(&sd, notes, sd.len);
+
     struct note_id_vel *undo_info = calloc(mclip->num_grabbed_notes, sizeof(struct note_id_vel));
     int32_t undo_info_index = 0;
     for (int32_t i=mclip->first_grabbed_note; i<=mclip->last_grabbed_note; i++) {
-	Note *note = mclip->notes + i;
+	Note *note = notes + i;
 	if (!note->grabbed) continue;
 	undo_info[undo_info_index].note_id = note->id;
 	undo_info[undo_info_index].prev_vel = note->velocity;	
@@ -1773,7 +1890,7 @@ void midi_clip_adj_grabbed_velocities(MIDIClip *mclip, int by)
 	undo_info[undo_info_index].prev_vel = note->velocity;
 	undo_info_index++;
     }
-
+    sa_set(&sd, notes, sd.len);
     user_event_push(
 	undo_adj_grabbed_note_velocities,
 	redo_adj_grabbed_note_velocities,
@@ -1784,7 +1901,7 @@ void midi_clip_adj_grabbed_velocities(MIDIClip *mclip, int by)
 	(Value){0},
 	(Value){.int32_v = undo_info_index},
 	(Value){0},
-	0, 0, false, true);	
+	0, 0, false, true);
 }
 
 

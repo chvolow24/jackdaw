@@ -298,7 +298,7 @@ static void jdaw_write_track(FILE *f, Track *track)
     fwrite(&track->solo_muted, 1, 1, f);
     fwrite(&track->minimized, 1, 1, f);
     fwrite(&track->send_to_out, 1, 1, f);
-    struct sa_data sd = sa_get(&track->clips);
+    struct sa_data sd = sa_get_rdonly(&track->clips);
     
     uint16_t num_clips = sd.len;
     uint16_ser_le(f, &num_clips);
@@ -972,7 +972,11 @@ static int jdaw_read_midi_note(FILE *f, MIDIClip *mclip)
     velocity = uint8_deser(f);
     start_rel = int32_deser_le(f);
     end_rel = int32_deser_le(f);
-    midi_clip_insert_note(mclip, 0, note, velocity, start_rel, end_rel);
+    /* TODO: Remove this subroutine, add notes locally, *then* set shared array */
+    const struct sa_data sd = sa_get_wr(&mclip->notes);
+    Note notes[sd.len + 1];
+    midi_clip_insert_note(mclip, notes, sd.len, 0, note, velocity, start_rel, end_rel);
+    sa_set(&sd, notes, sd.len + 1);
     return 0;
 }
 

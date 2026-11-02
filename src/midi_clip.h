@@ -186,6 +186,7 @@ void midi_clipref_grab_area(ClipRef *cr, int32_t tl_start, int32_t tl_end, int b
 void midi_clip_grabbed_notes_move(MIDIClip *mclip, int32_t move_by);
 void midi_clipref_grabbed_notes_delete(ClipRef *cr);
 void midi_clip_remove_note_at(MIDIClip *mclip, int32_t note_i);
+void midi_clip_remove_note_by_id(MIDIClip *mclip, uint32_t note_id);
 void midi_clip_remove_notes_by_id(MIDIClip *mclip, Note *notes, int num_notes);
 void midi_clip_reinsert_notes(MIDIClip *mclip, Note *notes, int num_notes);
 

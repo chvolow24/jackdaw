@@ -769,7 +769,11 @@ void piano_roll_deactivate()
     state.active = false;
 
     piano_roll_stop_moving();
-    midi_clip_ungrab_all(state.clip);
+    const struct sa_data sd = sa_get_wr(&state.clip->notes);
+    Note notes[sd.len];
+    sa_copy(&sd, notes, sd.len);    
+    midi_clip_ungrab_all(state.clip, notes, sd.len);
+    sa_set(&sd, notes, sd.len);
     state.clip = NULL;
     /* InputMode im = window_pop_mode(main_win); */
     /* if (im != MODE_PIANO_ROLL) { */
@@ -807,8 +811,9 @@ static void play_grabbed_notes(int max_playback_notes)
     int velocities[max_playback_notes];
     bool used_pitches[128] = {0};
     int note_to_play_i = 0;
-    for (int32_t i=state.clip->first_grabbed_note; i<=state.clip->last_grabbed_note; i++) {
-	Note *note = state.clip->notes + i;
+    const struct sa_data sd = sa_get_rdonly(&state.clip->notes);
+    for (int32_t i=state.clip->first_grabbed_note; i<=state.clip->last_grabbed_note; i++) {       
+	const Note *note = sa_at(&sd, i);
 	if (!note->grabbed) continue;
 	/* Prepare note info to send to MIDI out */
 	if (note_to_play_i < max_playback_notes && !used_pitches[note->key]) {
@@ -924,7 +929,7 @@ void piano_roll_back_dur()
 
 void piano_roll_next_note()
 {
-    if (state.clip->num_notes == 0) return;
+    if (sa_len(&state.clip->notes) == 0) return;
     Session *session = session_get();
     int32_t play_pos_rel = ACTIVE_TL->play_pos_sframes - state.cr->tl_pos + state.cr->start_in_clip;
     /* Note *note = midi_clipref_get_next_note(state.cr, pos, &pos); */
@@ -932,9 +937,10 @@ void piano_roll_next_note()
     int32_t last_note_i = midi_clipref_check_get_last_note(state.cr);
     int32_t diff_min = INT32_MAX;
     int32_t set_pos;
-    Note *sel_note = NULL;
+    const Note *sel_note = NULL;
+    const struct sa_data sd = sa_get_rdonly(&state.clip->notes);
     while (note_i <= last_note_i) {
-	Note *note = state.clip->notes + note_i;
+	const Note *note = sa_at(&sd, note_i);
 	if (note->grabbed && session->dragging) {
 	    note_i++;
 	    continue;
@@ -965,7 +971,7 @@ void piano_roll_next_note()
 
 void piano_roll_prev_note()
 {
-    if (state.clip->num_notes == 0) return;
+    if (sa_len(&state.clip->notes) == 0) return;
     Session *session = session_get();
     int32_t play_pos_rel = ACTIVE_TL->play_pos_sframes - state.cr->tl_pos + state.cr->start_in_clip;
     /* Note *note = midi_clipref_get_next_note(state.cr, pos, &pos); */
@@ -973,9 +979,10 @@ void piano_roll_prev_note()
     int32_t last_note_i = midi_clipref_check_get_last_note(state.cr);
     int32_t diff_min = INT32_MAX;
     int32_t set_pos;
-    Note *sel_note = NULL;
+    const Note *sel_note = NULL;
+    const struct sa_data sd = sa_get_rdonly(&state.clip->notes);
     while (note_i <= last_note_i) {
-	Note *note = state.clip->notes + note_i;
+	const Note *note = sa_at(&sd, note_i);
 	if (note->grabbed && session->dragging) {
 	    note_i++;
 	    continue;
@@ -1005,7 +1012,7 @@ void piano_roll_prev_note()
 
 void piano_roll_up_note()
 {
-    if (state.clip->num_notes == 0) return;
+    if (sa_len(&state.clip->notes) == 0) return;
     Session *session = session_get();
     int32_t pos = ACTIVE_TL->play_pos_sframes;
     uint8_t key = midi_clipref_up_note_at_cursor(state.cr, pos, state.selected_note);
@@ -1019,7 +1026,7 @@ void piano_roll_up_note()
 
 void piano_roll_down_note()
 {
-    if (state.clip->num_notes == 0) return;
+    if (sa_len(&state.clip->notes) == 0) return;
     Session *session = session_get();
     int32_t pos = ACTIVE_TL->play_pos_sframes;
     uint8_t key = midi_clipref_down_note_at_cursor(state.cr, pos, state.selected_note);
@@ -1067,36 +1074,54 @@ NEW_EVENT_FN(undo_insert_note, "undo insert note")
     ClipRef *cr = obj1;
     MIDIClip *mclip = cr->source_clip;
     int32_t note_id = val1.int32_v;
-    int32_t note_i = midi_clip_get_note_by_id(mclip, note_id);
-    midi_clip_remove_note_at(mclip, note_i);
+    midi_clip_remove_note_by_id(mclip, note_id);
     if (state.active) {
         timeline_set_play_position(state.cr->track->tl, val2.int32_v, false);
     }
 }
 
 NEW_EVENT_FN(redo_insert_note, "redo insert note")
+{
     ClipRef *cr = obj1;
     MIDIClip *mclip = cr->source_clip;
     struct insert_note_info *info = obj2;
-    Note *new = midi_clip_insert_note(mclip, info->channel, info->key, info->velocity, info->start_tl_pos - cr->tl_pos + cr->start_in_clip, info->end_tl_pos - cr->tl_pos + cr->start_in_clip);
+    const struct sa_data sd = sa_get_wr(&mclip->notes);
+    Note notes[sd.len + 1];
+    sa_copy(&sd, notes, sd.len);    
+    Note *new = midi_clip_insert_note(
+        mclip,
+        notes,
+        sd.len,
+        info->channel,
+        info->key,
+        info->velocity,
+        info->start_tl_pos - cr->tl_pos + cr->start_in_clip,
+        info->end_tl_pos - cr->tl_pos + cr->start_in_clip);
+    sa_set(&sd, notes, sd.len + 1);
     if (state.active) {
 	timeline_set_play_position(state.cr->track->tl, val2.int32_v, false);
     }
     new->id = info->id;
-}
+}}
 
 NEW_EVENT_FN(undo_redo_extend_tied_note, "undo/redo extend tied note")
+{
     ClipRef *cr = obj1;
     MIDIClip *mclip = cr->source_clip;
     int32_t note_id = val1.int32_v;
-    int32_t note_i = midi_clip_get_note_by_id(mclip, note_id);
-    Note *note = mclip->notes + note_i;
+    const struct sa_data sd = sa_get_wr(&mclip->notes);
+    Note notes[sd.len];
+    sa_copy(&sd, notes, sd.len);    
+
+    int32_t note_i = midi_clip_get_note_by_id(notes, sd.len, note_id);
+    Note *note = notes + note_i;
     note->end_rel = val2.int32_v;
+    sa_set(&sd, notes, sd.len);
     if (state.active) {
 	timeline_set_play_position(state.cr->track->tl, note_tl_end_pos(note, cr), false);
 	/* midi_clip_grab_note(mclip, note, NOTE_EDGE_RIGHT); */
     }
-}
+}}
 
 /* static void piano_roll_insert_chord(int *notes, int num_notes) */
 /* { */
@@ -1190,7 +1215,8 @@ Note *piano_roll_insert_note(bool make_synth_note)
     int32_t end_pos = clip_note_pos + input_dur;
 
     struct sa_data sd = sa_get_wr(&state.clip->notes);
-    Note notes[sd.len];
+    int32_t num_notes = sd.len;
+    Note notes[num_notes + 1];
     sa_copy(&sd, notes, sd.len);
 
     Note *ret = NULL;
@@ -1236,6 +1262,8 @@ Note *piano_roll_insert_note(bool make_synth_note)
 	midi_clip_ungrab_all(state.clip, notes, sd.len);
 	Note *note = midi_clip_insert_note(
             state.clip,
+            notes,
+            num_notes++,
             0,
             state.selected_note,
             state.insert_velocity,
@@ -1262,7 +1290,7 @@ Note *piano_roll_insert_note(bool make_synth_note)
 	    0, 0, false, true);
 	ret = note;
     }
-    midi_clip_check_reset_bounds(state.clip);
+    midi_clip_check_reset_bounds(state.clip, notes, num_notes);
     if (make_synth_note) {
 	float *buf_L, *buf_R;
 	int notes[] = {state.selected_note};
@@ -1270,7 +1298,7 @@ Note *piano_roll_insert_note(bool make_synth_note)
 	int32_t buf_len = synth_make_notes(state.cr->track->synth, notes, velocities, 1, &buf_L, &buf_R);
 	session_queue_audio(2, buf_L, buf_R, buf_len, 0, true);
     }
-    /* midi_clip_rectify_length(state.clip); */
+    sa_set(&sd, notes, num_notes);
     if (!state.chord_mode) {
 	timeline_set_play_position(tl, note_tl_end, false);
     }
@@ -1288,7 +1316,11 @@ void piano_roll_insert_rest()
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
     int32_t dur = get_input_dur_samples();
-    midi_clip_ungrab_all(state.clip);
+    const struct sa_data sd = sa_get_wr(&state.clip->notes);
+    Note notes[sd.len];
+    sa_copy(&sd, notes, sd.len);
+    midi_clip_ungrab_all(state.clip, notes, sd.len);
+    sa_set(&sd, notes, sd.len);
     int32_t old_pos = tl->play_pos_sframes;
     timeline_set_play_position(tl, tl->play_pos_sframes + dur, false);
     int32_t clipref_end = state.cr->tl_pos + clipref_len(state.cr);
@@ -1312,24 +1344,25 @@ void piano_roll_insert_rest()
 	0, 0, false, false);
 }
 
-Note *piano_roll_note_at_cursor(bool include_end)
+static Note piano_roll_note_at_cursor(bool include_end)
 {
-    if (state.clip->num_notes == 0) return NULL;
+    const struct sa_data sd = sa_get_rdonly(&state.clip->notes);
+    if (sd.len == 0) return (Note){0};
     int32_t note_i = midi_clipref_check_get_last_note(state.cr);
     int32_t first_note = midi_clipref_check_get_first_note(state.cr);
     int32_t playhead = state.cr->track->tl->play_pos_sframes;
     while (note_i >= first_note) {
-	Note *note = state.clip->notes + note_i;
+	const Note *note = sa_at(&sd, note_i);
 	int32_t tl_start = note_tl_start_pos(note, state.cr);
 	int32_t tl_end = note_tl_end_pos(note, state.cr);
 	if (note->key == state.selected_note
 	    && playhead >= tl_start
 	    && (include_end ? playhead <= tl_end : playhead < tl_end)) {
-	    return note;
+	    return *note;
 	}
 	note_i--;
     }
-    return NULL;
+    return (Note){0};
 }
 
 
@@ -1412,10 +1445,14 @@ void piano_roll_grabbed_notes_move(int32_t move_by)
 /* HIGH-LEVEL INTERFACE */
 void piano_roll_grab_ungrab()
 {
-    Note *note = piano_roll_note_at_cursor(true);
-    if (note && !note->grabbed) {
+    Note note = piano_roll_note_at_cursor(true);
+    const struct sa_data sd = sa_get_wr(&state.clip->notes);
+    Note notes[sd.len];
+    sa_copy(&sd, notes, sd.len);
+    int32_t note_index = midi_clip_get_note_by_id(notes, sd.len, note.id);
+    if (note.id > 0 && !note.grabbed) {
 	/* grab_note(note, NOTE_EDGE_NONE); */
-	midi_clip_grab_note(state.clip, note, NOTE_EDGE_NONE);
+	midi_clip_grab_note(state.clip, notes, sd.len, note_index, NOTE_EDGE_NONE);
 	if (session_get()->dragging) {
 	    midi_clipref_cache_grabbed_note_info(state.cr);
 	}
@@ -1423,13 +1460,14 @@ void piano_roll_grab_ungrab()
 	if (session_get()->dragging) {
 	    midi_clipref_push_grabbed_note_move_event(state.cr);
 	}
-	midi_clip_ungrab_all(state.clip);
+	midi_clip_ungrab_all(state.clip, notes, sd.len);
     }
     if (session_get()->dragging) {
 	status_stat_drag();
     }
     reset_grabbed_vel_str();
     reset_grabbed_pitch_str();
+    sa_set(&sd, notes, sd.len);
     /* play_all_grabbed_notes(); */
 }
 
@@ -1448,10 +1486,15 @@ void piano_roll_grab_and_drag()
 void piano_roll_grab_left_edge()
 {
     Session *session = session_get();
-    Note *note = piano_roll_note_at_cursor(true);
-    if (!note) return;
-    timeline_set_play_position(ACTIVE_TL, note_tl_start_pos(note, state.cr), false);
-    midi_clip_grab_note(state.clip, note, NOTE_EDGE_LEFT);
+    Note note = piano_roll_note_at_cursor(true);
+    if (note.id == 0) return;
+    timeline_set_play_position(ACTIVE_TL, note_tl_start_pos(&note, state.cr), false);
+    const struct sa_data sd = sa_get_wr(&state.clip->notes);
+    Note notes[sd.len];
+    sa_copy(&sd, notes, sd.len);
+    int32_t note_i = midi_clip_get_note_by_id(notes, sd.len, note.id);
+    midi_clip_grab_note(state.clip, notes, sd.len, note_i, NOTE_EDGE_LEFT);
+    sa_set(&sd, notes, sd.len);
     /* grab_note(note, NOTE_EDGE_RIGHT); */
     if (session_get()->dragging) {
 	status_stat_drag();
@@ -1461,10 +1504,17 @@ void piano_roll_grab_left_edge()
 void piano_roll_grab_right_edge()
 {
     Session *session = session_get();
-    Note *note = piano_roll_note_at_cursor(true);
-    if (!note) return;
-    timeline_set_play_position(ACTIVE_TL, note_tl_end_pos(note, state.cr), false);
-    midi_clip_grab_note(state.clip, note, NOTE_EDGE_RIGHT);
+    Note note = piano_roll_note_at_cursor(true);
+    if (note.id == 0) return;
+    
+    const struct sa_data sd = sa_get_wr(&state.clip->notes);
+    Note notes[sd.len];
+    sa_copy(&sd, notes, sd.len);
+    int32_t note_i = midi_clip_get_note_by_id(notes, sd.len, note.id);
+    timeline_set_play_position(ACTIVE_TL, note_tl_end_pos(&note, state.cr), false);
+    midi_clip_grab_note(state.clip, notes, sd.len, note_i, NOTE_EDGE_RIGHT);
+    sa_set(&sd, notes, sd.len);
+    
     /* grab_note(note, NOTE_EDGE_RIGHT); */
     if (session_get()->dragging) {
 	status_stat_drag();
@@ -1488,14 +1538,29 @@ void piano_roll_delete()
     if (state.clip->num_grabbed_notes > 0) {
 	midi_clipref_grabbed_notes_delete(state.cr);
     } else {
-	Note **intersecting = NULL;
+        
+        const struct sa_data sd = sa_get_wr(&state.clip->notes);
+        Note notes[sd.len];
+        sa_copy(&sd, notes, sd.len);
 	int32_t play_pos_sframes = state.cr->track->tl->play_pos_sframes;
 	int32_t start_pos = 0;
-	int num_intersecting = midi_clipref_notes_ending_at_pos(state.cr, play_pos_sframes, &intersecting, true, &start_pos);
+        int32_t *intersecting = NULL;
+	int num_intersecting = midi_clipref_notes_ending_at_pos(
+            state.cr,
+            play_pos_sframes,
+            notes,
+            sd.len,
+            &intersecting,
+            true,
+            &start_pos);
 	for (int i=0; i<num_intersecting; i++) {
-	    Note *note = intersecting[i];
-	    midi_clip_grab_note(state.clip, note, NOTE_EDGE_NONE);
+	    midi_clip_grab_note(state.clip, notes, sd.len, intersecting[i], NOTE_EDGE_NONE);
 	}
+        if (intersecting) {
+            sa_set(&sd, notes, sd.len);
+            free(intersecting);
+        }
+        
 	midi_clipref_grabbed_notes_delete(state.cr);
 	if (num_intersecting > 0) {
 	    timeline_set_play_position(state.cr->track->tl, start_pos, false);
@@ -1539,9 +1604,10 @@ void piano_roll_copy_grabbed_notes()
     if (state.clipboard.notes) free(state.clipboard.notes);
     state.clipboard.notes = malloc(clip->num_grabbed_notes * sizeof(Note));
     state.clipboard.num_notes = 0;
-    int32_t first_note_start_rel = clip->notes[clip->first_grabbed_note].start_rel;
+    const struct sa_data sd = sa_get_rdonly(&clip->notes);
+    int32_t first_note_start_rel = ((const Note *)sa_at(&sd, clip->first_grabbed_note))->start_rel;
     for (int32_t i=clip->first_grabbed_note; i<=clip->last_grabbed_note; i++) {
-	Note *note = clip->notes + i;
+	const Note *note = sa_at(&sd, i);
 	if (note->grabbed) {
 	    state.clipboard.notes[state.clipboard.num_notes] = *note;
 	    state.clipboard.notes[state.clipboard.num_notes].start_rel = note->start_rel - first_note_start_rel;
@@ -1569,18 +1635,28 @@ NEW_EVENT_FN(redo_paste_grabbed_notes, "redo paste grabbed notes")
 void piano_roll_paste_grabbed_notes()
 {
     if (!state.clipboard.notes) return;
-    midi_clip_ungrab_all(state.cr->source_clip);
+    const struct sa_data sd = sa_get_wr(&state.clip->notes);
+    Note notes[sd.len + state.clipboard.num_notes];
+    int32_t num_notes = sd.len;
+    sa_copy(&sd, notes, sd.len);
+    midi_clip_ungrab_all(state.cr->source_clip, notes, sd.len);
     Session *session = session_get();
     int32_t tl_pos_rel = ACTIVE_TL->play_pos_sframes - state.cr->tl_pos + state.cr->start_in_clip;
     Note *pasted_notes = malloc(state.clipboard.num_notes * sizeof(Note));
     for (int32_t i=0; i<state.clipboard.num_notes; i++) {
 	Note *note = state.clipboard.notes + i;
-	note = midi_clip_insert_note(state.cr->source_clip, note->channel, note->key, note->velocity, tl_pos_rel + note->start_rel, tl_pos_rel + note->end_rel);
+	note = midi_clip_insert_note(
+            state.cr->source_clip,
+            notes,
+            num_notes++,
+            note->channel,
+            note->key,
+            note->velocity,
+            tl_pos_rel + note->start_rel,
+            tl_pos_rel + note->end_rel);
 	pasted_notes[i] = *note;
-	midi_clip_grab_note(state.cr->source_clip, note, NOTE_EDGE_NONE);
-    }
-
-    
+	midi_clip_grab_note(state.cr->source_clip, notes, num_notes, note - notes, NOTE_EDGE_NONE);
+    }    
 
     user_event_push(
 	undo_paste_grabbed_notes,

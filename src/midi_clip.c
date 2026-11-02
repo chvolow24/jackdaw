@@ -26,7 +26,6 @@ void midi_clip_init(MIDIClip *mclip)
 {
     enum jdaw_thread users[2] = {JDAW_THREAD_INSTRUMENT, JDAW_THREAD_DSP};
     sa_init(&mclip->notes, sizeof(Note), users, 2);
-
     mclip->refs_alloc_len = DEFAULT_REFS_ALLOC_LEN;
     mclip->refs = calloc(mclip->refs_alloc_len, sizeof(ClipRef *));
 }
@@ -186,8 +185,7 @@ Note *midi_clip_insert_note(
     note->start_rel = start_rel;
     note->end_rel = end_rel;
     
-    note->id = mc->note_id;
-    mc->note_id++;
+    note->id = ++mc->note_id;
 
     // TODO: FIX GRABBED NOTES INCR
     grabbed_notes_incr(mc, note - notes_with_space + 1, old_num_notes + 1, 1);
@@ -1032,6 +1030,24 @@ void midi_clip_remove_note_at(MIDIClip *mclip, int32_t note_i)
 {
     const struct sa_data sd = sa_get_wr(&mclip->notes);
     Note notes[sd.len];
+    sa_copy(&sd, notes, sd.len);
+    if (sd.len > 1 && note_i < sd.len - 1) {
+	memmove(notes + note_i, notes + note_i + 1, (sd.len - note_i - 1) * sizeof(Note));
+	if (mclip->last_grabbed_note > note_i) {
+	    mclip->last_grabbed_note--;	    
+	} else {
+	    grabbed_notes_reset(mclip, notes, sd.len - 1);
+	}
+    }
+    sa_set(&sd, notes, sd.len - 1);
+}
+
+void midi_clip_remove_note_by_id(MIDIClip *mclip, uint32_t note_id)
+{
+    const struct sa_data sd = sa_get_wr(&mclip->notes);
+    Note notes[sd.len];
+    sa_copy(&sd, notes, sd.len);
+    int32_t note_i = midi_clip_get_note_by_id(notes, sd.len, note_id);
     if (sd.len > 1 && note_i < sd.len - 1) {
 	memmove(notes + note_i, notes + note_i + 1, (sd.len - note_i - 1) * sizeof(Note));
 	if (mclip->last_grabbed_note > note_i) {
@@ -1587,13 +1603,6 @@ static void midi_clipref_notes_in_range_adj_quantize_amount(ClipRef *cr, float n
     if (intersecting) free(intersecting);
     sa_set(&sd, notes, sd.len);
 }
-
-/*
-=========================================================================
-========== refactor done above here =====================================
-=========================================================================
- */
-
 
 /*------ Quantize top-level interface --------------------------------*/
 

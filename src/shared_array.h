@@ -47,4 +47,6 @@ const void *const sa_at(const struct sa_data *data, int32_t index);
 
 void sa_deinit(SharedArray *sa);
 
+int32_t sa_len(SharedArray *sa);
+
 #endif

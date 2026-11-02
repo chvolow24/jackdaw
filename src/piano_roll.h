@@ -27,7 +27,6 @@ void piano_roll_dur_shorter();
 Note *piano_roll_insert_note(bool synth_make_note);
 void piano_roll_insert_rest();
 
-Note *piano_roll_note_at_cursor(bool include_end);
 SDL_Rect piano_roll_get_note_rect(Note *note);
 
 void piano_roll_grab_ungrab();

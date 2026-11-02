@@ -84,6 +84,13 @@ void sa_push(SharedArray *sa, void *item)
     schedule_free(sa, old_data);
 }
 
+int32_t sa_len(SharedArray *sa)
+{
+    void *data = atomic_load_explicit(&sa->data, memory_order_acquire);
+    int32_t len = *(int32_t *)data;
+    return len;
+}
+
 /* To be placed in a "while" loop */
 const void *const sa_iter(struct sa_data *data)
 {

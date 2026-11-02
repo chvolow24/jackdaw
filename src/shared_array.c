@@ -12,8 +12,10 @@ void sa_init(
     int num_user_threads)
 {
     sa->el_size = el_size;
-    memcpy(sa->user_threads, user_threads, num_user_threads * el_size);
-    sa->num_user_threads = num_user_threads;    
+    memcpy(sa->user_threads, user_threads, num_user_threads * sizeof(enum jdaw_thread));
+    sa->num_user_threads = num_user_threads;
+    sa->data = malloc(sizeof(int32_t));
+    *(int32_t *)sa->data = 0;
 }
 
 static void schedule_free(SharedArray *sa, void *old_data)
@@ -29,26 +31,33 @@ static void schedule_free(SharedArray *sa, void *old_data)
         sa->num_user_threads);
 }
 
-const struct sa_data sa_get_rdonly(SharedArray *sa)
+struct sa_data sa_get_rdonly(SharedArray *sa)
 {
-    struct sa_data ret;
+    struct sa_data ret = {0};
     ret.__data = atomic_load_explicit(&sa->data, memory_order_acquire);
     ret.len = *(int32_t *)(ret.__data);
     ret.__array = ret.__data + sizeof(int32_t);
+    ret.__rdonly = true;
+    ret.sa = sa;
     return ret;
 }
 
-struct sa_data sa_get(SharedArray *sa)
+struct sa_data sa_get_wr(SharedArray *sa)
 {
     struct sa_data ret;
     ret.__data = atomic_load_explicit(&sa->data, memory_order_acquire);
     ret.len = *(int32_t *)(ret.__data);
     ret.__array = ret.__data + sizeof(int32_t);
+    ret.__rdonly = false;
+    ret.sa = sa;
     return ret;
 }
 
 void sa_copy(const struct sa_data *sd, void *dst, int32_t len)
 {
+    if (sd->__rdonly) {
+        log_tmp(LOG_WARN, "called sa_copy on a read-only shared array data\n");
+    }
     memcpy(dst, sd->__array, len * sd->sa->el_size);
 }
 
@@ -57,6 +66,10 @@ void sa_set(const struct sa_data *old_data, void *new_array, int32_t new_len)
 {
     if (!old_data) {
         log_tmp(LOG_ERROR, "shared_array_set: old sa_data MUST be returned to SA\n");
+        return;
+    }
+    if (old_data->__rdonly) {
+        log_tmp(LOG_ERROR, "attempting to 'set' read-only shared array data\n");
         return;
     }
     void *new_data = malloc(sizeof(int32_t) + old_data->sa->el_size * new_len);

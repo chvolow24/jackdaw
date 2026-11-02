@@ -70,14 +70,15 @@ static bool clipref_remove_from_track_array(ClipRef *cr, Track *track)
     int32_t new_len = sd.len - 1;
     ClipRef *new_clips[new_len];
     int i = 0;
-    ClipRef *cr_iter;
+    ClipRef *const *cr_iter_p;
     bool found = false;
-    while ((cr_iter = *(ClipRef **)sa_iter(&sd))) {
-        if (cr_iter == cr) {
+    
+    while ((cr_iter_p = sa_iter(&sd))) {
+        if (*cr_iter_p == cr) {
             found = true;
             continue;
         }
-        new_clips[i] = cr_iter;
+        new_clips[i] = *cr_iter_p;
         i++;
     }
     if (found) 

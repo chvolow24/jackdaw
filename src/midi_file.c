@@ -6,7 +6,6 @@
 #include "log.h"
 #include "midi_clip.h"
 #include "midi_io.h"
-#include "midi_objs.h"
 #include "portmidi.h"
 #include "prompt_user.h"
 #include "session.h"
@@ -757,7 +756,8 @@ int midi_file_open(const char *filepath, bool automatically_add_tracks)//, MIDIC
 	    midi_device_output_chunk_to_clip(&v_device[i], 0);
 	    
 	    MIDIClip *mclip = mclips[i];
-	    if (mclip->num_notes == 0) {
+            const struct sa_data sd = sa_get_rdonly(&mclip->notes);
+	    if (sd.len == 0) {
 		midi_clip_destroy(mclip, true);
 		if (dst_tracks[i]->added_from_midi_filepath == filepath) {
 		    track_destroy(dst_tracks[i], true);
@@ -773,7 +773,7 @@ int midi_file_open(const char *filepath, bool automatically_add_tracks)//, MIDIC
 		    memcpy(mclip->name, mclip->primary_instrument_name, strlen(mclip->primary_instrument_name) + 1);
 		}
 
-		mclip->len_sframes = mclip->notes[mclip->num_notes - 1].end_rel + 1;
+		mclip->len_sframes = ((const Note *)sa_at(&sd, sd.len - 1))->end_rel + 1;
 		ClipRef *cr = clipref_create(dst_tracks[i], tl->play_pos_sframes, CLIP_MIDI, mclip);
 		clipref_reset(cr, true);
 		Track *t = dst_tracks[i];

@@ -394,7 +394,13 @@ void midi_device_output_chunk_to_clip(MIDIDevice *d, enum midi_ts_type ts_type)
 	    Note *unclosed = d->unclosed_notes + note_val;
 	    /* if (current_clip) */
 	    if (unclosed->unclosed) {
-		midi_clip_insert_note(current_clip, channel, note_val, unclosed->velocity, unclosed->start_rel, pos_rel);
+                midi_clip_do_insert_note(
+                    current_clip,
+                    channel,
+                    note_val,
+                    unclosed->velocity,
+                    unclosed->start_rel,
+                    pos_rel);
 		unclosed->unclosed = false;
 	    }
 	} else if (msg_type == 0xB && current_clip) { /* Controller */

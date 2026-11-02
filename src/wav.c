@@ -322,7 +322,7 @@ int32_t wav_load(const char *filename, float **L, float **R)
 }
 
 ClipRef *wav_load_to_track(Track *track, const char *filename, int32_t start_pos) {
-    if (track->num_clips == MAX_TRACK_CLIPS) return NULL;
+    if (sa_len(&track->clips) == MAX_TRACK_CLIPS) return NULL;
     Session *session = session_get();
     Project *proj = &session->proj;
 

@@ -732,10 +732,14 @@ static void reset_obj_position(struct moved_obj *obj)
 	ClipRef *cr = obj->id.note.cr;
 	MIDIClip *mclip = cr->source_clip;
 	uint32_t note_id = obj->id.note.note_id;
-	Note *note = mclip->notes + midi_clip_get_note_by_id(mclip, note_id);
+        const struct sa_data sd = sa_get_wr(&mclip->notes);
+        Note notes[sd.len];
+        sa_copy(&sd, notes, sd.len);
+	Note *note = notes + midi_clip_get_note_by_id(notes, sd.len, note_id);
 	note->start_rel = tl_pos - cr->tl_pos + cr->start_in_clip;
 	note->end_rel = end_tl_pos - cr->tl_pos + cr->start_in_clip;
-	midi_clip_check_reset_bounds(mclip);
+	midi_clip_check_reset_bounds(mclip, notes, sd.len);
+        sa_set(&sd, notes, sd.len);
     }	
 	break;
     case MOV_OBJ_MIDI_PB: {
@@ -770,9 +774,10 @@ static void stash_all_object_positions_track(Track *track, ClickSegment *seg)
 {
     
     ClickTrack *ct = seg->track;
-    for (int i=0; i<track->num_clips; i++) {
-	ClipRef *cr = track->clips[i];
-	ClickTrackPos clip_pos = click_track_get_pos(ct, track->clips[i]->tl_pos);
+    const struct sa_data track_clips = sa_get_rdonly(&track->clips);
+    for (int i=0; i<track_clips.len; i++) {
+	ClipRef *cr = *(ClipRef **)sa_at(&track_clips, i);
+	ClickTrackPos clip_pos = click_track_get_pos(ct, cr->tl_pos);
 	if (!clip_pos.seg) continue;
 	union moved_obj_id id = {.obj = cr};
 	enum moved_obj_type type = cr->type == CLIP_AUDIO ? MOV_OBJ_AUDIO_CLIP : MOV_OBJ_MIDI_CLIP;
@@ -782,8 +787,9 @@ static void stash_all_object_positions_track(Track *track, ClickSegment *seg)
 	    int32_t first_note = midi_clipref_check_get_first_note(cr);
 	    if (first_note == -1) continue;
 	    int32_t last_note = midi_clipref_check_get_last_note(cr);
-	    for (int32_t i=first_note; i<=last_note; i++) {
-		Note *note = mclip->notes + i;
+            const struct sa_data clip_notes = sa_get_rdonly(&mclip->notes);
+	    for (int32_t i=first_note; i<=last_note && i<=clip_notes.len; i++) {
+		const Note *note = sa_at(&clip_notes, i);
 		union moved_obj_id id = {.note = {.cr = cr, .note_id = note->id}};
 		ClickTrackPos note_start = click_track_get_pos(ct, note_tl_start_pos(note, cr));
 		ClickTrackPos note_end = click_track_get_pos(ct, note_tl_end_pos(note, cr));

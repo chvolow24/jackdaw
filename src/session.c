@@ -647,6 +647,7 @@ void session_do_scheduled_frees()
 
 
     /* Handle list */
+    int num_freed = 0;
     for (int i=0; i<session->threading.sfs_len; i++) {
         struct scheduled_free *sf = session->threading.sfs + i;
         bool conditions_met = true;
@@ -666,18 +667,19 @@ void session_do_scheduled_frees()
         if (conditions_met) {
             /* value of 'i' records the fact that this was done */
             free(sf->obj);
+            num_freed++;
         } else {
-            /* save rest for later */
-            if (i > 0) {
-                memmove(
-                    session->threading.sfs,
-                    session->threading.sfs + i,
-                    (session->threading.sfs_len - i) * sizeof(struct scheduled_free));
-                session->threading.sfs_len -= i;
-            }            
             break;
+            /* save rest for later */
         }
-        
-    }    
+    }
+    if (num_freed > 0) {
+        memmove(
+            session->threading.sfs,
+            session->threading.sfs + num_freed,
+            (session->threading.sfs_len - num_freed) * sizeof(struct scheduled_free));
+        session->threading.sfs_len -= num_freed;
+    }            
+
 }
 

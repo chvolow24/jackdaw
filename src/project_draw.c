@@ -215,9 +215,9 @@ static void clipref_draw(ClipRef *cr)
 	MIDIClip *mclip = cr->source_clip;
 	int32_t first_note = midi_clipref_check_get_first_note(cr);
 	if (first_note < 0) goto end_draw_notes;
-	
-	for (int32_t i=first_note; i<mclip->num_notes; i++) {
-	    Note *note = mclip->notes + i;
+	const struct sa_data sd = sa_get_rdonly(&mclip->notes);
+	for (int32_t i=first_note; i<sd.len; i++) {
+	    const Note *note = sa_at(&sd, i);
 	    /* SDL_SetRenderDrawColor(main_win->rend, colors.dark_brown.r, colors.dark_brown.g, colors.dark_brown.b, 255 * note->velocity / 128); */
 	    if (cr->end_in_clip && note->start_rel > cr->end_in_clip) break;
 	    int piano_note = note->key - 21;
@@ -313,10 +313,10 @@ static void track_draw(Track *track)
     SDL_RenderFillRect(main_win->rend, &track->inner_layout->rect);
 
     /* SDL_RenderSetClipRect(main_win->rend, &tl->layout->rect); */
-    struct sa_data sd = sa_get(&track->clips);
-    ClipRef *cr = NULL;
-    while ((cr = *(ClipRef **)sa_iter(&sd))) {
-	clipref_draw(cr);
+    struct sa_data sd = sa_get_rdonly(&track->clips);
+    ClipRef *const *crp = NULL;
+    while ((crp = sa_iter(&sd))) {
+	clipref_draw(*crp);
     }
     
     /* Left mask */

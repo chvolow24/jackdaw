@@ -109,10 +109,9 @@ static float get_track_mixdown_chunk(Track *track, float *restrict L, float *res
     /* float total_amp = 0.0f; */
 
     /* Get data from clip sources */
-    ClipRef **clips = atomic_load_explicit(&track->clips, memory_order_acquire);
-    uint16_t num_clips = aldr(&track->num_clips);
-    for (uint16_t i=0; i<num_clips; i++) {
-	ClipRef *cr = clips[i];
+    const struct sa_data sd = sa_get_rdonly(&track->clips);
+    for (uint16_t i=0; i<sd.len; i++) {
+	ClipRef *cr = *(ClipRef **)sa_at(&sd, i);
 	if (!cr) {
 	    continue;
 	}
@@ -152,7 +151,7 @@ static float get_track_mixdown_chunk(Track *track, float *restrict L, float *res
 	/* Feed MIDI from clip */
 	if (mclip && step > 0.0 && fabs(step) < 50.0) {
 	    PmEvent events[256];
-	    num_events = midi_clipref_output_chunk(cr, events, 256, start_pos_sframes, start_pos_sframes + (float)output_chunk_len_sframes * step);
+	    num_events = midi_clipref_output_chunk((ClipRef *)cr, events, 256, start_pos_sframes, start_pos_sframes + (float)output_chunk_len_sframes * step);
 	    if (track->midi_out && step > 0.0) {
 		switch(track->midi_out_type) {
 		case MIDI_OUT_SYNTH: {

@@ -101,8 +101,9 @@ void midi_clip_destroy(MIDIClip *mc, bool displace_in_proj)
 
 TEST_FN_DEF(check_note_order, {
 	int32_t start_rel = INT32_MIN;
-	for (int i=0; i<mclip->num_notes; i++) {
-	    Note *note = mclip->notes + i;
+        const struct sa_data sd = sa_get_rdonly(&mclip->notes);
+	for (int i=0; i<sd.len; i++) {
+	    const Note *note = sa_at(&sd, i);
 	    if (note->start_rel < start_rel) {
 		fprintf(stderr, "Error: MIDI clip note order error at indices %d,%d, clip %s\n", i-1, i, mclip->name);
 		return 1;

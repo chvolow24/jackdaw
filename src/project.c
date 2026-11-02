@@ -1193,10 +1193,10 @@ static void track_reset_full(Track *track)
     textbox_reset_full(track->tb_pan_label);
     textbox_reset_full(track->tb_input_label);
     textbox_reset_full(track->tb_input_name);
-    struct sa_data sd = sa_get(&track->clips);
-    ClipRef *cr;
-    while ((cr = *(ClipRef **)sa_iter(&sd))) {
-        clipref_reset(cr, true);
+    struct sa_data sd = sa_get_rdonly(&track->clips);
+    ClipRef *const *crp = NULL;
+    while ((crp = sa_iter(&sd))) {
+        clipref_reset(*crp, true);
     }
     slider_reset(track->vol_ctrl);
     slider_reset(track->pan_ctrl);
@@ -1205,10 +1205,10 @@ static void track_reset_full(Track *track)
 
 void track_reset(Track *track, bool rescaled)
 {
-    struct sa_data sd = sa_get(&track->clips);
-    ClipRef *cr;
-    while ((cr = *(ClipRef **)sa_iter(&sd))) {
-        clipref_reset(cr, rescaled);
+    struct sa_data sd = sa_get_rdonly(&track->clips);
+    ClipRef *const *crp = NULL;
+    while ((crp = sa_iter(&sd))) {
+        clipref_reset(*crp, rescaled);
     }
 
     /* for (uint16_t i=0; i<track->num_clips; i++) { */
@@ -1983,9 +1983,10 @@ static void timeline_remove_track(Track *track)
 
     /* Deal with timeline data structures */
     Timeline *tl = track->tl;
-    struct sa_data sd = sa_get(&track->clips);
-    ClipRef *cr;
-    while ((cr = *(ClipRef **)sa_iter(&sd))) {
+    struct sa_data sd = sa_get_rdonly(&track->clips);
+    ClipRef *const *crp = NULL;
+    while ((crp = sa_iter(&sd))) {
+        ClipRef *cr = *crp;
         if (cr->grabbed) timeline_clipref_ungrab(cr);
     }
 
@@ -2074,10 +2075,10 @@ void track_destroy(Track *track, bool displace)
     if (main_win->active_tabview && main_win->active_tabview->connected_obj == track) {
 	tabview_close(main_win->active_tabview);
     }
-    struct sa_data sd = sa_get(&track->clips);
-    ClipRef *cr;
-    while ((cr = *(ClipRef **)sa_iter(&sd))) {
-        clipref_destroy_no_displace(cr);
+    struct sa_data sd = sa_get_rdonly(&track->clips);
+    ClipRef *const *crp = NULL;
+    while ((crp = sa_iter(&sd))) {
+        clipref_destroy_no_displace(*crp);
     }
     for (int i=0; i<track->num_automations; i++) {
 	automation_destroy(track->automations[i]);
@@ -2685,11 +2686,11 @@ ClickTrack *timeline_click_track_at_point(Timeline *tl, SDL_Point point)
 
 ClipRef *track_clipref_at_point(Track *track, SDL_Point point)
 {
-    struct sa_data sd = sa_get(&track->clips);
-    ClipRef *cr;
-    while ((cr = *(ClipRef **)sa_iter(&sd))) {
-        if (SDL_PointInRect(&point, &cr->layout->rect)) {
-            return cr;
+    struct sa_data sd = sa_get_rdonly(&track->clips);
+    ClipRef *const *crp = NULL;
+    while ((crp = sa_iter(&sd))) {
+        if (SDL_PointInRect(&point, &(*crp)->layout->rect)) {
+            return *crp;
         }
     }
     return NULL;

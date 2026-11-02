@@ -12,6 +12,7 @@
 #include "piano_roll.h"
 #include "project.h"
 #include "session.h"
+#include "shared_array.h"
 #include "symbol.h"
 #include "tempo.h"
 #include "textbox.h"
@@ -1365,38 +1366,6 @@ static Note piano_roll_note_at_cursor(bool include_end)
     return (Note){0};
 }
 
-
-/* NOTE GRAB INTERFACE */
-
-/* Utility fns */
-
-/* void grab_note(Note *note, NoteEdge edge) */
-/* { */
-/*     if (note->grabbed) { */
-/* 	note->grabbed_edge = edge; */
-/* 	return; */
-/*     } */
-/*     if (state.num_grabbed_notes == MAX_GRABBED_NOTES) { */
-/* 	char msg[128]; */
-/* 	snprintf(msg, 128, "Cannot grab more than %d notes", MAX_GRABBED_NOTES); */
-/* 	status_set_errstr(msg); */
-/* 	return; */
-/*     } */
-/*     note->grabbed = true; */
-/*     note->grabbed_edge = edge; */
-/*     state.grabbed_notes[state.num_grabbed_notes] = note; */
-/*     state.num_grabbed_notes++; */
-/* } */
-
-/* void ungrab_all() */
-/* { */
-/*     for (int i=0; i<state.num_grabbed_notes; i++) { */
-/* 	Note *note = state.grabbed_notes[i]; */
-/* 	note->grabbed = false; */
-/* 	note->grabbed_edge = NOTE_EDGE_NONE; */
-/*     } */
-/*     state.num_grabbed_notes = 0; */
-/* } */
 void piano_roll_grabbed_notes_move_vertical(int move_by)
 {
     Session *session = session_get();
@@ -1404,28 +1373,18 @@ void piano_roll_grabbed_notes_move_vertical(int move_by)
 	if (!aldr(&session->playback.playing)) {
 	    midi_clipref_cache_grabbed_note_info(state.cr);
 	}
-	/* int notes_to_play[16]; */
-	/* int velocities[16]; */
-	/* int note_to_play_i = 0; */
+        const struct sa_data sd = sa_get_wr(&state.clip->notes);
+        Note notes[sd.len];
+        sa_copy(&sd, notes, sd.len);
 	for (int32_t i=state.clip->first_grabbed_note; i<=state.clip->last_grabbed_note; i++) {
-	    Note *note = state.clip->notes + i;
+	    Note *note = notes + i;
 	    if (!note->grabbed) continue;
-	    /* Note *note = state.clip->grabbed_notes[i]; */
 	    if ((int)note->key + move_by < 0) note->key = 0;
 	    else if ((int)note->key + move_by > 127) note->key = 127;
 	    else note->key += move_by;
-	    
-	    /* Prepare note info to send to MIDI out */
-	    /* if (note_to_play_i < 16) { */
-	    /* 	notes_to_play[note_to_play_i] = note->key; */
-	    /* 	velocities[note_to_play_i] = note->velocity; */
-	    /* 	note_to_play_i++; */
-	    /* } */
-
 	}
+        sa_set(&sd, notes, sd.len);
 
-	/* Play at most 8 distinct pitches */
-	/* play_grabbed_notes(8); */
 	if (!aldr(&session->playback.playing)) {
 	    midi_clipref_push_grabbed_note_move_event(state.cr);
 	}
@@ -1567,11 +1526,6 @@ void piano_roll_delete()
 	} else {
 	    piano_roll_prev_note();
 	}
-	/* EventFn undo_options[2] = { */
-	/*     undo_insert_note, */
-	/*     undo_redo_insert_rest */
-	/* }; */
-	/* user_event_do_undo_selective(undo_options, 2); */
     }
 }
 
@@ -1688,7 +1642,11 @@ void piano_roll_toggle_tie()
     } else {
 	textbox_set_background_color(state.gui.tie_button, &colors.quickref_button_blue);
 	textbox_set_text_color(state.gui.tie_button, &colors.light_grey);
-	midi_clip_ungrab_all(state.clip);
+        const struct sa_data sd = sa_get_wr(&state.clip->notes);
+        Note notes[sd.len];
+        sa_copy(&sd, notes, sd.len);
+	midi_clip_ungrab_all(state.clip, notes, sd.len);
+        sa_set(&sd, notes, sd.len);
     }
 }
 
@@ -1705,48 +1663,6 @@ void piano_roll_toggle_chord_mode()
     }
 }
 
-
-/* void piano_roll_quantize_notes_in_marked_range() */
-/* { */
-/*     if (!state.ct) { */
-/* 	status_set_errstr("Add a click track (C-t in Timeline view) before quantizing"); */
-/* 	return; */
-/*     } */
-/*     Note **intersecting; */
-/*     Timeline *tl = state.cr->track->tl; */
-/*     int num_intersecting = midi_clipref_notes_intersecting_area(state.cr, tl->in_mark_sframes, tl->out_mark_sframes, 0, 127, &intersecting); */
-/*     for (int i=0; i<num_intersecting; i++) { */
-/* 	int32_t tl_start = note_tl_start_pos(intersecting[i], state.cr); */
-/* 	int32_t tl_end = note_tl_end_pos(intersecting[i], state.cr); */
-/* 	int32_t prev_beat, next_beat; */
-	
-/* 	click_track_get_prox_beats(state.ct, tl_start, BP_SUBDIV, &prev_beat, &next_beat); */
-/* 	int32_t diff_prev = tl_start - prev_beat; */
-/* 	int32_t diff_next = next_beat - tl_start; */
-/* 	if (diff_prev < diff_next) { */
-/* 	    intersecting[i]->start_rel = prev_beat - state.cr->tl_pos + state.cr->start_in_clip; */
-/* 	} else if (diff_next < diff_prev) { */
-/* 	    intersecting[i]->start_rel = next_beat - state.cr->tl_pos + state.cr->start_in_clip;	     */
-/* 	} */
-
-/* 	click_track_get_prox_beats(state.ct, tl_end, BP_SUBDIV, &prev_beat, &next_beat); */
-/* 	diff_prev = tl_end - prev_beat; */
-/* 	diff_next = next_beat - tl_end; */
-/* 	if (diff_prev < diff_next) { */
-/* 	    intersecting[i]->end_rel = prev_beat - state.cr->tl_pos + state.cr->start_in_clip; */
-/* 	} else if (diff_next < diff_prev) { */
-/* 	    intersecting[i]->end_rel = next_beat - state.cr->tl_pos + state.cr->start_in_clip; */
-/* 	} */
-/* 	if (intersecting[i]->end_rel == intersecting[i]->start_rel) { */
-/* 	    intersecting[i]->end_rel += (state.ct->segments + state.ct->current_segment)->cfg.atom_dur_approx; */
-/* 	} */
-
-/*     } */
-/* } */
-
-/* Draw fns */
-
-
 static void piano_draw()
 {
     Session *session = session_get();
@@ -1754,11 +1670,11 @@ static void piano_draw()
     static int32_t last_draw_tl_pos = INT32_MIN;
     if (ACTIVE_TL->play_pos_sframes != last_draw_tl_pos) {
 	memset(lit_notes, 0, sizeof(lit_notes));
-	Note **notes_at_cursor = NULL;
+        Note *notes_at_cursor = NULL;
 	int num_notes = midi_clipref_notes_intersecting_point(state.cr, ACTIVE_TL->play_pos_sframes, &notes_at_cursor);
 	for (int i=0; i<num_notes; i++) {
 	    /* if (notes_at_cursor[i]->key - PIANO_B */
-	    int piano_note = notes_at_cursor[i]->key - PIANO_BOTTOM_NOTE;
+	    int piano_note = notes_at_cursor[i].key - PIANO_BOTTOM_NOTE;
 	    if (piano_note >= 0 && piano_note < 88) {
 		lit_notes[piano_note] = true;
 	    }
@@ -1844,17 +1760,17 @@ static void piano_roll_draw_notes()
     float note_height_nominal = (float)rect.h / midi_piano_range;
     float true_note_height = note_height_nominal;
     if (true_note_height < 1.0) true_note_height = 1.0;
-    /* SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(colors.midi_note_orange)); */
-    pthread_mutex_lock(&mclip->notes_arr_lock);
     int32_t first_note = midi_clipref_check_get_first_note(state.cr);
     if (first_note < 0) {
 	goto end_draw_notes;	
     }
 
+    const struct sa_data sd = sa_get_rdonly(&mclip->notes);
+    
     int32_t last_note = midi_clipref_check_get_last_note(state.cr);
     int top_drawn_note = -1; /* used to determine least-instrusive location for pitch bend lane */
     for (int32_t i=0; i<=last_note; i++) {
-	Note *note = mclip->notes + i;
+	const Note *note = sa_at(&sd, i);
 	/* SDL_SetRenderDrawColor(main_win->rend, colors.dark_brown.r, colors.dark_brown.g, colors.dark_brown.b, 255 * note->velocity / 128); */
 	/* if (state.cr->end_in_clip && note->start_rel > state.cr->end_in_clip) break; */
 	int piano_note = note->key - 20;
@@ -1927,9 +1843,8 @@ static void piano_roll_draw_notes()
 	    geom_fill_rounded_rect(main_win->rend, &bumper, bumper_corner_r);	
 	}
     }
+    
 end_draw_notes:
-    pthread_mutex_unlock(&mclip->notes_arr_lock);
-
     /* Draw pitch bend */
     if (mclip->pitch_bend.num_changes > 0) {
 	static const int pitch_bend_label_pad = 7;
@@ -2245,7 +2160,13 @@ void piano_roll_mouse_up(SDL_Point mousep)
 	if (state.clip->num_grabbed_notes > 0 && session_get()->dragging) {
 	    midi_clipref_push_grabbed_note_move_event(state.cr);
 	}
-	midi_clip_ungrab_all(state.clip);
+        
+        const struct sa_data sd = sa_get_wr(&state.clip->notes);
+        Note notes[sd.len];
+        sa_copy(&sd, notes, sd.len);
+	midi_clip_ungrab_all(state.clip, notes, sd.len);
+        sa_set(&sd, notes, sd.len);
+        
 	state.mouse_sel_rect_active = false;
 	int sel_piano_note_top = 88 - 88 * (state.mouse_sel_rect.y - state.layout->rect.y) / state.layout->rect.h;
 	int sel_piano_note_bottom = 88 - 88 * (state.mouse_sel_rect.y + state.mouse_sel_rect.h - state.layout->rect.y) / state.layout->rect.h;

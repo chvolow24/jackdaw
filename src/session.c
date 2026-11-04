@@ -583,12 +583,6 @@ void session_set_proj_name(const char *name)
     session_check_reset_window_title();
 }
 
-void session_schedule_free_after_epochs(struct scheduled_free *oes)
-{    
-    if (on_thread(JDAW_THREAD_MAIN)) {
-    }
-}
-
 /* copy data from args */
 void session_schedule_free(
     void *obj_to_free,
@@ -603,7 +597,7 @@ void session_schedule_free(
         memcpy(&oe.threads, threads, num_thread_epochs * sizeof(enum jdaw_thread));
         memcpy(&oe.epochs, epochs, num_thread_epochs * sizeof(enum jdaw_thread));
         oe.num_thread_epochs = num_thread_epochs;
-        int ret = lfqueue_try_enqueue(&session->threading.queued_scheduled_frees[current_thread()],&oe,1);
+        int ret = lfqueue_try_enqueue(&session->threading.queued_scheduled_frees[current_thread()], &oe, 1);
         if (ret != LFQUEUE_SUCCESS) {
             log_tmp(LOG_ERROR, "Unable to enqueue scheduled free: %s\n", lfqueue_get_errstr(ret));
         }
@@ -615,11 +609,11 @@ void session_schedule_free(
         session->threading.sfs_alloc_len *= 2;
         session->threading.sfs = realloc(session->threading.sfs, session->threading.sfs_alloc_len * sizeof(struct scheduled_free));
     }
-    struct scheduled_free *oe = session->threading.sfs + session->threading.sfs_len;
-    oe->obj = obj_to_free;
-    memcpy(&oe->threads, threads, num_thread_epochs * sizeof(enum jdaw_thread));
-    memcpy(&oe->epochs, epochs, num_thread_epochs * sizeof(enum jdaw_thread));
-    oe->num_thread_epochs = num_thread_epochs;
+    struct scheduled_free *sf = session->threading.sfs + session->threading.sfs_len;
+    sf->obj = obj_to_free;
+    memcpy(&sf->threads, threads, num_thread_epochs * sizeof(enum jdaw_thread));
+    memcpy(&sf->epochs, epochs, num_thread_epochs * sizeof(uint32_t));
+    sf->num_thread_epochs = num_thread_epochs;
     session->threading.sfs_len++;
 }
 
@@ -642,9 +636,9 @@ void session_do_scheduled_frees()
         session->threading.sfs_alloc_len *= 2;
         session->threading.sfs = realloc(session->threading.sfs, session->threading.sfs_alloc_len * sizeof(struct scheduled_free));
     }
-    memcpy(&session->threading.sfs + session->threading.sfs_len, dequeued_sfs, num_dequeued_sfs * sizeof(struct scheduled_free));
+    memcpy(session->threading.sfs + session->threading.sfs_len, dequeued_sfs, num_dequeued_sfs * sizeof(struct scheduled_free));
     session->threading.sfs_len += num_dequeued_sfs;
-
+    
 
     /* Handle list */
     int num_freed = 0;

@@ -1413,7 +1413,7 @@ void piano_roll_grab_ungrab()
 	/* grab_note(note, NOTE_EDGE_NONE); */
 	midi_clip_grab_note(state.clip, notes, sd.len, note_index, NOTE_EDGE_NONE);
 	if (session_get()->dragging) {
-	    midi_clipref_cache_grabbed_note_info(state.cr);
+            midi_clipref_cache_grabbed_note_info_open(state.cr, notes, sd.len);
 	}
     } else {
 	if (session_get()->dragging) {

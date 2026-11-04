@@ -42,7 +42,7 @@ void snprint_backtrace(char *restrict dst, size_t size)
     int len = get_backtrace(&symbols);
     int written = 0;
     for (int i=0; i<len; i++) {
-	written += snprintf(dst, size - written, "%s\n",symbols[i]);
+	written += snprintf(dst + written, size - written, "%s\n",symbols[i]);
     }
     free(symbols);
 }

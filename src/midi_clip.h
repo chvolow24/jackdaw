@@ -191,6 +191,10 @@ void midi_clip_remove_notes_by_id(MIDIClip *mclip, Note *notes, int num_notes);
 void midi_clip_reinsert_notes(MIDIClip *mclip, Note *notes, int num_notes);
 
 void midi_clipref_push_grabbed_note_move_event(ClipRef *cr);
+
+/* Use if shared array has been opened for writing */
+void midi_clipref_cache_grabbed_note_info_open(ClipRef *cr, Note *notes, int32_t num_notes);
+/* Opens and sets shared array */
 void midi_clipref_cache_grabbed_note_info(ClipRef *cr);
 
 /* Return a *read-only* copy of notes intersecting point.

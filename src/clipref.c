@@ -72,8 +72,9 @@ static bool clipref_remove_from_track_array(ClipRef *cr, Track *track)
     int i = 0;
     ClipRef *const *cr_iter_p;
     bool found = false;
-    
+    fprintf(stderr, "Clipref remove from track array of len %d..\n", sd.len);
     while ((cr_iter_p = sa_iter(&sd))) {
+        fprintf(stderr, "\tFound cr %p == %p ? %d\n", *cr_iter_p, cr, *cr_iter_p == cr);
         if (*cr_iter_p == cr) {
             found = true;
             continue;
@@ -81,8 +82,10 @@ static bool clipref_remove_from_track_array(ClipRef *cr, Track *track)
         new_clips[i] = *cr_iter_p;
         i++;
     }
-    if (found) 
+    if (found) {
+        fprintf(stderr, "Setting new clips to array of len %d!\n", new_len);
         sa_set(&sd, new_clips, new_len);
+    }
 
     return found;
 }
@@ -281,18 +284,6 @@ void clipref_reset(ClipRef *cr, bool rescaled)
 
 static void clipref_remove_from_track(ClipRef *cr)
 {
-    /* bool displace = false; */
-    /* Track *track = cr->track; */
-    /* for (uint16_t i=0; i<track->num_clips; i++) { */
-    /*     ClipRef *test = track->clips[i]; */
-    /*     if (test == cr) { */
-    /*         displace = true; */
-    /*     } else if (displace && i > 0) { */
-    /*         track->clips[i - 1] = test;           */
-    /*     } */
-    /* } */
-
-    /* if (displace) { */
     if (clipref_remove_from_track_array(cr, cr->track)) {
         layout_remove_child(cr->layout);
     }
@@ -420,7 +411,7 @@ ClipRef *clipref_at_cursor_not_dragging()
     /* Reverse iter to ensure top-most clip is returned in case of overlap */
     const struct sa_data sd = sa_get_rdonly(&track->clips);
     for (int i=sd.len - 1; i>=0; i--) {
-        ClipRef *cr = (ClipRef *)sa_at(&sd, i);
+        ClipRef *cr = *(ClipRef **)sa_at(&sd, i);
         if (session->dragging && cr->grabbed) continue;
         if (aldr(&cr->tl_pos) <= tl->play_pos_sframes && aldr(&cr->tl_pos) + clipref_len(cr) >= tl->play_pos_sframes) {
             return (ClipRef *)cr;
@@ -476,7 +467,7 @@ ClipRef *clipref_at_cursor_in_track(Track *track)
 {
     struct sa_data sd = sa_get_rdonly(&track->clips);
     for (int i=sd.len-1; i>=0; i--) {
-        ClipRef *cr = *(ClipRef**)sa_at(&sd, i);
+        ClipRef *cr = *(ClipRef **)sa_at(&sd, i);
         if (aldr(&cr->tl_pos) <= track->tl->play_pos_sframes && aldr(&cr->tl_pos) + clipref_len(cr) >= track->tl->play_pos_sframes) {
             return cr;
         }
@@ -522,8 +513,10 @@ ClipRef *clipref_after_cursor(int32_t *pos_dst)
     if (sd.len == 0) return NULL;
     ClipRef *ret = NULL;
     int32_t start = INT32_MAX;
-    ClipRef *cr = NULL;
-    while ((cr = *(ClipRef **)sa_iter(&sd))) {
+    ClipRef *const *crp = NULL;
+    
+    while ((crp = sa_iter(&sd))) {
+        ClipRef *cr = *crp;
         if (cr->grabbed && session->dragging) continue;
         int32_t cr_start = aldr(&cr->tl_pos);
         if (cr_start > tl->play_pos_sframes && cr_start <= start) {

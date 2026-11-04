@@ -10,6 +10,8 @@ typedef struct shared_array {
     size_t el_size;
     enum jdaw_thread user_threads[NUM_JDAW_THREADS];
     int num_user_threads;
+    bool __thread_unclosed_write[NUM_JDAW_THREADS];
+
 } SharedArray;
 
 struct sa_data {

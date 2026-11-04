@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include "clipref.h"
 #include "color.h"
+#include "log.h"
 #include "midi_clip.h"
 #include "midi_io.h"
 #include "midi_objs.h"
@@ -1075,19 +1076,23 @@ static void midi_clipref_grabbed_notes_delete_internal(ClipRef *cr, bool from_un
     int32_t grabbed_note_i = 0;
     if (mclip->num_grabbed_notes == 0) return;
     for (int32_t note_i=mclip->first_grabbed_note; note_i<=mclip->last_grabbed_note; note_i++) {
-	Note *note = notes + note_i;
-	if (!note->grabbed) continue;
-	note->grabbed = false;
-	note->grabbed_edge = NOTE_EDGE_NONE;
-	grabbed_note_info[grabbed_note_i] = *note;
-	grabbed_note_i++;
-	if (num_notes > 1 && note_i < num_notes - 1) {
-	    memmove(notes + note_i, notes + note_i + 1, (num_notes - note_i - 1) * sizeof(Note));
-	    mclip->last_grabbed_note--;
-	    /* grabbed_notes_incr(mclip, note_i, mclip->num_notes, -1); */
-	}
-	note_i--;
-	num_notes--;
+        Note *note = notes + note_i;
+        if (!note->grabbed) continue;
+        note->grabbed = false;
+        note->grabbed_edge = NOTE_EDGE_NONE;
+        if (grabbed_note_i >= mclip->num_grabbed_notes) {
+            log_tmp(LOG_ERROR, "Unexpected grabbed note in midi_clipref_grabbed_notes_delete_internal\n");
+            continue;
+        }
+        grabbed_note_info[grabbed_note_i] = *note;
+        grabbed_note_i++;
+        if (num_notes > 1 && note_i < num_notes - 1) {
+            memmove(notes + note_i, notes + note_i + 1, (num_notes - note_i - 1) * sizeof(Note));
+            mclip->last_grabbed_note--;
+            /* grabbed_notes_incr(mclip, note_i, mclip->num_notes, -1); */
+        }
+        note_i--;
+        num_notes--;
     }
     mclip->num_grabbed_notes = 0;
     
@@ -1110,7 +1115,7 @@ static void midi_clipref_grabbed_notes_delete_internal(ClipRef *cr, bool from_un
 	    (Value){0},
 	    0, 0, false, true);
     }
-    sa_set(&sd, notes, sd.len);
+    sa_set(&sd, notes, num_notes);
 }
 
 void midi_clipref_grabbed_notes_delete(ClipRef *cr)
@@ -1258,16 +1263,9 @@ void midi_clipref_push_grabbed_note_move_event(ClipRef *cr)
 	0, 0, false, true);
 }
 
-/* Call when a move event *starts* */
-void midi_clipref_cache_grabbed_note_info(ClipRef *cr)
+void midi_clipref_cache_grabbed_note_info_open(ClipRef *cr, Note *notes, int32_t num_notes)
 {
-    /* If a cache operation requested while a move is in progress,
-     (e.g. when changing track while dragging), then an event is
-     pushed immediately, effectively breaking up the larger move event. */
     MIDIClip *mclip = cr->source_clip;
-    struct sa_data sd = sa_get_wr(&mclip->notes);
-    Note notes[sd.len];
-    sa_copy(&sd, notes, sd.len);
     if (mclip->note_move_in_progress) {
 	midi_clipref_push_grabbed_note_move_event(cr);
     }
@@ -1282,8 +1280,21 @@ void midi_clipref_cache_grabbed_note_info(ClipRef *cr)
 	note->cached_key = note->key;
 	/* fprintf(stderr, "CACHED note %d\n", i); */
     }
-    sa_set(&sd, notes, sd.len);
     mclip->note_move_in_progress = true;
+}
+
+/* Call when a move event *starts* */
+void midi_clipref_cache_grabbed_note_info(ClipRef *cr)
+{
+    /* If a cache operation requested while a move is in progress,
+     (e.g. when changing track while dragging), then an event is
+     pushed immediately, effectively breaking up the larger move event. */
+    MIDIClip *mclip = cr->source_clip;
+    struct sa_data sd = sa_get_wr(&mclip->notes);
+    Note notes[sd.len];
+    sa_copy(&sd, notes, sd.len);
+    midi_clipref_cache_grabbed_note_info_open(cr, notes, sd.len);
+    sa_set(&sd, notes, sd.len);
 }
 
 /*------ Quantize internal implementation ----------------------------*/

@@ -1,9 +1,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "error.h"
 #include "log.h"
 #include "session.h"
 #include "shared_array.h"
+#include "thread_safety.h"
 
 void sa_init(
     SharedArray *sa,
@@ -44,12 +46,20 @@ struct sa_data sa_get_rdonly(SharedArray *sa)
 
 struct sa_data sa_get_wr(SharedArray *sa)
 {
-    struct sa_data ret;
+    struct sa_data ret = {0};
+    if (sa->__thread_unclosed_write[current_thread()]) {
+        char bt[4096] = {0};
+        snprint_backtrace(bt, 4095);
+        error_exit("%s\ncall to sa_get_wr on unclosed sa in thread %s\n\n", bt, get_current_thread_name());
+        return ret;
+    }
+
     ret.__data = atomic_load_explicit(&sa->data, memory_order_acquire);
     ret.len = *(int32_t *)(ret.__data);
     ret.__array = ret.__data + sizeof(int32_t);
     ret.__rdonly = false;
     ret.sa = sa;
+    sa->__thread_unclosed_write[current_thread()] = true;
     return ret;
 }
 
@@ -78,6 +88,7 @@ void sa_set(const struct sa_data *old_data, void *new_array, int32_t new_len)
     
     atomic_store_explicit(&old_data->sa->data, new_data, memory_order_release);
     schedule_free(old_data->sa, old_data->__data);
+    old_data->sa->__thread_unclosed_write[current_thread()] = false;
 }
 
 

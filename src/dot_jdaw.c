@@ -302,9 +302,9 @@ static void jdaw_write_track(FILE *f, Track *track)
     
     uint16_t num_clips = sd.len;
     uint16_ser_le(f, &num_clips);
-    ClipRef *cr = NULL;
-    while ((cr = *(ClipRef **)sa_iter(&sd))) {
-        jdaw_write_clipref(f, cr);
+    ClipRef *const *crp = NULL;
+    while ((crp = sa_iter(&sd))) {
+        jdaw_write_clipref(f, *crp);
     }
 
     /* Effects */

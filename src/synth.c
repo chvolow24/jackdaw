@@ -2335,7 +2335,7 @@ int32_t synth_make_notes(Synth *s, int *pitches, int *velocities, int num_pitche
     float *buf_R = malloc(alloc_len * sizeof(float));
     memset(buf_L, '\0', alloc_len * sizeof(float));
     memset(buf_R, '\0', alloc_len * sizeof(float));
-    synth_silence(s);
+    synth_request_silence(s);
     for (int i=0; i<num_pitches; i++) {
 	synth_voice_assign_note(s->voices + i, pitches[i], velocities[i], 0);
     }
@@ -2402,7 +2402,7 @@ void synth_close_all_notes(Synth *s)
 }
 void synth_silence(Synth *s)
 {
-    RESTRICT_NOT_MAIN()
+    RESTRICT_NOT_MAIN(synth_silence)
     /* exit(1); */
     for (int i=0; i<SYNTH_NUM_VOICES; i++) {
 	SynthVoice *v = s->voices + i;

@@ -583,6 +583,7 @@ int midi_clipref_notes_intersecting_point(ClipRef *cr, int32_t tl_pos, Note **ds
     Note intersecting_notes[128];
     int num_intersecting_notes = 0;
     int32_t note_i = midi_clipref_check_get_first_note(cr);
+    if (note_i < 0) return 0;
     MIDIClip *mclip = cr->source_clip;
     const struct sa_data sd = sa_get_rdonly(&mclip->notes);
     while (note_i < sd.len) {

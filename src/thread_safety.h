@@ -23,6 +23,8 @@
 #include <pthread.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include "error.h"
+#include "test.h"
 
 /* Number of threads on which endpoint ops can occur;
    restricted to main, dsp, and playback threads */
@@ -41,45 +43,41 @@ enum jdaw_thread {
 
 /* extern pthread_t MAIN_THREAD_ID; */
 /* extern pthread_t DSP_THREAD_ID; */
+#define BT_AND_EXIT(msg) \
+    char bt[2048] = {0};                                                \
+    snprint_backtrace(bt, 2048);                                        \
+    error_exit("\nBacktrace:\n%s\n" msg "\n\n", bt);                   \
+    
 
 #ifdef TESTBUILD
-#define RESTRICT_NOT_MAIN(name) \
+#define RESTRICT_NOT_MAIN(name)                                         \
     if (on_thread(JDAW_THREAD_MAIN)) {					\
-	fprintf(stderr, "Error: fn %s called in main thread", #name);	\
-	exit(1);							\
+        BT_AND_EXIT("Error: fn " #name " called in main thread");      \
     }
 
-#define RESTRICT_NOT_DSP(name) \
+#define RESTRICT_NOT_DSP(name)                                       \
     if (on_thread(JDAW_THREAD_DSP)) {				     \
-	fprintf(stderr, "Error: fn %s called in DSP thread", #name); \
-	exit(1); \
+	BT_AND_EXIT("Error: fn " #name " called in DSP thread");    \
     }
 
 #define DSP_THREAD_ONLY(name)		   \
     if (!on_thread(JDAW_THREAD_DSP)) {					\
-	fprintf(stderr, "Error: fn %s called outside DSP thread", #name); \
-	exit(1); \
+        BT_AND_EXIT("Error: fn " #name " called outside DSP thread");  \
     }
 
 #define DSP_THREAD_ONLY_WHEN_ACTIVE(name) \
     if (aldr(&session->playback.playing) && !on_thread(JDAW_THREAD_DSP)) { \
-        fprintf(stderr, "Error: fn %s called outside DSP thread while proj playing", #name); \
-	breakfn(); \
-	exit(1);\
+        BT_AND_EXIT("Error: fn " #name " called outside DSP thread while proj playing"); \
     }
 
-#define MAIN_THREAD_ONLY(name)		   \
+#define MAIN_THREAD_ONLY(name)                                          \
     if (!on_thread(JDAW_THREAD_MAIN)) {					\
-        print_backtrace();                                              \
-	fprintf(stderr, "Error: fn %s called outside main thread", #name); \
-	exit(1); \
+	BT_AND_EXIT("Error: fn " #name  " called outside main thread");  \
     }
 
 #define RESTRICT_THREAD(name, condition)        \
     if (!(condition)) {                         \
-    print_backtrace();                          \
-    fprintf(stderr, "Error: thread condition failed: %s", #name);   \
-    exit(1);\
+        BT_AND_EXIT("Error: thread condition failed: " #name "");      \
     }       \
 
 #else

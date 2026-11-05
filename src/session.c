@@ -381,6 +381,11 @@ void session_destroy()
     session_loading_screen_deinit();
     session_deinit_midi(session);
 
+    /* user_event_history_clear(&session->history); */
+    if (session->proj_initialized) {
+	project_deinit(&session->proj);
+    }
+
     for (enum jdaw_thread t=0; t<NUM_JDAW_THREADS; t++) {
         for (enum jdaw_thread w=0; w<NUM_EP_WRITER_THREADS; w++) {
             lfqueue_deinit(&session->queued_ops.queued_callbacks_v2[t][w]);
@@ -394,12 +399,6 @@ void session_destroy()
     }
     free(session->threading.sfs);
 
-
-
-    /* user_event_history_clear(&session->history); */
-    if (session->proj_initialized) {
-	project_deinit(&session->proj);
-    }
 
     free(session);
     session = NULL;

@@ -133,5 +133,12 @@ const void *const sa_at(const struct sa_data *data, int32_t index)
 
 void sa_deinit(SharedArray *sa)
 {
-    schedule_free(sa, sa->data);
+    MAIN_THREAD_ONLY(sa_deinit);
+    for (int i=0; i<sa->num_user_threads; i++) {
+        enum jdaw_thread t = sa->user_threads[i];
+        if (thread_is_active(t) && t != JDAW_THREAD_MAIN) {
+            log_tmp(LOG_ERROR, "Attempt to deinit shared array with active user thread (%s)\n", get_thread_name(t));
+        }
+    }
+    free(sa->data);
 }

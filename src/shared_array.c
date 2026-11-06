@@ -71,6 +71,12 @@ void sa_copy(const struct sa_data *sd, void *dst, int32_t len)
     memcpy(dst, sd->__array, len * sd->sa->el_size);
 }
 
+/* If exit early after call to sa_get_wr, use this to signal that
+   we no longer intend to sa_set */
+void sa_discard(const struct sa_data *old_data)
+{
+    old_data->sa->__thread_unclosed_write[current_thread()] = false;
+}
 
 void sa_set(const struct sa_data *old_data, void *new_array, int32_t new_len)
 {

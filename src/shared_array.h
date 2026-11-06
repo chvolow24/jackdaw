@@ -29,11 +29,19 @@ void sa_init(
     enum jdaw_thread *user_threads,
     int num_user_threads);
 
+/* Get data for writing. Must be copied before modifying
+   with sa_copy. Commit changed with sa_set */
 struct sa_data sa_get_wr(SharedArray *sa);
 
+/* Get a copy for reading */
 struct sa_data sa_get_rdonly(SharedArray *sa);
 
+/* Swap the main shared array pointer */
 void sa_set(const struct sa_data *old_data, void *new_array, int32_t new_len);
+
+/* If exit early after call to sa_get_wr, use this to signal that
+   we no longer intend to sa_set */
+void sa_discard(const struct sa_data *old_data);
 
 /* Copy opaque array into (typed stack array) dst */
 void sa_copy(const struct sa_data *sd, void *dst, int32_t len);

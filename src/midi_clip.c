@@ -826,12 +826,14 @@ void midi_clipref_grab_range(ClipRef *cr, int32_t tl_start, int32_t tl_end)
         127,
         &intersecting);
     for (int i=0; i<num_intersecting; i++) {        
-	midi_clip_grab_note(mclip, notes, sd.len, i, NOTE_EDGE_NONE);
+	midi_clip_grab_note(mclip, notes, sd.len, intersecting[i], NOTE_EDGE_NONE);
     }
     
     if (intersecting) {
         sa_set(&sd, notes, sd.len);
         free(intersecting);
+    } else {
+        sa_discard(&sd);
     }
 }
 
@@ -859,6 +861,8 @@ void midi_clipref_grab_area(ClipRef *cr, int32_t tl_start, int32_t tl_end, int b
     if (intersecting) {
         sa_set(&sd, notes, sd.len);
         free(intersecting);
+    } else {
+        sa_discard(&sd);
     }
 }
 
@@ -1452,8 +1456,12 @@ static void midi_clipref_quantize_notes_in_range(ClipRef *cr, float amount, Beat
         &intersecting);
     if (num == 0) return;
     midi_clipref_quantize_notes(cr, notes, sd.len, intersecting, num, ct, amount, resolution, quantize_note_offs);
-    sa_set(&sd, notes, sd.len);
-    if (intersecting) free(intersecting);
+    if (intersecting) {
+        sa_set(&sd, notes, sd.len);
+        free(intersecting);
+    } else {
+        sa_discard(&sd);
+    }
 }
 
 /* Amt 0.0 - 1.0 describes how close to the note gets to the beat */
@@ -1493,8 +1501,12 @@ static void midi_clipref_quantize_all_notes(ClipRef *cr, float amount, BeatPromi
         amount,
         resolution,
         quantize_note_offs);
-    sa_set(&sd, notes, sd.len);
-    if (intersecting) free(intersecting);
+    if (intersecting) {
+        sa_set(&sd, notes, sd.len);
+        free(intersecting);
+    } else {
+        sa_discard(&sd);
+    }
 }
 
 
@@ -1604,17 +1616,20 @@ static void midi_clipref_notes_in_range_adj_quantize_amount(ClipRef *cr, float n
         0,
         127,
         &intersecting);
-    if (num_intersecting == 0) return;
-    midi_clipref_notes_adj_quantize_amount(
-        cr,
-        notes,
-        sd.len,
-        intersecting,
-        num_intersecting,
-        new_amount,
-        false);
-    if (intersecting) free(intersecting);
-    sa_set(&sd, notes, sd.len);
+    if (num_intersecting > 0) {
+        midi_clipref_notes_adj_quantize_amount(
+            cr,
+            notes,
+            sd.len,
+            intersecting,
+            num_intersecting,
+            new_amount,
+            false);
+        free(intersecting);
+        sa_set(&sd, notes, sd.len);
+    } else {
+        sa_discard(&sd);
+    }
 }
 
 /*------ Quantize top-level interface --------------------------------*/

@@ -381,11 +381,12 @@ void clipref_bring_to_front()
     /* bool displace = false; */
     struct sa_data sd = sa_get_wr(&track->clips);
     ClipRef *to_move = NULL;
-    ClipRef *cr;
+    ClipRef *const *crp = NULL;
     ClipRef *clips[sd.len];
     sa_copy(&sd, clips, sd.len);
     int i=0;
-    while ((cr = *(ClipRef **)sa_iter(&sd))) {
+    while ((crp = sa_iter(&sd))) {
+        ClipRef *cr = *crp;
         if (!to_move            
             && aldr(&cr->tl_pos) <= tl->play_pos_sframes
             && aldr(&cr->tl_pos) + clipref_len(cr) >= tl->play_pos_sframes) {

@@ -383,10 +383,10 @@ void timeline_grab_marked_range(Timeline *tl, ClipRefEdge edge)
 	if (t->active) {
 	    had_active_track = true;
             struct sa_data sd = sa_get_rdonly(&t->clips);
-            ClipRef *cr = NULL;
-            while ((cr = *(ClipRef **)sa_iter(&sd))) {
-		if (clipref_marked(tl, cr)) {
-		    timeline_clipref_grab(cr, edge);
+            ClipRef *const *crp = NULL;
+            while ((crp = sa_iter(&sd))) {
+		if (clipref_marked(tl, *crp)) {
+		    timeline_clipref_grab(*crp, edge);
 		}
 	    }
 	}
@@ -395,10 +395,10 @@ void timeline_grab_marked_range(Timeline *tl, ClipRefEdge edge)
     if (!had_active_track && t) {
 	/* Track *t = timeline_selected_track(tl); */
         struct sa_data sd = sa_get_rdonly(&t->clips);
-        ClipRef *cr = NULL;
-        while ((cr = *(ClipRef **)sa_iter(&sd))) {
-	    if (clipref_marked(tl, cr)) {
-		timeline_clipref_grab(cr, edge);
+        ClipRef *const *crp = NULL;
+        while ((crp = sa_iter(&sd))) {
+	    if (clipref_marked(tl, *crp)) {
+		timeline_clipref_grab(*crp, edge);
 	    }
 	}
     }

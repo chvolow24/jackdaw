@@ -7,7 +7,25 @@
 #include "shared_array.h"
 #include "thread_safety.h"
 
-void sa_init(
+#ifdef TESTBUILD
+void sa_debug_guard_thread_access(SharedArray *sa)
+{
+    enum jdaw_thread current = current_thread();
+    if (current == JDAW_THREAD_MAIN) return;
+    for (int i=0; i<sa->num_user_threads; i++) {
+        if (sa->user_threads[i] == current) return;
+    }
+    /* Current thread not found in list */
+    error_exit(
+        "Thread %s tried unauthorized access to \"%s\"\n",
+        get_thread_name(current),
+        sa->__name);             
+}
+#else
+#define sa_debug_guard_thread_access(sa)
+#endif
+
+void sa_init_real(
     SharedArray *sa,
     size_t el_size,
     enum jdaw_thread *user_threads,
@@ -35,6 +53,7 @@ static void schedule_free(SharedArray *sa, void *old_data)
 
 struct sa_data sa_get_rdonly(SharedArray *sa)
 {
+    sa_debug_guard_thread_access(sa);
     struct sa_data ret = {0};
     ret.__data = atomic_load_explicit(&sa->data, memory_order_acquire);
     ret.len = *(int32_t *)(ret.__data);
@@ -46,6 +65,7 @@ struct sa_data sa_get_rdonly(SharedArray *sa)
 
 struct sa_data sa_get_wr(SharedArray *sa)
 {
+    sa_debug_guard_thread_access(sa);
     struct sa_data ret = {0};
     if (sa->__thread_unclosed_write[current_thread()]) {
         char bt[4096] = {0};
@@ -68,6 +88,11 @@ void sa_copy(const struct sa_data *sd, void *dst, int32_t len)
     if (sd->__rdonly) {
         log_tmp(LOG_WARN, "called sa_copy on a read-only shared array data\n");
     }
+    memcpy(dst, sd->__array, len * sd->sa->el_size);
+}
+
+void sa_copy_rdonly(const struct sa_data *sd, void *dst, int32_t len)
+{
     memcpy(dst, sd->__array, len * sd->sa->el_size);
 }
 

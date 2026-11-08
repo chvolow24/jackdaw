@@ -11,6 +11,7 @@ typedef struct shared_array {
     enum jdaw_thread user_threads[NUM_JDAW_THREADS];
     int num_user_threads;
     bool __thread_unclosed_write[NUM_JDAW_THREADS];
+    const char *__name;
 
 } SharedArray;
 
@@ -23,7 +24,13 @@ struct sa_data {
     bool __rdonly;
 };
 
-void sa_init(
+#define sa_init(sa, el_size, user_threads, num_user_threads) \
+    sa_init_real(sa, el_size, user_threads, num_user_threads);\
+    (sa)->__name = #sa;                                       \
+
+/* user_threads must include all threads that will access
+   this array for reading or writing, EXCEPT the main thread*/
+void sa_init_real(
     SharedArray *sa,
     size_t el_size,
     enum jdaw_thread *user_threads,
@@ -43,8 +50,12 @@ void sa_set(const struct sa_data *old_data, void *new_array, int32_t new_len);
    we no longer intend to sa_set */
 void sa_discard(const struct sa_data *old_data);
 
-/* Copy opaque array into (typed stack array) dst */
+/* Copy opaque array into (typed stack array) dst
+   for modification. If not modifiying, use rdonly version */
 void sa_copy(const struct sa_data *sd, void *dst, int32_t len);
+/* Copy opaque array into (typed stack array) dst
+   for reading only */
+void sa_copy_rdonly(const struct sa_data *sd, void *dst, int32_t len);
 
 /* Return the next member of the SA. Prefer sa_at */
 const void *const sa_iter(struct sa_data *data);

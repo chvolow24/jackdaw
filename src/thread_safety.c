@@ -30,8 +30,8 @@ static const char *thread_names[NUM_JDAW_THREADS] = {
     "main",
     "dsp",
     "server",
-    "playback",
     "instrument",
+    "playback"
 };
 
 _Atomic uint32_t thread_epochs[NUM_JDAW_THREADS] = {0};

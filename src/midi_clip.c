@@ -25,8 +25,16 @@ extern struct colors colors;
 /* Mandatory initialization after allocating */
 void midi_clip_init(MIDIClip *mclip)
 {
-    enum jdaw_thread users[2] = {JDAW_THREAD_INSTRUMENT, JDAW_THREAD_DSP};
-    sa_init(&mclip->notes, sizeof(Note), users, 2);
+    enum jdaw_thread users[] = {
+        JDAW_THREAD_INSTRUMENT,
+        JDAW_THREAD_DSP,
+        JDAW_THREAD_PLAYBACK
+    };
+    sa_init(
+        &mclip->notes,
+        sizeof(Note),
+        users,
+        sizeof(users) / sizeof(enum jdaw_thread));
     mclip->refs_alloc_len = DEFAULT_REFS_ALLOC_LEN;
     mclip->refs = calloc(mclip->refs_alloc_len, sizeof(ClipRef *));
 }

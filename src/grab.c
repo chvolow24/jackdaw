@@ -15,6 +15,7 @@
 #include "grab.h"
 #include "project.h"
 #include "session.h"
+#include "shared_array.h"
 #include "status.h"
 #include "timeline.h"
 #include "user_event.h"
@@ -178,7 +179,7 @@ void timeline_clipref_grab(ClipRef *cr, enum clipref_edge edge)
     ClipRef *grabbed[sd.len + 1];
     sa_copy(&sd, grabbed, sd.len);
 
-    grabbed[sd.len + 1] = cr;
+    grabbed[sd.len] = cr;
     loc_clipref_grab(cr, edge);
     sa_set(&sd, grabbed, sd.len + 1);
 }
@@ -476,4 +477,9 @@ void timeline_grabbed_clips_move(Timeline *tl, int32_t move_by_sframes)
 	}
 	/* clipref_reset(cr, false); */
     }
+}
+
+int timeline_num_grabbed_clips(Timeline *tl)
+{
+    return sa_len(&tl->grabbed_clips);
 }

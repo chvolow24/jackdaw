@@ -774,7 +774,7 @@ void user_tl_play(void *nullarg)
     Timeline *tl = ACTIVE_TL;
     if (session->piano_roll && !aldr(&session->playback.playing)) {
 	piano_roll_start_moving();
-    } else if (session->dragging && !aldr(&session->playback.playing) && tl->num_grabbed_clips > 0) {
+    } else if (session->dragging && !aldr(&session->playback.playing) && timeline_num_grabbed_clips(tl) > 0) {
 	timeline_cache_grabbed_clip_positions(tl);
     }
     bool started = false;
@@ -855,7 +855,7 @@ void user_tl_pause(void *nullarg)
 atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
     if (session->piano_roll) {
 	piano_roll_stop_moving();
-    } else if (session->dragging && tl->num_grabbed_clips > 0) {
+    } else if (session->dragging && timeline_num_grabbed_clips(tl) > 0) {
 	timeline_push_grabbed_clip_move_event(tl);
     }
 }
@@ -866,7 +866,7 @@ void user_tl_rewind(void *nullarg)
     Timeline *tl = ACTIVE_TL;
     if (session->piano_roll && !aldr(&session->playback.playing)) {
 	piano_roll_start_moving();
-    } else if (session->dragging && !aldr(&session->playback.playing) && tl->num_grabbed_clips > 0) {
+    } else if (session->dragging && !aldr(&session->playback.playing) && timeline_num_grabbed_clips(tl) > 0) {
 	timeline_cache_grabbed_clip_positions(tl);
     }
     if (endpoint_read(&session->playback.play_speed_ep, NULL).float_v >= 0.0f) {
@@ -899,7 +899,7 @@ void user_tl_play_slow(void *nullarg)
     Timeline *tl = ACTIVE_TL;
     if (session->piano_roll && !aldr(&session->playback.playing)) {
 	piano_roll_start_moving();
-    } else if (session->dragging && !aldr(&session->playback.playing) && tl->num_grabbed_clips > 0) {
+    } else if (session->dragging && !aldr(&session->playback.playing) && timeline_num_grabbed_clips(tl) > 0) {
 	timeline_cache_grabbed_clip_positions(tl);
     }
     timeline_play_speed_set(playspeed_at_zoom(&ACTIVE_TL->timeview, SLOW_PLAYBACK_SPEED));
@@ -919,7 +919,7 @@ void user_tl_rewind_slow(void *nullarg)
     Timeline *tl = ACTIVE_TL;
     if (session->piano_roll && !aldr(&session->playback.playing)) {
 	piano_roll_start_moving();
-    } else if (session->dragging && !aldr(&session->playback.playing) && tl->num_grabbed_clips > 0) {
+    } else if (session->dragging && !aldr(&session->playback.playing) && timeline_num_grabbed_clips(tl) > 0) {
 	timeline_cache_grabbed_clip_positions(tl);
     }
     if (tl->timeview.sample_frames_per_pixel < SFPP_THRESHOLD) {
@@ -1437,15 +1437,16 @@ atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 	    /*  Select last shown automation */
 	    track_select_last_shown_automation(selected);
 	}
-	if (session->dragging && tl->num_grabbed_clips > 0) {
+	if (session->dragging && timeline_num_grabbed_clips(tl) > 0) {
 	    timeline_cache_grabbed_clip_positions(tl);
 	    bool some_clip_moved = false;
-	    for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
+            const struct sa_data sd = sa_get_rdonly(&tl->grabbed_clips);
+	    for (int i=0; i<sd.len; i++) {
 		int offset = tl->grabbed_clip_info_cache[i].track_offset;
 		int new_index = tl->track_selector + offset;
 		if (new_index >=0 && new_index < tl->num_tracks) {
 		    some_clip_moved = true;
-		    ClipRef *cr = tl->grabbed_clips[i];
+		    ClipRef *const cr = *(ClipRef *const *)sa_at(&sd, i);
 		    clipref_move_to_track(cr, tl->tracks[new_index]);
 		}
 		/* clipref_displace(cr, -1 + offset); */
@@ -1542,13 +1543,14 @@ void user_tl_track_selector_down(void *nullarg)
 	if (prev_selected && selected != prev_selected) {
 	    selected->selected_automation = -1;
 	}
-	if (session->dragging && tl->num_grabbed_clips > 0) {
+	if (session->dragging && timeline_num_grabbed_clips(tl) > 0) {
 	    timeline_cache_grabbed_clip_positions(tl);
-	    for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
+            const struct sa_data sd = sa_get_rdonly(&tl->grabbed_clips);
+	    for (int i=0; i<sd.len; i++) {
 		int offset = tl->grabbed_clip_info_cache[i].track_offset;
 		int new_index = tl->track_selector + offset;
 		if (new_index >=0 && new_index < tl->num_tracks) {
-		    ClipRef *cr = tl->grabbed_clips[i];
+                    ClipRef *const cr = *(ClipRef *const *)sa_at(&sd, i);
 		    clipref_move_to_track(cr, tl->tracks[new_index]);
 		}
 	    }
@@ -2216,8 +2218,9 @@ void user_tl_copy_grabbed_clips(void *cr_opt)
         tl->clipboard[0] = cr_opt;
         tl->num_clips_in_clipboard = 1;        
     } else {
-        memcpy(tl->clipboard, tl->grabbed_clips, sizeof(ClipRef *) * tl->num_grabbed_clips);
-        tl->num_clips_in_clipboard = tl->num_grabbed_clips;
+        const struct sa_data sd = sa_get_rdonly(&tl->grabbed_clips);
+        sa_copy_rdonly(&sd, tl->clipboard, sd.len);
+        tl->num_clips_in_clipboard = timeline_num_grabbed_clips(tl);
     }
 }
 

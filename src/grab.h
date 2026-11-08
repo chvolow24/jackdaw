@@ -100,5 +100,7 @@ void timeline_push_grabbed_clip_move_event(Timeline *tl);
 
 /****** END POSITION CACHEING, UNDO/REDO ******/
 
+int timeline_num_grabbed_clips(Timeline *tl);
+
 
 #endif

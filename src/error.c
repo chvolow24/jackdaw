@@ -1,5 +1,6 @@
 #include "error.h"
 #include "log.h"
+#include "test.h"
 #include <signal.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -63,9 +64,13 @@
 void error_exit(const char *fmt, ...)
 {
     log_printall();
+    fprintf(stderr, "\n");
+    print_backtrace();
+    fprintf(stderr, "\n");
     va_list ap;
     va_start(ap, fmt);
     vfprintf(stderr, fmt, ap);
     va_end(ap);
+    fprintf(stderr, "\n");
     exit(1);
 }

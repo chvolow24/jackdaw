@@ -237,7 +237,7 @@ void status_stat_drag()
     if (session->piano_roll) {
 	snprintf(buf, sizeof(buf), "Dragging %d notes", piano_roll_get_num_grabbed_notes());
     } else {
-	snprintf(buf, sizeof(buf), "Dragging %d clips", tl->num_grabbed_clips);
+	snprintf(buf, sizeof(buf), "Dragging %d clips", timeline_num_grabbed_clips(tl));
     }
     status_set_dragstr(buf);
 }

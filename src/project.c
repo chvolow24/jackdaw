@@ -136,6 +136,15 @@ uint8_t project_add_timeline(Project *proj, char *name)
     new_tl->proj = proj;
     new_tl->index = proj->num_timelines;
     Session *session = session_get();
+
+    enum jdaw_thread grabbed_clips_users[] = {
+        JDAW_THREAD_PLAYBACK /* Move grabbed clips */
+    };
+    sa_init(
+        &new_tl->grabbed_clips,
+        sizeof(ClipRef *),
+        grabbed_clips_users,
+        sizeof(grabbed_clips_users) / sizeof(enum jdaw_thread));
     
     /* tl_lt is not copied */
     Layout *tl_lt = session->gui.timeline_lt;
@@ -160,53 +169,6 @@ uint8_t project_add_timeline(Project *proj, char *name)
     } else {
 	error_exit("\"platonic\" track_area layout not found\n");
     }
-    
-    /* /\* If loading a file, session proj will have > 0 timelines and we can't use the existing one *\/ */
-    /* if (proj->num_timelines == 0) { */
-    /* 	new_tl->track_area = layout_get_child_by_name_recursive(tl_lt, "tracks_area"); */
-    /* 	for (int i=0; i<new_tl->track_area->num_children; i++) { */
-    /* 	    layout_destroy_no_offset(new_tl->track_area->children[i]); */
-    /* 	} */
-    /* 	new_tl->track_area->num_children = 0; */
-    /* } else { */
-    /* 	/\* layout_write(stderr, track_area_copy, 0); *\/ */
-
-    /* } */
-
-
-    /* TODO:
-
-       FIX NEW TIMELINE LAYOUT LOGIC
-
-    */
-
-
-       
-    /* /\* if (new_tl->index != 0) { *\/ */
-    /* 	Layout *main_lt_fresh = layout_read_from_xml(MAIN_LT_PATH); */
-    /* 	Layout *new_tl_lt = layout_get_child_by_name_recursive(main_lt_fresh, "timeline"); */
-    /* 	Layout *cpy = layout_copy(new_tl_lt, tl_lt->parent); */
-    /* 	layout_destroy(main_lt_fresh); */
-    /* 	/\* Layout *cpy = layout_copy(tl_lt, tl_lt->parent); *\/ */
-    /* 	/\* new_tl->layout = cpy; *\/ */
-    /* /\* } else { *\/ */
-    /* 	/\* new_tl->layout = tl_lt; *\/ */
-    /* /\* } *\/ */
-    /* 	breakfn(); */
-    /* 	/\* layout_destroy(tl_lt); *\/ */
-	
-    /* /\* layout_reset(new_tl->layout); *\/ */
-    /* new_tl->track_area = layout_get_child_by_name_recursive(new_tl->layout, "tracks_area"); */
-
-    /* /\* Clear tracks in old timeline layout before copying *\/ */
-    /* for (int i=0; i<new_tl->track_area->num_children; i++) { */
-    /* 	layout_destroy_no_offset(new_tl->track_area->children[i]); */
-    /* } */
-    /* new_tl->track_area->num_children = 0; */
-
-    
-    /* new_tl->layout = layout_get_child_by_name_recursive(session->gui.layout, "timeline"); */
-    
     new_tl->timeview.sample_frames_per_pixel = DEFAULT_SFPP;
     new_tl->timeview.rect = session->gui.audio_rect;
     new_tl->timeview.play_pos = &new_tl->play_pos_sframes;
@@ -727,9 +689,6 @@ Track *timeline_add_track_with_name(Timeline *tl, const char *track_name, int at
 
     enum jdaw_thread clips_users[] = {JDAW_THREAD_DSP};
     sa_init(&track->clips, sizeof(ClipRef *), clips_users, 1);
-    /* astrr(&track->num_clips, 0); */
-    /* track->clips_alloc_len = 16; */
-    /* track->clips = calloc(track->clips_alloc_len, sizeof(ClipRef *)); */
 
     Session *session = session_get();
     track->input = session->audio_io.record_conns[session->audio_io.default_record_conn_index];

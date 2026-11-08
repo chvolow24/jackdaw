@@ -415,6 +415,24 @@ void transport_start_playback()
     Timeline *tl = ACTIVE_TL;
     tl->read_pos_sframes = atomic_load_explicit(&tl->play_pos_sframes, memory_order_relaxed);
 
+    struct dsp_chunk_info discard_chunk_info;
+    int32_t discard_chunk_len = tl->proj->chunk_size_sframes * 2;
+    /* chunk size stereo */
+    float discard_chunk[discard_chunk_len];
+    int discarded_chunks = 0;
+    int discarded_chunk_infos = 0;
+    while (lfqueue_try_dequeue(&tl->dsp_chunks_info_lfqueue, &discard_chunk_info, 1) == LFQUEUE_SUCCESS) {
+        discarded_chunk_infos++;
+    }
+    while (lfqueue_try_dequeue(&session->playback.playback_lfqueue, &discard_chunk, discard_chunk_len) == LFQUEUE_SUCCESS) {
+        discarded_chunks++;
+    }
+    if (discarded_chunks != discarded_chunk_infos) {
+        log_tmp(LOG_ERROR, "%d discarded playback chunks != %d chunk info blocks\n", discarded_chunks, discarded_chunk_infos);
+    } else {
+        fprintf(stderr, "OK info %d %d\n", discarded_chunks, discarded_chunk_infos);
+    }
+
     for (uint8_t i=0; i<tl->num_tracks; i++) {
 	Track *track = tl->tracks[i];
 	for (uint8_t a=0; a<track->num_automations; a++) {
@@ -466,6 +484,17 @@ void transport_start_playback()
     /* } */
 
     /* sem_wait(tl->unpause_sem); */
+    int num_chunks_enqueued = 0;
+    while ((num_chunks_enqueued = lfqueue_peep_enqueued(&tl->dsp_chunks_info_lfqueue) < 1)) {
+        uint64_t us = 500;
+        struct timespec ts = {
+            .tv_sec = us / 1000000,
+            .tv_nsec = (us % 1000000) * 1000
+        };
+        fprintf(stderr, "BUFFERING %d\n", num_chunks_enqueued);
+        nanosleep(&ts, NULL);
+    }
+    fprintf(stderr, "DONE BUFFERING %d\n", num_chunks_enqueued);
     if (audioconn_start_playback(session->audio_io.playback_conn) < 0) {
 	log_tmp(LOG_ERROR, "In start playback, audio connection could not be opened; stopping playback.\n");
 	transport_stop_playback();

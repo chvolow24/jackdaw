@@ -154,7 +154,7 @@ typedef struct track {
     AudioConn *output;
 
 
-    void *midi_out;
+    void *_Atomic midi_out;
     enum midi_out_type midi_out_type;
     Synth *synth; /* Pointer will be duplicated in midi_out */
 
@@ -357,9 +357,9 @@ typedef struct timeline {
     
     Project *proj;
 
+    SharedArray grabbed_clips;
     /* ClipRef *grabbed_clips[MAX_GRABBED_CLIPS]; */
-    ClipRef *grabbed_clips[MAX_GRABBED_CLIPS];
-    uint8_t num_grabbed_clips;
+    /* uint8_t num_grabbed_clips; */
     struct grabbed_clip_info grabbed_clip_info_cache[MAX_GRABBED_CLIPS];
     bool grabbed_clip_cache_initialized;
     bool grabbed_clip_cache_pushed;

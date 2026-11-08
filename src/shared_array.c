@@ -90,7 +90,9 @@ void sa_set(const struct sa_data *old_data, void *new_array, int32_t new_len)
     }
     void *new_data = malloc(sizeof(int32_t) + old_data->sa->el_size * new_len);
     memcpy(new_data, &new_len, sizeof(int32_t));
-    memcpy((uint8_t *)new_data + sizeof(int32_t), new_array, old_data->sa->el_size * new_len);
+    if (new_len > 0) {
+        memcpy((uint8_t *)new_data + sizeof(int32_t), new_array, old_data->sa->el_size * new_len);
+    }
     
     atomic_store_explicit(&old_data->sa->data, new_data, memory_order_release);
     schedule_free(old_data->sa, old_data->__data);

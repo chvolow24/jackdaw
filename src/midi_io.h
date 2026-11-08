@@ -96,8 +96,8 @@ struct midi_io {
     /* uint8_t num_synths; */
     MIDIDevice *midi_qwerty;
 
-    Synth *monitor_synth;
-    MIDIDevice *monitor_device;
+    Synth *_Atomic monitor_synth;
+    MIDIDevice *_Atomic monitor_device;
     _Atomic bool monitoring;
     char monitor_in_text[MIDI_MONITOR_STRLEN];
     char monitor_out_text[MIDI_MONITOR_STRLEN];

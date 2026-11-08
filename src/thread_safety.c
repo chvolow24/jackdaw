@@ -105,7 +105,7 @@ void thread_set_inactive(enum jdaw_thread thread)
 
 bool thread_is_active(enum jdaw_thread thread)
 {
-    MAIN_THREAD_ONLY(jdaw_thread_set_active);
+    MAIN_THREAD_ONLY(jdaw_thread_is_active);
     return thread_active[thread];
 }
 
@@ -167,4 +167,12 @@ void thread_increment_epoch()
 {
     _Atomic uint32_t *epoch = thread_epochs + current_thread();
     atomic_fetch_add_explicit(epoch, 1, memory_order_release);
+}
+
+void debug_print_threads_active()
+{
+    fprintf(stderr, "Threads active:\n");
+    for (enum jdaw_thread t=0; t<NUM_JDAW_THREADS; t++) {
+        fprintf(stderr, "\t%s: %s\n", get_thread_name(t), thread_is_active(t) ? "ACTIVE" : "inactive");
+    }
 }

@@ -289,7 +289,7 @@ Synth *synth_create(Track *track);
 /* synchronous! only call on same thread as synth_add_buf */
 void synth_feed_midi(Synth *s, PmEvent *events, int num_events, int32_t tl_start, bool send_immediate);
 
-/* asynchronous, from MAIN only */
+/* asynchronous, from MAIN or DSP threads only */
 void synth_enqueue_midi(Synth *s, PmEvent *events, int num_events);
 
 void synth_add_buf(Synth *s, float *restrict L, float *restrict R, int32_t len, float step, bool has_timeout, double timeout_after_msec);

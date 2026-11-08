@@ -142,4 +142,6 @@ _Atomic bool *thread_get_cancellation_bool(enum jdaw_thread thread);
 uint32_t thread_epoch(enum jdaw_thread thread);
 void thread_increment_epoch();
 
+void debug_print_threads_active();
+
 #endif

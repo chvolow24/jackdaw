@@ -158,12 +158,12 @@ static float get_track_mixdown_chunk(Track *track, float *restrict L, float *res
 		    Synth *synth = track->midi_out;
 		    if (session->midi_io.monitor_synth == synth) {
 			int32_t loc_start_pos = track->tl->play_pos_sframes < start_pos_sframes ? track->tl->play_pos_sframes : start_pos_sframes;
-			synth_feed_midi(
+			synth_enqueue_midi(
 			    synth,
 			    events,
-			    num_events,
-			    loc_start_pos,
-			    false);
+			    num_events);
+			    /* loc_start_pos, */
+			    /* false); */
 		    } else {
 			synth_feed_midi( 
 			    synth,

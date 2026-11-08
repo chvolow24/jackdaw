@@ -53,8 +53,10 @@ static void loc_clipref_ungrab(ClipRef *cr)
 */
 void timeline_cache_grabbed_clip_offsets(Timeline *tl)
 {
-    for (int i=0; i<tl->num_grabbed_clips; i++) {
-	tl->grabbed_clip_info_cache[i].track_offset = tl->grabbed_clips[i]->track->tl_rank - tl->track_selector;
+    const struct sa_data sd = sa_get_rdonly(&tl->grabbed_clips);
+    for (int i=0; i<sd.len; i++) {
+        const ClipRef *cr = *(ClipRef **)sa_at(&sd, i);
+	tl->grabbed_clip_info_cache[i].track_offset = cr->track->tl_rank - tl->track_selector;
     }
 }
 
@@ -99,26 +101,31 @@ void timeline_cache_grabbed_clip_positions(Timeline *tl)
     } else if (!tl->grabbed_clip_cache_pushed) {
 	timeline_push_grabbed_clip_move_event(tl);
     }
-    for (int i=0; i<tl->num_grabbed_clips; i++) {
-	tl->grabbed_clip_info_cache[i].track = tl->grabbed_clips[i]->track;
-	tl->grabbed_clip_info_cache[i].pos = tl->grabbed_clips[i]->tl_pos;
-	tl->grabbed_clip_info_cache[i].grabbed_edge = tl->grabbed_clips[i]->grabbed_edge;
-	tl->grabbed_clip_info_cache[i].start_in_clip = tl->grabbed_clips[i]->start_in_clip;
-	tl->grabbed_clip_info_cache[i].end_in_clip = tl->grabbed_clips[i]->end_in_clip;
+    const struct sa_data sd = sa_get_rdonly(&tl->grabbed_clips);
+    for (int i=0; i<sd.len; i++) {
+        const ClipRef *const cr = *(ClipRef *const *)sa_at(&sd, i);
+	tl->grabbed_clip_info_cache[i].track = cr->track;
+	tl->grabbed_clip_info_cache[i].pos = cr->tl_pos;
+	tl->grabbed_clip_info_cache[i].grabbed_edge = cr->grabbed_edge;
+	tl->grabbed_clip_info_cache[i].start_in_clip = cr->start_in_clip;
+	tl->grabbed_clip_info_cache[i].end_in_clip = cr->end_in_clip;
     }
     tl->grabbed_clip_cache_pushed = false;
 }
 
 void timeline_push_grabbed_clip_move_event(Timeline *tl)
 {
-    ClipRef **cliprefs = calloc(tl->num_grabbed_clips, sizeof(ClipRef *));
+    const struct sa_data sd = sa_get_rdonly(&tl->grabbed_clips);
+    
+    ClipRef **cliprefs = calloc(sd.len, sizeof(ClipRef *));
 
-    struct grabbed_clip_info *positions = calloc(tl->num_grabbed_clips * 2, sizeof(struct grabbed_clip_info));
+    struct grabbed_clip_info *positions = calloc(sd.len * 2, sizeof(struct grabbed_clip_info));
 
     /* Undo positions in first half of array; redo in second half */
-    for (int i=0; i<tl->num_grabbed_clips; i++) {
-	clipref_reset(tl->grabbed_clips[i], false);
-	cliprefs[i] = tl->grabbed_clips[i];
+    for (int i=0; i<sd.len; i++) {
+        ClipRef *const cr = *(ClipRef *const *)sa_at(&sd, i);
+	clipref_reset(cr, false);
+	cliprefs[i] = cr;
 	/* undo pos */
 	positions[i].track = tl->grabbed_clip_info_cache[i].track;
 	positions[i].pos = tl->grabbed_clip_info_cache[i].pos;
@@ -127,12 +134,12 @@ void timeline_push_grabbed_clip_move_event(Timeline *tl)
 	positions[i].end_in_clip = tl->grabbed_clip_info_cache[i].end_in_clip;
 	/* positions[i].track_offset = positions[i]. */
 	/* redo pos */
-	positions[i + tl->num_grabbed_clips].track = cliprefs[i]->track;
-	positions[i + tl->num_grabbed_clips].pos = cliprefs[i]->tl_pos;
-	positions[i + tl->num_grabbed_clips].start_in_clip = cliprefs[i]->start_in_clip;
-	positions[i + tl->num_grabbed_clips].end_in_clip = cliprefs[i]->end_in_clip;
+	positions[i + sd.len].track = cliprefs[i]->track;
+	positions[i + sd.len].pos = cliprefs[i]->tl_pos;
+	positions[i + sd.len].start_in_clip = cliprefs[i]->start_in_clip;
+	positions[i + sd.len].end_in_clip = cliprefs[i]->end_in_clip;
     }
-    Value num = {.uint8_v = tl->num_grabbed_clips};
+    Value num = {.uint8_v = sd.len};
 
     user_event_push(
 	undo_move_clips,
@@ -161,35 +168,46 @@ void timeline_clipref_grab(ClipRef *cr, enum clipref_edge edge)
 	cr->grabbed_edge = edge;
 	return;
     }
-    if (cr->track->tl->num_grabbed_clips == MAX_GRABBED_CLIPS) {
+    Timeline *tl = cr->track->tl;
+    const struct sa_data sd = sa_get_wr(&tl->grabbed_clips);
+    if (sd.len == MAX_GRABBED_CLIPS) {
 	status_set_errstr("Cannot grab more than %d clips", MAX_GRABBED_CLIPS);
+        sa_discard(&sd);
 	return;
     }
-    Timeline *tl = cr->track->tl;
-    tl->grabbed_clips[tl->num_grabbed_clips] = cr;
-    tl->num_grabbed_clips++;
+    ClipRef *grabbed[sd.len + 1];
+    sa_copy(&sd, grabbed, sd.len);
+
+    grabbed[sd.len + 1] = cr;
     loc_clipref_grab(cr, edge);
+    sa_set(&sd, grabbed, sd.len + 1);
 }
 
 void timeline_clipref_ungrab(ClipRef *cr)
 {
     Timeline *tl = cr->track->tl;
     bool displace = false;
-    for (int i=0; i<tl->num_grabbed_clips; i++) {
-	if (tl->grabbed_clips[i] == cr) displace = true;
-	else if (displace) tl->grabbed_clips[i-1] = tl->grabbed_clips[i];
+    
+    const struct sa_data sd = sa_get_wr(&tl->grabbed_clips);
+    ClipRef *grabbed[sd.len];
+    sa_copy(&sd, grabbed, sd.len);
+    
+    for (int i=0; i<sd.len; i++) {
+	if (grabbed[i] == cr) displace = true;
+	else if (displace) grabbed[i-1] = grabbed[i];
     }
-    tl->num_grabbed_clips--;
     loc_clipref_ungrab(cr);
+    sa_set(&sd, grabbed, sd.len - 1);
 }
 
-/* Cleanup function, used to rectify state in mouse code and elsewhere */
 void timeline_ungrab_all_cliprefs(Timeline *tl)
 {
-    for (int i=0; i<tl->num_grabbed_clips; i++) {
-	loc_clipref_ungrab(tl->grabbed_clips[i]);
+    const struct sa_data sd = sa_get_wr(&tl->grabbed_clips);    
+    for (int i=0; i<sd.len; i++) {
+        ClipRef *const cr = *(ClipRef *const *)sa_at(&sd, i);
+	loc_clipref_ungrab(cr);
     }
-    tl->num_grabbed_clips = 0;
+    sa_set(&sd, NULL, 0);
 }
 
 /* END MID-LEVEL INTERFACE */
@@ -254,12 +272,7 @@ void timeline_grab_ungrab(Timeline *tl, ClipRef *cr_opt)
 	if (session->dragging && aldr(&session->playback.playing)) {
 	    timeline_push_grabbed_clip_move_event(tl);
 	}
-	for (int i=0; i<tl->num_grabbed_clips; i++) {
-	    cr = tl->grabbed_clips[i];
-	    cr->grabbed = false;
-	    cr->grabbed_edge = CLIPREF_EDGE_NONE;
-	}
-	tl->num_grabbed_clips = 0;
+        timeline_ungrab_all_cliprefs(tl);
     }
     
     if (session->dragging) {
@@ -272,9 +285,10 @@ void timeline_grab_ungrab(Timeline *tl, ClipRef *cr_opt)
 void timeline_grab_and_drag(Timeline *tl)
 {
     timeline_grab_ungrab(tl, NULL);
-    if (tl->num_grabbed_clips > 0 && !session_get()->dragging) {
+    const struct sa_data sd = sa_get_rdonly(&tl->grabbed_clips);
+    if (sd.len > 0 && !session_get()->dragging) {
 	user_tl_toggle_drag(NULL);
-    } else if (tl->num_grabbed_clips == 0 && session_get()->dragging) {
+    } else if (sd.len == 0 && session_get()->dragging) {
 	user_tl_toggle_drag(NULL);
     }
 }
@@ -351,15 +365,19 @@ void timeline_delete_grabbed_cliprefs(Timeline *tl)
     if (session_get()->dragging) {
 	timeline_push_grabbed_clip_move_event(tl);
     }
-    ClipRef **deleted_cliprefs = calloc(tl->num_grabbed_clips, sizeof(ClipRef *));
-    for (uint8_t i=0; i<tl->num_grabbed_clips; i++) {
-	ClipRef *cr = tl->grabbed_clips[i];
+    const struct sa_data sd = sa_get_wr(&tl->grabbed_clips);
+    /* ClipRef *grabbed[sd.len]; */
+    /* sa_copy(&sd, grabbed, sd.len); */
+    
+    ClipRef **deleted_cliprefs = calloc(sd.len, sizeof(ClipRef *));
+    for (uint8_t i=0; i<sd.len; i++) {
+	ClipRef *const cr = *(ClipRef *const *)sa_at(&sd, i);
 	loc_clipref_ungrab(cr);
 	/* cr->grabbed = false; */
 	clipref_delete(cr);
 	deleted_cliprefs[i] = cr;
     }
-    Value num = {.uint8_v = tl->num_grabbed_clips};
+    Value num = {.uint8_v = sd.len};
     user_event_push(
 	undo_delete_clips,
 	redo_delete_clips,
@@ -372,7 +390,7 @@ void timeline_delete_grabbed_cliprefs(Timeline *tl)
 	num,
 	num,
 	0, 0, true, false);
-    tl->num_grabbed_clips = 0;
+    sa_set(&sd, NULL, 0);
 }
 
 void timeline_grab_marked_range(Timeline *tl, ClipRefEdge edge)
@@ -418,8 +436,9 @@ void timeline_grabbed_clips_move(Timeline *tl, int32_t move_by_sframes)
     /* 	piano_roll_grabbed_notes_move(move_by_sframes); */
 	return;
     }
-    for (int i=0; i<tl->num_grabbed_clips; i++) {
-	ClipRef *cr = tl->grabbed_clips[i];
+    const struct sa_data sd = sa_get_rdonly(&tl->grabbed_clips);
+    for (int i=0; i<sd.len; i++) {
+	ClipRef *const cr = *(ClipRef *const *)sa_at(&sd, i);
 	int32_t clip_len = 0;
 	switch (cr->type) {
 	case CLIP_AUDIO:

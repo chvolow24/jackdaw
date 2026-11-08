@@ -36,8 +36,8 @@ typedef struct clip_ref {
     ClipType type;
     void *source_clip;
     bool deleted;
-    bool grabbed;
-    ClipRefEdge grabbed_edge;
+    _Atomic bool grabbed;
+    _Atomic ClipRefEdge grabbed_edge;
     bool home;
     
     _Atomic int32_t tl_pos;

@@ -853,8 +853,7 @@ void transport_stop_recording()
 {
     Session *session = session_get();
     Timeline *tl = ACTIVE_TL;
-
-    fprintf(stderr, "STOP RECORDING>>>>>>>\n");
+    
     transport_stop_playback();
     timeline_play_speed_set(0.0);
     /* First, stop audio devices and copy remaining data */

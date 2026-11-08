@@ -258,6 +258,13 @@ static void mode_load_global()
 	"Write main layout to file (debug only)",
 	user_global_debug_write_main_layout);
     mode_subcat_add_fn(mc, fn);
+
+    fn = create_user_fn(
+	"print_threads_active",
+	"Print active threads (debug only)",
+	user_global_debug_print_threads_active);
+    mode_subcat_add_fn(mc, fn);
+
     #endif
 
     fn = create_user_fn(

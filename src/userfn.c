@@ -605,6 +605,12 @@ void user_global_debug_write_main_layout(void *nullarg)
     fclose(f);
     fprintf(stderr, "Wrote main window layout to %s\n", filename);
 }
+
+void user_global_debug_print_threads_active(void *nullarg)
+{
+    debug_print_threads_active();
+}
+
 #endif
 
 void api_node_print_all_routes(APINode *node);

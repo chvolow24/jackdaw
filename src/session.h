@@ -251,11 +251,11 @@ typedef struct session {
     Animation *animations;
     struct api_server server;
     struct queued_ops queued_ops;
-    bool midi_qwerty; // if true, midi qwerty mode is active (local state in midi_qwerty.c)
-    bool piano_roll; // if true, piano roll visible (local state in piano_roll.c)
+    _Atomic bool midi_qwerty; // if true, midi qwerty mode is active (local state in midi_qwerty.c)
+    _Atomic bool piano_roll; // if true, piano roll visible (local state in piano_roll.c)
     bool do_tests;
     Draggable dragged_component;
-    bool dragging;
+    _Atomic bool dragging;
     int drag_color_pulse_phase;
     double drag_color_pulse_prop;
     struct source_mode source_mode;

@@ -590,18 +590,6 @@ void session_schedule_free(
     const int num_thread_epochs)
 {
     /* Outside of main thread, queue for main thread */
-    static void *last_obj_to_free = NULL;
-    static char last_backtrace[4096] = {0};
-    fprintf(stderr, "Queue free %p\n", obj_to_free);
-    if (last_obj_to_free == obj_to_free) {
-        fprintf(stderr, "Uh oh. Previous backtrace:\n");
-        fprintf(stderr, "%s\n", last_backtrace);
-        fprintf(stderr, "Current backtrace:\n");
-        print_backtrace();
-        TESTBREAK;
-    }
-    snprint_backtrace(last_backtrace, 4095);
-    last_obj_to_free = obj_to_free;
     if (!on_thread(JDAW_THREAD_MAIN)) {
         struct scheduled_free oe;
         oe.obj = obj_to_free;
@@ -671,7 +659,6 @@ void session_do_scheduled_frees()
         }
         if (conditions_met) {
             /* value of 'i' records the fact that this was done */
-            fprintf(stderr, "Free %p, epoch %d\n", sf->obj, thread_epoch(current_thread()));
             free(sf->obj);
             num_freed++;
         } else {

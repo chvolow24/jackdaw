@@ -122,6 +122,8 @@ void instrument_monitor_start()
 
 void instrument_monitor_stop()
 {
-    fprintf(stderr, "Stop monitoring\n");
-    thread_cancel(JDAW_THREAD_INSTRUMENT);
+    if (thread_is_active(JDAW_THREAD_INSTRUMENT)) {
+        fprintf(stderr, "Stop monitoring\n");
+        thread_cancel(JDAW_THREAD_INSTRUMENT);
+    }
 }

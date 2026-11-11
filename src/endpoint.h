@@ -129,7 +129,7 @@ typedef struct endpoint {
     /* Continuous changes */
     bool do_auto_incr;
     Value incr;
-    bool changing;
+    _Atomic bool changing;
 
     /* Bindings */
     bool automatable;

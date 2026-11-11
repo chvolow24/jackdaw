@@ -217,14 +217,14 @@ int endpoint_write(
         (write_has_occurred = aldr(&ep->write_has_occurred))) {
         return EP_WRITE_NO_CHANGE;
     }
-    
-    astrr(&ep->display_label, undoable || ep->changing); /* heuristic, ok */
+
+    astrr(&ep->display_label, undoable || aldr(&ep->changing)); /* heuristic, ok */
 
     bool async_thread_loc_val_change = false;
     if (
 	on_thread(owner)
 	|| (on_thread(JDAW_THREAD_MAIN) && !thread_is_active(owner))) {
-        
+
         /* Set thread local proxy for plan reads on owner thread */
 	jdaw_val_set_ptr(ep->thread_local_val, ep->val_type, new_val);
 	if (ep->automation && ep->automation->write) {
@@ -288,7 +288,7 @@ int endpoint_write(
     }
     
     /* Undo */
-    if (undoable && !ep->block_undo && !ep->changing) {
+    if (undoable && !ep->block_undo && !aldr(&ep->changing)) {
 	if (!on_thread(JDAW_THREAD_MAIN)) {
 	    fprintf(stderr, "UH OH can't push event fn on thread that is not main\n");
 	    return EP_WRITE_ERROR_UNDO;
@@ -356,8 +356,8 @@ void endpoint_start_continuous_change(
     enum jdaw_thread thread,
     Value new_value)
 {
-    if (ep->changing) return;
-    ep->changing = true;
+    if (aldr(&ep->changing)) return;
+    astrr(&ep->changing, true);
     ep->cached_val = endpoint_read(ep, NULL);
     /* ep->cached_owner = endpoint_get_owner(ep); */
     /* endpoint_set_owner(ep, thread); */
@@ -398,7 +398,7 @@ void endpoint_stop_continuous_change(Endpoint *ep)
 	    current_val, cb_matrix,
 	    0, 0, false, false);
     }
-    ep->changing = false;
+    astrr(&ep->changing, false);
 
 }
 

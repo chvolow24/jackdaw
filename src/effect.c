@@ -453,7 +453,7 @@ static int add_effect_form(void *mod_v, void *nullarg)
 	Synth *synth = session->midi_io.monitor_synth;
 	pthread_mutex_lock(&synth->audio_proc_lock);
 	synth_close_all_notes(synth);
-	api_node_set_owner(&e->api_node, JDAW_THREAD_PLAYBACK);
+	api_node_set_owner(&e->api_node, JDAW_THREAD_INSTRUMENT);
 	pthread_mutex_unlock(&synth->audio_proc_lock);
     }
 

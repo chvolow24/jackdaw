@@ -44,6 +44,7 @@
 #include "project.h"
 #include "prompt_user.h"
 #include "session.h"
+#include "shared_array.h"
 #include "status.h"
 #include "synth.h"
 #include "text.h"
@@ -228,13 +229,17 @@ uint8_t project_add_timeline(Project *proj, char *name)
 
 static void timeline_destroy(Timeline *tl, bool displace_in_proj)
 {
-    for (uint8_t i=0; i<tl->num_tracks; i++) {
-	track_destroy(tl->tracks[i], false);
+    const struct sa_data tracks_sd = sa_get_rdonly(&tl->tracks);
+    const struct sa_data click_tracks_sd = sa_get_rdonly(&tl->click_tracks);
+    for (int i=0; i<tracks_sd.len; i++) {
+        Track *const track = *(Track *const *)sa_at(&tracks_sd, i);
+        track_destroy(track, false);
     }
-    for (uint8_t i=0; i<tl->num_click_tracks; i++) {
-	click_track_destroy(tl->click_tracks[i]);
+    for (int i=0; i<click_tracks_sd.len; i++) {
+        ClickTrack *const ct = *(ClickTrack *const *)sa_at(&click_tracks_sd, i);
+	click_track_destroy(ct);
     }
-    /* tl->proj->num_timelines--; */
+    
     Project *proj = tl->proj;
     if (displace_in_proj) {
 	bool displace = false;
@@ -523,20 +528,23 @@ void timeline_rectify_track_indices(Timeline *tl)
     /* fprintf(stderr, "Rectify\n"); */
     int click_track_index = 0;
     int track_index = 0;
-    
-    Track *track_stack[tl->num_tracks];
-    ClickTrack *click_track_stack[tl->num_click_tracks];
+
+    const struct sa_data tracks_sd = sa_get_wr(&tl->tracks);
+    Track *track_stack[tracks_sd.len];
+
+    const struct sa_data click_tracks_sd = sa_get_wr(&tl->tracks);
+    ClickTrack *click_track_stack[click_tracks_sd.len];
 
     if (tl->click_track_frozen) {
-	click_track_stack[click_track_index] = tl->click_tracks[0];
+	click_track_stack[click_track_index] = *(ClickTrack **)sa_at(&click_tracks_sd, 0);
 	click_track_index++;
     }
 
     for (int i=0; i<tl->track_area->num_children; i++) {
 	Layout *lt = tl->track_area->children[i];
 	bool is_selected_lt = i == tl->layout_selector;
-	for (uint8_t j=0; j<tl->num_tracks; j++) {
-	    Track *track = tl->tracks[j];
+	for (int j=0; j<tracks_sd.len; j++) {
+	    Track *track = *(Track **)sa_at(&tracks_sd, j);
 	    if (track->layout == lt) {
 		track_stack[track_index] = track;
 		track->tl_rank = track_index;
@@ -548,8 +556,8 @@ void timeline_rectify_track_indices(Timeline *tl)
 		break;
 	    }
 	}
-	for (int j=0; j<tl->num_click_tracks; j++) {
-	    ClickTrack *tt = tl->click_tracks[j];
+	for (int j=0; j<click_tracks_sd.len; j++) {
+	    ClickTrack *tt = *(ClickTrack **)sa_at(&click_tracks_sd, j);
 	    if (tt->layout == lt) {
 		click_track_stack[click_track_index] = tt;
 		tt->index = click_track_index;
@@ -562,12 +570,8 @@ void timeline_rectify_track_indices(Timeline *tl)
 	    }
 	}
     }
-    /* fprintf(stderr, "->LT selector: %d\n", tl->layout_selector); */
-    /* fprintf(stderr, "->track selector: %d\n", tl->track_selector); */
-    /* fprintf(stderr, "->tt selector: %d\n", tl->click_track_selector); */
-    memcpy(tl->tracks, track_stack, sizeof(Track *) * tl->num_tracks);
-    memcpy(tl->click_tracks, click_track_stack, sizeof(ClickTrack *) * tl->num_click_tracks);
-    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
+    sa_set(&tracks_sd, track_stack, tracks_sd.len);
+    sa_set(&click_tracks_sd, click_track_stack, click_tracks_sd.len);
 }
 
 Track *timeline_selected_track(Timeline *tl)

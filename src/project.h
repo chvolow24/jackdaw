@@ -332,16 +332,9 @@ typedef struct timeline {
        position correctly */
     /* struct dsp_chunk_info *dsp_chunks_info; */
     LFQueue dsp_chunks_info_lfqueue;
-    /* int dsp_chunks_info_read_i; */
-    /* int dsp_chunks_info_write_i; */
-        
-    Track *tracks[MAX_TRACKS];
-    Track *tracks_proc_order[MAX_TRACKS];
-    
-    uint8_t num_tracks;
 
-    ClickTrack *click_tracks[MAX_CLICK_TRACKS];
-    uint8_t num_click_tracks;
+    SharedArray tracks; // Track *[]
+    SharedArray click_tracks; // ClickTrack *[]
     
     // uint8_t active_track_indices[MAX_ACTIVE_TRACKS];
     // uint8_t num_active_tracks;

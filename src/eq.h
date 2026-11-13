@@ -68,8 +68,6 @@ typedef struct eq {
     IIRGroup group;
     SharedArray output_freq_mag_L; /* double[] -- computed in dsp, used for drawing */
     SharedArray output_freq_mag_R; /* double[] -- computed in dsp, used for drawing */
-    /* double *output_freq_mag_L;  */
-    /* double *output_freq_mag_R; /\* double[] -- computed in dsp, used for drawing *\/ */
     struct freq_plot *fp;
     EQFilterCtrl ctrls[EQ_DEFAULT_NUM_FILTERS];
     int selected_ctrl;

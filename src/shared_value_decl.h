@@ -1,5 +1,5 @@
-#ifndef JDAW_SHARED_VALUE_DECL
-#define JDAW_SHARED_VALUE_DECL
+#ifndef JDAW_SHARED_VALUE_DECL_H
+#define JDAW_SHARED_VALUE_DECL_H
 
 #include "shared_value.h"
 #include "value.h"

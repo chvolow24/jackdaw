@@ -21,6 +21,7 @@
 #include "logscale.h"
 #include "project.h"
 #include "session.h"
+#include "shared_array.h"
 #include "waveform.h"
 
 
@@ -152,8 +153,11 @@ static void selected_filter_active_cb(Endpoint *ep)
 
 void eq_init(EQ *eq)
 {
-    eq->output_freq_mag_L = calloc(eq->effect->effect_chain->chunk_len_sframes * 2, sizeof(double));
-    eq->output_freq_mag_R = calloc(eq->effect->effect_chain->chunk_len_sframes * 2, sizeof(double));
+    enum jdaw_thread user_threads[] = {JDAW_THREAD_INSTRUMENT, JDAW_THREAD_DSP};
+    sa_init(&eq->output_freq_mag_L, sizeof(double), user_threads);
+    sa_init(&eq->output_freq_mag_R, sizeof(double), user_threads);
+    /* eq->output_freq_mag_L = calloc(eq->effect->effect_chain->chunk_len_sframes * 2, sizeof(double)); */
+    /* eq->output_freq_mag_R = calloc(eq->effect->effect_chain->chunk_len_sframes * 2, sizeof(double)); */
 
     double nsub1 = (double)eq->effect->effect_chain->chunk_len_sframes - 1;
     /* if (session->proj_initialized) { */
@@ -539,7 +543,7 @@ bool eq_mouse_click(EQ *eq, SDL_Point mousep)
 
 void eq_create_freq_plot(EQ *eq, Layout *container)
 {
-    double *arrs[] = {eq->output_freq_mag_L, eq->output_freq_mag_R};
+    SharedArray *arrs[] = {&eq->output_freq_mag_L, &eq->output_freq_mag_R};
     int lens[] = {eq->effect->effect_chain->chunk_len_sframes, eq->effect->effect_chain->chunk_len_sframes};
     /* double *arrs[] = {proj->output_L_freq, proj->output_R_freq}; */
     SDL_Color *fcolors[] = {&colors.freq_L, &colors.freq_R};

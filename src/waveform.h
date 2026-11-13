@@ -26,6 +26,7 @@
 #include <pthread.h>
 #include "audio_clip.h"
 #include "logscale.h"
+#include "shared_array.h"
 #include "textbox.h"
 #include "value.h"
 
@@ -45,8 +46,8 @@ struct freq_plot {
     Logscale x_axis;
     /* bool scale_y_axis; */
     /* Logscale y_axis; */
-    float **farrays;
-    double **darrays;
+    SharedArray **farrays;
+    SharedArray **darrays;
     int num_farrays;
     int num_darrays;
     int *farray_lens;
@@ -77,10 +78,10 @@ void waveform_draw_all_channels(float **channels, uint8_t num_channels, uint32_t
 
 
 struct freq_plot *waveform_create_freq_plot(
-    double **darrays,
+    SharedArray **darrays,
     int *darray_lens,
     int num_darrays,
-    float **farrays,
+    SharedArray **farrays,
     int *farray_lens,
     int num_farrays,
     SDL_Color **darray_colors,

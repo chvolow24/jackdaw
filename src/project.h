@@ -111,9 +111,9 @@ typedef struct track {
     char name[MAX_NAMELENGTH];
     bool deleted;
     bool active;
-    bool muted;
-    bool solo;
-    bool solo_muted;
+    _Atomic bool muted;
+    _Atomic bool solo;
+    _Atomic bool solo_muted;
     bool minimized;
     uint8_t channels;
     Timeline *tl; /* Parent timeline */
@@ -311,8 +311,8 @@ typedef struct timeline {
     _Atomic int32_t play_pos_sframes; /* Incremented in AUDIO DEVICE thread (small chunks) */
     _Atomic int32_t read_pos_sframes; /* Incremented in DSP thread (large chunks) */
     /* float last_read_playspeed; */
-    int32_t in_mark_sframes;
-    int32_t out_mark_sframes;
+    _Atomic int32_t in_mark_sframes;
+    _Atomic int32_t out_mark_sframes;
     int32_t record_from_sframes;
 
     /*

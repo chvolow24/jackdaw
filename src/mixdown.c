@@ -288,32 +288,23 @@ should be collected from the in mark rather than from the play head.
 */
 void get_mixdown_chunk(Timeline* tl, float *restrict mixdown_L, float *restrict mixdown_R, uint32_t len_sframes, int32_t start_pos_sframes, float step)
 {
-    /* start = clock(); */
-    /* clock_t start = clock(); */
     uint32_t chunk_len_bytes = sizeof(float) * len_sframes;
-    /* float *mixdown = malloc(chunk_len_bytes); */
     memset(mixdown_L, '\0', chunk_len_bytes);
     if (mixdown_R)
 	memset(mixdown_R, '\0', chunk_len_bytes);
 
     int32_t end_pos_sframes = start_pos_sframes + len_sframes * step;
-    for (uint8_t i=0; i<tl->num_click_tracks; i++) {
-	ClickTrack *tt = tl->click_tracks[i];
+    const struct sa_data ct_sd = sa_get_rdonly(&tl->click_tracks);
+    for (uint8_t i=0; i<ct_sd.len; i++) {
+	ClickTrack *const tt = *(ClickTrack *const *)sa_at(&ct_sd, i);
 	click_track_mix_metronome(tt, mixdown_L, len_sframes, start_pos_sframes, end_pos_sframes, step, 0);
 	click_track_mix_metronome(tt, mixdown_R, len_sframes, start_pos_sframes, end_pos_sframes, step, 1);
     }
-    
-    for (uint8_t t=0; t<tl->num_tracks; t++) {
-	bool audio_in_track = false;
-        Track *track = tl->tracks_proc_order[t];
 
-	/* Track will be processed as a bus in */
-	/* if (track->bus_out) { */
-	/*     continue; */
-	/* } */
-	
-	/* float track_chunk_L[len_sframes]; */
-	/* float track_chunk_R[len_sframes]; */
+    const struct sa_data tpo_sd = sa_get_rdonly(&tl->tracks_proc_order);
+    for (uint8_t t=0; t<tpo_sd.len; t++) {
+	bool audio_in_track = false;
+        Track *const track = *(Track *const *)sa_at(&tpo_sd, t);
 
         float track_chunk_amp = get_track_mixdown_chunk(track, track->buf_L, track->buf_R, start_pos_sframes, len_sframes, step);
 	    	

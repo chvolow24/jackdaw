@@ -30,11 +30,7 @@ void midi_clip_init(MIDIClip *mclip)
         JDAW_THREAD_DSP,
         JDAW_THREAD_PLAYBACK
     };
-    sa_init(
-        &mclip->notes,
-        sizeof(Note),
-        users,
-        sizeof(users) / sizeof(enum jdaw_thread));
+    sa_init(&mclip->notes, sizeof(Note), users);
     mclip->refs_alloc_len = DEFAULT_REFS_ALLOC_LEN;
     mclip->refs = calloc(mclip->refs_alloc_len, sizeof(ClipRef *));
 }

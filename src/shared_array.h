@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include "thread_safety.h"
 
+#define SHARED_ARRAY_BACKTRACE_MAX_LEN 512
 
 typedef struct shared_array {
     void *_Atomic data;
@@ -12,6 +13,9 @@ typedef struct shared_array {
     int num_user_threads;
     bool __thread_unclosed_write[NUM_JDAW_THREADS];
     const char *__name;
+    #ifdef TESTBUILD
+    char prev_wr_bt[NUM_JDAW_THREADS][SHARED_ARRAY_BACKTRACE_MAX_LEN];
+    #endif
 
 } SharedArray;
 
@@ -24,8 +28,8 @@ struct sa_data {
     bool __rdonly;
 };
 
-#define sa_init(sa, el_size, user_threads, num_user_threads) \
-    sa_init_real(sa, el_size, user_threads, num_user_threads);\
+#define sa_init(sa, el_size, user_threads) \
+    sa_init_real(sa, el_size, user_threads, (sizeof(user_threads) / sizeof(enum jdaw_thread))); \
     (sa)->__name = #sa;                                       \
 
 /* user_threads must include all threads that will access

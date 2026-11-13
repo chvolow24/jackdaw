@@ -102,4 +102,7 @@ int clipref_split_stereo_to_mono(ClipRef *cr, ClipRef **new_L_dst, ClipRef **new
 void timeline_cut_at_cursor(Timeline *tl);
 void timeline_cut_at_cursor_and_grab_edges(Timeline *tl);
 
+/* TODO: figure out a better way to handle this (it's generic) */
+float clipref_gain_from_ctrl(float ctrl);
+
 #endif

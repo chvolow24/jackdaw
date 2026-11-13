@@ -950,32 +950,38 @@ ClickSegment *click_track_add_segment_at_measure(ClickTrack *t, int16_t measure,
 
 /*------ click track insertion/deletion and supporting ---------------*/
 
-static void click_track_remove(ClickTrack *tt)
+static void click_track_remove(ClickTrack *ct)
 {
-    Timeline *tl = tt->tl;
-    if (tl->click_track_frozen && tt == tl->click_tracks[0]) {
+    Timeline *tl = ct->tl;
+    const struct sa_data ct_sd = sa_get_wr(&tl->click_tracks);
+    ClickTrack *ct_new[ct_sd.len];
+    sa_copy(&ct_sd, ct_new, ct_sd.len);
+    if (tl->click_track_frozen && ct == ct_new[0]) {
 	check_unfreeze_click_track(tl);
     }
-    for (int i=tt->index; i<tl->num_click_tracks - 1; i++) {
-	tl->click_tracks[i] = tl->click_tracks[i+1];
+    for (int i=ct->index; i<ct_sd.len - 1; i++) {
+	ct_new[i] = ct_new[i+1];
     }
-    tl->num_click_tracks--;
-    layout_remove_child(tt->layout);
+    sa_set(&ct_sd, ct_new, ct_sd.len - 1);
+    layout_remove_child(ct->layout);
     timeline_rectify_track_indices(tl);
     timeline_rectify_track_area(tl);
 
 }
 
-static void click_track_reinsert(ClickTrack *tt)
+static void click_track_reinsert(ClickTrack *ct)
 {
-    Timeline *tl = tt->tl;
-    for (int i=tl->num_click_tracks; i>tt->index; i--) {
-	tl->click_tracks[i] = tl->click_tracks[i-1];
+    Timeline *tl = ct->tl;
+    const struct sa_data ct_sd = sa_get_wr(&tl->click_tracks);
+    ClickTrack *ct_new[ct_sd.len + 1];
+    for (int i=ct_sd.len; i>ct->index; i--) {
+	ct_new[i] = ct_new[i-1];
     }
-    tl->click_tracks[tt->index] = tt;
-    tl->num_click_tracks++;
-    layout_insert_child_at(tt->layout, tl->track_area, tt->layout->index);
-    tl->layout_selector = tt->layout->index;
+    ct_new[ct->index] = ct;
+    sa_set(&ct_sd, ct_new, ct_sd.len + 1);
+    
+    layout_insert_child_at(ct->layout, tl->track_area, ct->layout->index);
+    tl->layout_selector = ct->layout->index;
     timeline_rectify_track_indices(tl);
     timeline_rectify_track_area(tl);
 }
@@ -996,9 +1002,13 @@ NEW_EVENT_FN(dispose_forward_add_click_track, "")
 
 ClickTrack *timeline_add_click_track(Timeline *tl)
 {
-    if (tl->num_click_tracks == MAX_CLICK_TRACKS) return NULL;
+    const struct sa_data ct_sd = sa_get_wr(&tl->click_tracks);
+    if (ct_sd.len == MAX_CLICK_TRACKS) {
+        sa_discard(&ct_sd);
+        return NULL;
+    }
     ClickTrack *t = calloc(1, sizeof(ClickTrack));
-    snprintf(t->name, MAX_NAMELENGTH, "click_track_%d", tl->num_click_tracks + 1);
+    snprintf(t->name, MAX_NAMELENGTH, "click_track_%d", ct_sd.len + 1);
     t->tl = tl;
     Session *session = session_get();
 
@@ -1140,18 +1150,18 @@ ClickTrack *timeline_add_click_track(Timeline *tl)
 
     uint8_t subdivs[] = {4, 4, 4, 4};
     click_track_add_segment(t, 0, -1, DEFAULT_BPM, 4, subdivs);
-    
-    tl->click_tracks[tl->num_click_tracks] = t;
-    t->index = tl->num_click_tracks;
-    tl->num_click_tracks++;
     snprintf(t->name, MAX_NAMELENGTH, "Click track %d", t->index + 1);
 
+    /* Apply change to shared array */
+    ClickTrack *click_tracks[ct_sd.len + 1];
+    sa_copy(&ct_sd, click_tracks, ct_sd.len);    
+    click_tracks[ct_sd.len] = t;
+    t->index = ct_sd.len;
+    sa_set(&ct_sd, click_tracks, ct_sd.len + 1);
+    
     timeline_rectify_track_indices(tl);
     timeline_rectify_track_area(tl);
     
-    /* timeline_reset(tl, false); */
-    /* layout_force_reset(tl->layout); */
-    /* layout_reset(lt); */
     Value nullval = {.int_v = 0};
     user_event_push(
 	undo_add_click_track,
@@ -1334,7 +1344,8 @@ static void click_track_delete_internal(ClickTrack *tt, bool from_undo)
 void click_track_delete(ClickTrack *ct)
 {
     Timeline *tl = ct->tl;
-    if (ct == tl->click_tracks[0] && tl->click_track_frozen) {
+    const struct sa_data ct_sd = sa_get_rdonly(&tl->click_tracks);
+    if (ct == *(ClickTrack **)sa_at(&ct_sd, 0)  && tl->click_track_frozen) {
 	check_unfreeze_click_track(tl);
     }
     click_track_delete_internal(ct, false);
@@ -2124,26 +2135,30 @@ void click_track_fprint(FILE *f, ClickTrack *tt)
 
 ClickTrack *click_track_active_at_cursor(Timeline *tl)
 {
+    const struct sa_data ct_sd = sa_get_rdonly(&tl->click_tracks);
     ClickTrack *ct = NULL;
-    for (int i=tl->num_click_tracks - 1; i>=0; i--) {
-	if (tl->click_tracks[i]->layout->index <= tl->layout_selector) {
-	    ct = tl->click_tracks[i];
+    for (int i=ct_sd.len - 1; i>=0; i--) {
+        ClickTrack *test = *(ClickTrack **)sa_at(&ct_sd, i);
+	if (test->layout->index <= tl->layout_selector) {
+	    ct = test;
 	    break;
 	}
     }
     if (!ct && tl->click_track_frozen) {
-	ct = tl->click_tracks[0];
+	ct = *(ClickTrack **)sa_at(&ct_sd, 0);
     }
     return ct;
 }
 
 ClickSegment *click_segment_active_at_cursor(Timeline *tl)
 {
+    const struct sa_data ct_sd = sa_get_rdonly(&tl->click_tracks);
     ClickTrack *ct = click_track_active_at_cursor(tl);
     if (!ct) return NULL;
-    for (int i=tl->num_click_tracks - 1; i>=0; i--) {
-	if (tl->click_tracks[i]->layout->index <= tl->layout_selector) {
-	    ct = tl->click_tracks[i];
+    for (int i=ct_sd.len - 1; i>=0; i--) {
+        ClickTrack *test = *(ClickTrack **)sa_at(&ct_sd, i);
+	if (test->layout->index <= tl->layout_selector) {
+	    ct = test;
 	    break;
 	}
     }

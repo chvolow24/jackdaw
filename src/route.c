@@ -27,7 +27,11 @@ static int track_proc_order_cmp(const void *a, const void *b)
 
 void timeline_resort_tracks_proc_order(Timeline *tl)
 {
-    qsort(tl->tracks_proc_order, tl->num_tracks, sizeof(Track *), track_proc_order_cmp);
+    const struct sa_data tpo_sd = sa_get_wr(&tl->tracks_proc_order);
+    Track *tpo[tpo_sd.len];
+    sa_copy(&tpo_sd, tpo, tpo_sd.len);
+    qsort(tpo, tpo_sd.len, sizeof(Track *), track_proc_order_cmp);
+    sa_set(&tpo_sd, tpo, tpo_sd.len);
     TEST_FN_CALL(timeline_track_array_integrity, tl);
 }
 

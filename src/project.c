@@ -137,14 +137,17 @@ uint8_t project_add_timeline(Project *proj, char *name)
     new_tl->index = proj->num_timelines;
     Session *session = session_get();
 
-    enum jdaw_thread grabbed_clips_users[] = {
-        JDAW_THREAD_PLAYBACK /* Move grabbed clips */
-    };
-    sa_init(
-        &new_tl->grabbed_clips,
-        sizeof(ClipRef *),
-        grabbed_clips_users,
-        sizeof(grabbed_clips_users) / sizeof(enum jdaw_thread));
+    /* Initialize shared arrays */
+    
+    enum jdaw_thread grabbed_clips_users[] = {JDAW_THREAD_PLAYBACK};
+    sa_init(&new_tl->grabbed_clips, sizeof(ClipRef *), grabbed_clips_users);
+
+    enum jdaw_thread tpo_users[] = {JDAW_THREAD_DSP};    
+    sa_init(&new_tl->tracks_proc_order, sizeof(Track *), tpo_users);
+
+    enum jdaw_thread ct_users[] = {JDAW_THREAD_DSP};
+    sa_init(&new_tl->click_tracks, sizeof(ClickTrack *), ct_users);
+        
     
     /* tl_lt is not copied */
     Layout *tl_lt = session->gui.timeline_lt;
@@ -248,33 +251,13 @@ static void timeline_destroy(Timeline *tl, bool displace_in_proj)
 	    proj->num_timelines--;
 	}
     }
-    /* if (tl->buf_L) free(tl->buf_L); */
-    /* if (tl->buf_R) free(tl->buf_R); */
-
-    /* if (tl->timecode_tb) textbox_destroy(tl->timecode_tb); */
-    /* if (tl->loop_play_lemniscate) textbox_destroy(tl->loop_play_lemniscate); */
-
-    /* if (sem_close(tl->unpause_sem) != 0) perror("Sem close"); */
-    /* if (sem_close(tl->writable_chunks) != 0) perror("Sem close"); */
-    /* if (sem_close(tl->readable_chunks) != 0) perror("Sem close"); */
-
-    /* char buf[128]; */
-    /* snprintf(buf, 128, SEM_NAME_UNPAUSE, tl->index); */
-    /* if (sem_unlink(buf) != 0 && errno != ENOENT) { */
-    /*     perror("Error in sem unlink"); */
-    /* } */
-    /* snprintf(buf, 128, SEM_NAME_WRITABLE_CHUNKS, tl->index); */
-    /* if (sem_unlink(buf) != 0 && errno != ENOENT) { */
-    /*     perror("Error in sem unlink"); */
-    /* } */
-    /* snprintf(buf, 128, SEM_NAME_READABLE_CHUNKS, tl->index); */
-    /* if (sem_unlink(buf) != 0 && errno != ENOENT) { */
-    /*     perror("Error in sem unlink"); */
-    /* } */
 
     lfqueue_deinit(&tl->dsp_chunks_info_lfqueue);
-    /* free(tl->dsp_chunks_info); */
-    /* layout_destroy(tl->layout); */
+
+    sa_deinit(&tl->grabbed_clips);
+    sa_deinit(&tl->tracks_proc_order);
+    sa_deinit(&tl->click_tracks);
+    
     layout_destroy(tl->track_area);
     free(tl);
 }
@@ -693,7 +676,7 @@ Track *timeline_add_track_with_name(Timeline *tl, const char *track_name, int at
     track->channels = tl->proj->channels;
 
     enum jdaw_thread clips_users[] = {JDAW_THREAD_DSP};
-    sa_init(&track->clips, sizeof(ClipRef *), clips_users, 1);
+    sa_init(&track->clips, sizeof(ClipRef *), clips_users);
 
     Session *session = session_get();
     track->input = session->audio_io.record_conns[session->audio_io.default_record_conn_index];
@@ -1779,15 +1762,19 @@ static void tl_pr_tracks(Timeline *tl)
 	fprintf(stderr, "\t%d) %p\n", i, tl->tracks[i]);
     }
     fprintf(stderr, "Proc:\n");
+    const struct sa_data __tpo_sd = sa_get_rdonly(&tl->tracks_proc_order);
     for (int i=0; i<tl->num_tracks; i++) {
-	fprintf(stderr, "\t%d) %p\n", i, tl->tracks_proc_order[i]);
+        Track *__tpo_t = *(Track **)sa_at(&__tpo_sd, i);
+	fprintf(stderr, "\t%d) %p\n", i, __tpo_t);
     }
 }
 #endif
 
 TEST_FN_DEF(timeline_track_array_integrity, {
+        const struct sa_data __tpo_sd = sa_get_rdonly(&tl->tracks_proc_order);
+
 	for (int i=0; i<tl->num_tracks; i++) {
-	    Track *proc = tl->tracks_proc_order[i];
+	    Track *proc = *(Track **)sa_at(&__tpo_sd, i);
 	    Track *track = tl->tracks[i];
 	    bool found = false;
 	    for (int j=0; j<tl->num_tracks; j++) {
@@ -1808,7 +1795,7 @@ TEST_FN_DEF(timeline_track_array_integrity, {
 	    }
 	    found = false;
 	    for (int j=0; j<tl->num_tracks; j++) {
-		if (tl->tracks_proc_order[j] == track) {
+		if (*(Track **)sa_at(&__tpo_sd, j) == track) {
 		    if (found) {
 			fprintf(stderr, "Error: track %p appears twice in main array\n", proc);
 			tl_pr_tracks(tl);
@@ -1970,7 +1957,7 @@ static void timeline_remove_track(Track *track)
     Track *tpo[tpo_sd.len];
     sa_copy(&tpo_sd, tpo, tpo_sd.len);
     bool displace = false;
-    for (int i=0; i<tl->num_tracks - 1; i++) {
+    for (int i=0; i<tl->num_tracks; i++) {
 	if (tpo[i] == track) displace = true;
 	if (displace) {
 	    tpo[i] = tpo[i + 1];

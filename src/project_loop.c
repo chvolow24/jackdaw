@@ -522,8 +522,10 @@ void loop_project_main()
 	    timeline_catchup(tl);
 	    timeline_set_timecode(tl);
 	    /* Set click track clock displays */
-	    for (int i=0; i<tl->num_click_tracks; i++) {
-		click_track_set_readout(tl->click_tracks[i], tl->play_pos_sframes);
+            const struct sa_data ct_sd = sa_get_rdonly(&tl->click_tracks);
+	    for (int i=0; i<ct_sd.len; i++) {
+                ClickTrack *ct = *(ClickTrack **)sa_at(&ct_sd, i);
+		click_track_set_readout(ct, tl->play_pos_sframes);
 	    }
 	} else if (session->source_mode.source_mode && fabs(session->source_mode.src_play_speed) > 1e-9) {
 	    timeview_catchup(&session->source_mode.timeview);

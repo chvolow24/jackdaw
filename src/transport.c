@@ -704,8 +704,7 @@ void create_clip_buffers(Clip *clip, uint32_t len_sframes)
     }
     clip->L_alloc_len = buf_len_bytes / sizeof(float);
     if (!clip->L) {
-	fprintf(stderr, "Fatal error: clip buffer allocation failed\n");
-	exit(1);
+        error_exit("clip buffer (L) allocation failed (alloc len bytes: %d)\n", buf_len_bytes);
     }
     if (clip->channels == 2) {
 	if (!clip->R) {
@@ -714,8 +713,7 @@ void create_clip_buffers(Clip *clip, uint32_t len_sframes)
 	    clip->R = realloc(clip->R, buf_len_bytes);
 	}
 	if (!clip->R) {
-	    fprintf(stderr, "Fatal error: clip buffer allocation failed\n");
-	    exit(1);
+            error_exit("clip buffer (R) allocation failed (alloc len bytes: %d)\n", buf_len_bytes);
 	}
         clip->R_alloc_len = buf_len_bytes / sizeof(float);
     }
@@ -807,22 +805,24 @@ void dequeue_recorded_audio()
         
     if (jdaw_conn && (clip = aldr(&jdaw_conn->current_clip))) {
         int queued_samples = lfqueue_peep_enqueued(&session->audio_io.jdaw_conn.rec_buffer);
-        int queued_sframes = queued_samples / 2;
-        create_clip_buffers(clip, clip->len_sframes + queued_sframes);
-        /* int written_sframes = 0; */
-        while (queued_samples > 0 &&
-               lfqueue_try_dequeue(
-                   &session->audio_io.jdaw_conn.rec_buffer,
-                   jconn_buf,
-                   buf_len) == LFQUEUE_SUCCESS) {
-            queued_samples -= buf_len;
-            for (int i=0; i<buf_len; i+=2) {
-                clip->L[clip->len_sframes + i / 2] = jconn_buf[i];
-                clip->R[clip->len_sframes + i / 2] = jconn_buf[i+1];
+        if (queued_samples > 0) {
+            int queued_sframes = queued_samples / 2;
+            create_clip_buffers(clip, clip->len_sframes + queued_sframes);
+            /* int written_sframes = 0; */
+            while (queued_samples > 0 &&
+                   lfqueue_try_dequeue(
+                       &session->audio_io.jdaw_conn.rec_buffer,
+                       jconn_buf,
+                       buf_len) == LFQUEUE_SUCCESS) {
+                queued_samples -= buf_len;
+                for (int i=0; i<buf_len; i+=2) {
+                    clip->L[clip->len_sframes + i / 2] = jconn_buf[i];
+                    clip->R[clip->len_sframes + i / 2] = jconn_buf[i+1];
+                }
+                clip->len_sframes += buf_len / 2;
+                clip->write_bufpos_sframes = clip->len_sframes;
+                clip_init_or_update_waveform(clip);
             }
-            clip->len_sframes += buf_len / 2;
-            clip->write_bufpos_sframes = clip->len_sframes;
-            clip_init_or_update_waveform(clip);
         }
     }
 

@@ -67,12 +67,13 @@ struct sa_data sa_get_wr(SharedArray *sa)
 {
     sa_debug_guard_thread_access(sa);
     struct sa_data ret = {0};
+    #ifdef TESTBUILD
     if (sa->__thread_unclosed_write[current_thread()]) {
-        char bt[4096] = {0};
-        snprint_backtrace(bt, 4095);
-        error_exit("%s\ncall to sa_get_wr on unclosed sa in thread %s\n\n", bt, get_current_thread_name());
+        error_exit("call to sa_get_wr on unclosed sa in thread %s. Prev bt: \n%s\n", get_current_thread_name(), sa->prev_wr_bt[current_thread()]);
         return ret;
     }
+    snprint_backtrace(sa->prev_wr_bt[current_thread()], SHARED_ARRAY_BACKTRACE_MAX_LEN - 1);
+    #endif
 
     ret.__data = atomic_load_explicit(&sa->data, memory_order_acquire);
     ret.len = *(int32_t *)(ret.__data);

@@ -44,11 +44,17 @@ void clipref_gain_gui_cb(Endpoint *ep)
     label_reset(cr->gain_label, endpoint_read(ep, NULL));
 }
 
+float clipref_gain_from_ctrl(float ctrl)
+{
+    int sign = ctrl / (fabs(ctrl));
+    return sign * pow(fabs(ctrl), VOL_EXP);
+    
+}
+
 void clipref_gain_dsp_cb(Endpoint *ep)
 {
     ClipRef *cr = ep->xarg1;
-    int sign = cr->gain_ctrl / (fabs(cr->gain_ctrl));
-    cr->gain = sign * pow(fabs(cr->gain_ctrl), VOL_EXP);
+    cr->gain = clipref_gain_from_ctrl(cr->gain_ctrl);
 }
 
 /* Handled sharing of parent track array */

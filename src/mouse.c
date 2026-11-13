@@ -170,8 +170,9 @@ static bool mouse_triage_click_timeline(uint8_t button)
 	    }
 	}
     }
-    for (uint8_t i=0; i<tl->num_click_tracks; i++) {
-	ClickTrack *tt = tl->click_tracks[i];
+    const struct sa_data ct_sd = sa_get_rdonly(&tl->click_tracks);
+    for (uint8_t i=0; i<ct_sd.len; i++) {
+	ClickTrack *tt = *(ClickTrack **)sa_at(&ct_sd, i);
 	if (click_track_triage_click(button, tt)) {
 	    return true;
 	}

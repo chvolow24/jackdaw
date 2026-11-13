@@ -8,13 +8,12 @@
 
 *****************************************************************************************************************/
 
-#include "atomic.h"
 #include "audio_clip.h"
 #include "autocompletion.h"
 #include "color.h"
 #include "clipref.h"
+#include "endpoint.h"
 #include "geometry.h"
-#include "input.h"
 #include "layout.h"
 #include "log.h"
 #include "midi_clip.h"
@@ -547,7 +546,9 @@ void clipref_draw_waveform(ClipRef *cr)
     }
 	
     if (clip->waveform.init_len > 0) {
-        waveform_draw_with_ck_data(&clip->waveform, start_in_clip, wf_len, &onscreen_rect, cr->track->tl->timeview.sample_frames_per_pixel, &colors.black, cr->gain);
+        float gain_ctrl = endpoint_read(&cr->gain_ep, NULL).float_v;
+        float gain = clipref_gain_from_ctrl(gain_ctrl);
+        waveform_draw_with_ck_data(&clip->waveform, start_in_clip, wf_len, &onscreen_rect, cr->track->tl->timeview.sample_frames_per_pixel, &colors.black, gain);
     } else {
         fprintf(stderr, "ERROR: Clip %s has no wf data\n", clip->name);
     }
@@ -631,11 +632,13 @@ static int timeline_draw(Timeline *tl)
     for (uint8_t i=0; i<tl->num_tracks; i++) {
 	track_draw(tl->tracks[i]);
     }
-    for (int i=0; i<tl->num_click_tracks; i++) {
+    const struct sa_data ct_sd = sa_get_rdonly(&tl->click_tracks);
+    for (int i=0; i<ct_sd.len; i++) {
 	if (i==0 && tl->click_track_frozen) continue;
-	click_track_draw(tl->click_tracks[i]);
+        ClickTrack *ct = *(ClickTrack **)sa_at(&ct_sd, i);
+	click_track_draw(ct);
 	if (i==tl->click_track_selector) {
-	    draw_selected_track_rect(tl->click_tracks[i]->layout);
+	    draw_selected_track_rect(ct->layout);
 	}
     }
 
@@ -643,9 +646,10 @@ static int timeline_draw(Timeline *tl)
     
     /* Draw ruler */
     if (tl->click_track_frozen) {
-	click_track_draw(tl->click_tracks[0]);
+        ClickTrack *frozen_ct = *(ClickTrack **)sa_at(&ct_sd, 0);
+	click_track_draw(frozen_ct);
 	if (tl->layout_selector == -1) {
-	    draw_selected_track_rect(tl->click_tracks[0]->layout);
+	    draw_selected_track_rect(frozen_ct->layout);
 	}
     } else {
 	ruler_draw(tl);

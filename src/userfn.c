@@ -1206,16 +1206,19 @@ void user_tl_goto_next_clip_boundary(void *nullarg)
 static void tl_goto_prox_click(Timeline *tl, int direction, enum beat_prominence bp)
 {
     ClickTrack *ct = NULL;
-    for (int i=tl->num_click_tracks - 1; i>=0; i--) {
-	if (tl->click_tracks[i]->layout->index <= tl->layout_selector) {
-	    ct = tl->click_tracks[i];
+    const struct sa_data ct_sd = sa_get_rdonly(&tl->click_tracks);
+    for (int i=ct_sd.len - 1; i>=0; i--) {
+        ClickTrack *test = *(ClickTrack **)sa_at(&ct_sd, i);
+	if (test->layout->index <= tl->layout_selector) {
+	    ct = test;
 	    break;
 	}
     }
     if (ct) {
 	click_track_goto_prox_beat(ct, direction, bp);
     } else if (tl->click_track_frozen) {
-	click_track_goto_prox_beat(tl->click_tracks[0], direction, bp);
+        ClickTrack *frozen = *(ClickTrack **)sa_at(&ct_sd, 0);
+	click_track_goto_prox_beat(frozen, direction, bp);
     }
 }
 

@@ -576,14 +576,15 @@ void timeline_rectify_track_indices(Timeline *tl)
 
 Track *timeline_selected_track(Timeline *tl)
 {
+    const struct sa_data tracks = sa_get_rdonly(&tl->tracks);
     if (tl->layout_selector < 0) return NULL; /* frozen CT */
-    if (tl->num_tracks == 0 || tl->track_selector < 0) {
+    if (tracks.len == 0 || tl->track_selector < 0) {
 	return NULL;
-    } else if (tl->track_selector > tl->num_tracks - 1) {
+    } else if (tl->track_selector > tracks.len - 1) {
 	fprintf(stderr, "ERROR: track selector points past end of tracks arr\n");
 	exit(1);
     } else {
-	return tl->tracks[tl->track_selector];
+	return *(Track **)(sa_at(&tracks, tl->track_selector));
     }
 }
 
@@ -598,28 +599,31 @@ void timeline_select_track(Track *track)
 
 ClickTrack *timeline_selected_click_track(Timeline *tl)
 {
+    const struct sa_data click_tracks = sa_get_rdonly(&tl->click_tracks);
     if (tl->layout_selector < 0 && tl->click_track_frozen)
-	return tl->click_tracks[0];
-    if (tl->num_click_tracks == 0 || tl->click_track_selector < 0) {
+	return *(ClickTrack **)sa_at(&click_tracks, 0);
+    if (click_tracks.len == 0 || tl->click_track_selector < 0) {
 	return NULL;
-    } else if (tl->click_track_selector > tl->num_click_tracks - 1) {
+    } else if (tl->click_track_selector > click_tracks.len - 1) {
 	fprintf(stderr, "ERROR: tempo track selector points past end of tracks arr\n");
 	exit(1);
     } else {
-	return tl->click_tracks[tl->click_track_selector];
+	return *(ClickTrack **)sa_at(&click_tracks, tl->click_track_selector);
     }
 }
 
 ClickTrack *track_governing_click_track(Track *t)
 {
     ClickTrack *ct = NULL;
-    for (int i=t->tl->num_click_tracks - 1; i>=0; i--) {
-	if (t->tl->click_tracks[i]->layout->index <= t->layout->index) {
-	    ct = t->tl->click_tracks[i];
+    const struct sa_data click_tracks = sa_get_rdonly(&t->tl->click_tracks);    
+    for (int i=click_tracks.len - 1; i>=0; i--) {
+        ClickTrack *test = *(ClickTrack **)sa_at(&click_tracks, i);
+	if (test->layout->index <= t->layout->index) {
+	    ct = test;
 	    break;
 	}
     }
-    if (!ct && t->tl->click_track_frozen) return t->tl->click_tracks[0];
+    if (!ct && t->tl->click_track_frozen) return *(ClickTrack **)sa_at(&click_tracks, 0);
     return ct;
 
 }
@@ -628,13 +632,15 @@ ClickTrack *track_governing_click_track(Track *t)
 ClickTrack *timeline_governing_click_track(Timeline *tl)
 {
     ClickTrack *ct = NULL;
-    for (int i=tl->num_click_tracks - 1; i>=0; i--) {
-	if (tl->click_tracks[i]->layout->index <= tl->layout_selector) {
-	    ct = tl->click_tracks[i];
+    const struct sa_data click_tracks = sa_get_rdonly(&tl->click_tracks);    
+    for (int i=click_tracks.len - 1; i>=0; i--) {
+        ClickTrack *test = *(ClickTrack **)sa_at(&click_tracks, i);
+	if (test->layout->index <= tl->layout_selector) {
+	    ct = test;
 	    break;
 	}
     }
-    if (!ct && tl->click_track_frozen) return tl->click_tracks[0];
+    if (!ct && tl->click_track_frozen) return *(ClickTrack **)sa_at(&click_tracks, 0);
 
     return ct;
 }
@@ -680,9 +686,16 @@ static void vol_dsp_cb(Endpoint *ep)
 
 Track *timeline_add_track_with_name(Timeline *tl, const char *track_name, int at)
 {
-    if (tl->num_tracks == MAX_TRACKS) return NULL;
+    const struct sa_data tracks_sa = sa_get_wr(&tl->tracks);
+    if (tracks_sa.len == MAX_TRACKS) {
+        sa_discard(&tracks_sa);
+        return NULL;
+    }
+    Track *new_tracks[tracks_sa.len + 1];
+    sa_copy(&tracks_sa, new_tracks, tracks_sa.len);
+
     Track *track = calloc(1, sizeof(Track));
-    track->tl_rank = tl->num_tracks;
+    track->tl_rank = tracks_sa.len;
     track->tl = tl;
     strncpy(track->name, track_name, MAX_NAMELENGTH);
 
@@ -945,43 +958,12 @@ Track *timeline_add_track_with_name(Timeline *tl, const char *track_name, int at
 	&label_amp_pre_exp_to_dbstr,
 	&session->dragged_component);
     slider_add_point_of_interest(track->vol_ctrl, (Value){.float_v = 1.0});
-    /* track->vol_ep.xarg1 = track->vol_ctrl; */
-    /* track->vol_ctrl = slider_create( */
-    /* 	vol_ctrl_lt, */
-    /* 	(void *)(&track->vol), */
-    /* 	JDAW_FLOAT, */
-    /* 	SLIDER_HORIZONTAL, */
-    /* 	SLIDER_FILL, */
-    /* 	&slider_label_amp_to_dbstr, */
-    /* 	NULL, */
-    /* 	NULL, */
-    /* 	&tl->session->dragged_component); */
-    /* SliderStrFn t; */
-    /* Value min, max; */
-    /* min.float_v = 0.0f; */
-    /* max.float_v = TRACK_VOL_MAX; */
-    /* slider_set_range(track->vol_ctrl, min, max); */
 
     Layout *pan_ctrl_row = layout_get_child_by_name_recursive(track->inner_layout, "pan_slider");
     Layout *pan_ctrl_lt = layout_add_child(pan_ctrl_row);
 
     layout_pad(pan_ctrl_lt, TRACK_CTRL_SLIDER_H_PAD, TRACK_CTRL_SLIDER_V_PAD);
-    /* pan_ctrl_lt->x.value.intval = TRACK_CTRL_SLIDER_H_PAD; */
-    /* pan_ctrl_lt->y.value.intval = TRACK_CTRL_SLIDER_V_PAD; */
-    /* pan_ctrl_lt->w.value.intval = pan_ctrl_row->w.value.intval - TRACK_CTRL_SLIDER_H_PAD * 2; */
-    /* pan_ctrl_lt->h.value.intval = pan_ctrl_row->h.value.intval - TRACK_CTRL_SLIDER_V_PAD * 2; */
-    /* /\* layout_set_values_from_rect(pan_ctrl_lt); *\/ */
     track->pan = 0.5f;
-    /* track->pan_ctrl = slider_create( */
-    /* 	pan_ctrl_lt, */
-    /* 	&track->pan, */
-    /* 	JDAW_FLOAT, */
-    /* 	SLIDER_HORIZONTAL, */
-    /* 	SLIDER_TICK, */
-    /* 	slider_label_pan, */
-    /* 	NULL, */
-    /* 	NULL, */
-    /* 	&tl->session->dragged_component); */
     track->pan_ctrl = slider_create(
 	pan_ctrl_lt,
 	&track->pan_ep,
@@ -993,10 +975,6 @@ Track *timeline_add_track_with_name(Timeline *tl, const char *track_name, int at
 	&session->dragged_component);
     slider_add_point_of_interest(track->pan_ctrl, (Value){.float_v = 0.5});
     track->pan_ctrl->disallow_unsafe_mode = true;
-    /* track->pan_ep.xarg1 = track->pan_ctrl; */
-
-    /* slider_reset(track->vol_ctrl); */
-    /* slider_reset(track->pan_ctrl); */
     Layout *auto_dropdown_lt = layout_get_child_by_name_recursive(track->inner_layout, "automation_dropdown");
     track->automation_dropdown = symbol_button_create(
 	auto_dropdown_lt,
@@ -1014,8 +992,8 @@ Track *timeline_add_track_with_name(Timeline *tl, const char *track_name, int at
     track->console_rect = &(layout_get_child_by_name_recursive(track->inner_layout, "track_console")->rect);
     track->colorbar = &(layout_get_child_by_name_recursive(track->inner_layout, "colorbar")->rect);
 
-    tl->tracks[tl->num_tracks] = track;
-    tl->tracks_proc_order[tl->num_tracks] = track;
+    new_tracks[tracks_sa.len] = track;
+    tl->tracks_proc_order[tracks_sa.len] = track;
     tl->num_tracks++;
 
     track_reset_full(track);

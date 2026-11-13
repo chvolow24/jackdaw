@@ -335,16 +335,12 @@ typedef struct timeline {
     /* int dsp_chunks_info_read_i; */
     /* int dsp_chunks_info_write_i; */
         
-    Track *tracks[MAX_TRACKS];
-    Track *tracks_proc_order[MAX_TRACKS];
+    Track *tracks[MAX_TRACKS]; /* Main thread only! */
+    uint8_t num_tracks; /* Main thread only! */
     
-    uint8_t num_tracks;
-
-    ClickTrack *click_tracks[MAX_CLICK_TRACKS];
-    uint8_t num_click_tracks;
+    SharedArray tracks_proc_order; /* type Track *[] -- Accounts for routing; used in main and DSP */
     
-    // uint8_t active_track_indices[MAX_ACTIVE_TRACKS];
-    // uint8_t num_active_tracks;
+    SharedArray click_tracks; /* Shared by main and DSP */
 
     int layout_selector; /* Agnostic of track "type"; selects audio OR tempo track */
     int track_selector; /* Index of selected track, or -1 if N/A */

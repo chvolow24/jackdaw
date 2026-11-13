@@ -231,10 +231,11 @@ static void timeline_destroy(Timeline *tl, bool displace_in_proj)
     for (uint8_t i=0; i<tl->num_tracks; i++) {
 	track_destroy(tl->tracks[i], false);
     }
-    for (uint8_t i=0; i<tl->num_click_tracks; i++) {
-	click_track_destroy(tl->click_tracks[i]);
+    const struct sa_data click_tracks = sa_get_rdonly(&tl->click_tracks);
+    for (int i=0; i<click_tracks.len; i++) {
+	click_track_destroy(*(ClickTrack **)sa_at(&click_tracks, i));
     }
-    /* tl->proj->num_timelines--; */
+    
     Project *proj = tl->proj;
     if (displace_in_proj) {
 	bool displace = false;
@@ -523,12 +524,14 @@ void timeline_rectify_track_indices(Timeline *tl)
     /* fprintf(stderr, "Rectify\n"); */
     int click_track_index = 0;
     int track_index = 0;
+
+    const struct sa_data click_tracks = sa_get_wr(&tl->click_tracks);
     
     Track *track_stack[tl->num_tracks];
-    ClickTrack *click_track_stack[tl->num_click_tracks];
+    ClickTrack *click_track_stack[click_tracks.len];
 
     if (tl->click_track_frozen) {
-	click_track_stack[click_track_index] = tl->click_tracks[0];
+	click_track_stack[click_track_index] = *(ClickTrack **)sa_at(&click_tracks, 0);
 	click_track_index++;
     }
 
@@ -548,8 +551,8 @@ void timeline_rectify_track_indices(Timeline *tl)
 		break;
 	    }
 	}
-	for (int j=0; j<tl->num_click_tracks; j++) {
-	    ClickTrack *tt = tl->click_tracks[j];
+	for (int j=0; j<click_tracks.len; j++) {
+	    ClickTrack *tt = *(ClickTrack **)sa_at(&click_tracks, j);
 	    if (tt->layout == lt) {
 		click_track_stack[click_track_index] = tt;
 		tt->index = click_track_index;
@@ -562,11 +565,8 @@ void timeline_rectify_track_indices(Timeline *tl)
 	    }
 	}
     }
-    /* fprintf(stderr, "->LT selector: %d\n", tl->layout_selector); */
-    /* fprintf(stderr, "->track selector: %d\n", tl->track_selector); */
-    /* fprintf(stderr, "->tt selector: %d\n", tl->click_track_selector); */
     memcpy(tl->tracks, track_stack, sizeof(Track *) * tl->num_tracks);
-    memcpy(tl->click_tracks, click_track_stack, sizeof(ClickTrack *) * tl->num_click_tracks);
+    sa_set(&click_tracks, click_track_stack, click_tracks.len);
     atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 }
 
@@ -594,43 +594,48 @@ void timeline_select_track(Track *track)
 
 ClickTrack *timeline_selected_click_track(Timeline *tl)
 {
+    const struct sa_data click_tracks = sa_get_rdonly(&tl->click_tracks);
     if (tl->layout_selector < 0 && tl->click_track_frozen)
-	return tl->click_tracks[0];
-    if (tl->num_click_tracks == 0 || tl->click_track_selector < 0) {
+	return *(ClickTrack **)sa_at(&click_tracks, 0);
+    if (click_tracks.len == 0 || tl->click_track_selector < 0) {
 	return NULL;
-    } else if (tl->click_track_selector > tl->num_click_tracks - 1) {
+    } else if (tl->click_track_selector > click_tracks.len - 1) {
 	fprintf(stderr, "ERROR: tempo track selector points past end of tracks arr\n");
 	exit(1);
     } else {
-	return tl->click_tracks[tl->click_track_selector];
+	return *(ClickTrack **)sa_at(&click_tracks, tl->click_track_selector);
     }
 }
 
 ClickTrack *track_governing_click_track(Track *t)
 {
     ClickTrack *ct = NULL;
-    for (int i=t->tl->num_click_tracks - 1; i>=0; i--) {
-	if (t->tl->click_tracks[i]->layout->index <= t->layout->index) {
-	    ct = t->tl->click_tracks[i];
+    const struct sa_data click_tracks = sa_get_rdonly(&t->tl->click_tracks);    
+    for (int i=click_tracks.len - 1; i>=0; i--) {
+        ClickTrack *test = *(ClickTrack **)sa_at(&click_tracks, i);
+	if (test->layout->index <= t->layout->index) {
+	    ct = test;
 	    break;
 	}
     }
-    if (!ct && t->tl->click_track_frozen) return t->tl->click_tracks[0];
+    if (!ct && t->tl->click_track_frozen) return *(ClickTrack **)sa_at(&click_tracks, 0);
     return ct;
-
 }
+
 
 /* A click track "governs" all tracks situated below it until another click track appears */
 ClickTrack *timeline_governing_click_track(Timeline *tl)
 {
     ClickTrack *ct = NULL;
-    for (int i=tl->num_click_tracks - 1; i>=0; i--) {
-	if (tl->click_tracks[i]->layout->index <= tl->layout_selector) {
-	    ct = tl->click_tracks[i];
+    const struct sa_data click_tracks = sa_get_rdonly(&tl->click_tracks);    
+    for (int i=click_tracks.len - 1; i>=0; i--) {
+        ClickTrack *test = *(ClickTrack **)sa_at(&click_tracks, i);
+	if (test->layout->index <= tl->layout_selector) {
+	    ct = test;
 	    break;
 	}
     }
-    if (!ct && tl->click_track_frozen) return tl->click_tracks[0];
+    if (!ct && tl->click_track_frozen) return *(ClickTrack **)sa_at(&click_tracks, 0);
 
     return ct;
 }

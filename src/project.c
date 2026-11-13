@@ -1016,7 +1016,15 @@ Track *timeline_add_track_with_name(Timeline *tl, const char *track_name, int at
     track->colorbar = &(layout_get_child_by_name_recursive(track->inner_layout, "colorbar")->rect);
 
     tl->tracks[tl->num_tracks] = track;
-    tl->tracks_proc_order[tl->num_tracks] = track;
+    const struct sa_data tracks_proc_order_sd = sa_get_wr(&tl->tracks_proc_order);
+    if (tracks_proc_order_sd.len != tl->num_tracks) {
+        log_tmp(LOG_ERROR, "Tracks proc order len %d != tl num tracks %d\n", tracks_proc_order_sd.len, tl->num_tracks);
+    }
+    Track *tracks_proc_order[tracks_proc_order_sd.len + 1];
+    sa_copy(&tracks_proc_order_sd, tracks_proc_order, tracks_proc_order_sd.len);
+    tracks_proc_order[tracks_proc_order_sd.len] = track;
+    sa_set(&tracks_proc_order_sd, tracks_proc_order, tracks_proc_order_sd.len + 1);
+    
     tl->num_tracks++;
 
     track_reset_full(track);
@@ -1958,12 +1966,21 @@ static void timeline_remove_track(Track *track)
     if (session->dragging) status_stat_drag();
 
     /* Remove track from proc order array */
+    const struct sa_data tpo_sd = sa_get_wr(&tl->tracks_proc_order);
+    Track *tpo[tpo_sd.len];
+    sa_copy(&tpo_sd, tpo, tpo_sd.len);
     bool displace = false;
     for (int i=0; i<tl->num_tracks - 1; i++) {
-	if (tl->tracks_proc_order[i] == track) displace = true;
+	if (tpo[i] == track) displace = true;
 	if (displace) {
-	    tl->tracks_proc_order[i] = tl->tracks_proc_order[i + 1];
+	    tpo[i] = tpo[i + 1];
 	}
+    }
+    if (!displace) {
+        log_tmp(LOG_ERROR, "timeline_remove_track: track not found in proc order array\n");
+        sa_discard(&tpo_sd);
+    } else {
+        sa_set(&tpo_sd, tpo, tpo_sd.len - 1);
     }
 
     /* Remove track from main timeline array */
@@ -1979,10 +1996,6 @@ static void timeline_remove_track(Track *track)
     if (tl->num_tracks > 0 && tl->track_selector > tl->num_tracks - 1) tl->track_selector = tl->num_tracks - 1;
     timeline_rectify_track_area(tl);
     timeline_rectify_track_indices(tl);
-
-
-    
-    /* layout_size_to_fit_children_v(tl->track_area, true, 0); */
 }
 
 static void timeline_reinsert_track(Track *track)
@@ -1993,7 +2006,11 @@ static void timeline_reinsert_track(Track *track)
 	tl->tracks[i] = tl->tracks[i-1];
     }
     tl->tracks[track->tl_rank] = track;
-    tl->tracks_proc_order[tl->num_tracks] = track;
+    const struct sa_data tpo_sd = sa_get_wr(&tl->tracks_proc_order);
+    Track *tpo[tpo_sd.len + 1];
+    sa_copy(&tpo_sd, tpo, tpo_sd.len);
+    tpo[tpo_sd.len] = track;
+    sa_set(&tpo_sd, tpo, tpo_sd.len + 1);
     tl->num_tracks++;
 
     timeline_resort_tracks_proc_order(tl);
@@ -2083,35 +2100,31 @@ void track_destroy(Track *track, bool displace)
 	    /* t->layout = t->layout->parent->iterator->iterations[t->tl_rank]; */
 	}
         bool proc_order_displace = false;
+        const struct sa_data tpo_sd = sa_get_wr(&tl->tracks_proc_order);
+        Track *tpo[tpo_sd.len];
+        sa_copy(&tpo_sd, tpo, tpo_sd.len);
         for (int i=0; i<tl->num_tracks - 1; i++) {
-            Track *t = tl->tracks_proc_order[i];
+            Track *t = tpo[i];
             if (t == track) {
                 proc_order_displace = true;
             }
             if (proc_order_displace) {
-                tl->tracks_proc_order[i] = tl->tracks_proc_order[i + 1];
+                tpo[i] = tpo[i + 1];
             }
         }
+        if (!proc_order_displace) {
+            log_tmp(LOG_ERROR, "track_destroy: track \"%s\" not found in tracks_proc_order sa\n", track->name);
+            sa_discard(&tpo_sd);
+        } else {
+            sa_set(&tpo_sd, tpo, tpo_sd.len - 1);
+        }
 	layout_destroy(track->layout);
-	/* layout_remove_iter_at(track->layout->parent->iterator, track->tl_rank); */
 	tl->tracks[tl->num_tracks - 1] = NULL;
-	/* track->layout->parent->iterator->num_iterations--; */
 	tl->num_tracks--;
 	timeline_reset(tl, false);
-	/* timeline_reset(tl); */
-	/* layout_reset(tl->layout); */
     }
-    
-    /* filter_deinit(&track->fir_filter); */
-    /* if (track->delay_line.buf_L) free(track->delay_line.buf_L); */
-    /* if (track->delay_line.buf_R) free(track->delay_line.buf_R); */
-    /* if (track->delay_line.cpy_buf) free(track->delay_line.cpy_buf); */
-    /* if (track->delay_line.lock) SDL_DestroyMutex(track->delay_line.lock); */
-    /* pthread_mutex_destroy(&track->delay_line.lock); */
 
     sa_deinit(&track->clips);
-    /* if (track->buf_L_freq_mag) free(track->buf_L_freq_mag); */
-    /* if (track->buf_R_freq_mag) free(track->buf_R_freq_mag); */
     if (track->automation_dropdown) symbol_button_destroy(track->automation_dropdown);
 
     if (track->synth) synth_destroy(track->synth);
@@ -2639,8 +2652,10 @@ Track *timeline_track_at_point(Timeline *tl, SDL_Point point)
 
 ClickTrack *timeline_click_track_at_point(Timeline *tl, SDL_Point point)
 {
-    for (int i=0; i<tl->num_click_tracks; i++) {
-        ClickTrack *ct = tl->click_tracks[i];
+    const struct sa_data ct_sd = sa_get_rdonly(&tl->click_tracks);
+    
+    for (int i=0; i<ct_sd.len; i++) {
+        ClickTrack *ct = *(ClickTrack **)sa_at(&ct_sd, i);
         if (SDL_PointInRect(&point, &ct->layout->rect)) {
             return ct;
         }

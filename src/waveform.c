@@ -18,6 +18,7 @@
 
 #include "audio_clip.h"
 #include "color.h"
+#include "log.h"
 #include "logscale.h"
 #include "session.h"
 #include "textbox.h"
@@ -50,16 +51,15 @@ double amp_from_logscaled(double from)
 }
 
 /* Draw an array (either float or double) at evenly- (linearly-) spaced frequencies */
-static void waveform_draw_logscale(struct freq_plot *fp, SharedArray *darray, SharedArray *farray, int len, SDL_Color *color)
+void waveform_draw_logscale(struct freq_plot *fp, double *darray, float *farray, int len, SDL_Color *color)
 {
     SDL_SetRenderDrawColor(main_win->rend, sdl_colorp_expand(color));
     int start_x = fp->container->rect.x;
     int start_y = fp->container->rect.y + fp->container->rect.h;
-    const struct sa_data sd = darray ? sa_get_rdonly(darray) : sa_get_rdonly(farray);
     for (int i=0; i<len; i++) {
 	double sample;
-	if (darray) sample = *(double *)sa_at(&sd, i);
-	else sample = *(float *)sa_at(&sd, i);
+	if (darray) sample = darray[i];
+	else sample = farray[i];
 	double prop = (double)i / len;
 	double freq_hz = prop * fp->x_axis.max_scaled;
 	int draw_x = logscale_x_abs(&fp->x_axis, freq_hz);
@@ -156,14 +156,21 @@ void waveform_reset_freq_plot(struct freq_plot *fp)
 }
 
 struct freq_plot *waveform_create_freq_plot(
-    SharedArray **darrays,
+    double **darrays,
     int *darray_lens,
     int num_darrays,
-    SharedArray **farrays,
+    
+    float **farrays,
     int *farray_lens,
     int num_farrays,
+    
+    SharedDoubleMax8192 **shared_double_arrs,
+    int *shared_double_arr_lens,
+    int num_shared_double_arrs,
+    
     SDL_Color **darray_colors,
     SDL_Color **farray_colors,
+    SDL_Color **shared_double_arr_colors,
     double min_freq_hz,
     double max_freq_hz,
     Layout *container)
@@ -171,23 +178,34 @@ struct freq_plot *waveform_create_freq_plot(
     struct freq_plot *fp = calloc(1, sizeof(struct freq_plot));
     fp->container = container;
     if (num_darrays > 0) {
-	fp->darrays = calloc(num_darrays, sizeof(SharedArray *));
-	memcpy(fp->darrays, darrays, num_darrays * sizeof(SharedArray *));
+	fp->darrays = calloc(num_darrays, sizeof(double *));
+	memcpy(fp->darrays, darrays, num_darrays * sizeof(double *));
 	fp->darray_lens = calloc(num_darrays, sizeof(int));
 	memcpy(fp->darray_lens, darray_lens, num_darrays * sizeof(int));
 	fp->dcolors = calloc(num_darrays, sizeof(SDL_Color *));
         memcpy(fp->dcolors, darray_colors, num_darrays * sizeof(SDL_Color *));
     }
     if (num_farrays > 0) {
-	fp->farrays = calloc(num_farrays, sizeof(SharedArray *));
-	memcpy(fp->farrays, farrays, num_farrays * sizeof(SharedArray *));
+	fp->farrays = calloc(num_farrays, sizeof(float *));
+	memcpy(fp->farrays, farrays, num_farrays * sizeof(float *));
 	fp->farray_lens = calloc(num_darrays, sizeof(int));
 	memcpy(fp->farray_lens, farray_lens, num_farrays * sizeof(int));
 	fp->fcolors = calloc(num_farrays, sizeof(SDL_Color *));
         memcpy(fp->fcolors, farray_colors, num_farrays * sizeof(SDL_Color *));	    	
     }
+
+    if (num_shared_double_arrs > 0) {
+        fp->shared_double_arrs = calloc(num_shared_double_arrs, sizeof(SharedDoubleMax8192 *));
+        memcpy(fp->shared_double_arrs, shared_double_arrs, num_shared_double_arrs * sizeof(SharedDoubleMax8192 *));
+        fp->shared_double_arr_lens = calloc(num_shared_double_arrs, sizeof(int));
+        memcpy(fp->shared_double_arr_lens, shared_double_arr_lens, num_shared_double_arrs * sizeof(int));
+        fp->shared_double_arr_colors = calloc(num_shared_double_arrs, sizeof(SDL_Color *));
+        memcpy(fp->shared_double_arr_colors, shared_double_arr_colors, num_shared_double_arrs * sizeof(SDL_Color *));        
+    }
     fp->num_darrays = num_darrays;
     fp->num_farrays = num_farrays;
+    fp->num_shared_double_arrs = num_shared_double_arrs;
+    
     logscale_init(&fp->x_axis, &container->rect, min_freq_hz, max_freq_hz);
     waveform_reset_freq_plot(fp);
     return fp;
@@ -221,6 +239,11 @@ void waveform_destroy_freq_plot(struct freq_plot *fp)
 	free(fp->farrays);
 	free(fp->farray_lens);
 	free(fp->fcolors);
+    }
+    if (fp->shared_double_arrs) {
+        free(fp->shared_double_arrs);
+        free(fp->shared_double_arr_lens);
+        free(fp->shared_double_arr_colors);
     }
     for (int i=0; i<fp->num_labels; i++) {
 	textbox_destroy(fp->labels[i]);
@@ -263,6 +286,7 @@ static void waveform_draw_linear_plot(struct freq_plot *fp, int index)
     }
 }
 
+
 void waveform_draw_freq_plot(struct freq_plot *fp)
 {
     SDL_SetRenderDrawColor(main_win->rend, 0, 0, 0, 255);
@@ -276,6 +300,57 @@ void waveform_draw_freq_plot(struct freq_plot *fp)
     }
     for (int i=0; i<fp->num_farrays; i++) {
 	waveform_draw_logscale(fp, NULL, fp->farrays[i], fp->farray_lens[i], fp->fcolors[i]);
+    }
+    for (int i=0; i<fp->num_shared_double_arrs; i++) {
+        SharedDoubleMax8192 *arr = fp->shared_double_arrs[i];
+        int len = fp->shared_double_arr_lens[i];
+        SDL_Color *color = fp->shared_double_arr_colors[i];
+        switch (len) {
+        case 64: {
+            double64 d = shared_double64_read(&arr->sd64);
+            waveform_draw_logscale(fp, d.arr, NULL, len, color);
+        }
+            break;
+        case 128: {
+            double128 d = shared_double128_read(&arr->sd128);
+            waveform_draw_logscale(fp, d.arr, NULL, len, color);
+        }
+            break;
+        case 256: {
+            double256 d = shared_double256_read(&arr->sd256);
+            waveform_draw_logscale(fp, d.arr, NULL, len, color);
+        }
+            break;
+        case 512: {
+            double512 d = shared_double512_read(&arr->sd512);
+            waveform_draw_logscale(fp, d.arr, NULL, len, color);
+        }
+            break;
+        case 1024: {
+            double1024 d = shared_double1024_read(&arr->sd1024);
+            waveform_draw_logscale(fp, d.arr, NULL, len, color);
+        }
+            break;
+        case 2048: {
+            fprintf(stderr, "Reading 2048...\n");
+            double2048 d = shared_double2048_read(&arr->sd2048);
+            waveform_draw_logscale(fp, d.arr, NULL, len, color);
+        }
+            break;
+        case 4096: {
+            double4096 d = shared_double4096_read(&arr->sd4096);
+            waveform_draw_logscale(fp, d.arr, NULL, len, color);
+        }
+            break;
+        case 8192: {
+            double8192 d = shared_double8192_read(&arr->sd8192);
+            waveform_draw_logscale(fp, d.arr, NULL, len, color);
+        }
+            break;
+        default: {
+            log_tmp(LOG_ERROR, "Freq plot array must be power of 2, 64-4096 (incl). Is %d\n", len);
+        }
+        }
     }
     for (int i=0; i<fp->num_linear_plots; i++) {
 	waveform_draw_linear_plot(fp, i);

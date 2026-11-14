@@ -491,10 +491,8 @@ void transport_start_playback()
             .tv_sec = us / 1000000,
             .tv_nsec = (us % 1000000) * 1000
         };
-        fprintf(stderr, "BUFFERING %d\n", num_chunks_enqueued);
         nanosleep(&ts, NULL);
     }
-    fprintf(stderr, "DONE BUFFERING %d\n", num_chunks_enqueued);
     if (audioconn_start_playback(session->audio_io.playback_conn) < 0) {
 	log_tmp(LOG_ERROR, "In start playback, audio connection could not be opened; stopping playback.\n");
 	transport_stop_playback();

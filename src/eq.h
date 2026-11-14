@@ -21,7 +21,7 @@
 #include "api.h"
 #include "endpoint.h"
 #include "iir.h"
-#include "shared_array.h"
+#include "shared_fixed_array.h"
 
 
 #define EQ_DEFAULT_NUM_FILTERS 6
@@ -66,8 +66,9 @@ typedef struct eq_filter_ctrl {
 typedef struct eq {
     /* bool active; */
     IIRGroup group;
-    SharedArray output_freq_mag_L; /* double[] -- computed in dsp, used for drawing */
-    SharedArray output_freq_mag_R; /* double[] -- computed in dsp, used for drawing */
+    SharedDoubleMax8192 output_freq_mag_L;
+    SharedDoubleMax8192 output_freq_mag_R;
+    int output_freq_mag_len;
     struct freq_plot *fp;
     EQFilterCtrl ctrls[EQ_DEFAULT_NUM_FILTERS];
     int selected_ctrl;

@@ -26,9 +26,8 @@
 #include <pthread.h>
 #include "audio_clip.h"
 #include "logscale.h"
-#include "shared_array.h"
 #include "textbox.h"
-#include "value.h"
+#include "shared_fixed_array.h"
 
 /* struct logscale { */
 /*     double *array; */
@@ -44,16 +43,22 @@
 
 struct freq_plot {
     Logscale x_axis;
-    /* bool scale_y_axis; */
-    /* Logscale y_axis; */
-    SharedArray **farrays;
-    SharedArray **darrays;
+    
+    float **farrays;
     int num_farrays;
-    int num_darrays;
     int *farray_lens;
+    
+    double **darrays;
+    int num_darrays;
     int *darray_lens;
+
+    SharedDoubleMax8192 **shared_double_arrs;
+    int num_shared_double_arrs;
+    int *shared_double_arr_lens;
+    
     SDL_Color **fcolors;
     SDL_Color **dcolors;
+    SDL_Color **shared_double_arr_colors;
     
     double *linear_plots[MAX_LINEAR_PLOTS];
     int num_linear_plots;
@@ -78,14 +83,22 @@ void waveform_draw_all_channels(float **channels, uint8_t num_channels, uint32_t
 
 
 struct freq_plot *waveform_create_freq_plot(
-    SharedArray **darrays,
+    
+    double **darrays,
     int *darray_lens,
     int num_darrays,
-    SharedArray **farrays,
+    
+    float **farrays,
     int *farray_lens,
     int num_farrays,
+    
+    SharedDoubleMax8192 **shared_double_arrs,
+    int *shared_double_arr_lens,
+    int num_shared_double_arrs,
+    
     SDL_Color **darray_colors,
     SDL_Color **farray_colors,
+    SDL_Color **shared_double_arr_colors,
     double min_freq_hz,
     double max_freq_hz,
     Layout *container);

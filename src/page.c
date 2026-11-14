@@ -548,8 +548,10 @@ void page_el_set_params(PageEl *el, PageElParams params, Page *page)
 	    params.freqplot_p.farrays,
 	    params.freqplot_p.farray_lens,
 	    params.freqplot_p.num_farrays,
+            NULL, NULL, 0,
 	    params.freqplot_p.darray_colors,
 	    params.freqplot_p.farray_colors,
+            NULL,
 	    params.freqplot_p.min_freq_hz,
 	    params.freqplot_p.max_freq_hz,
 	    el->layout);

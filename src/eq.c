@@ -21,7 +21,6 @@
 #include "logscale.h"
 #include "project.h"
 #include "session.h"
-#include "shared_array.h"
 #include "waveform.h"
 
 
@@ -153,11 +152,41 @@ static void selected_filter_active_cb(Endpoint *ep)
 
 void eq_init(EQ *eq)
 {
-    enum jdaw_thread user_threads[] = {JDAW_THREAD_INSTRUMENT, JDAW_THREAD_DSP};
-    sa_init(&eq->output_freq_mag_L, sizeof(double), user_threads);
-    sa_init(&eq->output_freq_mag_R, sizeof(double), user_threads);
-    /* eq->output_freq_mag_L = calloc(eq->effect->effect_chain->chunk_len_sframes * 2, sizeof(double)); */
-    /* eq->output_freq_mag_R = calloc(eq->effect->effect_chain->chunk_len_sframes * 2, sizeof(double)); */
+    eq->output_freq_mag_len = eq->effect->effect_chain->chunk_len_sframes * 2;
+    switch (eq->output_freq_mag_len) {
+    case 64:
+        shared_double64_init(&eq->output_freq_mag_L.sd64);
+        shared_double64_init(&eq->output_freq_mag_R.sd64);
+        break;
+    case 128:
+        shared_double128_init(&eq->output_freq_mag_L.sd128);
+        shared_double128_init(&eq->output_freq_mag_R.sd128);
+        break;
+    case 256:
+        shared_double256_init(&eq->output_freq_mag_L.sd256);
+        shared_double256_init(&eq->output_freq_mag_R.sd256);
+        break;
+    case 512:
+        shared_double512_init(&eq->output_freq_mag_L.sd512);
+        shared_double512_init(&eq->output_freq_mag_R.sd512);
+        break;
+    case 1024:
+        shared_double1024_init(&eq->output_freq_mag_L.sd1024);
+        shared_double1024_init(&eq->output_freq_mag_R.sd1024);
+        break;
+    case 2048:
+        shared_double2048_init(&eq->output_freq_mag_L.sd2048);
+        shared_double2048_init(&eq->output_freq_mag_R.sd2048);
+        break;
+    case 4096:
+        shared_double4096_init(&eq->output_freq_mag_L.sd4096);
+        shared_double4096_init(&eq->output_freq_mag_R.sd4096);
+        break;
+    case 8192:
+        shared_double8192_init(&eq->output_freq_mag_L.sd8192);
+        shared_double8192_init(&eq->output_freq_mag_R.sd8192);
+        break;        
+    }
 
     double nsub1 = (double)eq->effect->effect_chain->chunk_len_sframes - 1;
     /* if (session->proj_initialized) { */
@@ -338,8 +367,6 @@ void eq_init(EQ *eq)
 
 void eq_deinit(EQ *eq)
 {
-    free(eq->output_freq_mag_L);
-    free(eq->output_freq_mag_R);
     for (int i=0; i<eq->group.num_filters; i++) {
 	EQFilterCtrl *ctrl = eq->ctrls + i;
 	label_destroy(ctrl->label);
@@ -543,18 +570,17 @@ bool eq_mouse_click(EQ *eq, SDL_Point mousep)
 
 void eq_create_freq_plot(EQ *eq, Layout *container)
 {
-    SharedArray *arrs[] = {&eq->output_freq_mag_L, &eq->output_freq_mag_R};
+    SharedDoubleMax8192 *arrs[] = {&eq->output_freq_mag_L, &eq->output_freq_mag_R};
     int lens[] = {eq->effect->effect_chain->chunk_len_sframes, eq->effect->effect_chain->chunk_len_sframes};
     /* double *arrs[] = {proj->output_L_freq, proj->output_R_freq}; */
-    SDL_Color *fcolors[] = {&colors.freq_L, &colors.freq_R};
+    SDL_Color *plot_colors[] = {&colors.freq_L, &colors.freq_R};
 
     /* Session *session = session_get(); */
     eq->fp = waveform_create_freq_plot(
-	arrs,
-	lens,
-	2,
 	NULL, NULL, 0,
-	fcolors, NULL,
+	NULL, NULL, 0,
+        arrs, lens, 2,
+	NULL, NULL, plot_colors,
 	20, (double)eq->effect->effect_chain->proj->sample_rate / 2,
 	container);
     waveform_reset_freq_plot(eq->fp);
@@ -637,8 +663,59 @@ float eq_buf_apply(void *eq_v, float *restrict buf, int len, int channel, float 
 	}
 	double complex freq[len * 2];
 	FFTf(fft_input, freq, len * 2);
-	double *dst = channel == 0 ? eq->output_freq_mag_L : eq->output_freq_mag_R;
-	get_magnitude(freq, dst, len * 2);
+        SharedDoubleMax8192 *sdu = channel == 0 ? &eq->output_freq_mag_L : &eq->output_freq_mag_R;
+        double dst[len * 2];
+        get_magnitude(freq, dst, len * 2);
+        switch (len) {
+        case 64: {
+            double64 d;
+            memcpy(d.arr, dst, len * sizeof(double));
+            shared_double64_write(&sdu->sd64, d);
+        }
+            break;
+        case 128: {
+            double128 d;
+            memcpy(d.arr, dst, len * sizeof(double));
+            shared_double128_write(&sdu->sd128, d);
+        }
+            break;
+        case 256: {
+            double256 d;
+            memcpy(d.arr, dst, len * sizeof(double));
+            shared_double256_write(&sdu->sd256, d);
+        }
+            break;
+        case 512: {
+            double512 d;
+            memcpy(d.arr, dst, len * sizeof(double));
+            shared_double512_write(&sdu->sd512, d);
+        }
+            break;
+        case 1024: {
+            double1024 d;
+            memcpy(d.arr, dst, len * sizeof(double));
+            shared_double1024_write(&sdu->sd1024, d);
+        }
+            break;
+        case 2048: {
+            double2048 d;
+            memcpy(d.arr, dst, len * sizeof(double));
+            shared_double2048_write(&sdu->sd2048, d);
+        }
+            break;
+        case 4096: {
+            double4096 d;
+            memcpy(d.arr, dst, len * sizeof(double));
+            shared_double4096_write(&sdu->sd4096, d);
+        }
+            break;
+        case 8192: {
+            double8192 d;
+            memcpy(d.arr, dst, len * sizeof(double));
+            shared_double8192_write(&sdu->sd8192, d);
+        }
+            break;
+        }
     }
 
     

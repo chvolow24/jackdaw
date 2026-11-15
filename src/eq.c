@@ -9,6 +9,7 @@
 *****************************************************************************************************************/
 
 #include <stdlib.h>
+#include "atomic.h"
 #include "color.h"
 #include "consts.h"
 #include "dsp_utils.h"
@@ -651,16 +652,19 @@ float eq_buf_apply(void *eq_v, float *restrict buf, int len, int channel, float 
     }
 
     /* IFF Freq Plot is onscreen, reset frequency magnitude spectrum */
-    if (eq->effect->page && eq->effect->page->onscreen) {
+    if (aldr(&eq->effect->page_onscreen)) {
+        
 	/* Zero-pad the input */
 	float fft_input[len * 2];
 	memset(fft_input + len, '\0', len * sizeof(float));
 	memcpy(fft_input, buf, len * sizeof(float));
+        
 	/* Apply hamming window to non-zero input,
 	   scaling up to account for amplitude reduction */
 	for (int i=0; i<len; i++) {
 	    fft_input[i] *= HAMMING_SCALAR * hamming(i, len);
 	}
+        
 	double complex freq[len * 2];
 	FFTf(fft_input, freq, len * 2);
         SharedDoubleMax8192 *sdu = channel == 0 ? &eq->output_freq_mag_L : &eq->output_freq_mag_R;

@@ -16,6 +16,7 @@
  *****************************************************************************************************************/
 
 #include <stdlib.h>
+#include "atomic.h"
 #include "consts.h"
 #include "dsp_utils.h"
 #include "endpoint_callbacks.h"
@@ -452,7 +453,7 @@ static void apply_filter(FIRFilter *filter, uint8_t channel, uint16_t chunk_size
        the application of the filter is used here, without windowing or
        compensatory scaling. This frequency plot will therefore look
        more jagged than the one displayed on an EQ effect */
-    if (filter->effect && filter->effect->page && filter->effect->page->onscreen) {
+    if (filter->effect && aldr(&filter->effect->page_onscreen)) {
 	double *dst = channel == 0 ? filter->output_freq_mag_L : filter->output_freq_mag_R;
 	get_magnitude(freq_domain, dst, padded_len);
     }

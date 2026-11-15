@@ -40,15 +40,11 @@ void sa_init_real(
 
 static void schedule_free(SharedArray *sa, void *old_data)
 {
-    uint32_t epochs[sa->num_user_threads];
-    for (int i=0; i<sa->num_user_threads; i++) {
-        epochs[i] = thread_epoch(sa->user_threads[i]);
-    }
     session_schedule_free(
         old_data,
         sa->user_threads,
-        epochs,
-        sa->num_user_threads);
+        sa->num_user_threads,
+        NULL);
 }
 
 struct sa_data sa_get_rdonly(SharedArray *sa)

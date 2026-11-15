@@ -23,6 +23,7 @@
 #include "compressor.h"
 #include "eq.h"
 #include "saturation.h"
+#include "shared_array.h"
 
 
 /* #define NUM_EFFECT_TYPES 5 */
@@ -61,10 +62,8 @@ typedef struct effect {
     Endpoint channel_mode_ep;
     float (*buf_apply)(void *effect, float *restrict buf_L, float *restrict buf_R, int len, float input_amp);
     bool operate_on_empty_buf;
-    /* DO NOT ACCESS outside main thread */
-    Page *page;
-    /* Safe to access outside main thread */
-    _Atomic bool page_onscreen;
+    Page *page; /* DO NOT ACCESS outside main thread */
+    _Atomic bool page_onscreen; /* Safe to access outside main thread */
     EffectChain *effect_chain;
     /* Track *track; */
     char name[MAX_NAMELENGTH];
@@ -77,12 +76,9 @@ typedef struct effect {
 
 typedef struct effect_chain {
     bool initialized;
-    Effect **effects;
-    int num_effects;
-    int effects_alloc_len;
+    SharedArray effects; /* type Effect *[] */
     int num_effects_per_type[NUM_EFFECT_TYPES];
     bool blocked_types[NUM_EFFECT_TYPES];
-    pthread_mutex_t effect_chain_lock;
     int32_t chunk_len_sframes;
     Project *proj; /* For link through to audio settings */
     APINode api_node;
@@ -108,7 +104,9 @@ void effect_add(EffectChain *ec, const char *obj_name);
 float effect_chain_buf_apply(EffectChain *ec, float *restrict L, float *restrict R, int len, float input_amp);
 void effect_chain_silence(EffectChain *ec);
 void effect_delete(Effect *e, bool from_undo);
-void effect_destroy(Effect *e);
+
+/* e_v must be an Effect * */
+void effect_destroy(void *e_v);
 
 /* Make a copy of EC at "from", de-register API node, and return a pointer to copy */
 EffectChain *effect_chain_stash(EffectChain *from);

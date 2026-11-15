@@ -178,27 +178,25 @@ void effect_chain_init(EffectChain *ec, Project *proj, APINode *parent_api_node,
 	already_init = true;
 	/* return; */
     }
+    if (!already_init) {
+        enum jdaw_thread effects_user_threads[] = {JDAW_THREAD_DSP, JDAW_THREAD_INSTRUMENT};
+        sa_init(&ec->effects, sizeof(Effect *), effects_user_threads);
+    }
     ec->initialized = true;
     ec->proj = proj;
     ec->obj_name = obj_name;
-    ec->effects_alloc_len = 0;
-    if (already_init && ec->num_effects > 0) {
-	log_tmp(LOG_ERROR, "Call to reinit effect chain \"%s\" which already has %d effects\n", ec->obj_name, ec->num_effects);
-	error_exit("Call to reinit effect chain \"%s\" which already has %d effects\n", ec->obj_name, ec->num_effects);
+    const struct sa_data sd = sa_get_rdonly(&ec->effects);
+    if (already_init && sd.len > 0) {
+	error_exit("Call to reinit effect chain \"%s\" which already has %d effects\n", ec->obj_name, sd.len);
     }
-    ec->num_effects = 0;
     if (!already_init) {
 	api_node_register(&ec->api_node, parent_api_node, NULL, "Effects");
     } else if (ec->api_node.parent != parent_api_node) {
-	log_tmp(LOG_ERROR, "In redundant call to effect_chain_init, api_node is not equal to (new) parent\n");
 	error_exit("In redundant call to effect_chain_init, api_node is not equal to (new) parent\n");
     }
     /* ec->api_node = api_node; */
     ec->chunk_len_sframes = chunk_len_sframes;
     memset(ec->num_effects_per_type, 0, sizeof(int) * NUM_EFFECT_TYPES);
-    if (!already_init) {
-	pthread_mutex_init(&ec->effect_chain_lock, NULL);
-    }
 }
 
 void effect_chain_block_type(EffectChain *ec, EffectType type)
@@ -209,61 +207,36 @@ void effect_chain_block_type(EffectChain *ec, EffectType type)
 /* Destroys all included effects */
 void effect_chain_deinit(EffectChain *ec)
 {
-    pthread_mutex_lock(&ec->effect_chain_lock);
-    int num_to_destroy = ec->num_effects;
-    ec->num_effects = 0;
-    pthread_mutex_unlock(&ec->effect_chain_lock);
-    for (int i=0; i<num_to_destroy; i++) {
-	effect_destroy(ec->effects[i]);
+    const struct sa_data sd = sa_get_wr(&ec->effects);
+    Effect *effects[sd.len];
+    sa_copy(&sd, effects, sd.len);
+    sa_set(&sd, NULL, 0); /* empty the shared array */
+    
+    for (int i=0; i<sd.len; i++) {
+	session_schedule_free(
+            effects[i],
+            ec->effects.user_threads,
+            ec->effects.num_user_threads,
+            effect_destroy);
     }
-    if (ec->effects) {
-	free(ec->effects);
-    }
-    ec->effects = NULL;
-    pthread_mutex_destroy(&ec->effect_chain_lock);
+    sa_deinit(&ec->effects);
 }
 
 /*------ Higher-level functions; modals and tabview ------------------*/
 
-/* assume 1 effect is being added */
-static void effect_chain_realloc_maybe(EffectChain *ec)
-{
-    if (ec->effects_alloc_len == 0) {
-	if (ec->effects) {
-	    log_tmp(LOG_ERROR, "Effect chain (%p) has effects_alloc_len==0, but effects=%p\n", ec, ec->effects);
-	}
-	ec->effects_alloc_len = 4;
-	ec->effects = malloc(ec->effects_alloc_len * sizeof(Effect *));
-    }
-    if (ec->num_effects == ec->effects_alloc_len) {
-	ec->effects_alloc_len *= 2;
-	ec->effects = realloc(ec->effects, ec->effects_alloc_len * sizeof(Effect *));
-    }
-
-}
-
 Effect *effect_chain_add_effect(EffectChain *ec, EffectType type)
 {
-    if (ec->num_effects >= MAX_TABS) {
+    const struct sa_data sd = sa_get_wr(&ec->effects);
+    if (sd.len >= MAX_TABS) {
 	status_set_errstr("No more than %d effects allowed\n", MAX_TABS);
+        sa_discard(&sd);
 	return NULL;
     }
     if (ec->blocked_types[type]) {
 	status_set_errstr("%s not allowed here", effect_type_strings[type]);
+        sa_discard(&sd);
 	return NULL;
     }
-    /* if (ec->effects_alloc_len == 0) { */
-    /* 	if (ec->effects) { */
-    /* 	    log_tmp(LOG_ERROR, "Effect chain (%p) has effects_alloc_len==0, but effects=%p\n", ec, ec->effects); */
-    /* 	} */
-    /* 	ec->effects_alloc_len = 4; */
-    /* 	ec->effects = malloc(ec->effects_alloc_len * sizeof(Effect *)); */
-    /* } */
-    /* if (ec->num_effects == ec->effects_alloc_len) { */
-    /* 	ec->effects_alloc_len *= 2; */
-    /* 	ec->effects = realloc(ec->effects, ec->effects_alloc_len * sizeof(Effect *)); */
-    /* } */
-    effect_chain_realloc_maybe(ec);
     Effect *e = calloc(1, sizeof(Effect));
     e->type = type;
     e->effect_chain = ec;
@@ -350,6 +323,7 @@ Effect *effect_chain_add_effect(EffectChain *ec, EffectType type)
 	NULL, NULL, NULL, NULL);
     endpoint_set_default_value(&e->active_ep, (Value){.bool_v = true});
     api_endpoint_register(&e->active_ep, &e->api_node);
+    endpoint_write_default(&e->active_ep);
 
     endpoint_init(
 	&e->channel_mode_ep,
@@ -366,14 +340,13 @@ Effect *effect_chain_add_effect(EffectChain *ec, EffectType type)
 	NULL, dispose_forward_add_effect,
 	e, NULL,
 	(Value){0}, (Value){0},
-	(Value){.int_v = ec->num_effects}, (Value){0},
+	(Value){.int_v = sd.len}, (Value){0},
 	0,0,false,false);
-
-    pthread_mutex_lock(&ec->effect_chain_lock);
-    ec->effects[ec->num_effects] = e;
-    ec->num_effects++;
-    e->active = true;
-    pthread_mutex_unlock(&ec->effect_chain_lock);
+    
+    Effect *effects[sd.len + 1];
+    sa_copy(&sd, effects, sd.len);
+    effects[sd.len] = e;
+    sa_set(&sd, effects, sd.len + 1);
     return e;
 }
 
@@ -502,25 +475,20 @@ float effect_chain_buf_apply(EffectChain *ec, float *restrict L, float *restrict
 {
     static float amp_epsilon = 1e-7f;
     float running_amp = input_amp;
+    const struct sa_data effects = sa_get_rdonly(&ec->effects);
     if (aldr(&ec->request_clear)) {
-        for (int i=0; i<ec->num_effects; i++) {
-            effect_silence(ec->effects[i]);
+        for (int i=0; i<effects.len; i++) {
+            Effect *const e = *(Effect *const *)sa_at(&effects, i);
+            effect_silence(e);
         }
         astrr(&ec->request_clear, false);
     }
-    /* if (len > ec->chunk_len_sframes) { */
-    /*     int index = 0; */
-    /*     while (index < len) { */
-    /*         running_amp = effect_chain_buf_apply(ec, L + index, R + index, ec->chunk_len_sframes, running_amp); */
-    /*         index += ec->chunk_len_sframes; */
-    /*     } */
-    /*     return running_amp;	 */
-    /* } */
-    pthread_mutex_lock(&ec->effect_chain_lock);
+    
     int index = 0;
+    
     while (index < len) {
-        for (int i=0; i<ec->num_effects; i++) {
-            Effect *e = ec->effects[i];
+        for (int i=0; i<effects.len; i++) {
+            Effect *const e = *(Effect *const *)sa_at(&effects, i);
             bool running_amp_nonzero = fabs(running_amp) > amp_epsilon;
             if (e->active && (e->operate_on_empty_buf || running_amp_nonzero)) {
                 e->has_proc_state = true;
@@ -548,7 +516,6 @@ float effect_chain_buf_apply(EffectChain *ec, float *restrict L, float *restrict
         }
         index += ec->chunk_len_sframes;
     }
-    pthread_mutex_unlock(&ec->effect_chain_lock);
     return running_amp;
 }
 
@@ -588,14 +555,14 @@ void effect_chain_silence(EffectChain *ec)
 static void effect_reinsert(Effect *e, int index)
 {
     EffectChain *ec = e->effect_chain;
-    effect_chain_realloc_maybe(ec);
+    const struct sa_data effects = sa_get_wr(&ec->effects);
+    Effect *new_effects[effects.len + 1];
+    sa_copy(&effects, new_effects, effects.len);
     
-    int num_to_move = ec->num_effects - index;    
-    pthread_mutex_lock(&ec->effect_chain_lock);
-    memmove(ec->effects + index + 1, ec->effects + index, num_to_move * sizeof(Effect *));
-    ec->effects[index] = e;
-    ec->num_effects++;
-    pthread_mutex_unlock(&ec->effect_chain_lock);
+    int num_to_move = effects.len - index;    
+    memmove(new_effects + index + 1, new_effects + index, num_to_move * sizeof(Effect *));
+    new_effects[index] = e;
+    sa_set(&effects, new_effects, effects.len + 1);
 
     TabView *tv;
     if ((tv = main_win->active_tabview) && strncmp(tv->title, "Effects", 7) == 0) {
@@ -624,28 +591,32 @@ NEW_EVENT_FN(dispose_effect_delete, "")
 void effect_delete(Effect *e, bool from_undo)
 {
     EffectChain *ec = e->effect_chain;
+    const struct sa_data effects = sa_get_wr(&ec->effects);
+    Effect *new_effects[effects.len];
+    sa_copy(&effects, new_effects, effects.len);
+    
     bool displace = false;
     int index = -1;
-    for (int i=0; i<ec->num_effects; i++) {
-	if (e == ec->effects[i]) {
+    for (int i=0; i<effects.len; i++) {
+	if (e == new_effects[i]) {
 	    displace = true;
 	    index = i;
 	} else if (displace) {
-	    ec->effects[i - 1] = ec->effects[i];
+	    new_effects[i - 1] = new_effects[i];
 	}
     }
     if (index < 0) {
 	log_tmp(LOG_ERROR, "In effect delete: effect not found in chain\n");
+        sa_discard(&effects);
 	return;
     }
-    
-    ec->num_effects--;
+
+    sa_set(&effects, new_effects, effects.len - 1);
 
     void *related_automations = NULL;
     int num_related_automations = 0;
     if (!from_undo) {
-	user_event_push(
-	    
+	user_event_push(	    
 	    undo_effect_delete,
 	    redo_effect_delete,
 	    dispose_effect_delete,
@@ -657,28 +628,21 @@ void effect_delete(Effect *e, bool from_undo)
     }
     api_node_deregister(&e->api_node);
 
-    /* delete_related_automations(&e->api_node); */
     TabView *tv;
     if ((tv = main_win->active_tabview) && strncmp(tv->title, "Effects", 7) == 0) {
 	tabview_close(tv);
-	/* ec->proj->timelines[ec->proj->active_tl_index]->needs_redraw = true; */
-	if (ec->num_effects > 0) {
+	if (effects.len - 1 > 0) {
 	    effect_chain_open_tabview(ec);
 	} else {
 	    atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 	}
-	/* if (strncmp(ec->obj_name, "Synth", 5) == 0) { */
-	/* } */
-	
-	/* user_tl_track_open_settings(NULL); */
-	/* if (ec->num_effects > 0)  */
-	/*     user_tl_track_open_settings(NULL); */
     }
 
 }
 
-void effect_destroy(Effect *e)
+void effect_destroy(void *e_v)
 {
+    Effect *e = e_v;
     switch(e->type) {
     case EFFECT_EQ:
 	eq_deinit((EQ *)e->obj);
@@ -714,7 +678,8 @@ void effect_destroy(Effect *e)
 /* Make a copy of EC at "from", de-register API node, and return a pointer to copy */
 EffectChain *effect_chain_stash(EffectChain *from)
 {
-    if (from->num_effects == 0) return NULL;
+    const struct sa_data from_effects = sa_get_rdonly(&from->effects);
+    if (from_effects.len == 0) return NULL;
     EffectChain *copy = calloc(1, sizeof(EffectChain));
     memcpy(copy, from, sizeof(EffectChain));
     api_node_deregister(&from->api_node);

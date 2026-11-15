@@ -222,6 +222,7 @@ struct scheduled_free {
     enum jdaw_thread threads[NUM_JDAW_THREADS];
     uint32_t epochs[NUM_JDAW_THREADS];
     int num_thread_epochs;
+    void (*destroy_fn)(void *);
 };
 
 struct threading {
@@ -293,13 +294,24 @@ void session_set_proj_path(const char *path);
 
 void session_set_proj_name(const char *name);
 
+
 /* Thread-safe.
    copies data from args */
 void session_schedule_free(
     void *obj_to_free,
-    const enum jdaw_thread (*const threads),
+    const enum jdaw_thread *const threads,
+    const int num_threads,
+    void (*destroy_fn)(void *));
+
+
+/* Same as session_schedule_free, but pass thread epochs explicitly */
+void session_schedule_free_with_epochs(
+    void *obj_to_free,
+    const enum jdaw_thread *const threads,
     const uint32_t *const epochs,
-    const int num_thread_epochs);
+    const int num_thread_epochs,
+    void (*destroy_fn)(void *));
+
 
 /* Ok */
 void session_do_scheduled_frees();

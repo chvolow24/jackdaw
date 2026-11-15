@@ -142,12 +142,15 @@ NEW_EVENT_FN(undo_redo_swap_effect_order, "undo/redo change effect order")
 
 static void effect_chain_swap_pair(EffectChain *ec, int swap_i, int swap_j, bool from_undo)
 {
-    Effect *displaced = ec->effects[swap_i];
-    ec->effects[swap_i] = ec->effects[swap_j];
-    ec->effects[swap_j] = displaced;
+    const struct sa_data effects_sd = sa_get_wr(&ec->effects);
+    Effect *effects[effects_sd.len];
+    sa_copy(&effects_sd, effects, effects_sd.len);
+    Effect *displaced = effects[swap_i];
+    effects[swap_i] = effects[swap_j];
+    effects[swap_j] = displaced;
+    sa_set(&effects_sd, effects, effects_sd.len);
     if (!from_undo) {
-	user_event_push(
-	    
+	user_event_push(	    
 	    undo_redo_swap_effect_order,undo_redo_swap_effect_order, NULL, NULL,
 	    ec, NULL,
 	    (Value){.double_pair_v = {swap_j, swap_i}}, (Value){0},
@@ -174,8 +177,9 @@ TabView *effect_chain_tabview_create(EffectChain *ec)
 {
     Session *session = session_get();
     TabView *tv = tabview_create("Effects", session->gui.layout, main_win);
-    for (int i=0; i<ec->num_effects; i++) {
-	effect_add_page(ec->effects[i], tv);
+    const struct sa_data effects_sd = sa_get_rdonly(&ec->effects);
+    for (int i=0; i<effects_sd.len; i++) {
+	effect_add_page(*(Effect *const *)sa_at(&effects_sd, i), tv);
     }
     tv->swap_fn = swapfn;
     tv->swap_fn_target = ec;
@@ -188,9 +192,9 @@ void effect_chain_open_tabview(EffectChain *ec)
     if (main_win->active_tabview) {
 	tabview_close(main_win->active_tabview);
     }
-    if (ec->num_effects > 0) {
+    
+    if (sa_len(&ec->effects) > 0) {
 	TabView *tv = effect_chain_tabview_create(ec);
-    /* TabView *tv = track_effects_tabview_create(track); */
 	tabview_activate(tv, ec, ec->obj_name);
     }
 }

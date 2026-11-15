@@ -1994,7 +1994,7 @@ void user_tl_track_open_settings(void *track_opt)
     }
 
     if (track) {
-	if (track->effect_chain.num_effects == 0) {
+	if (sa_len(&track->effect_chain.effects) == 0) {
 	    user_tl_track_add_effect(NULL);
 	    return;
 	}

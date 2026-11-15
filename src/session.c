@@ -583,11 +583,12 @@ void session_set_proj_name(const char *name)
 }
 
 /* copy data from args */
-void session_schedule_free(
+void session_schedule_free_with_epochs(
     void *obj_to_free,
-    const enum jdaw_thread (*const threads),
+    const enum jdaw_thread *const threads,
     const uint32_t *const epochs,
-    const int num_thread_epochs)
+    const int num_thread_epochs,
+    void (*destroy_fn)(void *))
 {
     /* Outside of main thread, queue for main thread */
     if (!on_thread(JDAW_THREAD_MAIN)) {
@@ -596,6 +597,7 @@ void session_schedule_free(
         memcpy(&oe.threads, threads, num_thread_epochs * sizeof(enum jdaw_thread));
         memcpy(&oe.epochs, epochs, num_thread_epochs * sizeof(enum jdaw_thread));
         oe.num_thread_epochs = num_thread_epochs;
+        oe.destroy_fn = destroy_fn;
         int ret = lfqueue_try_enqueue(&session->threading.queued_scheduled_frees[current_thread()], &oe, 1);
         if (ret != LFQUEUE_SUCCESS) {
             log_tmp(LOG_ERROR, "Unable to enqueue scheduled free: %s\n", lfqueue_get_errstr(ret));
@@ -613,8 +615,25 @@ void session_schedule_free(
     memcpy(&sf->threads, threads, num_thread_epochs * sizeof(enum jdaw_thread));
     memcpy(&sf->epochs, epochs, num_thread_epochs * sizeof(uint32_t));
     sf->num_thread_epochs = num_thread_epochs;
+    sf->destroy_fn = destroy_fn;
     session->threading.sfs_len++;
 }
+
+void session_schedule_free(
+    void *obj_to_free,
+    const enum jdaw_thread *const threads,
+    const int num_threads,
+    void (*destroy_fn)(void *))
+{
+
+    fprintf(stderr, "CALL TO SCHEDULE FREE: destroy fn: %p\n", destroy_fn);
+    uint32_t epochs[num_threads];
+    for (int i=0; i<num_threads; i++) {
+        epochs[i] = thread_epoch(threads[i]);
+    }
+    session_schedule_free_with_epochs(obj_to_free, threads, epochs, num_threads, destroy_fn);
+}
+
 
 void session_do_scheduled_frees()
 {
@@ -659,7 +678,11 @@ void session_do_scheduled_frees()
         }
         if (conditions_met) {
             /* value of 'i' records the fact that this was done */
-            free(sf->obj);
+            if (sf->destroy_fn) {
+                sf->destroy_fn(sf->obj);
+            } else {
+                free(sf->obj);
+            }
             num_freed++;
         } else {
             break;

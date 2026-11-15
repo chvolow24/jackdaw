@@ -738,7 +738,7 @@ static void add_filter_page(TabView *tv, Track *track)
 static int open_effects_action(void *self, void *target)
 {
     Synth *synth = target;
-    if (synth->effect_chain.num_effects == 0) {
+    if (sa_len(&synth->effect_chain.effects) == 0) {
 	effect_add(&synth->effect_chain, "synth");
     } else {
 	effect_chain_open_tabview(&synth->effect_chain);

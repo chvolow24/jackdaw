@@ -376,9 +376,11 @@ static void jdaw_write_effect(FILE *f, Effect *e)
 
 static void jdaw_write_effect_chain(FILE *f, EffectChain *ec)
 {
-    int_ser_le(f, &ec->num_effects);
-    for (int i=0; i<ec->num_effects; i++) {
-	jdaw_write_effect(f, ec->effects[i]);
+    const struct sa_data effects = sa_get_rdonly(&ec->effects);
+    int num_effects = effects.len;
+    int_ser_le(f, &num_effects);
+    for (int i=0; i<num_effects; i++) {
+	jdaw_write_effect(f, *(Effect *const *)sa_at(&effects, i));
     }
 }
 

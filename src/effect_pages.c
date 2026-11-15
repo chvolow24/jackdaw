@@ -1083,7 +1083,7 @@ void filter_type_selector_canvas_draw(void *draw_arg1, void *draw_arg2)
 {
     EQ *eq = draw_arg1;
     Layout *selector_lt = draw_arg2;
-    IIRFilterType t = eq->group.filters[eq->selected_ctrl].type;
+    IIRFilterType t = endpoint_read(&eq->ctrls[eq->selected_ctrl].filter_type_ep, NULL).int_v;
     Layout *sbutton_lt = selector_lt->children[t];
     /* SDL_Rect r = sbutton_lt->rect; */
     /* fprintf(stderr, "Found layout to draw: %p, %d %d %d %d\n", sbutton_lt, r.x, r.y, r.w, r.h); */

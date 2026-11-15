@@ -21,6 +21,7 @@
 #include "log.h"
 #include "logscale.h"
 #include "session.h"
+#include "shared_fixed_array.h"
 #include "textbox.h"
 #include "waveform.h"
 #include "window.h"
@@ -225,19 +226,19 @@ void waveform_freq_plot_add_linear_plot(struct freq_plot *fp, int len, double *a
     fp->num_linear_plots++;
 }
 
-void waveform_freq_plot_add_linear_plot2(struct freq_plot *fp, int len, SharedDoubleMax8192 *arr, SDL_Color *color)
-{
-    /* if (fp->num_linear_plots == MAX_LINEAR_PLOTS) { */
-    /*     fprintf(stderr, "ERROR: already reached max num linear plots %d\n", MAX_LINEAR_PLOTS); */
-    /*     return; */
-    /* } */
-    /* fp->linear_plots[fp->num_linear_plots] = arr; */
-    /* fp->linear_plot_lens[fp->num_linear_plots] = len; */
-    /* fp->linear_plot_colors[fp->num_linear_plots] = color; */
-    /* fp->linear_plot_mins[fp->num_linear_plots] = 0.0; */
-    /* fp->linear_plot_ranges[fp->num_linear_plots] = 1.0; */
-    /* fp->num_linear_plots++; */
-}
+/* void waveform_freq_plot_add_linear_plot2(struct freq_plot *fp, int len, SharedDoubleMax8192 *arr, SDL_Color *color) */
+/* { */
+/*     if (fp->num_linear_plots2 == MAX_LINEAR_PLOTS) { */
+/*         fprintf(stderr, "ERROR: already reached max num linear plots %d\n", MAX_LINEAR_PLOTS); */
+/*         return; */
+/*     } */
+/*     fp->linear_plots2[fp->num_linear_plots2] = arr; */
+/*     fp->linear_plot_lens2[fp->num_linear_plots2] = len; */
+/*     fp->linear_plot_colors2[fp->num_linear_plots2] = color; */
+/*     fp->linear_plot_mins2[fp->num_linear_plots2] = 0.0; */
+/*     fp->linear_plot_ranges2[fp->num_linear_plots2] = 1.0; */
+/*     fp->num_linear_plots2++; */
+/* } */
 
 
 void waveform_destroy_freq_plot(struct freq_plot *fp)
@@ -301,6 +302,87 @@ static void waveform_draw_linear_plot(struct freq_plot *fp, int index)
     }
 }
 
+/* static void waveform_draw_linear_plot2(struct freq_plot *fp, int index) */
+/* { */
+/*     SharedDoubleMax8192 *plot = fp->linear_plots2[index]; */
+/*     int len = fp->linear_plot_lens2[index]; */
+/*     SDL_Color *color = fp->linear_plot_colors2[index]; */
+/*     SDL_SetRenderDrawColor(main_win->rend, sdl_colorp_expand(color)); */
+
+/*     double min = fp->linear_plot_mins2[index]; */
+/*     double range = fp->linear_plot_ranges2[index]; */
+    
+/*     int btm_y = fp->container->rect.y + fp->container->rect.h; */
+/*     int h = fp->container->rect.h; */
+/*     int left_x = fp->container->rect.x; */
+/*     int w = fp->container->rect.w; */
+
+/*     int last_y; */
+/*     int last_x; */
+/*     int y; */
+/*     int x; */
+
+/*     double arr[len]; */
+
+/*     switch (len) { */
+/*     case 64: { */
+/*         double64 d = shared_double64_read(&plot->sd64); */
+/*         memcpy(arr, d.arr, len * sizeof(double)); */
+/*         break; */
+/*     } */
+/*     case 128: { */
+/*         double128 d = shared_double128_read(&plot->sd128); */
+/*         memcpy(arr, d.arr, len * sizeof(double)); */
+/*         break; */
+/*     } */
+/*     case 256: { */
+/*         double256 d = shared_double256_read(&plot->sd256); */
+/*         memcpy(arr, d.arr, len * sizeof(double)); */
+/*         break; */
+/*     } */
+/*     case 512: { */
+/*         double512 d = shared_double512_read(&plot->sd512); */
+/*         memcpy(arr, d.arr, len * sizeof(double)); */
+/*         break; */
+/*     } */
+/*     case 1024: { */
+/*         double1024 d = shared_double1024_read(&plot->sd1024); */
+/*         memcpy(arr, d.arr, len * sizeof(double)); */
+/*         break; */
+/*     } */
+/*     case 2048: { */
+/*         double2048 d = shared_double2048_read(&plot->sd2048); */
+/*         memcpy(arr, d.arr, len * sizeof(double)); */
+/*         break; */
+/*     } */
+/*     case 4096: { */
+/*         double4096 d = shared_double4096_read(&plot->sd4096); */
+/*         memcpy(arr, d.arr, len * sizeof(double)); */
+/*         break; */
+/*     } */
+/*     case 8192: { */
+/*         double8192 d = shared_double8192_read(&plot->sd8192); */
+/*         memcpy(arr, d.arr, len * sizeof(double)); */
+/*         break;         */
+/*     } */
+/*         break; */
+        
+/*     } */
+    
+/*     for (int i=0; i<len; i++) { */
+/* 	if (i==0) { */
+/* 	    last_x = left_x; */
+/* 	    last_y = btm_y - h * amp_to_logscaled((arr[0] - min) / range); */
+/* 	    continue; */
+/* 	} */
+/* 	x = left_x + (double)i * w / (len - 1); */
+/* 	y = btm_y - h * amp_to_logscaled((arr[i] - min) / range); */
+/* 	SDL_RenderDrawLine(main_win->rend, x, y, last_x, last_y); */
+/* 	last_x = x; */
+/* 	last_y = y; */
+/*     } */
+/* } */
+
 
 void waveform_draw_freq_plot(struct freq_plot *fp)
 {
@@ -347,7 +429,6 @@ void waveform_draw_freq_plot(struct freq_plot *fp)
         }
             break;
         case 2048: {
-            fprintf(stderr, "Reading 2048...\n");
             double2048 d = shared_double2048_read(&arr->sd2048);
             waveform_draw_logscale(fp, d.arr, NULL, len, color);
         }
@@ -370,10 +451,12 @@ void waveform_draw_freq_plot(struct freq_plot *fp)
     for (int i=0; i<fp->num_linear_plots; i++) {
 	waveform_draw_linear_plot(fp, i);
     }
+    /* for (int i=0; i<fp->num_linear_plots2; i++) { */
+    /*     waveform_draw_linear_plot2(fp, i); */
+    /* } */
     if (fp->related_obj_lock) {
 	pthread_mutex_unlock(fp->related_obj_lock);
     }
-
 
     SDL_SetRenderDrawColor(main_win->rend, 200, 200, 255, 80);
     int top_y = fp->container->rect.y;

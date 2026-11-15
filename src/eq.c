@@ -9,9 +9,11 @@
 *****************************************************************************************************************/
 
 #include <stdlib.h>
+#include "SDL_stdinc.h"
 #include "atomic.h"
 #include "color.h"
 #include "consts.h"
+#include "dev.h"
 #include "dsp_utils.h"
 #include "endpoint.h"
 #include "geometry.h"
@@ -22,6 +24,7 @@
 #include "logscale.h"
 #include "project.h"
 #include "session.h"
+#include "value.h"
 #include "waveform.h"
 
 
@@ -53,24 +56,6 @@ SDL_Color EQ_CTRL_COLORS_LIGHT[] = {
     {10, 10, 255, 100}
 };
 
-/* static void eq_filter_selection_gui_cb(Endpoint *ep) */
-/* { */
-/*     EQ *eq = ep->xarg1; */
-/*     int sel = endpoint_read(ep, NULL).int_v; */
-/*     TabView *tv = main_win->active_tabview; */
-/*     if (!tv) return; */
-/*     Page *page = tv->tabs[tv->current_tab]; */
-/*     char id[12]; */
-/*     snprintf(id, 12, "filter_tab%d\n", sel); */
-/*     PageEl *el = page_get_el_by_id(page, id); */
-/*     if (!el) { */
-/* 	fprintf(stderr, "Error: cannot find tab"); */
-/*     } */
-    
-
-/* } */
-
-
 static void eq_dsp_cb(Endpoint *ep)
 {
     EQ *eq = ep->xarg1;
@@ -78,6 +63,8 @@ static void eq_dsp_cb(Endpoint *ep)
 
     ctrl->bandwidth_scalar = ctrl->bandwidth_preferred;
     eq_set_filter_from_ctrl(eq, ctrl - eq->ctrls);
+    /* iir_group_update_freq_resp(&eq->group); */
+
     /* eq_set_peak(eq, ctrl->index, ctrl->freq_amp_raw[0], ctrl->freq_amp_raw[1], ctrl->bandwidth_scalar * ctrl->freq_amp_raw[0]); */
 }
 
@@ -139,11 +126,9 @@ void eq_ctrl_label_fn(char *dst, size_t dstsize, Value val, ValType type)
     /* fprintf(stderr, "LABLE: %s\n", dst); */
 }
 
-
-/* EndptCb test; */
-
 void eq_toggle_selected_filter_active(EQ *eq);
 
+/* TODO: Which thread does this cb belong to? */
 static void selected_filter_active_cb(Endpoint *ep)
 {
     EQ *eq = ep->xarg1;
@@ -189,25 +174,10 @@ void eq_init(EQ *eq)
     }
 
     double nsub1 = (double)eq->effect->effect_chain->chunk_len_sframes - 1;
-    /* if (session->proj_initialized) { */
-    /* 	nsub1 = (double)session->proj.fourier_len_sframes / 2 - 1; */
-    /* } else { */
-    /* 	nsub1 = (double)DEFAULT_FOURIER_LEN_SFRAMES / 2 - 1; */
-    /* } */
     iir_group_init(&eq->group, EQ_DEFAULT_NUM_FILTERS, 2, EQ_DEFAULT_CHANNELS); /* STEREO, BIQUAD */
 
     eq->group.filters[0].type = IIR_LOWSHELF;
     eq->group.filters[EQ_DEFAULT_NUM_FILTERS - 1].type = IIR_HIGHSHELF;
-    /* endpoint_init(&eq->selected_ctrl_ep, */
-    /* 		  &eq->selected_ctrl, */
-    /* 		  JDAW_INT, */
-    /* 		  "", */
-    /* 		  "", */
-    /* 		  JDAW_THREAD_DSP, */
-    /* 		  eq_filter_selection_gui_cb, */
-    /* 		  NULL, */
-    /* 		  NULL, */
-    /* 		  eq, NULL, NULL, NULL); */
 
     endpoint_init(
 	&eq->selected_filter_active_ep,
@@ -216,11 +186,10 @@ void eq_init(EQ *eq)
 	"selected_filter_active",
 	"",
         JDAW_THREAD_DSP,
-	NULL, NULL, selected_filter_active_cb,
+	selected_filter_active_cb, NULL, NULL,
 	eq, NULL, NULL, NULL);
     eq->selected_filter_active_ep.block_undo = true;
-	
-		  
+    endpoint_set_default_value(&eq->selected_filter_active_ep, (Value){.bool_v = true});
 
     static char api_ctrl_node_names[EQ_DEFAULT_NUM_FILTERS][12];
 		  		  
@@ -240,15 +209,8 @@ void eq_init(EQ *eq)
 	    JDAW_DOUBLE,
 	    main_win);
 
-	/* static char buf[255]; */
-	/* snprintf(buf, 255, "EQ filter %d amp", i + 1); */
-	/* char *display_name = strdup(buf); */
-	/* ctrl->amp_ep_display_name = display_name; */
-
-
 	snprintf(api_ctrl_node_names[i], 12, "Filter %d", i + 1);
 	api_node_register(&ctrl->api_node, &eq->effect->api_node, NULL, api_ctrl_node_names[i]);
-
 	    
 	endpoint_init(
 	    &ctrl->amp_ep,
@@ -256,7 +218,6 @@ void eq_init(EQ *eq)
 	    JDAW_DOUBLE,
 	    "amp",
 	    "Amp",
-	    /* display_name, */
 	    JDAW_THREAD_DSP,
 	    eq_gui_cb, NULL, eq_dsp_cb,
 	    (void*)eq, (void*)(ctrl), NULL, NULL);
@@ -267,11 +228,7 @@ void eq_init(EQ *eq)
 	endpoint_set_default_value(
 	    &ctrl->amp_ep,
 	    (Value){.double_v = 1.0});
-
-	/* memset(buf, '\0', 255); */
-	/* snprintf(buf, 255, "EQ filter %d freq", i + 1); */
-	/* display_name = strdup(buf); */
-	/* ctrl->freq_ep_display_name = display_name; */
+        api_endpoint_register(&ctrl->amp_ep, &ctrl->api_node);
 
 	endpoint_init(
 	    &ctrl->freq_ep,
@@ -279,7 +236,6 @@ void eq_init(EQ *eq)
 	    JDAW_DOUBLE,
 	    "freq",
 	    "Freq",
-	    /* display_name, */
 	    JDAW_THREAD_DSP,
 	    eq_gui_cb, NULL, eq_freq_dsp_cb,
 	    (void*)eq, (void*)(ctrl), NULL, NULL);
@@ -290,6 +246,7 @@ void eq_init(EQ *eq)
 	endpoint_set_default_value(
 	    &ctrl->freq_ep,
 	    (Value){.double_v = 0.1});
+        api_endpoint_register(&ctrl->freq_ep, &ctrl->api_node);
 	
 	endpoint_init(
 	    &ctrl->bandwidth_scalar_ep,
@@ -297,7 +254,6 @@ void eq_init(EQ *eq)
 	    JDAW_DOUBLE,
 	    "bandwidth_scalar",
 	    "bandwidth_scalar_raw",
-	    /* "EQ filter bandwidth", */
 	    JDAW_THREAD_DSP,
 	    eq_gui_cb, NULL, eq_bandwidth_scalar_dsp_cb,
 	    (void*)eq, (void*)(ctrl), NULL, NULL);
@@ -307,7 +263,6 @@ void eq_init(EQ *eq)
 	    JDAW_DOUBLE_PAIR,
 	    "freq_and_amp",
 	    "Freq and Amp",
-	    /* "EQ filter freq/amp", */
 	    JDAW_THREAD_DSP,
 	    eq_gui_cb, NULL, eq_dsp_cb,
 	    (void *)eq, (void *)(ctrl), NULL, NULL);
@@ -315,17 +270,12 @@ void eq_init(EQ *eq)
 	ctrl->freq_amp_ep.automatable = false;
 	ctrl->freq_amp_ep.do_not_serialize = true;
 
-	/* snprintf(buf, 255, "EQ filter %d bandwidth", i + 1); */
-	/* display_name = strdup(buf); */
-	/* ctrl->bandwidth_ep_display_name = display_name; */
-
 	endpoint_init(
 	    &ctrl->bandwidth_preferred_ep,
 	    &ctrl->bandwidth_preferred,
 	    JDAW_DOUBLE,
 	    "bandwidth_preferred",
 	    "Bandwidth",
-	    /* display_name, */
 	    JDAW_THREAD_DSP,
 	    eq_gui_cb, NULL, eq_dsp_cb,
 	    (void*)eq, (void*)(ctrl), NULL, NULL);
@@ -336,32 +286,30 @@ void eq_init(EQ *eq)
 	endpoint_set_default_value(
 	    &ctrl->bandwidth_preferred_ep,
 	    (Value){.double_v = 0.4});
+        api_endpoint_register(&ctrl->bandwidth_preferred_ep, &ctrl->api_node);
 
-
-	/* snprintf(buf, 255, "EQ filter %d active", i + 1); */
-	/* display_name = strdup(buf); */
-	/* ctrl->filter_active_ep_display_name = display_name; */
-
-	/* endpoint_init( */
-	/*     &ctrl->filter_active_ep, */
-	/*     &ctrl->filter_active, */
-	/*     JDAW_BOOL, */
-	/*     "filter_active", */
-	/*     display_name, */
-	/*     JDAW_THREAD_DSP, */
-	/*     NULL, NULL, NULL, */
-	/*     NULL, NULL, NULL, NULL); */
-
-
-	/* if (i < 2) { */
-	api_endpoint_register(&ctrl->freq_ep, &ctrl->api_node);
-	api_endpoint_register(&ctrl->amp_ep, &ctrl->api_node);
-	api_endpoint_register(&ctrl->bandwidth_preferred_ep, &ctrl->api_node);
-	/* api_endpoint_register(&ctrl->filter_active_ep, &ctrl->api_node); */
-	/* api_endpoint_register(&ctrl->filter_active_ep, &ctrl->api_node); */
-	/* } */
-
-
+        endpoint_init(
+            &ctrl->filter_type_ep,
+            &ctrl->filter_type,
+            JDAW_INT,
+            "filter_type",
+            "Filter type",
+            JDAW_THREAD_DSP,
+            eq_gui_cb, NULL, eq_dsp_cb,
+            (void *)eq, (void *)ctrl, NULL, NULL);
+        endpoint_set_allowed_range(
+            &ctrl->filter_type_ep,
+            (Value){.int_v = 0},
+            (Value){.int_v = NUM_IIR_FILTER_TYPES - 1});
+        endpoint_set_default_value(
+	    &ctrl->filter_type_ep,
+            (Value){.int_v = (int)(
+                    i == 0 ? IIR_LOWSHELF :
+                    i == EQ_DEFAULT_NUM_FILTERS - 1 ? IIR_HIGHSHELF :
+                    IIR_PEAKNOTCH
+                    )});
+        endpoint_write_default(&ctrl->filter_type_ep);
+        api_endpoint_register(&ctrl->filter_type_ep, &ctrl->api_node);
     }
 }
 
@@ -370,58 +318,33 @@ void eq_deinit(EQ *eq)
     for (int i=0; i<eq->group.num_filters; i++) {
 	EQFilterCtrl *ctrl = eq->ctrls + i;
 	label_destroy(ctrl->label);
-	/* if (ctrl->freq_ep_display_name) free(ctrl->freq_ep_display_name); */
-	/* if (ctrl->amp_ep_display_name) free(ctrl->amp_ep_display_name); */
-	/* if (ctrl->bandwidth_ep_display_name) free(ctrl->bandwidth_ep_display_name); */
-	/* if (ctrl->filter_active_ep_display_name) free(ctrl->filter_active_ep_display_name); */
     }
     iir_group_deinit(&eq->group);
     if (eq->fp) waveform_destroy_freq_plot(eq->fp);
     
 }
 
-/* static void eq_set_peak(EQ *eq, int filter_index, double freq_raw, double amp_raw, double bandwidth) */
-/* { */
-/*     static const double epsilon = 1e-9; */
-/*     if (fabs(amp_raw - 1.0) < epsilon) { */
-/* 	eq->ctrls[filter_index].filter_active = false; */
-/*     } else { */
-/* 	eq->ctrls[filter_index].filter_active = true; */
-/*     } */
-/*     IIRFilter *iir = eq->group.filters + filter_index; */
-/*     double bandwidth_scalar_adj; */
-/*     int ret; */
-/*     ret = iir_set_coeffs_peaknotch(iir, freq_raw, amp_raw, bandwidth, &bandwidth_scalar_adj); */
-/*     /\* if (filter_index > 0) *\/ */
-/*     /\* else *\/ */
-/*     /\* 	ret = iir_set_coeffs_lowshelf(iir, freq_raw, amp_raw); *\/ */
-/*     if (ret == 1) { */
-/* 	/\* fprintf(stderr, "RESETTING BW SCALAR: %f->%f\n", eq->ctrls[filter_index].bandwidth_scalar, bandwidth_scalar_adj); *\/ */
-/* 	eq->ctrls[filter_index].bandwidth_scalar = bandwidth_scalar_adj; */
-/*     } */
-/* } */
-
 void eq_select_ctrl(EQ *eq, int index)
 {
     eq->selected_ctrl = index;
-    endpoint_write(&eq->selected_filter_active_ep, (Value){.bool_v = eq->ctrls[eq->selected_ctrl].filter_active}, true, true, true, false);
+    endpoint_write(&eq->selected_filter_active_ep, (Value){.bool_v = eq->ctrls[eq->selected_ctrl].filter_active}, true, true, true, true);
     /* eq->selected_filter_active = eq->ctrls[eq->selected_ctrl].filter_active; */
 }
 
 void eq_toggle_selected_filter_active(EQ *eq)
 {
     _Atomic bool *b = &eq->ctrls[eq->selected_ctrl].filter_active;
-    bool val = eq->selected_filter_active ? true : false;
+    bool val = endpoint_read(&eq->selected_filter_active_ep, NULL).bool_v ? true : false;
     astrr(b, val);    
     if (!val) {
-	eq->group.filters[eq->selected_ctrl].bypass = true;
-	iir_set_neutral_freq_resp(eq->group.filters + eq->selected_ctrl);
+	astrr(&eq->group.filters[eq->selected_ctrl].bypass, true);
+        if (eq->fp) {
+            iir_set_neutral_freq_resp(eq->group.filters + eq->selected_ctrl);
+        }
     } else {
-	/* eq_set_filter_from_ctrl(eq, eq->selected_ctrl); */
-	eq->group.filters[eq->selected_ctrl].bypass = false;
-	eq->group.filters[eq->selected_ctrl].freq_resp_stale = true;
+	astrr(&eq->group.filters[eq->selected_ctrl].bypass, false);
+	astrr(&eq->group.filters[eq->selected_ctrl].freq_resp_stale, true);
     }
-    iir_group_update_freq_resp(&eq->group);
 }
 
 
@@ -429,43 +352,33 @@ void eq_set_filter_from_ctrl(EQ *eq, int index)
 {
     EQFilterCtrl *ctrl = eq->ctrls + index;
     IIRFilter *filter = eq->group.filters + index;
+    filter->type = ctrl->filter_type;
 
     double freq_raw = ctrl->freq_amp_raw[0];
     double amp_raw = ctrl->freq_amp_raw[1];
     static const double epsilon = 1e-9;
     if (fabs(amp_raw - 1.0) < epsilon) {
 	astrr(&eq->ctrls[index].filter_active, false);
-	eq->selected_filter_active = false;
-	/* eq_select_ctrl(eq, index); */
+        endpoint_write(&eq->selected_filter_active_ep, (Value){.bool_v = false}, true, true, true, false);
     } else {
 	astrr(&eq->ctrls[index].filter_active,  true);
-	eq->selected_filter_active = true;
-	/* eq_select_ctrl(eq, index); */
+        endpoint_write(&eq->selected_filter_active_ep, (Value){.bool_v = true}, true, true, true, false);
     }
-
     switch(filter->type) {
     case IIR_PEAKNOTCH: {
 
 	double bandwidth_scalar_adj;
 	double bandwidth = ctrl->bandwidth_scalar * freq_raw;
 	int ret = iir_set_coeffs_peaknotch(filter, freq_raw, amp_raw, bandwidth, &bandwidth_scalar_adj);
-	/* if (filter_index > 0) */
-	/* else */
-	/* 	ret = iir_set_coeffs_lowshelf(iir, freq_raw, amp_raw); */
 	if (ret == 1) {
-	    /* fprintf(stderr, "RESETTING BW SCALAR: %f->%f\n", eq->ctrls[filter_index].bandwidth_scalar, bandwidth_scalar_adj); */
 	    eq->ctrls[index].bandwidth_scalar = bandwidth_scalar_adj;
 	}
-	/* eq_set_peak(eq, index, ctrl->freq_amp_raw[0], ctrl->freq_amp_raw[1], ctrl->freq_amp_raw[0] * ctrl->bandwidth_scalar); */
-	/* iir_set_coeffs_peaknotch(filter, ctrl->freq_amp_raw[0], ctrl->freq_amp_raw[1], ctrl->freq_amp_raw[0] * ctrl->bandwidth_scalar, NULL); */
     }
 	break;
     case IIR_LOWSHELF:
 	iir_set_coeffs_lowshelf(filter, freq_raw, amp_raw);
 	break;
     case IIR_HIGHSHELF: {
-	/* IIRFilter *filter2 = eq->group.filters + index + 1; */
-	/* iir_set_coeffs_highshelf_double(filter, filter2, freq_raw, amp_raw); */
 	iir_set_coeffs_highshelf(filter, freq_raw, amp_raw);
 	break;
     }
@@ -474,11 +387,11 @@ void eq_set_filter_from_ctrl(EQ *eq, int index)
     }
 }
 
+/* Called from button action */
 void eq_set_filter_type(EQ *eq, IIRFilterType t)
 {
-    eq->group.filters[eq->selected_ctrl].type = t;    
-    eq_set_filter_from_ctrl(eq, eq->selected_ctrl);
-    iir_group_update_freq_resp(&eq->group);
+    EQFilterCtrl *ctrl = eq->ctrls + eq->selected_ctrl;
+    endpoint_write(&ctrl->filter_type_ep, (Value){.int_v = t}, true, true, true, true);
 }
 
 static void eq_set_filter_from_mouse(EQ *eq, int filter_index, SDL_Point mousep)
@@ -487,31 +400,15 @@ static void eq_set_filter_from_mouse(EQ *eq, int filter_index, SDL_Point mousep)
     eq->ctrls[filter_index].y = mousep.y;
     double freq_hz = logscale_val_from_x_abs(&eq->fp->x_axis, mousep.x);
     double freq_raw =  freq_hz / eq->fp->x_axis.max_scaled;
-    /* fprintf(stderr, "\tFreq hz: %f\n", freq_hz); */
-    /* double freq_raw = waveform_freq_plot_freq_from_x_abs(eq->fp, mousep.x); */
     double amp_raw;
-    /* switch(eq->group.filters[filter_index].type) { */
-    /* case IIR_PEAKNOTCH: { */
-	if (main_win->i_state & I_STATE_SHIFT) {
-	    /* endpoint_write(&eq->ctrls[filter_index].amp_ep, (Value){.double_v = 0.0}, true, true, true, false); */
-	    amp_raw = 1.0;
-	    /* eq->ctrls[filter_index].y = waveform_freq_plot_y_abs_from_amp(eq->fp, 1.0, 0, true); */
-	} else {
-	    amp_raw = waveform_freq_plot_amp_from_y_abs(eq->fp, mousep.y, 0, true);
-	}
+    if (main_win->i_state & I_STATE_SHIFT) {
+        amp_raw = 1.0;
+    } else {
+        amp_raw = waveform_freq_plot_amp_from_y_abs(eq->fp, mousep.y, 0, true);
+    }
 
-	endpoint_start_continuous_change(&eq->ctrls[filter_index].freq_amp_ep, false, (Value){0}, JDAW_THREAD_DSP, (Value){.double_pair_v = {freq_raw, amp_raw}});
-	endpoint_write(&eq->ctrls[filter_index].freq_amp_ep, (Value){.double_pair_v = {freq_raw, amp_raw}}, true, true, true, false);
-	/* endpoint_start_continuous_change(&eq->ctrls[filter_index].amp_ep, false, (Value){0}, JDAW_THREAD_DSP, (Value){.double_v = amp_raw}); */
-	/* endpoint_start_continuous_change(&eq->ctrls[filter_index].freq_ep, false, (Value){0}, JDAW_THREAD_DSP, (Value){.double_v = freq_raw}); */
-	/* endpoint_write(&eq->ctrls[filter_index].amp_ep, (Value){.double_v = amp_raw}, true, true, true, false); */
-	/* endpoint_write(&eq->ctrls[filter_index].freq_ep, (Value){.double_v = freq_raw}, true, true, true, false); */
-
-    /* } */
-    /* 	break; */
-    /* default: */
-    /* 	break; */
-    /* }    */
+    endpoint_start_continuous_change(&eq->ctrls[filter_index].freq_amp_ep, false, (Value){0}, JDAW_THREAD_DSP, (Value){.double_pair_v = {freq_raw, amp_raw}});
+    endpoint_write(&eq->ctrls[filter_index].freq_amp_ep, (Value){.double_pair_v = {freq_raw, amp_raw}}, true, true, true, false);
 }
 
 void eq_mouse_motion(EQFilterCtrl *ctrl, Window *win)
@@ -532,8 +429,6 @@ void eq_mouse_motion(EQFilterCtrl *ctrl, Window *win)
 	} else {
 	    endpoint_write(&ctrl->bandwidth_scalar_ep, (Value){.double_v = new_bw_scalar}, true, true, true, false);
 	}
-	/* SDL_Point p = {ctrl->x, ctrl->y}; */
-	/* eq_set_filter_from_mouse(eq, ctrl->index, p); */
     } else {
 	eq_set_filter_from_mouse(eq, ctrl->index, write_point);
     }
@@ -553,10 +448,6 @@ bool eq_mouse_click(EQ *eq, SDL_Point mousep)
 	}
     }
     if (clicked_i < 0) return false;
-    /* eq->selected_ctrl = clicked_i; */
-    /* endpoint_write(&eq->selected_ctrl_ep, (Value){.int_v = clicked_i}, true, true, true, false); */
-    
-    /* eq->selected_ctrl = clicked_i; */
     
     if (min_dist < click_tolerance) {
 	eq_set_filter_from_mouse(eq, clicked_i, mousep);
@@ -572,10 +463,9 @@ void eq_create_freq_plot(EQ *eq, Layout *container)
 {
     SharedDoubleMax8192 *arrs[] = {&eq->output_freq_mag_L, &eq->output_freq_mag_R};
     int lens[] = {eq->effect->effect_chain->chunk_len_sframes, eq->effect->effect_chain->chunk_len_sframes};
-    /* double *arrs[] = {proj->output_L_freq, proj->output_R_freq}; */
+    
     SDL_Color *plot_colors[] = {&colors.freq_L, &colors.freq_R};
 
-    /* Session *session = session_get(); */
     eq->fp = waveform_create_freq_plot(
 	NULL, NULL, 0,
 	NULL, NULL, 0,
@@ -588,9 +478,7 @@ void eq_create_freq_plot(EQ *eq, Layout *container)
     eq->group.fp = eq->fp;
 
     iir_group_add_freqplot(&eq->group, eq->fp);
-    /* for (int i=0; i<eq->group.num_filters; i++) { */
-    /* 	eq->group.filters[i].fp = eq->fp; */
-    /* } */
+    
     iir_group_update_freq_resp(&eq->group);
     waveform_freq_plot_add_linear_plot(eq->fp, IIR_FREQPLOT_RESOLUTION, eq->group.freq_resp, &colors.white);
     eq->fp->linear_plot_ranges[0] = EQ_MAX_AMPLITUDE;
@@ -636,10 +524,6 @@ float eq_buf_apply(void *eq_v, float *restrict buf, int len, int channel, float 
     static float amp_epsilon = 1e-7f;
     EQ *eq = eq_v;
 
-
-/*    if (!eq->active) {
-	return input_amp;
-	} else */
     if (input_amp < amp_epsilon) {
 	eq_advance(eq, channel);
 	return input_amp;
@@ -763,7 +647,6 @@ void eq_draw(EQ *eq)
 	    SDL_SetRenderDrawColor(main_win->rend, 255, 255, 255, 255);
 	    geom_draw_circle(main_win->rend, eq->ctrls[i].x - EQ_SEL_CTRL_RAD, eq->ctrls[i].y - EQ_SEL_CTRL_RAD, EQ_SEL_CTRL_RAD);
 	}
-	/* geom_draw_circle(main_win->rend, eq->ctrls[i].x - 2.0 * radmin1div2, eq->ctrls[i].y - 2.0 * radmin1div2, radmin1); */
     }
 }
 

@@ -46,6 +46,8 @@ typedef struct eq_filter_ctrl {
     double bandwidth_preferred;
     double freq_exp;
 
+    IIRFilterType filter_type; /* duplicates value in eq->group[n] */
+
     APINode api_node;
     /* Endpoint filter_active_ep; */
     Endpoint freq_ep;
@@ -53,6 +55,7 @@ typedef struct eq_filter_ctrl {
     Endpoint freq_amp_ep;
     Endpoint bandwidth_scalar_ep;
     Endpoint bandwidth_preferred_ep;
+    Endpoint filter_type_ep;
     int x;
     int y;
     char label_str[EQ_CTRL_LABEL_BUFLEN];

@@ -182,9 +182,6 @@ static const char *helpstr = "\
 
 int main(int argc, char **argv)
 {
-
-    fprintf(stderr, "Size of double: %lu; size of uint8_t: %lu, sizeof SharedDoubleMax8192: %lu\n", sizeof(double), sizeof(uint8_t), sizeof(SharedDoubleMax8192));
-    return 0;
     const char *command_line_arg = NULL;
     if (argc > 2) {
 	fprintf(stderr, "%s\n", usagestr);

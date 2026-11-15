@@ -27,9 +27,10 @@
 #define IIR_MAX_DEGREE 10
 
 typedef enum iir_filter_type {
-    IIR_LOWSHELF=0,
-    IIR_PEAKNOTCH=1,
-    IIR_HIGHSHELF=2,
+    IIR_LOWSHELF,
+    IIR_PEAKNOTCH,
+    IIR_HIGHSHELF,
+    NUM_IIR_FILTER_TYPES    
 } IIRFilterType;
 
 typedef struct iir_filter {
@@ -42,14 +43,14 @@ typedef struct iir_filter {
     double **mem_out;
     int mem_index[2];
 
-    bool bypass;
+    _Atomic bool bypass;
     /* int memOut_index; */
 
     struct freq_plot *fp;
     double *freq_resp;
     /* double freq_resp[IIR_FREQPLOT_RESOLUTION]; */
 
-    bool freq_resp_stale;
+    _Atomic bool freq_resp_stale;
     /* double complex pole_zero[2]; */
     double complex poles[IIR_MAX_DEGREE];
     uint8_t num_poles;

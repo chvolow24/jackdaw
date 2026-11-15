@@ -155,7 +155,7 @@ typedef struct track {
 
 
     void *_Atomic midi_out;
-    enum midi_out_type midi_out_type;
+    _Atomic enum midi_out_type midi_out_type;
     Synth *synth; /* Pointer will be duplicated in midi_out */
 
     MIDIEventRingBuf note_offs;

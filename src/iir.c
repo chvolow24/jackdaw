@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "atomic.h"
 #include "consts.h"
 #include "dsp_utils.h"
 #include "iir.h"
@@ -702,7 +703,7 @@ void iir_group_update_freq_resp(IIRGroup *group)
 {
     if (!group->fp) return;
     for (int i=0; i<group->num_filters; i++) {
-	if (!group->filters[i].bypass && group->filters[i].freq_resp_stale) {
+	if (!aldr(&group->filters[i].bypass) && aldr(&group->filters[i].freq_resp_stale)) {
 	    iir_reset_freq_resp(group->filters + i);
 	}
     }

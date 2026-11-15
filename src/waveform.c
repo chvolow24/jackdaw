@@ -225,6 +225,21 @@ void waveform_freq_plot_add_linear_plot(struct freq_plot *fp, int len, double *a
     fp->num_linear_plots++;
 }
 
+void waveform_freq_plot_add_linear_plot2(struct freq_plot *fp, int len, SharedDoubleMax8192 *arr, SDL_Color *color)
+{
+    /* if (fp->num_linear_plots == MAX_LINEAR_PLOTS) { */
+    /*     fprintf(stderr, "ERROR: already reached max num linear plots %d\n", MAX_LINEAR_PLOTS); */
+    /*     return; */
+    /* } */
+    /* fp->linear_plots[fp->num_linear_plots] = arr; */
+    /* fp->linear_plot_lens[fp->num_linear_plots] = len; */
+    /* fp->linear_plot_colors[fp->num_linear_plots] = color; */
+    /* fp->linear_plot_mins[fp->num_linear_plots] = 0.0; */
+    /* fp->linear_plot_ranges[fp->num_linear_plots] = 1.0; */
+    /* fp->num_linear_plots++; */
+}
+
+
 void waveform_destroy_freq_plot(struct freq_plot *fp)
 {
     if (fp->tic_cache) {

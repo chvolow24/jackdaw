@@ -20,7 +20,7 @@
 #ifndef JDAW_WAVEFORM_H
 #define JDAW_WAVEFORM_H
 
-#define MAX_LINEAR_PLOTS 10
+#define MAX_LINEAR_PLOTS 4
 #define SFPP_THRESHOLD 15.5
 
 #include <pthread.h>
@@ -66,6 +66,13 @@ struct freq_plot {
     SDL_Color *linear_plot_colors[MAX_LINEAR_PLOTS];
     double linear_plot_mins[MAX_LINEAR_PLOTS];
     double linear_plot_ranges[MAX_LINEAR_PLOTS];
+
+    SharedDoubleMax8192 *linear_plots2[MAX_LINEAR_PLOTS];
+    int num_linear_plots2;
+    int linear_plot_lens2;
+    SDL_Color *linear_plot_colors2[MAX_LINEAR_PLOTS];
+    double linear_plot_mins2[MAX_LINEAR_PLOTS];
+    double linear_plot_ranges2[MAX_LINEAR_PLOTS];    
     
     Layout *container;
     int num_tics;

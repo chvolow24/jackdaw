@@ -37,7 +37,7 @@ typedef struct effect Effect;
 typedef struct eq EQ;
 typedef struct eq_filter_ctrl {
     EQ *eq;
-    bool filter_active;
+    _Atomic bool filter_active;
     int index;
     double freq_amp_raw[2];
     /* double freq_raw; */

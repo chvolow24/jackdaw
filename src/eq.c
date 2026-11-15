@@ -104,14 +104,13 @@ static void eq_gui_cb(Endpoint *ep)
     EQ *eq = ep->xarg1;
     EQFilterCtrl *ctrl = ep->xarg2;
     if (eq->fp) {
-	ctrl->x = logscale_x_abs(&eq->fp->x_axis, ctrl->freq_amp_raw[0] * eq->fp->x_axis.max_scaled);
-        ctrl->y = waveform_freq_plot_y_abs_from_amp(eq->fp, ctrl->freq_amp_raw[1], 0, true);
-        /* amp_raw = waveform_freq_plot_amp_from_y_abs(eq->fp, mousep.y, 0, true); */
-        /* ctrl->y = logscale */
-	/* ctrl->y = waveform_amp_from_ */
-	/* ctrl->x = waveform_freq_plot_x_abs_from_freq(eq->fp, ctrl->freq_amp_raw[0]); */
-	/* ctrl->y = waveform_freq_plot_y_abs_from_amp(eq->fp, ctrl->freq_amp_raw[1], 0, true); */
-	Value v = {.double_pair_v = {ctrl->freq_amp_raw[0], ctrl->freq_amp_raw[1]}};
+        Value freq_amp_val = endpoint_read(&ctrl->freq_amp_ep, NULL);
+        double freq_amp[2];
+        memcpy(freq_amp, freq_amp_val.double_pair_v, 2 * sizeof(double));
+        
+	ctrl->x = logscale_x_abs(&eq->fp->x_axis, freq_amp[0] * eq->fp->x_axis.max_scaled);
+        ctrl->y = waveform_freq_plot_y_abs_from_amp(eq->fp, freq_amp[1], 0, true);
+	Value v = {.double_pair_v = {freq_amp[0], freq_amp[1]}};
 	if (ep->display_label) {
 	    label_move(ctrl->label, ctrl->x + 10 * main_win->dpi_scale_factor, ctrl->y - 10 * main_win->dpi_scale_factor);
 	    label_reset(ctrl->label, v);
@@ -411,10 +410,10 @@ void eq_select_ctrl(EQ *eq, int index)
 
 void eq_toggle_selected_filter_active(EQ *eq)
 {
-    bool *b = &eq->ctrls[eq->selected_ctrl].filter_active;
-    *b = eq->selected_filter_active;
-    /* eq->selected_filter_active = *b; */
-    if (!*b) {
+    _Atomic bool *b = &eq->ctrls[eq->selected_ctrl].filter_active;
+    bool val = eq->selected_filter_active ? true : false;
+    astrr(b, val);    
+    if (!val) {
 	eq->group.filters[eq->selected_ctrl].bypass = true;
 	iir_set_neutral_freq_resp(eq->group.filters + eq->selected_ctrl);
     } else {
@@ -435,11 +434,11 @@ void eq_set_filter_from_ctrl(EQ *eq, int index)
     double amp_raw = ctrl->freq_amp_raw[1];
     static const double epsilon = 1e-9;
     if (fabs(amp_raw - 1.0) < epsilon) {
-	eq->ctrls[index].filter_active = false;
+	astrr(&eq->ctrls[index].filter_active, false);
 	eq->selected_filter_active = false;
 	/* eq_select_ctrl(eq, index); */
     } else {
-	eq->ctrls[index].filter_active = true;
+	astrr(&eq->ctrls[index].filter_active,  true);
 	eq->selected_filter_active = true;
 	/* eq_select_ctrl(eq, index); */
     }
@@ -624,7 +623,7 @@ static double eq_sample(EQ *eq, double in, int channel)
 {
     /* if (!eq->active) return in; */
     for (int i=0; i<eq->group.num_filters; i++) {
-	if (eq->ctrls[i].filter_active) {
+	if (aldr(&eq->ctrls[i].filter_active)) {
 	    in = iir_sample(eq->group.filters + i, in, channel);
 	}
     }
@@ -729,7 +728,7 @@ float eq_buf_apply(void *eq_v, float *restrict buf, int len, int channel, float 
 void eq_advance(EQ *eq, int channel)
 {
     for (int i=0; i<eq->group.num_filters; i++) {
-	if (eq->ctrls[i].filter_active) {
+	if (aldr(&eq->ctrls[i].filter_active)) {
 	    iir_advance(eq->group.filters + i, channel);
 	}
     }
@@ -750,7 +749,7 @@ void eq_draw(EQ *eq)
 {
     waveform_draw_freq_plot(eq->fp);
     for (int i=0; i<EQ_DEFAULT_NUM_FILTERS; i++) {
-	if (eq->effect->active && eq->ctrls[i].filter_active) {
+	if (eq->effect->active && aldr(&eq->ctrls[i].filter_active)) {
 	    SDL_SetRenderDrawColor(main_win->rend, sdl_colorp_expand((EQ_CTRL_COLORS_LIGHT + i)));
 	    geom_fill_circle(main_win->rend, eq->ctrls[i].x - EQ_CTRL_RAD, eq->ctrls[i].y - EQ_CTRL_RAD, EQ_CTRL_RAD);
 	    SDL_SetRenderDrawColor(main_win->rend, sdl_colorp_expand((EQ_CTRL_COLORS + i)));

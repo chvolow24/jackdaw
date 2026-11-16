@@ -24,6 +24,7 @@
 #include "logscale.h"
 #include "project.h"
 #include "session.h"
+#include "session_endpoint_ops.h"
 #include "value.h"
 #include "waveform.h"
 
@@ -60,7 +61,6 @@ static void eq_dsp_cb(Endpoint *ep)
 {
     EQ *eq = ep->xarg1;
     EQFilterCtrl *ctrl = ep->xarg2;
-
     ctrl->bandwidth_scalar = ctrl->bandwidth_preferred;
     eq_set_filter_from_ctrl(eq, ctrl - eq->ctrls);
     /* iir_group_update_freq_resp(&eq->group); */
@@ -103,14 +103,21 @@ static void eq_gui_cb(Endpoint *ep)
 	    label_reset(ctrl->label, v);
 	}
     }
+    int stale[] = {0, 0, 0, 0, 0, 0};
+    for (int i=0; i<EQ_DEFAULT_NUM_FILTERS; i++) {
+        if (eq->group.filters[i].freq_resp_stale) {
+            stale[i] = 1;
+        }
+    }
+    fprintf(stderr, "GUI cb update fp. stale? %d%d%d%d%d%d\n", stale[0], stale[1], stale[2], stale[3], stale[4], stale[5]);
     iir_group_update_freq_resp(&eq->group);
 }
-/* void eq_freq_dsp_cb(Endpoint *ep) */
-/* { */
-/*     EQ *eq = ep->xarg1; */
-/*     EQFilterCtrl *ctrl = ep->xarg2; */
-    
-/* } */
+
+static void selected_filter_active_gui_cb(Endpoint *ep)
+{
+    EQ *eq = ep->xarg1;
+    iir_group_update_freq_resp(&eq->group);
+}
 
 
 void eq_ctrl_label_fn(char *dst, size_t dstsize, Value val, ValType type)
@@ -126,14 +133,25 @@ void eq_ctrl_label_fn(char *dst, size_t dstsize, Value val, ValType type)
     /* fprintf(stderr, "LABLE: %s\n", dst); */
 }
 
-void eq_toggle_selected_filter_active(EQ *eq);
+static void eq_set_filter_active(EQ *eq, int index, bool active)
+{
+    fprintf(stderr, "Set filter %d %s\n", index, active ? "ACTIVE" : "inactive");
+    astrr(&eq->ctrls[index].filter_active, active);
+    astrr(&eq->group.filters[index].bypass, !active);
+    if (!active && eq->fp) {
+        fprintf(stderr, "\t->set neutral freq resp\n");
+        iir_set_neutral_freq_resp(&eq->group.filters[index]);
+    }
+    astrr(&eq->group.filters[index].freq_resp_stale, true);
+}
 
-/* TODO: Which thread does this cb belong to? */
-static void selected_filter_active_cb(Endpoint *ep)
+static void selected_filter_active_dsp_cb(Endpoint *ep)
 {
     EQ *eq = ep->xarg1;
-    eq_toggle_selected_filter_active(eq);
+    bool val = endpoint_read(ep, NULL).bool_v ? true : false;
+    eq_set_filter_active(eq, eq->selected_ctrl, val);
 }
+
 
 void eq_init(EQ *eq)
 {
@@ -186,9 +204,8 @@ void eq_init(EQ *eq)
 	"selected_filter_active",
 	"",
         JDAW_THREAD_DSP,
-	selected_filter_active_cb, NULL, NULL,
+	selected_filter_active_gui_cb, NULL, selected_filter_active_dsp_cb,
 	eq, NULL, NULL, NULL);
-    eq->selected_filter_active_ep.block_undo = true;
     endpoint_set_default_value(&eq->selected_filter_active_ep, (Value){.bool_v = true});
 
     static char api_ctrl_node_names[EQ_DEFAULT_NUM_FILTERS][12];
@@ -331,23 +348,10 @@ void eq_select_ctrl(EQ *eq, int index)
     /* eq->selected_filter_active = eq->ctrls[eq->selected_ctrl].filter_active; */
 }
 
-void eq_toggle_selected_filter_active(EQ *eq)
-{
-    _Atomic bool *b = &eq->ctrls[eq->selected_ctrl].filter_active;
-    bool val = endpoint_read(&eq->selected_filter_active_ep, NULL).bool_v ? true : false;
-    astrr(b, val);    
-    if (!val) {
-	astrr(&eq->group.filters[eq->selected_ctrl].bypass, true);
-        if (eq->fp) {
-            iir_set_neutral_freq_resp(eq->group.filters + eq->selected_ctrl);
-        }
-    } else {
-	astrr(&eq->group.filters[eq->selected_ctrl].bypass, false);
-	astrr(&eq->group.filters[eq->selected_ctrl].freq_resp_stale, true);
-    }
-}
-
-
+/* Called in:
+   - dot_jdaw.c [TODO: remove!]
+   - eq_dsp_cb
+*/
 void eq_set_filter_from_ctrl(EQ *eq, int index)
 {
     EQFilterCtrl *ctrl = eq->ctrls + index;
@@ -358,15 +362,12 @@ void eq_set_filter_from_ctrl(EQ *eq, int index)
     double amp_raw = ctrl->freq_amp_raw[1];
     static const double epsilon = 1e-9;
     if (fabs(amp_raw - 1.0) < epsilon) {
-	astrr(&eq->ctrls[index].filter_active, false);
         endpoint_write(&eq->selected_filter_active_ep, (Value){.bool_v = false}, true, true, true, false);
     } else {
-	astrr(&eq->ctrls[index].filter_active,  true);
         endpoint_write(&eq->selected_filter_active_ep, (Value){.bool_v = true}, true, true, true, false);
     }
     switch(filter->type) {
     case IIR_PEAKNOTCH: {
-
 	double bandwidth_scalar_adj;
 	double bandwidth = ctrl->bandwidth_scalar * freq_raw;
 	int ret = iir_set_coeffs_peaknotch(filter, freq_raw, amp_raw, bandwidth, &bandwidth_scalar_adj);
@@ -633,7 +634,7 @@ void eq_draw(EQ *eq)
 {
     waveform_draw_freq_plot(eq->fp);
     for (int i=0; i<EQ_DEFAULT_NUM_FILTERS; i++) {
-	if (eq->effect->active && aldr(&eq->ctrls[i].filter_active)) {
+	if (endpoint_read(&eq->effect->active_ep, NULL).bool_v && aldr(&eq->ctrls[i].filter_active)) {
 	    SDL_SetRenderDrawColor(main_win->rend, sdl_colorp_expand((EQ_CTRL_COLORS_LIGHT + i)));
 	    geom_fill_circle(main_win->rend, eq->ctrls[i].x - EQ_CTRL_RAD, eq->ctrls[i].y - EQ_CTRL_RAD, EQ_CTRL_RAD);
 	    SDL_SetRenderDrawColor(main_win->rend, sdl_colorp_expand((EQ_CTRL_COLORS + i)));

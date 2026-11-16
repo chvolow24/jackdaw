@@ -353,11 +353,12 @@ int iir_set_coeffs_lowpass(IIRFilter *iir, double freq)
 
     biquad_normalize_and_set_coeffs(iir, 1, 1);
 
-    if (iir->fp) {
-	iir_reset_freq_resp(iir);
-    } else {
-	iir->freq_resp_stale = true;
-    }
+    iir->freq_resp_stale = true;
+    /* if (iir->fp) { */
+    /*     iir_reset_freq_resp(iir); */
+    /* } else { */
+    /*     iir->freq_resp_stale = true; */
+    /* } */
     return 0;
 }
 
@@ -376,12 +377,13 @@ int iir_set_coeffs_highpass(IIRFilter *iir, double freq)
     iir->num_zeros = 1;
 
     biquad_normalize_and_set_coeffs(iir, 0, 1);
-    
-    if (iir->fp) {
-	iir_reset_freq_resp(iir);
-    } else {
-	iir->freq_resp_stale = true;
-    }
+
+    iir->freq_resp_stale = true;
+    /* if (iir->fp) { */
+    /*     iir_reset_freq_resp(iir); */
+    /* } else { */
+    /*     iir->freq_resp_stale = true; */
+    /* } */
     return 0;
 }
 
@@ -410,12 +412,12 @@ int iir_set_coeffs_lowshelf(IIRFilter *iir, double freq, double amp)
     biquad_normalize_and_set_coeffs(iir, 1, amp);
     /* fprintf(stderr, "norm: %f+%fi\n", creal(iir->normalization_constant), cimag(iir->normalization_constant)); */
 
-
-    if (iir->fp) {
-	iir_reset_freq_resp(iir);
-    } else {
-	iir->freq_resp_stale = true;
-    }
+    iir->freq_resp_stale = true;
+    /* if (iir->fp) { */
+    /*     iir_reset_freq_resp(iir); */
+    /* } else { */
+    /*     iir->freq_resp_stale = true; */
+    /* } */
     return 0;
 }
 
@@ -501,16 +503,18 @@ int iir_set_coeffs_highshelf_double(IIRFilter *iir1, IIRFilter *iir2, double fre
     biquad_normalize_and_set_coeffs(iir2, 1, 1);
     /* double_biquad_normalize_and_set_coeffs(iir, 1, 1); */
     /* fprintf(stderr, "norm: %f+%fi\n", creal(iir->normalization_constant), cimag(iir->normalization_constant)); */
-    if (iir1->fp) {
-	iir_reset_freq_resp(iir1);
-    } else {
-	iir1->freq_resp_stale = true;
-    }
-    if (iir2->fp) {
-	iir_reset_freq_resp(iir2);
-    } else {
-	iir2->freq_resp_stale = true;
-    }
+    iir1->freq_resp_stale = true;
+    iir2->freq_resp_stale = true;
+    /* if (iir1->fp) { */
+    /*     iir_reset_freq_resp(iir1); */
+    /* } else { */
+    /*     iir1->freq_resp_stale = true; */
+    /* } */
+    /* if (iir2->fp) { */
+    /*     iir_reset_freq_resp(iir2); */
+    /* } else { */
+    /*     iir2->freq_resp_stale = true; */
+    /* } */
 
     return 0;
 }
@@ -539,11 +543,12 @@ int iir_set_coeffs_highshelf(IIRFilter *iir, double freq, double amp)
     /* fprintf(stderr, "\nfreq: %f; amp: %f; pole: %f+%fi, zero: %f+%fi\n", freq, amp, creal(p0), cimag(p0), creal(z0), cimag(z0)); */
     biquad_normalize_and_set_coeffs(iir, 1, 1);
     /* fprintf(stderr, "norm: %f+%fi\n", creal(iir->normalization_constant), cimag(iir->normalization_constant)); */
-    if (iir->fp) {
-	iir_reset_freq_resp(iir);
-    } else {
-	iir->freq_resp_stale = true;
-    }
+    iir->freq_resp_stale = true;
+    /* if (iir->fp) { */
+    /*     iir_reset_freq_resp(iir); */
+    /* } else { */
+    /*     iir->freq_resp_stale = true; */
+    /* } */
     return 0;
 }
 
@@ -573,12 +578,13 @@ int iir_set_coeffs_lowpass_chebyshev(IIRFilter *iir, double freq, double amp)
 
     /* fprintf(stderr, "\nfreq: %f; amp: %f; pole: %f+%fi, zero: %f+%fi\n", freq, amp, creal(p0), cimag(p0), creal(z0), cimag(z0)); */
     biquad_normalize_and_set_coeffs(iir, 1, 1);
+    iir->freq_resp_stale = true;
     /* fprintf(stderr, "norm: %f+%fi\n", creal(iir->normalization_constant), cimag(iir->normalization_constant)); */
-    if (iir->fp) {
-	iir_reset_freq_resp(iir);
-    } else {
-	iir->freq_resp_stale = true;
-    }
+    /* if (iir->fp) { */
+    /*     iir_reset_freq_resp(iir); */
+    /* } else { */
+    /*     iir->freq_resp_stale = true; */
+    /* } */
     return 0;
 }
 
@@ -620,11 +626,11 @@ int iir_set_coeffs_peaknotch(IIRFilter *iir, double freq, double amp, double ban
 
     biquad_normalize_and_set_coeffs(iir, 1, 1);
     
-    if (iir->fp) {
-	iir_reset_freq_resp(iir);
-    } else {
-	iir->freq_resp_stale = true;
-    }
+    iir->freq_resp_stale = true;
+    /* if (iir->fp) { */
+    /*     iir_reset_freq_resp(iir); */
+    /* } else { */
+    /* } */
     /* iir->normalization_constant = 1.0; */
 
     return ret;

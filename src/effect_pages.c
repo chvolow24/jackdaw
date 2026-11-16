@@ -203,7 +203,6 @@ void effect_chain_open_tabview(EffectChain *ec)
 void filter_tabs_canvas_draw(void *draw_arg1, void *draw_arg2);
 static void compressor_canvas_draw(void *draw_arg1, void *draw_arg2);
 bool filter_tabs_onclick(SDL_Point p, Canvas *self, void *draw_arg1, void *draw_arg2);
-int filter_active_toggle(void *self, void *target);
 void filter_type_selector_canvas_draw(void *draw_arg1, void *draw_arg2);
 int filter_type_button_action(void *self, void *target);
 
@@ -299,15 +298,9 @@ static Page *add_eq_page(EQ *eq, EffectChain *ec, TabView *tv)
 	textbox_reset_full(tab_tb);
 
     }
-    /* memset(&p, '\0', sizeof(p)); */
-
-    /* p.toggle_p.action = filter_active_toggle; */
-    /* p.toggle_p.target = eq; */
-    /* p.toggle_p.value = &eq->selected_filter_active; */
     eq->selected_filter_active = eq->ctrls[eq->selected_ctrl].filter_active;
     p.toggle_p.ep = &eq->selected_filter_active_ep;
     page_add_el(page, EL_TOGGLE, p, "", "filter_active_toggle");
-    /* fprintf(stderr, "SELECTED FILTER ACTIVE STATE: %d\n", eq->selected_filter_active); */
 
     p.textbox_p.font = main_win->mono_font;
     p.textbox_p.text_size = 14;
@@ -1070,13 +1063,6 @@ bool filter_tabs_onclick(SDL_Point p, Canvas *self, void *draw_arg1, void *draw_
 	}
     }
     return false;    
-}
-
-int filter_active_toggle(void *self, void *target)
-{
-    EQ *eq = target;
-    eq_toggle_selected_filter_active(eq);
-    return 0;
 }
 
 void filter_type_selector_canvas_draw(void *draw_arg1, void *draw_arg2)

@@ -148,8 +148,10 @@ static void eq_set_filter_active(EQ *eq, int index, bool active)
 static void selected_filter_active_dsp_cb(Endpoint *ep)
 {
     EQ *eq = ep->xarg1;
-    bool val = endpoint_read(ep, NULL).bool_v ? true : false;
-    eq_set_filter_active(eq, eq->selected_ctrl, val);
+    uint8_t val = endpoint_read(ep, NULL).uint8_v;
+    bool active = val & 0xF0;
+    uint8_t index = val & 0x0F;
+    eq_set_filter_active(eq, index, active);    
 }
 
 
@@ -199,14 +201,14 @@ void eq_init(EQ *eq)
 
     endpoint_init(
 	&eq->selected_filter_active_ep,
-	&eq->selected_filter_active,
-	JDAW_BOOL,
+	&eq->selected_filter_active_raw,
+	JDAW_UINT8,
 	"selected_filter_active",
 	"",
         JDAW_THREAD_DSP,
 	selected_filter_active_gui_cb, NULL, selected_filter_active_dsp_cb,
 	eq, NULL, NULL, NULL);
-    endpoint_set_default_value(&eq->selected_filter_active_ep, (Value){.bool_v = true});
+    endpoint_set_default_value(&eq->selected_filter_active_ep, (Value){.int_v = 0});
 
     static char api_ctrl_node_names[EQ_DEFAULT_NUM_FILTERS][12];
 		  		  
@@ -343,8 +345,11 @@ void eq_deinit(EQ *eq)
 
 void eq_select_ctrl(EQ *eq, int index)
 {
-    eq->selected_ctrl = index;
-    endpoint_write(&eq->selected_filter_active_ep, (Value){.bool_v = eq->ctrls[eq->selected_ctrl].filter_active}, true, true, true, true);
+    uint8_t current_val = endpoint_read(&eq->selected_filter_active_ep, NULL).uint8_v;
+    uint8_t new_val = (current_val & 0xF0) | ((uint8_t)index);
+    endpoint_write(&eq->selected_filter_active_ep, (Value){.uint8_v = new_val}, true, true, true, false);
+    /* eq->selected_ctrl = index; */
+    /* endpoint_write(&eq->selected_filter_active_ep, (Value){.bool_v = eq->ctrls[eq->selected_ctrl].filter_active}, true, true, true, true); */
     /* eq->selected_filter_active = eq->ctrls[eq->selected_ctrl].filter_active; */
 }
 
@@ -362,9 +367,11 @@ void eq_set_filter_from_ctrl(EQ *eq, int index)
     double amp_raw = ctrl->freq_amp_raw[1];
     static const double epsilon = 1e-9;
     if (fabs(amp_raw - 1.0) < epsilon) {
-        endpoint_write(&eq->selected_filter_active_ep, (Value){.bool_v = false}, true, true, true, false);
+        uint8_t value = 0x00 | index;
+        endpoint_write(&eq->selected_filter_active_ep, (Value){.uint8_v = value}, true, true, true, false);
     } else {
-        endpoint_write(&eq->selected_filter_active_ep, (Value){.bool_v = true}, true, true, true, false);
+        uint8_t value = 0xF0 | index;
+        endpoint_write(&eq->selected_filter_active_ep, (Value){.uint8_v = value}, true, true, true, false);
     }
     switch(filter->type) {
     case IIR_PEAKNOTCH: {
@@ -391,7 +398,8 @@ void eq_set_filter_from_ctrl(EQ *eq, int index)
 /* Called from button action */
 void eq_set_filter_type(EQ *eq, IIRFilterType t)
 {
-    EQFilterCtrl *ctrl = eq->ctrls + eq->selected_ctrl;
+    uint8_t sel_filter_active = endpoint_read(&eq->selected_filter_active_ep, NULL).uint8_v;
+    EQFilterCtrl *ctrl = eq->ctrls + (sel_filter_active & 0x0F);
     endpoint_write(&ctrl->filter_type_ep, (Value){.int_v = t}, true, true, true, true);
 }
 
@@ -644,7 +652,9 @@ void eq_draw(EQ *eq)
 	label_draw(eq->ctrls[i].label);
 	
 	geom_draw_circle(main_win->rend, eq->ctrls[i].x - EQ_CTRL_RAD, eq->ctrls[i].y - EQ_CTRL_RAD, EQ_CTRL_RAD);
-	if (i == eq->selected_ctrl) {
+        uint8_t sel_filter_active = endpoint_read(&eq->selected_filter_active_ep, NULL).uint8_v;
+        uint8_t sel_filter_index = sel_filter_active & 0x0F;
+	if (i == sel_filter_index) {
 	    SDL_SetRenderDrawColor(main_win->rend, 255, 255, 255, 255);
 	    geom_draw_circle(main_win->rend, eq->ctrls[i].x - EQ_SEL_CTRL_RAD, eq->ctrls[i].y - EQ_SEL_CTRL_RAD, EQ_SEL_CTRL_RAD);
 	}

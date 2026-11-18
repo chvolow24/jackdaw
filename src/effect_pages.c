@@ -298,7 +298,6 @@ static Page *add_eq_page(EQ *eq, EffectChain *ec, TabView *tv)
 	textbox_reset_full(tab_tb);
 
     }
-    eq->selected_filter_active = eq->ctrls[eq->selected_ctrl].filter_active;
     p.toggle_p.ep = &eq->selected_filter_active_ep;
     page_add_el(page, EL_TOGGLE, p, "", "filter_active_toggle");
 
@@ -1028,11 +1027,15 @@ void filter_tabs_canvas_draw(void *draw_arg1, void *draw_arg2)
 {
     EQ *eq = draw_arg1;
     Layout *filter_tabs = draw_arg2;
+    uint8_t sel_filter_active = endpoint_read(&eq->selected_filter_active_ep, NULL).uint8_v;
+    int sel_filter_index = sel_filter_active & 0x0F;
+
     for (int i=0; i<filter_tabs->num_children; i++) {
 	/* fprintf(stderr, "check %d\n", i); */
-	if (i == eq->selected_ctrl) {
+
+	if (i == sel_filter_index) {
 	    /* fprintf(stderr, "found !\n"); */
-	    if (eq->ctrls[eq->selected_ctrl].filter_active) {
+	    if (eq->ctrls[sel_filter_index].filter_active) {
 		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(EQ_CTRL_COLORS_LIGHT[i]));
 	    } else {
 		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(filter_selected_inactive));
@@ -1069,7 +1072,9 @@ void filter_type_selector_canvas_draw(void *draw_arg1, void *draw_arg2)
 {
     EQ *eq = draw_arg1;
     Layout *selector_lt = draw_arg2;
-    IIRFilterType t = endpoint_read(&eq->ctrls[eq->selected_ctrl].filter_type_ep, NULL).int_v;
+    uint8_t sel_filter_active = endpoint_read(&eq->selected_filter_active_ep, NULL).uint8_v;
+    int sel_filter_index = sel_filter_active & 0x0F;
+    IIRFilterType t = endpoint_read(&eq->ctrls[sel_filter_index].filter_type_ep, NULL).int_v;
     Layout *sbutton_lt = selector_lt->children[t];
     /* SDL_Rect r = sbutton_lt->rect; */
     /* fprintf(stderr, "Found layout to draw: %p, %d %d %d %d\n", sbutton_lt, r.x, r.y, r.w, r.h); */

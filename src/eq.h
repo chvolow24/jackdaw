@@ -74,8 +74,9 @@ typedef struct eq {
     int output_freq_mag_len;
     struct freq_plot *fp;
     EQFilterCtrl ctrls[EQ_DEFAULT_NUM_FILTERS];
-    int selected_ctrl;
+    /* int selected_ctrl; */
     bool selected_filter_active;
+    uint8_t selected_filter_active_raw; /* & 0xF0 => active bool, & 0x0F => index */
     Endpoint selected_filter_active_ep;
     /* Track *track; */
 

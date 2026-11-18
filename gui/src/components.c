@@ -695,7 +695,12 @@ void toggle_draw(Toggle *tgl)
     SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(slider_bar_container_bckgrnd));
     SDL_RenderFillRect(main_win->rend, &tgl->layout->children[0]->rect);
     bool value = false;
-    if (tgl->endpoint) value = endpoint_read(tgl->endpoint, NULL).bool_v;
+    if (tgl->endpoint) {
+        ValType t;
+        Value v = endpoint_read(tgl->endpoint, &t);
+        if (t == JDAW_BOOL) value = v.bool_v;
+        if (t == JDAW_UINT8) value = v.uint8_v & 0xF0;
+    }
     else value = &(tgl->value);
     if (value) {
 	SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(slider_bar_color));
@@ -707,9 +712,20 @@ void toggle_draw(Toggle *tgl)
 bool toggle_toggle(Toggle *toggle)
 {
     if (toggle->endpoint) {
-	bool current = endpoint_read(toggle->endpoint, NULL).bool_v;
-	endpoint_write(toggle->endpoint, (Value){.bool_v = !current}, true, true, true, true);
-	return !current;
+        ValType t;
+        bool val;
+	Value current = endpoint_read(toggle->endpoint, &t);
+        if (t == JDAW_BOOL) {
+            val = !current.bool_v;
+            endpoint_write(toggle->endpoint, (Value){.bool_v = val}, true, true, true, true);
+        } else {
+            uint8_t raw = current.uint8_v;
+            val = !(raw & 0xF0);
+            uint8_t write_val = (raw & 0x0F);
+            if (val) write_val |= 0xF0;
+            endpoint_write(toggle->endpoint, (Value){.uint8_v = write_val}, true, true, true, true);
+        }
+	return val;
     } else {
 	*(toggle->value) = !(*toggle->value);
 	if (toggle->action) {

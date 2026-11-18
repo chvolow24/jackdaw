@@ -46,4 +46,86 @@ typedef union shared_float_max_8192 {
     SharedFloat8192 sf8192 ;
 } SharedFloatMax8192;
 
+
+#define shared_double_arr_init(shared_double_obj, len)          \
+    switch (len) {                                              \
+    case 64:                                                    \
+        shared_double64_init(&shared_double_obj.sd64);          \
+        break;                                                  \
+    case 128:                                                   \
+        shared_double128_init(&shared_double_obj.sd128);        \
+        break;                                                  \
+    case 256:                                                   \
+        shared_double256_init(&shared_double_obj.sd256);        \
+        break;                                                  \
+    case 512:                                                   \
+        shared_double512_init(&shared_double_obj.sd512);        \
+        break;                                                  \
+    case 1024:                                                  \
+        shared_double1024_init(&shared_double_obj.sd1024);      \
+        break;                                                  \
+    case 2048:                                                  \
+        shared_double2048_init(&shared_double_obj.sd2048);      \
+        break;                                                  \
+    case 4096:                                                  \
+        shared_double4096_init(&shared_double_obj.sd4096);      \
+        break;                                                  \
+    case 8192:                                                  \
+        shared_double8192_init(&shared_double_obj.sd8192);      \
+        break;                                                  \
+    }
+
+
+#define shared_double_arr_write(shared_double_ptr, src, len)    \
+    switch (len) {                                          \
+    case 64: {                                              \
+        double64 d;                                         \
+        memcpy(d.arr, src, len * sizeof(double));           \
+        shared_double64_write(&(shared_double_ptr)->sd64, d);               \
+    }                                                       \
+        break;                                              \
+    case 128: {                                             \
+        double128 d;                                        \
+        memcpy(d.arr, src, len * sizeof(double));           \
+        shared_double128_write(&(shared_double_ptr)->sd128, d);             \
+    }                                                       \
+        break;                                              \
+    case 256: {                                             \
+        double256 d;                                        \
+        memcpy(d.arr, src, len * sizeof(double));           \
+        shared_double256_write(&(shared_double_ptr)->sd256, d);             \
+    }                                                       \
+        break;                                              \
+    case 512: {                                             \
+        double512 d;                                        \
+        memcpy(d.arr, src, len * sizeof(double));           \
+        shared_double512_write(&(shared_double_ptr)->sd512, d);             \
+    }                                                       \
+        break;                                              \
+    case 1024: {                                            \
+        double1024 d;                                       \
+        memcpy(d.arr, src, len * sizeof(double));           \
+        shared_double1024_write(&(shared_double_ptr)->sd1024, d);           \
+    }                                                       \
+        break;                                              \
+    case 2048: {                                            \
+        double2048 d;                                       \
+        memcpy(d.arr, src, len * sizeof(double));           \
+        shared_double2048_write(&(shared_double_ptr)->sd2048, d);           \
+    }                                                       \
+        break;                                              \
+    case 4096: {                                            \
+        double4096 d;                                       \
+        memcpy(d.arr, src, len * sizeof(double));           \
+        shared_double4096_write(&(shared_double_ptr)->sd4096, d);           \
+    }                                                       \
+        break;                                              \
+    case 8192: {                                            \
+        double8192 d;                                       \
+        memcpy(d.arr, src, len * sizeof(double));           \
+        shared_double8192_write(&(shared_double_ptr)->sd8192, d);           \
+    }                                                       \
+        break;                                              \
+    }
+
 #endif

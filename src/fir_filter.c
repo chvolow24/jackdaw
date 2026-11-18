@@ -24,6 +24,7 @@
 #include "label.h"
 #include "page.h"
 #include "project.h"
+#include "shared_fixed_array.h"
 
 #define CUTOFF_CTRL_DEFAULT 0.5
 #define BANDWIDTH_CTRL_DEFAULT 0.5
@@ -138,8 +139,8 @@ static void FIR_filter_alloc_buffers(FIRFilter *filter)
     if (!filter->frequency_response)
 	filter->frequency_response = calloc(1, sizeof(double complex) * filter->frequency_response_len);
 
-    if (!filter->frequency_response_mag)
-	filter->frequency_response_mag = calloc(1, sizeof(double) * filter->frequency_response_len);
+    /* if (!filter->frequency_response_mag) */
+    /*     filter->frequency_response_mag = calloc(1, sizeof(double) * filter->frequency_response_len); */
 
     /* filter->overlap_len =  = 1; */
     if (!filter->overlap_buffer_L)
@@ -147,29 +148,9 @@ static void FIR_filter_alloc_buffers(FIRFilter *filter)
     if (!filter->overlap_buffer_R)
 	filter->overlap_buffer_R = calloc(1, sizeof(float) * max_irlen - 1);
 
-    if (!filter->output_freq_mag_L)
-	filter->output_freq_mag_L = calloc(filter->frequency_response_len, sizeof(double));
-
-    if (!filter->output_freq_mag_R)
-	filter->output_freq_mag_R = calloc(filter->frequency_response_len, sizeof(double));
-
-
-	
-    /* SDL_LockMutex(filter->lock); */
-    /* if (filter->impulse_response) free(filter->impulse_response); */
-    /* filter->impulse_response = calloc(1, sizeof(double) * filter->impulse_response_len); */
-    /* if (filter->frequency_response) free(filter->frequency_response); */
-    /* filter->frequency_response = calloc(1, sizeof(double complex) * filter->frequency_response_len); */
-    /* if (filter->frequency_response_mag) free(filter->frequency_response_mag); */
-    /* filter->frequency_response_mag = calloc(1, sizeof(double) * filter->frequency_response_len); */
-    /* filter->overlap_len = filter->impulse_response_len - 1; */
-    /* if (filter->overlap_buffer_L) free(filter->overlap_buffer_L); */
-    /* filter->overlap_buffer_L = calloc(1, sizeof(double) * filter->overlap_len); */
-    /* if (filter->overlap_buffer_R) free(filter->overlap_buffer_R); */
-    /* filter->overlap_buffer_R = calloc(1, sizeof(double) * filter->overlap_len); */
-    /* pthread_mutex_unlock(&filter->lock); */
-    /* pthread_mutex_unlock(&filter->lock); */
-
+    shared_double_arr_init(filter->output_freq_mag_L, filter->frequency_response_len / 2);
+    shared_double_arr_init(filter->output_freq_mag_R, filter->frequency_response_len / 2);
+    shared_double_arr_init(filter->frequency_response_mag, filter->frequency_response_len / 2);
 }
 void filter_init(FIRFilter *filter, FilterType type, uint16_t impulse_response_len, uint16_t frequency_response_len, uint16_t chunk_len) 
 {
@@ -312,7 +293,10 @@ void filter_set_params(FIRFilter *filter, FilterType type, double cutoff_ctrl, d
 
 
     FFT_unscaled(IR_zero_padded, filter->frequency_response, filter->frequency_response_len);
-    get_magnitude(filter->frequency_response, filter->frequency_response_mag, filter->frequency_response_len);
+    double freq_response_mag[filter->frequency_response_len / 2];
+    get_magnitude(filter->frequency_response, freq_response_mag, filter->frequency_response_len / 2);
+    shared_double_arr_write(&filter->frequency_response_mag, freq_response_mag, filter->frequency_response_len / 2);
+    /* get_magnitude(filter->frequency_response, filter->frequency_response_mag, filter->frequency_response_len); */
     /* pthread_mutex_unlock(&filter->lock); */
     /* free(IR_zero_padded); */
 }
@@ -330,8 +314,9 @@ void filter_set_arbitrary_IR(FIRFilter *filter, float *ir_in, int ir_len)
 	}
     }
     FFT_unscaled(ir_zero_padded, filter->frequency_response, filter->frequency_response_len);
-    get_magnitude(filter->frequency_response, filter->frequency_response_mag, filter->frequency_response_len);
-    /* pthread_mutex_unlock(&filter->lock); */
+    double freq_response_mag[filter->frequency_response_len / 2];
+    get_magnitude(filter->frequency_response, freq_response_mag, filter->frequency_response_len / 2);
+    shared_double_arr_write(&filter->frequency_response_mag, freq_response_mag, filter->frequency_response_len / 2);
 
 }
 
@@ -409,20 +394,6 @@ void filter_deinit(FIRFilter *filter)
     if (filter->overlap_buffer_R) {
 	free(filter->overlap_buffer_R);
     }
-    if (filter->frequency_response_mag) {
-	free(filter->frequency_response_mag);
-    }
-    if (filter->output_freq_mag_L) {
-	free(filter->output_freq_mag_L);
-    }
-    if (filter->output_freq_mag_R) {
-	free(filter->output_freq_mag_R);
-    }
-    /* if (filter->lock) { */
-    /* pthread_mutex_destroy(&filter->lock); */
-	/* SDL_DestroyMutex(filter->lock); */
-    /* } */
-    /* free(filter); */
 }
 
 
@@ -454,8 +425,11 @@ static void apply_filter(FIRFilter *filter, uint8_t channel, uint16_t chunk_size
        compensatory scaling. This frequency plot will therefore look
        more jagged than the one displayed on an EQ effect */
     if (filter->effect && aldr(&filter->effect->page_onscreen)) {
-	double *dst = channel == 0 ? filter->output_freq_mag_L : filter->output_freq_mag_R;
+        double dst[padded_len];
+	/* double *dst = channel == 0 ? filter->output_freq_mag_L : filter->output_freq_mag_R; */
 	get_magnitude(freq_domain, dst, padded_len);
+        SharedDoubleMax8192 *shared = channel == 0 ? &filter->output_freq_mag_L : &filter->output_freq_mag_R;
+        shared_double_arr_write(shared, dst, filter->frequency_response_len / 2);
     }
 
     double complex time_domain[padded_len];

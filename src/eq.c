@@ -556,56 +556,7 @@ float eq_buf_apply(void *eq_v, float *restrict buf, int len, int channel, float 
         SharedDoubleMax8192 *sdu = channel == 0 ? &eq->output_freq_mag_L : &eq->output_freq_mag_R;
         double dst[len * 2];
         get_magnitude(freq, dst, len * 2);
-        switch (len) {
-        case 64: {
-            double64 d;
-            memcpy(d.arr, dst, len * sizeof(double));
-            shared_double64_write(&sdu->sd64, d);
-        }
-            break;
-        case 128: {
-            double128 d;
-            memcpy(d.arr, dst, len * sizeof(double));
-            shared_double128_write(&sdu->sd128, d);
-        }
-            break;
-        case 256: {
-            double256 d;
-            memcpy(d.arr, dst, len * sizeof(double));
-            shared_double256_write(&sdu->sd256, d);
-        }
-            break;
-        case 512: {
-            double512 d;
-            memcpy(d.arr, dst, len * sizeof(double));
-            shared_double512_write(&sdu->sd512, d);
-        }
-            break;
-        case 1024: {
-            double1024 d;
-            memcpy(d.arr, dst, len * sizeof(double));
-            shared_double1024_write(&sdu->sd1024, d);
-        }
-            break;
-        case 2048: {
-            double2048 d;
-            memcpy(d.arr, dst, len * sizeof(double));
-            shared_double2048_write(&sdu->sd2048, d);
-        }
-            break;
-        case 4096: {
-            double4096 d;
-            memcpy(d.arr, dst, len * sizeof(double));
-            shared_double4096_write(&sdu->sd4096, d);
-        }
-            break;
-        case 8192: {
-            double8192 d;
-            memcpy(d.arr, dst, len * sizeof(double));
-            shared_double8192_write(&sdu->sd8192, d);
-        }
-            break;
-        }
+        shared_double_arr_write(sdu, dst, len);
     }
 
     

@@ -175,7 +175,7 @@ void transport_playback_callback(void* user_data, uint8_t* stream, int len)
                 /* interleaved, */
                 stream_len_samples);
             if (ret != LFQUEUE_SUCCESS) {
-                fprintf(stderr, "Dequeue failure early return\n");
+                /* fprintf(stderr, "Dequeue failure early return\n"); */
                 return;
             } else {
                 has_playback = true;

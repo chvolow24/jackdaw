@@ -625,8 +625,6 @@ void session_schedule_free(
     const int num_threads,
     void (*destroy_fn)(void *))
 {
-
-    fprintf(stderr, "CALL TO SCHEDULE FREE: destroy fn: %p\n", destroy_fn);
     uint32_t epochs[num_threads];
     for (int i=0; i<num_threads; i++) {
         epochs[i] = thread_epoch(threads[i]);

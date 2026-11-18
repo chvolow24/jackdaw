@@ -475,25 +475,25 @@ static Page *add_fir_filter_page(FIRFilter *f, EffectChain *ec, TabView *tv)
     /* if (!track->buf_L_freq_mag) track->buf_L_freq_mag = calloc(f->frequency_response_len, sizeof(double)); */
     /* if (!track->buf_R_freq_mag) track->buf_R_freq_mag = calloc(f->frequency_response_len, sizeof(double)); */
     
-    double *arrays[3] = {
-	f->output_freq_mag_L,
-	f->output_freq_mag_R,
-	f->frequency_response_mag
-    };	
-    SDL_Color *plot_colors[] = {&colors.freq_L, &colors.freq_R, &colors.white};
+    SharedDoubleMax8192 *sd_arrs[] = {&f->output_freq_mag_L, &f->output_freq_mag_R, &f->frequency_response_mag};
+    SDL_Color *sdarray_colors[] = {&colors.freq_L, &colors.freq_R, &colors.white};
 
-    int lens[] = {
-	ec->proj->fourier_len_sframes,
-	ec->proj->fourier_len_sframes,
-	ec->proj->fourier_len_sframes
+    int sd_lens[] = {
+        ec->proj->fourier_len_sframes,
+        ec->proj->fourier_len_sframes,
+        ec->proj->fourier_len_sframes
     };
-    p.freqplot_p.darrays = arrays;
-    p.freqplot_p.num_darrays = 3;
-    p.freqplot_p.darray_lens = lens;
+    p.freqplot_p.darrays = NULL;
+    p.freqplot_p.num_darrays = 0;
+    p.freqplot_p.darray_lens = NULL;
     p.freqplot_p.farrays = NULL;
     p.freqplot_p.num_farrays = 0;
-    p.freqplot_p.darray_colors = plot_colors;
+    p.freqplot_p.shared_double_arrs = sd_arrs;
+    p.freqplot_p.shared_double_arr_lens = sd_lens;
+    p.freqplot_p.num_shared_double_arrs = 3;
+    p.freqplot_p.darray_colors = NULL;
     p.freqplot_p.farray_colors = NULL;
+    p.freqplot_p.shared_double_arr_colors = sdarray_colors;
     p.freqplot_p.min_freq_hz = 20;
     p.freqplot_p.max_freq_hz = (double)session->proj.sample_rate / 2;
 

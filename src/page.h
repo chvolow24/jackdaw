@@ -151,8 +151,12 @@ struct freqplot_params {
     float **farrays;
     int *farray_lens;
     int num_farrays;
+    SharedDoubleMax8192 **shared_double_arrs;
+    int *shared_double_arr_lens;
+    int num_shared_double_arrs;
     SDL_Color **darray_colors;
     SDL_Color **farray_colors;
+    SDL_Color **shared_double_arr_colors;
     double min_freq_hz;
     double max_freq_hz;
 };

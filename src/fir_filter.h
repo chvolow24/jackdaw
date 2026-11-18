@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include "endpoint.h"
+#include "shared_fixed_array.h"
 
 #define DEFAULT_FILTER_LEN 128
 #define DELAY_LINE_MAX_LEN_S 1
@@ -40,11 +41,14 @@ typedef struct fir_filter {
     double bandwidth_ctrl; /* For gui components and automations */
     double *impulse_response;
     double complex *frequency_response;
-    double *frequency_response_mag;
+    /* double *frequency_response_mag; */
+    SharedDoubleMax8192 frequency_response_mag;
     float *overlap_buffer_L;
     float *overlap_buffer_R;
-    double *output_freq_mag_L;
-    double *output_freq_mag_R;
+    SharedDoubleMax8192 output_freq_mag_L;
+    SharedDoubleMax8192 output_freq_mag_R;
+    /* double *output_freq_mag_L; */
+    /* double *output_freq_mag_R; */
     uint16_t impulse_response_len; /* Only modified in callbacks */
     uint16_t impulse_response_len_internal;
     uint16_t chunk_len;

@@ -61,11 +61,9 @@ static void eq_dsp_cb(Endpoint *ep)
 {
     EQ *eq = ep->xarg1;
     EQFilterCtrl *ctrl = ep->xarg2;
-    ctrl->bandwidth_scalar = ctrl->bandwidth_preferred;
+    double bw_preferred = endpoint_read(&ctrl->bandwidth_preferred_ep, NULL).double_v;
+    ctrl->bandwidth_scalar = bw_preferred;
     eq_set_filter_from_ctrl(eq, ctrl - eq->ctrls);
-    /* iir_group_update_freq_resp(&eq->group); */
-
-    /* eq_set_peak(eq, ctrl->index, ctrl->freq_amp_raw[0], ctrl->freq_amp_raw[1], ctrl->bandwidth_scalar * ctrl->freq_amp_raw[0]); */
 }
 
 static void eq_freq_dsp_cb(Endpoint *ep)
@@ -77,14 +75,14 @@ static void eq_freq_dsp_cb(Endpoint *ep)
     eq_dsp_cb(ep);
 }
 
-static void eq_bandwidth_scalar_dsp_cb(Endpoint *ep)
-{
-    /* EQ *eq = ep->xarg1; */
-    EQFilterCtrl *ctrl = ep->xarg2;
-    ctrl->bandwidth_preferred = ctrl->bandwidth_scalar;
-    eq_dsp_cb(ep);
+/* static void eq_bandwidth_scalar_dsp_cb(Endpoint *ep) */
+/* { */
+/*     /\* EQ *eq = ep->xarg1; *\/ */
+/*     EQFilterCtrl *ctrl = ep->xarg2; */
+/*     ctrl->bandwidth_preferred = ctrl->bandwidth_scalar; */
+/*     eq_dsp_cb(ep); */
 
-}
+/* } */
 
 static void eq_gui_cb(Endpoint *ep)
 {
@@ -109,7 +107,6 @@ static void eq_gui_cb(Endpoint *ep)
             stale[i] = 1;
         }
     }
-    fprintf(stderr, "GUI cb update fp. stale? %d%d%d%d%d%d\n", stale[0], stale[1], stale[2], stale[3], stale[4], stale[5]);
     iir_group_update_freq_resp(&eq->group);
 }
 
@@ -130,16 +127,13 @@ void eq_ctrl_label_fn(char *dst, size_t dstsize, Value val, ValType type)
     dst += written;
     Value amp = (Value){.double_v = val.double_pair_v[1]};
     label_amp_to_dbstr(dst, dstsize, amp, JDAW_DOUBLE);
-    /* fprintf(stderr, "LABLE: %s\n", dst); */
 }
 
 static void eq_set_filter_active(EQ *eq, int index, bool active)
 {
-    fprintf(stderr, "Set filter %d %s\n", index, active ? "ACTIVE" : "inactive");
     astrr(&eq->ctrls[index].filter_active, active);
     astrr(&eq->group.filters[index].bypass, !active);
     if (!active && eq->fp) {
-        fprintf(stderr, "\t->set neutral freq resp\n");
         iir_set_neutral_freq_resp(&eq->group.filters[index]);
     }
     astrr(&eq->group.filters[index].freq_resp_stale, true);
@@ -267,15 +261,15 @@ void eq_init(EQ *eq)
 	    (Value){.double_v = 0.1});
         api_endpoint_register(&ctrl->freq_ep, &ctrl->api_node);
 	
-	endpoint_init(
-	    &ctrl->bandwidth_scalar_ep,
-	    &ctrl->bandwidth_scalar,
-	    JDAW_DOUBLE,
-	    "bandwidth_scalar",
-	    "bandwidth_scalar_raw",
-	    JDAW_THREAD_DSP,
-	    eq_gui_cb, NULL, eq_bandwidth_scalar_dsp_cb,
-	    (void*)eq, (void*)(ctrl), NULL, NULL);
+	/* endpoint_init( */
+	/*     &ctrl->bandwidth_scalar_ep, */
+	/*     &ctrl->bandwidth_scalar, */
+	/*     JDAW_DOUBLE, */
+	/*     "bandwidth_scalar", */
+	/*     "bandwidth_scalar_raw", */
+	/*     JDAW_THREAD_DSP, */
+	/*     eq_gui_cb, NULL, eq_bandwidth_scalar_dsp_cb, */
+	/*     (void*)eq, (void*)(ctrl), NULL, NULL); */
 	endpoint_init(
 	    &ctrl->freq_amp_ep,
 	    &ctrl->freq_amp_raw,
@@ -301,7 +295,7 @@ void eq_init(EQ *eq)
 	endpoint_set_allowed_range(
 	    &ctrl->bandwidth_preferred_ep,
 	    (Value){.double_v = 0.001},
-	    (Value){.double_v = 1.0});
+	    (Value){.double_v = 5.0});
 	endpoint_set_default_value(
 	    &ctrl->bandwidth_preferred_ep,
 	    (Value){.double_v = 0.4});
@@ -433,10 +427,10 @@ void eq_mouse_motion(EQFilterCtrl *ctrl, Window *win)
     if (win->i_state & I_STATE_CMDCTRL) {
 	double new_bw_scalar = ctrl->bandwidth_scalar + (double)win->current_event->motion.yrel / 100.0;
 	if (new_bw_scalar < 0.001) new_bw_scalar = 0.005;
-	if (!ctrl->bandwidth_scalar_ep.changing) {
-	    endpoint_start_continuous_change(&ctrl->bandwidth_scalar_ep, false, (Value){0}, JDAW_THREAD_DSP, (Value){.double_v = new_bw_scalar});
+	if (!ctrl->bandwidth_preferred_ep.changing) {
+            endpoint_start_continuous_change(&ctrl->bandwidth_preferred_ep, false, (Value){0}, JDAW_THREAD_DSP, (Value){.double_v = new_bw_scalar});
 	} else {
-	    endpoint_write(&ctrl->bandwidth_scalar_ep, (Value){.double_v = new_bw_scalar}, true, true, true, false);
+            endpoint_write(&ctrl->bandwidth_preferred_ep, (Value){.double_v = new_bw_scalar}, true, true, true, false);
 	}
     } else {
 	eq_set_filter_from_mouse(eq, ctrl->index, write_point);

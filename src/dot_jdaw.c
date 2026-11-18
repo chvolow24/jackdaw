@@ -431,6 +431,7 @@ static void jdaw_write_eq(FILE *f, EQ *eq)
 	float_ser40_le(f, ctrl->freq_amp_raw[0]);
 	float_ser40_le(f, ctrl->freq_amp_raw[1]);
 	float_ser40_le(f, ctrl->bandwidth_scalar);
+        fprintf(stderr, "Write bw scalar %d, %f\n", i, ctrl->bandwidth_scalar);
     }
 }
 
@@ -1510,9 +1511,12 @@ static int jdaw_read_eq(FILE *f, EQ *eq)
 	ctrl->filter_active = uint8_deser(f);
 	IIRFilterType t = (int)uint8_deser(f);
 	eq->group.filters[i].type = t;
-	ctrl->freq_amp_raw[0] = float_deser40_le(f);
-	ctrl->freq_amp_raw[1] = float_deser40_le(f);
-	ctrl->bandwidth_scalar = float_deser40_le(f);
+        Value freq_amp_raw;
+        freq_amp_raw.double_pair_v[0] = float_deser40_le(f);
+        freq_amp_raw.double_pair_v[1] = float_deser40_le(f);
+        double bandwidth_scalar = float_deser40_le(f);
+        endpoint_write(&ctrl->freq_amp_ep, freq_amp_raw, true, true, true, false);
+        endpoint_write(&ctrl->bandwidth_preferred_ep, (Value){.double_v = bandwidth_scalar}, true, true, true, false);
 	if (ctrl->filter_active) {
 	    eq_set_filter_from_ctrl(eq, i);
 	}

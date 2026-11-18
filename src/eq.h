@@ -53,7 +53,7 @@ typedef struct eq_filter_ctrl {
     Endpoint freq_ep;
     Endpoint amp_ep;
     Endpoint freq_amp_ep;
-    Endpoint bandwidth_scalar_ep;
+    /* Endpoint bandwidth_scalar_ep; */
     Endpoint bandwidth_preferred_ep;
     Endpoint filter_type_ep;
     int x;

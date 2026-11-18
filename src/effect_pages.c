@@ -985,43 +985,8 @@ static Page *add_vibrato_page(Vibrato *vib, EffectChain *ec, TabView *tv)
     return page;
 }
 
-
-
-
-
 /**************************************************************************/
 /* utils */
-
-
-
-/* static void create_track_selection_area(Page *page, Track *track) */
-/* { */
-/*     PageElParams p; */
-/*     p.textbox_p.font = main_win->mono_bold_font; */
-/*     p.textbox_p.win = main_win; */
-/*     p.textbox_p.text_size = 16; */
-/*     p.textbox_p.set_str = track->name; */
-/*     PageEl *el = page_add_el(page, EL_TEXTBOX, p, "track_settings_name_tb", "track_name"); */
-/*     Textbox *tb = el->component; */
-/*     textbox_set_align(tb, CENTER_LEFT); */
-/*     textbox_size_to_fit_h(tb, 5); */
-/*     /\* layout_reset(tb->layout->parent); *\/ */
-/*     textbox_reset_full(tb); */
-
-/*     p.button_p.set_str = "p↑"; */
-/*     p.button_p.font = main_win->mono_bold_font; */
-/*     p.button_p.win = main_win; */
-/*     p.button_p.text_size = 16; */
-/*     p.button_p.background_color = &colors.light_grey; */
-/*     p.button_p.text_color = &colors.black; */
-/*     p.button_p.action = previous_track; */
-/*     el = page_add_el(page, EL_BUTTON, p, "track_settings_prev_track", "track_previous"); */
-
-/*     p.button_p.set_str = "n↓"; */
-/*     p.button_p.action = next_track; */
-/*     el = page_add_el(page, EL_BUTTON, p, "track_settings_next_track", "track_next"); */
-/* } */
-
 
 void filter_tabs_canvas_draw(void *draw_arg1, void *draw_arg2)
 {
@@ -1031,10 +996,7 @@ void filter_tabs_canvas_draw(void *draw_arg1, void *draw_arg2)
     int sel_filter_index = sel_filter_active & 0x0F;
 
     for (int i=0; i<filter_tabs->num_children; i++) {
-	/* fprintf(stderr, "check %d\n", i); */
-
 	if (i == sel_filter_index) {
-	    /* fprintf(stderr, "found !\n"); */
 	    if (eq->ctrls[sel_filter_index].filter_active) {
 		SDL_SetRenderDrawColor(main_win->rend, sdl_color_expand(EQ_CTRL_COLORS_LIGHT[i]));
 	    } else {

@@ -13,7 +13,6 @@
 #include "atomic.h"
 #include "color.h"
 #include "consts.h"
-#include "dev.h"
 #include "dsp_utils.h"
 #include "endpoint.h"
 #include "geometry.h"
@@ -74,15 +73,6 @@ static void eq_freq_dsp_cb(Endpoint *ep)
     ctrl->freq_amp_raw[0] = pow(flen, ctrl->freq_exp) / flen;
     eq_dsp_cb(ep);
 }
-
-/* static void eq_bandwidth_scalar_dsp_cb(Endpoint *ep) */
-/* { */
-/*     /\* EQ *eq = ep->xarg1; *\/ */
-/*     EQFilterCtrl *ctrl = ep->xarg2; */
-/*     ctrl->bandwidth_preferred = ctrl->bandwidth_scalar; */
-/*     eq_dsp_cb(ep); */
-
-/* } */
 
 static void eq_gui_cb(Endpoint *ep)
 {
@@ -145,7 +135,7 @@ static void selected_filter_active_dsp_cb(Endpoint *ep)
     uint8_t val = endpoint_read(ep, NULL).uint8_v;
     bool active = val & 0xF0;
     uint8_t index = val & 0x0F;
-    eq_set_filter_active(eq, index, active);    
+    eq_set_filter_active(eq, index, active);
 }
 
 
@@ -203,6 +193,8 @@ void eq_init(EQ *eq)
 	selected_filter_active_gui_cb, NULL, selected_filter_active_dsp_cb,
 	eq, NULL, NULL, NULL);
     endpoint_set_default_value(&eq->selected_filter_active_ep, (Value){.int_v = 0});
+    eq->selected_filter_active_ep.automatable = false;
+    api_endpoint_register(&eq->selected_filter_active_ep, &eq->effect->api_node);
 
     static char api_ctrl_node_names[EQ_DEFAULT_NUM_FILTERS][12];
 		  		  
@@ -357,8 +349,9 @@ void eq_set_filter_from_ctrl(EQ *eq, int index)
     IIRFilter *filter = eq->group.filters + index;
     filter->type = ctrl->filter_type;
 
-    double freq_raw = ctrl->freq_amp_raw[0];
-    double amp_raw = ctrl->freq_amp_raw[1];
+    Value freq_amp_val = endpoint_read(&ctrl->freq_amp_ep, NULL);
+    double freq_raw = freq_amp_val.double_pair_v[0];
+    double amp_raw = freq_amp_val.double_pair_v[1];
     static const double epsilon = 1e-9;
     if (fabs(amp_raw - 1.0) < epsilon) {
         uint8_t value = 0x00 | index;

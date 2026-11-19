@@ -177,13 +177,15 @@ void compressor_draw(Compressor *c, SDL_Rect *target)
 
     /* int thresh_x = c->threshold * target->w + target->x; */
     /* int vertex_rel = thresh_x * target->w; */
-    int vertex_rel = c->threshold * target->w;
+    float threshold = endpoint_read(&c->threshold_ep, NULL).float_v;
+    int vertex_rel = threshold * target->w;
     int x_vertex = target->x + vertex_rel;
     int y_vertex = target->y + target->h - vertex_rel;
     SDL_RenderDrawLine(main_win->rend, target->x, target->y + target->h, x_vertex, y_vertex);
 
 
-    int end_y = y_vertex - (c->m * (target->w - vertex_rel));
+    float m = 1.0f - endpoint_read(&c->ratio_ep, NULL).float_v;
+    int end_y = y_vertex - (m * (target->w - vertex_rel));
     SDL_RenderDrawLine(main_win->rend, x_vertex, y_vertex, target->x + target->w, end_y);
 
 
@@ -197,8 +199,8 @@ void compressor_draw(Compressor *c, SDL_Rect *target)
     }
     int env_x_rel = env * target->w;
     int env_y;
-    if (env > c->threshold) {
-	env_y = y_vertex - (c->m * (env_x_rel - vertex_rel));
+    if (env > threshold) {
+	env_y = y_vertex - (m * (env_x_rel - vertex_rel));
     } else {
 	env_y = target->y + target->h - env_x_rel;
     }
@@ -207,7 +209,7 @@ void compressor_draw(Compressor *c, SDL_Rect *target)
     for (int x_rel=vertex_rel; x_rel<target->w; x_rel++) {
 
 	int top_y = target->y + (target->h - x_rel);
-	int btm_y = target->y + target->h - vertex_rel - (x_rel - vertex_rel) * c->m;
+	int btm_y = target->y + target->h - vertex_rel - (x_rel - vertex_rel) * m;
 	
 	if (under_env && x_rel > env_x_rel) {
 	    under_env = false;

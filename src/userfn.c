@@ -1037,7 +1037,7 @@ void user_tl_zoom_out(void *nullarg)
 }
 
 static NEW_EVENT_FN(undo_redo_set_mark, "undo/redo set mark")
-    int32_t *mark = (int32_t *)obj1;
+    _Atomic int32_t *mark = (_Atomic int32_t *)obj1;
     *mark = val1.int32_v;
     atomic_store_explicit(&main_win->needs_redraw, true, memory_order_relaxed);
 }

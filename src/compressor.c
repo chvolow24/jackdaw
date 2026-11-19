@@ -10,6 +10,7 @@
 
 #include <stdatomic.h>
 #include <stdio.h>
+#include "atomic.h"
 #include "compressor.h"
 #include "consts.h"
 #include "endpoint.h"
@@ -75,6 +76,7 @@ float compressor_buf_apply_mono(void *compressor_v, float *buf, int len, int cha
     }
     c->gain_scalar[channel] = amp_scalar;
     c->env[channel] = env;
+    astrr(&c->env_shared[channel], env * INT16_MAX);
     return output_amp;    
 }
 
@@ -138,6 +140,7 @@ float compressor_buf_apply_stereo(void *compressor_v, float *restrict L, float *
     }
     c->gain_scalar[0] = amp_scalar;
     c->env[0] = env;
+    astrr(&c->env_shared[0], env * INT16_MAX);
     return output_amp;
     /* return output_amp;    */
     /* if (L) */
@@ -187,7 +190,7 @@ void compressor_draw(Compressor *c, SDL_Rect *target)
     
 
     bool overdriven = false;
-    float env = c->env[0];
+    float env = (float)aldr(&c->env_shared[0]) / INT16_MAX;
     if (env > 1.0) {
 	env = 1.0;
 	overdriven = true;

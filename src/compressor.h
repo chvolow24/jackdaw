@@ -30,6 +30,7 @@ typedef struct compressor {
     EnvelopeFollower ef[2];
     float gain_scalar[2];
     float env[2];
+    _Atomic int16_t env_shared[2];
     /* bool active; */
     float threshold;
     float m; /* Equal to one over the ratio */

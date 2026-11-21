@@ -10,6 +10,10 @@
 #ifdef TESTBUILD
 void sa_debug_guard_thread_access(SharedArray *sa)
 {
+    /* if (!sa->__init) { */
+    /*     error_exit( */
+    /*         "Shared array \"%s\" is not initialized\n", sa->__init); */
+    /* } */
     enum jdaw_thread current = current_thread();
     if (current == JDAW_THREAD_MAIN) return;
     for (int i=0; i<sa->num_user_threads; i++) {
@@ -36,6 +40,9 @@ void sa_init_real(
     sa->num_user_threads = num_user_threads;
     sa->data = malloc(sizeof(int32_t));
     *(int32_t *)sa->data = 0;
+    #ifdef TESTBUILD
+    sa->__init = true;
+    #endif
 }
 
 static void schedule_free(SharedArray *sa, void *old_data)
@@ -52,8 +59,13 @@ struct sa_data sa_get_rdonly(SharedArray *sa)
     sa_debug_guard_thread_access(sa);
     struct sa_data ret = {0};
     ret.__data = atomic_load_explicit(&sa->data, memory_order_acquire);
-    ret.len = *(int32_t *)(ret.__data);
-    ret.__array = ret.__data + sizeof(int32_t);
+    if (!ret.__data) {
+        ret.len = 0;
+        ret.__array = NULL;
+    } else {
+        ret.len = *(int32_t *)(ret.__data);
+        ret.__array = ret.__data + sizeof(int32_t);
+    }
     ret.__rdonly = true;
     ret.sa = sa;
     return ret;

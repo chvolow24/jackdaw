@@ -16,9 +16,6 @@ SDL_Color textbox_default_border_clr = (SDL_Color) {100, 100, 100, 255};
 
 extern struct colors colors;
 
-#ifndef LAYOUT_BUILD
-extern volatile bool CANCEL_THREADS;
-#endif
 int textbox_default_radius = 0;
 
 /*txt_create_from_str(char *set_str, int max_len, SDL_Rect *container, TTF_Font *font, SDL_Color txt_clr, TextAlign align, bool truncate, SDL_Renderer *rend) -> Text **/

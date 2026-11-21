@@ -15,6 +15,7 @@ typedef struct shared_array {
     const char *__name;
     #ifdef TESTBUILD
     char prev_wr_bt[NUM_JDAW_THREADS][SHARED_ARRAY_BACKTRACE_MAX_LEN];
+    bool __init;
     #endif
 
 } SharedArray;

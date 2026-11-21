@@ -187,10 +187,7 @@ void compressor_draw(Compressor *c, SDL_Rect *target)
     float m = 1.0f - endpoint_read(&c->ratio_ep, NULL).float_v;
     int end_y = y_vertex - (m * (target->w - vertex_rel));
     SDL_RenderDrawLine(main_win->rend, x_vertex, y_vertex, target->x + target->w, end_y);
-
-
     
-
     bool overdriven = false;
     float env = (float)aldr(&c->env_shared[0]) / INT16_MAX;
     if (env > 1.0) {

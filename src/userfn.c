@@ -1062,7 +1062,6 @@ void user_tl_set_mark_out(void *tl_opt)
     Value new_mark = {.int32_v = tl->out_mark_sframes};
 
     user_event_push(
-	
 	undo_redo_set_mark,
 	undo_redo_set_mark,
 	NULL, NULL,

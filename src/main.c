@@ -43,6 +43,7 @@
 #include "symbol.h"
 #include "tempo.h"
 #include "text.h"
+#include "thread_safety.h"
 #include "transport.h"
 #include "window.h"
 
@@ -65,7 +66,6 @@ const char *jackdaw_version = JACKDAW_VERSION;
 /* char DIRPATH_EXPORT[MAX_PATHLEN]; */
 
 bool SYS_BYTEORDER_LE = false;
-volatile bool CANCEL_THREADS = false;
 
 Window *main_win = NULL;
 
@@ -130,14 +130,18 @@ static void quit()
     log_print_errors();
     if (main_win->txt_editing) txt_stop_editing(main_win->txt_editing);
     api_quit();
-    CANCEL_THREADS = true;
     pd_signal_termination_of_jackdaw();
     if (session->playback.recording) {
 	transport_stop_recording();
     }
     transport_stop_playback();
-    /* Sleep to allow DSP thread to exit */
-    SDL_Delay(100);
+    
+    for (enum jdaw_thread t = JDAW_THREAD_MAIN + 1; t < NUM_JDAW_THREADS; t++) {
+        if (thread_is_active(t)) {
+            thread_cancel(t);
+        }
+    }
+
     session_destroy();
     symbol_quit(main_win);
     if (main_win) {

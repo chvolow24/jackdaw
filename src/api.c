@@ -23,8 +23,6 @@
 #define MAX_ROUTE_DEPTH 16
 #define MAX_ROUTE_LEN 256
 
-extern volatile bool CANCEL_THREADS;
-
 static struct api_hash_node *api_hash_table[API_HASH_TABLE_SIZE] = {0};
 static struct api_hash_node **stashed_api_hash_table = NULL;
 static APINode stashed_api_root = {0};

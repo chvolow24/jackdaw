@@ -489,19 +489,20 @@ float effect_chain_buf_apply(EffectChain *ec, float *restrict L, float *restrict
     while (index < len) {
         for (int i=0; i<effects.len; i++) {
             Effect *const e = *(Effect *const *)sa_at(&effects, i);
+            EffectChannelMode ch_mode = endpoint_read(&e->channel_mode_ep, NULL).int_v;
             bool running_amp_nonzero = fabs(running_amp) > amp_epsilon;
             if (e->active && (e->operate_on_empty_buf || running_amp_nonzero)) {
                 e->has_proc_state = true;
-                if (!ec->mid_side_encoded && EFFECT_CH_MODE_DO_ENCODE(e->channel_mode)) {
+                if (!ec->mid_side_encoded && EFFECT_CH_MODE_DO_ENCODE(ch_mode)) {
                     mid_side_encode(L + index, R + index, ec->chunk_len_sframes);
                     ec->mid_side_encoded = true;
-                } else if (ec->mid_side_encoded && !EFFECT_CH_MODE_DO_ENCODE(e->channel_mode)) {
+                } else if (ec->mid_side_encoded && !EFFECT_CH_MODE_DO_ENCODE(ch_mode)) {
                     mid_side_decode(L + index, R + index, ec->chunk_len_sframes);
                     ec->mid_side_encoded = false;
                 }
-                if (e->channel_mode == EFFECT_CH_MODE_L || e->channel_mode == EFFECT_CH_MODE_MID) {
+                if (ch_mode == EFFECT_CH_MODE_L || ch_mode == EFFECT_CH_MODE_MID) {
                     running_amp = effect_buf_apply(e, L + index, NULL, ec->chunk_len_sframes, running_amp);
-                } else if (e->channel_mode == EFFECT_CH_MODE_R || e->channel_mode == EFFECT_CH_MODE_SIDE) {
+                } else if (ch_mode == EFFECT_CH_MODE_R || ch_mode == EFFECT_CH_MODE_SIDE) {
                     running_amp = effect_buf_apply(e, NULL, R + index, ec->chunk_len_sframes, running_amp);
                 } else {
                     running_amp = effect_buf_apply(e, L + index, R + index, ec->chunk_len_sframes, running_amp);

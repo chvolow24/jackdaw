@@ -71,7 +71,7 @@ typedef struct effect {
     Endpoint active_ep;
     APINode api_node;
     /* effect not silenced */
-    bool has_proc_state;
+    _Atomic bool has_proc_state;
 } Effect;
 
 typedef struct effect_chain {
@@ -84,7 +84,7 @@ typedef struct effect_chain {
     APINode api_node;
     /* APINode *api_node; /\* Allocated on parent object, e.g. track or synth *\/ */
     const char *obj_name;
-    bool mid_side_encoded;
+    _Atomic bool mid_side_encoded;
     _Atomic bool request_clear;
 } EffectChain;
 

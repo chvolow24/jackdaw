@@ -27,6 +27,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "thread_safety.h"
+
 #ifndef JDAW_API_H
 #define JDAW_API_H
 
@@ -47,6 +49,7 @@ typedef struct api_node {
     const char *fixed_name;
     bool do_not_serialize;
     bool do_not_automate;
+    _Atomic enum jdaw_thread owner_thread;
 } APINode;
 
 struct api_server {

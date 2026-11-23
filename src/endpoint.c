@@ -251,7 +251,7 @@ int endpoint_write(
     bool delay_gui_cb = false;
     bool set_t = false;
     for (int t=NUM_JDAW_THREADS - 1; t>=0; t--) {
-        if (set_t) t = JDAW_THREAD_DSP - 1;
+        if (set_t) t = JDAW_THREAD_DSP - 1; /* restore loop if t was temporarily set to JDAW_THREAD_INSTRUMENT */
         int num = aldr(&ep->num_registered_callbacks[t]);
         for (int i=0; i<num; i++) {
             EndptCb cb = aldr(&ep->registered_callbacks[t][i]);            
@@ -261,7 +261,6 @@ int endpoint_write(
                 t = JDAW_THREAD_INSTRUMENT;
                 set_t = true;
             }
-
             if (t == (int)owner && async_thread_loc_val_change) {
                 goto enqueue;
             } else if (t == (int)JDAW_THREAD_MAIN && delay_gui_cb) {
@@ -416,4 +415,5 @@ void api_node_set_owner(APINode *node, enum jdaw_thread thread)
     for (int i=0; i<node->num_children; i++) {
 	api_node_set_owner(node->children[i], thread);
     }
+    node->owner_thread = thread;
 }

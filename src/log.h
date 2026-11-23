@@ -26,5 +26,7 @@ void log_print_last_session();
 
 void log_disable();
 
+void thread_col_print(const char *fmt, ...);
+
 
 #endif

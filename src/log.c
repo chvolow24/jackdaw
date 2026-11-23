@@ -252,3 +252,20 @@ void log_print_last_session()
     log_printall();
 
 }
+
+
+void thread_col_print(const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    char tabs[NUM_JDAW_THREADS * 2 + 1] = {0};
+    for (int i=0; i<current_thread() *2; i+=2) {
+        tabs[i] = '\t';
+        tabs[i + 1] = '\t';
+    }
+    char new_fmt[strlen(fmt) + 256];
+    snprintf(new_fmt, sizeof(new_fmt), "%s(%d: %s): %s", tabs, current_thread(), get_current_thread_name(), fmt);
+    new_fmt[sizeof(new_fmt)] = '\0';    
+    vprintf(new_fmt, ap);
+    va_end(ap);
+}

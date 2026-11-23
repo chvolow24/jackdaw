@@ -313,8 +313,8 @@ void eq_init(EQ *eq)
                     i == EQ_DEFAULT_NUM_FILTERS - 1 ? IIR_HIGHSHELF :
                     IIR_PEAKNOTCH
                     )});
-        endpoint_write_default(&ctrl->filter_type_ep);
         api_endpoint_register(&ctrl->filter_type_ep, &ctrl->api_node);
+        endpoint_write_default(&ctrl->filter_type_ep);
     }
 }
 

@@ -72,11 +72,15 @@ void api_endpoint_register(Endpoint *ep, APINode *parent)
     ep->parent = parent;
 
     api_endpoint_insert_into_table(ep);
+    if (ep->owner_thread != parent->owner_thread && (parent->owner_thread == JDAW_THREAD_DSP || parent->owner_thread == JDAW_THREAD_INSTRUMENT)) {
+        endpoint_set_owner(ep, parent->owner_thread);
+    }
 }
 
 
 void api_node_register(APINode *node, APINode *parent, char *obj_name, const char *fixed_name)
 {
+    if (parent) node->owner_thread = parent->owner_thread;
     if (parent->num_children == MAX_API_NODE_CHILDREN) {
 	fprintf(stderr, "API setup error: node \"%s\" max num children\n", parent->obj_name);
 	return;

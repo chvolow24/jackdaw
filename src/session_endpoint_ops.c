@@ -142,7 +142,6 @@ void session_enqueue_user_event(const struct queued_user_event *const event)
     Session *session = session_get();
     LFQueue *q = &session->queued_ops.queued_user_events[current_thread()];
     int ret = lfqueue_try_enqueue(q, event, 1);
-    fprintf(stderr, "enqueued user event!\n");
     if (ret != LFQUEUE_SUCCESS) {
         TESTBREAK;
         log_tmp(LOG_WARN, "Unable to enqueue user event: %s\n", lfqueue_get_errstr(ret));
@@ -160,7 +159,6 @@ void session_dequeue_user_events()
         LFQueue *q = &session->queued_ops.queued_user_events[t];
         struct queued_user_event event_dst;
         while (lfqueue_try_dequeue(q, &event_dst, 1) == LFQUEUE_SUCCESS) {
-            fprintf(stderr, "Dequeued user event!\n");
             user_event_push_queued(event_dst);
         }
     }

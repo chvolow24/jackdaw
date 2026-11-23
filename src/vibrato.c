@@ -118,9 +118,9 @@ void vibrato_init(Vibrato *vib)
 	(Value){.double_v = 0.1},
 	(Value){.double_v = 1.0});
     endpoint_set_default_value(&vib->freq_hz_ep, (Value){.double_v = VIB_DEFAULT_FREQ_UNSCALED});
-    endpoint_write_default(&vib->freq_hz_ep);
     endpoint_set_label_fn(&vib->freq_hz_ep, vib_freq_labelfn);
     api_endpoint_register(&vib->freq_hz_ep, &vib->effect->api_node);
+    endpoint_write_default(&vib->freq_hz_ep);
 
     endpoint_init(
 	&vib->depth_ep,
@@ -137,8 +137,8 @@ void vibrato_init(Vibrato *vib)
 	(Value){.double_v = 0.0},
 	(Value){.double_v = 1.0});
     endpoint_set_default_value(&vib->depth_ep, (Value){.double_v = VIB_DEFAULT_DEPTH});
-    endpoint_write_default(&vib->depth_ep);
     api_endpoint_register(&vib->depth_ep, &vib->effect->api_node);
+    endpoint_write_default(&vib->depth_ep);
     
 	
 }

@@ -79,7 +79,7 @@ typedef struct midi_clip {
 
     MIDIDevice *recorded_from;
 
-    int32_t num_grabbed_notes;
+    _Atomic int32_t num_grabbed_notes;
     int32_t first_grabbed_note;
     int32_t last_grabbed_note;
 

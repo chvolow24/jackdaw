@@ -43,6 +43,7 @@ void snprint_backtrace(char *restrict dst, size_t size)
     int written = 0;
     for (int i=0; i<len; i++) {
 	written += snprintf(dst + written, size - written, "%s\n",symbols[i]);
+        if (written >= size) break;
     }
     free(symbols);
 }
